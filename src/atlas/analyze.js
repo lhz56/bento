@@ -1,0 +1,194 @@
+// Turns the raw facts from electron/atlas.cjs into things people understand:
+// the stack (with icons and alternatives), plain-English guesses for every file,
+// hot spots, and the prompt that asks the model to narrate the whole thing.
+import { CATALOG, CATS, BY_ID, LANGS } from './catalog.js';
+
+export const LAYERS = [
+  ['ui', 'What you see', 'Screens, buttons and styles', 'var(--accent)'],
+  ['server', 'Doors to the outside', 'Where requests, commands and messages come in', 'var(--sky)'],
+  ['logic', 'The brains', 'Rules, helpers and the real work', 'var(--violet)'],
+  ['data', 'Memory', 'How things are shaped and stored', 'var(--mint)'],
+  ['support', 'Backstage', 'Settings, tests, docs and scripts', 'var(--ink-4)'],
+];
+export const LAYER = Object.fromEntries(LAYERS.map((l) => [l[0], l]));
+const WORKSHOP = new Set(['build', 'tidy', 'test', 'ci']);
+const CAT_ORDER = Object.keys(CATS);
+
+const norm = (s) => String(s).toLowerCase().replace(/_/g, '-');
+
+export function detectStack(F) {
+  const sig = F.sig || {};
+  const npm = sig.npm || {};
+  const pip = new Set((sig.pip || []).map(norm));
+  const env = sig.env || [];
+  const extUse = new Map(); // package → file indices
+  F.files.forEach((f, i) => f.sub !== 'docs' && (f.ext || []).forEach((e) => { const k = norm(e); if (!extUse.has(k)) extUse.set(k, []); extUse.get(k).push(i); }));
+  const paths = F.files.map((f) => f.p);
+  const out = [];
+  for (const e of CATALOG) {
+    const ev = []; const used = new Set();
+    for (const m of e.m) {
+      const [k, v] = [m.slice(0, m.indexOf(':')), m.slice(m.indexOf(':') + 1)];
+      if (k === 'npm') {
+        if (npm[v]) ev.push(npm[v].dev ? `${npm[v].where} (dev)` : npm[v].where);
+        (extUse.get(norm(v)) || []).forEach((i) => used.add(i));
+      } else if (k === 'pip') {
+        if (pip.has(norm(v))) ev.push('Python requirements');
+        (extUse.get(norm(v)) || []).forEach((i) => used.add(i));
+        (extUse.get(norm(v).replace(/-python$|^python-|-py$|\.py$/g, '')) || []).forEach((i) => used.add(i));
+      } else if (k === 'go') { if ((sig.go || []).some((g) => g.startsWith(v))) ev.push('go.mod'); }
+      else if (k === 'gem') { if ((sig.gem || []).includes(v)) ev.push('Gemfile'); }
+      else if (k === 'cargo') { if ((sig.cargo || []).includes(v)) ev.push('Cargo.toml'); }
+      else if (k === 'env') { const hit = env.find((x) => x.startsWith(v)); if (hit) ev.push(`secret ${hit}`); }
+      else if (k === 'dock') { if ((sig.dock || []).some((d) => d.startsWith(v))) ev.push('docker image'); }
+      else if (k === 'prisma') { if ((sig.prisma || []).includes(v)) ev.push('Prisma schema'); }
+      else if (k === 'file') { const rx = new RegExp(v, 'i'); const hit = paths.find((p) => rx.test(p)); if (hit) ev.push(hit); }
+    }
+    if (ev.length || used.size) out.push({ ...e, evidence: [...new Set(ev)].slice(0, 3), used: [...used], dev: ev.length > 0 && ev.every((x) => /\(dev\)/.test(x)) });
+  }
+  const ids = new Set(out.map((x) => x.id));
+  // implied tools
+  if (ids.has('django')) out.push({ ...BY_ID.djangoorm, evidence: ['comes with Django'], used: [] });
+  if (!ids.has('tailwind') && !ids.has('sass') && !ids.has('styled') && F.files.some((f) => /\.css$/.test(f.p) && f.sub !== 'docs')) out.push({ ...BY_ID.cssmod, evidence: ['.css files'], used: [] });
+  if (ids.has('rn') || ids.has('expo')) { const r = out.find((x) => x.id === 'react'); if (r) r.hideAsUi = true; }
+  if (ids.has('next') || ids.has('remix')) { const v = out.find((x) => x.id === 'vite'); if (v && !v.used.length) v.cat = 'build'; }
+  if (ids.has('supabase') && !ids.has('postgres')) out.push({ ...BY_ID.postgres, evidence: ['inside Supabase'], used: [] });
+  // Tools that only live in the project's docs site or examples (h3's website/ is React, but h3 is a C library).
+  const SIDE = /^(website|docs?|site|examples?|demos?|playground|benchmarks?)\//i;
+  for (const x of out) x.side = x.evidence.length > 0 && x.evidence.every((e) => SIDE.test(e)) && x.used.every((i) => SIDE.test(F.files[i]?.p || ''));
+  for (const x of out) x.workshop = x.side || WORKSHOP.has(x.cat) || (x.dev && !['test', 'build'].includes(x.cat) && x.cat !== 'frame' && !x.used.length);
+  out.sort((a, b) => CAT_ORDER.indexOf(a.cat) - CAT_ORDER.indexOf(b.cat) || b.used.length - a.used.length);
+  return out;
+}
+
+// --------------------------------------------------------------------- per-file plain English
+const GENERIC = new Set(['index', 'page', 'route', 'layout', 'main', '__init__', 'mod', 'app', 'default', 'handler', 'loading', 'error', 'template', '+page', '+layout', '+server', 'view', 'views']);
+const PKG = new Set(['index', '__init__', 'mod', '__main__']);
+let dupes = new Set();
+// Call once per repo: base names that appear more than once get their folder in front.
+export function setDupes(files) { const c = {}; files.forEach((f) => { const b = f.p.split('/').pop().replace(/\.[^.]+$/, ''); c[b] = (c[b] || 0) + 1; }); dupes = new Set(Object.keys(c).filter((k) => c[k] > 1)); }
+export function displayName(p) {
+  const parts = p.split('/').map((x) => x.replace(/^\d{8,}_/, '')); const file = parts.pop(); const base = file.replace(/\.[^.]+$/, '').replace(/\.(test|spec|stories|d)$/, '');
+  const low = base.toLowerCase();
+  if (parts.length && PKG.has(low)) { let dir = parts.pop(); if (/^\[.*\]$|^\(.*\)$/.test(dir) && parts.length) dir = `${parts.pop()}/${dir}`; return low === '__main__' ? `${dir} ▸ main` : `${dir}/${file}`; }
+  if (parts.length && (GENERIC.has(low) || dupes.has(base))) {
+    let dir = parts.pop(); if (/^\[.*\]$|^\(.*\)$/.test(dir) && parts.length) dir = `${parts.pop()}/${dir}`;
+    return `${dir}/${base}`;
+  }
+  return base;
+}
+
+export function guessRole(f) {
+  const p = f.p.toLowerCase(); const name = p.split('/').pop();
+  if (f.sub === 'tests') return 'Automatic checks that the code still works';
+  if (f.sub === 'docs') return /readme/i.test(name) ? 'The front page: what this project is and how to use it' : 'Documentation or examples';
+  if (name === 'package.json') return 'The shopping list: which packages it needs and its commands';
+  if (/requirements.*\.txt|pyproject\.toml/.test(name)) return 'Which Python packages it needs';
+  if (/^dockerfile$/.test(name)) return 'Instructions to pack the app into a container';
+  if (/tsconfig/.test(name)) return 'Settings for TypeScript';
+  if (/\.config\.|rc$|rc\.json$/.test(name)) return 'Settings for one of the tools';
+  if (/\.github\/workflows/.test(p)) return 'A robot job that runs on GitHub';
+  if (f.sub === 'config') return 'Project settings';
+  if (f.sub === 'scripts') return 'A helper script for developers';
+  if (/\.(css|scss|sass|less)$/.test(name)) return /global|app|main|index/.test(name) ? 'The site-wide styles' : 'Styles for part of the page';
+  if (/(^|\/)api\/.*route\.[jt]s$/.test(p)) return `An API door at /${p.replace(/^.*?api\//, 'api/').replace(/\/route\.[jt]s$/, '')}`;
+  if (/(^|\/)layout\.[jt]sx?$/.test(p)) return 'The frame every page sits inside';
+  if (/(^|\/)page\.[jt]sx?$/.test(p) || /(^|\/)pages\//.test(p)) { const r = p.replace(/^.*?(app|pages)\//, '').replace(/\/?(page|index)\.[jt]sx?$/, '').replace(/\.[jt]sx?$/, ''); return r ? `The screen at /${r}` : 'The home screen'; }
+  if (/components\/ui\//.test(p)) return `A reusable ${displayName(f.p).replace(/-/g, ' ')} building block`;
+  if (/components?\//.test(p)) return `A piece of the screen: ${displayName(f.p).replace(/[-_]/g, ' ')}`;
+  if (/^use[a-z]/i.test(name) || /hooks?\//.test(p)) return 'A reusable bit of screen behaviour';
+  if (/utils?|helpers?|lib\//.test(p) && f.used > 3) return 'Small helpers used all over the app';
+  if (/models?|schema/.test(p)) return 'Describes the shape of the stored data';
+  if (/migrations?/.test(p)) return 'A change to the database structure';
+  if (/store|state/.test(p)) return 'Keeps track of data the app shares';
+  if (/auth|login|session/.test(p)) return 'Handles logging in and who you are';
+  if (f.layer === 'server') return 'Handles requests coming in';
+  if (f.entry) return 'Where the program starts';
+  if (f.layer === 'ui') return 'Part of what you see';
+  if (f.layer === 'data') return 'Part of how data is stored';
+  return 'Part of the inner workings';
+}
+
+// --------------------------------------------------------------------- hot spots you can measure
+export function measuredHotspots(F) {
+  const code = F.files.filter((f) => f.lang && f.layer !== 'support');
+  const n = Math.max(1, code.length);
+  const out = [];
+  const hubs = [...code].sort((a, b) => b.used - a.used).filter((f) => f.used >= Math.max(6, n * 0.12)).slice(0, 2);
+  for (const f of hubs) out.push({ p: f.p, kind: 'fragile', title: `${f.used} files lean on this one`, md: `A change in ${displayName(f.p)} ripples into ${f.used} other files. Keep it small and well tested, or split it so each part has fewer dependents.`, measured: true });
+  const big = [...code].filter((f) => f.lines > 450 && !/\.(css|scss|json|html|sql)$/.test(f.p)).sort((a, b) => b.lines - a.lines).slice(0, 2);
+  for (const f of big) out.push({ p: f.p, kind: 'complex', title: `${f.lines.toLocaleString()} lines in one file`, md: `Long files are hard to read and easy to break. It probably does several jobs; splitting it by job would make it easier to change safely.`, measured: true });
+  if ((F.cycles || []).length) {
+    const [a, b] = F.cycles[0];
+    out.push({ p: F.files[a].p, p2: F.files[b].p, kind: 'fragile', title: `${F.cycles.length} import loop${F.cycles.length > 1 ? 's' : ''}`, md: `${displayName(F.files[a].p)} and ${displayName(F.files[b].p)} import each other. Loops like this make load order surprising; moving shared bits into a third file breaks the loop.`, measured: true });
+  }
+  if (code.length > 8 && !F.files.some((f) => f.sub === 'tests')) out.push({ p: null, kind: 'fragile', title: 'No automated tests', md: 'Nothing checks the code automatically, so every change has to be tested by hand. A handful of tests on the core files would catch regressions early.', measured: true });
+  const deps = Object.keys(F.sig?.npm || {}).filter((k) => !k.startsWith('@types/')).length;
+  if (deps > 70) out.push({ p: 'package.json', kind: 'scale', title: `${deps} outside packages`, md: 'Every package is code someone else maintains: more to update, more to download, more ways to break. Worth checking which ones are still used.', measured: true });
+  return out;
+}
+
+export function heat(f, maxUsed) {
+  const a = Math.min(1, f.used / Math.max(4, maxUsed));
+  const b = Math.min(1, Math.max(0, (f.lines - 150) / 700));
+  return Math.max(a, b * 0.9);
+}
+
+export const sizeWord = (kb) => (kb == null ? '' : kb < 600 ? 'bite-size' : kb < 6000 ? 'an afternoon read' : kb < 60000 ? 'a week of reading' : 'a deep dive');
+export const langColor = (l) => LANGS[l]?.color || '#9a8f84';
+export const fmtN = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n));
+
+// --------------------------------------------------------------------- the narration prompt
+export function buildAtlasPrompt(F, meta, stack, level) {
+  const files = F.files;
+  const important = new Set();
+  files.forEach((f, i) => { if (f.entry || f.used >= 2 || (f.layer !== 'support' && f.lines > 120)) important.add(i); });
+  const list = files
+    .map((f, i) => ({ f, i }))
+    .filter(({ f, i }) => important.has(i) || (f.layer !== 'support' && files.length < 260) || (f.layer === 'support' && f.p.split('/').length <= 1))
+    .slice(0, 320)
+    .map(({ f }) => `${f.p} | ${f.layer}${f.sub ? '/' + f.sub : ''} | ${f.lines}L | used by ${f.used}${f.entry ? ' | ENTRY' : ''}${f.ext?.length ? ` | uses ${f.ext.slice(0, 5).join(',')}` : ''}`);
+  const st = stack.filter((s) => !s.workshop || ['test', 'ci'].includes(s.cat)).slice(0, 22).map((s) => `${s.id} = ${s.name} [${s.cat}] evidence: ${s.evidence.join('; ') || 'imports'}${s.used.length ? `; imported in ${s.used.length} files` : ''}`);
+  const langs = Object.entries(F.langs).sort((a, b) => b[1] - a[1]).map(([l, n]) => `${l} ${n} lines`).join(', ');
+  const hot = measuredHotspots(F).map((h) => `- ${h.title}${h.p ? ` (${h.p})` : ''}`).join('\n');
+  let p = `LEVEL: ${level === 'kid' ? 'kid (lots of analogies, zero jargon)' : level === 'engineer' ? 'engineer (still plain, but name patterns precisely)' : 'curious beginner'}\n`;
+  p += `REPO: ${meta?.full || F.name}${meta?.description ? ` — ${meta.description}` : ''}${meta?.stars != null ? ` (★${meta.stars})` : ''}${meta?.topics?.length ? ` topics: ${meta.topics.join(', ')}` : ''}\n`;
+  if (F.sig?.pkgName) p += `package.json name: ${F.sig.pkgName}${F.sig.pkgDesc ? ` — ${F.sig.pkgDesc}` : ''}\nscripts: ${Object.entries(F.sig.scripts || {}).slice(0, 10).map(([k, v]) => `${k}: ${v}`).join(' | ')}\n`;
+  p += `TOTALS: ${F.totals.files} files, ${F.totals.lines} lines of code. Languages: ${langs}\n`;
+  p += `\nDETECTED TOOLS (use these ids):\n${st.join('\n') || '(none)'}\n`;
+  p += `\nMEASURED:\n${hot || '- nothing alarming'}\nimport loops: ${(F.cycles || []).length}\n`;
+  if (F.readme) p += `\nREADME (excerpt):\n${F.readme.slice(0, 4500)}\n`;
+  p += `\nFILES (path | layer | lines | used by N files | notes):\n${list.join('\n')}\n`;
+  for (const h of F.heads || []) p += `\n--- ${h.p} (first lines) ---\n${h.head}\n`;
+  return p;
+}
+
+// --------------------------------------------------------------------- narration blocks → state
+export function emptyNarr() { return { gist: null, flow: null, terms: [], layers: {}, journeys: [], stack: {}, lang: null, roles: {}, hot: [], learn: [] }; }
+export function applyNarr(N, b) {
+  if (!b || !b.t) return N;
+  const n = { ...N };
+  if (b.t === 'gist') n.gist = b;
+  else if (b.t === 'flow' && Array.isArray(b.nodes)) n.flow = b;
+  else if (b.t === 'build') n.build = b;
+  else if (b.t === 'tour' && Array.isArray(b.steps)) n.tour = b.steps;
+  else if (b.t === 'term' && b.term) n.terms = [...(n.terms || []), b];
+  else if (b.t === 'layer' && b.id) n.layers = { ...n.layers, [b.id]: b.md };
+  else if (b.t === 'journey' && Array.isArray(b.steps)) n.journeys = [...n.journeys, b];
+  else if (b.t === 'stack' && (b.id || b.name)) n.stack = { ...n.stack, [b.id || b.name]: b };
+  else if (b.t === 'lang') n.lang = b;
+  else if (b.t === 'file' && b.p) n.roles = { ...n.roles, [b.p]: b.role };
+  else if (b.t === 'hot') n.hot = [...n.hot, b];
+  else if (b.t === 'learn') n.learn = b.items || [];
+  return n;
+}
+
+// Pick the files that matter for a question about the repo (for "Ask about this repo").
+export function filesForQuestion(F, narr, q) {
+  const words = (q.toLowerCase().match(/[a-z]{3,}/g) || []).filter((w) => !['the', 'how', 'does', 'what', 'where', 'when', 'this', 'that', 'work', 'works', 'with', 'from', 'here', 'app', 'code', 'file', 'why'].includes(w));
+  const score = (f) => {
+    const hay = `${f.p} ${narr?.roles?.[f.p] || ''} ${(f.ext || []).join(' ')}`.toLowerCase();
+    return words.reduce((s, w) => s + (hay.includes(w) ? (f.p.toLowerCase().includes(w) ? 3 : 2) : 0), 0) + (f.entry ? 0.5 : 0) + Math.min(1, f.used / 10);
+  };
+  return F.files.filter((f) => f.lang && f.sub !== 'docs').map((f) => [f, score(f)]).sort((a, b) => b[1] - a[1]).slice(0, 4).map((x) => x[0].p);
+}

@@ -1,0 +1,97 @@
+// Recognise what a website is built with from what a browser sees: headers, script URLs, meta tags, markup.
+// Each sign: [id, name, slug, cat, test(clues) → evidence string | null, what, when, alts]
+import { BY_ID } from './catalog.js';
+
+const has = (re) => (c) => { const hit = c.all.match(re); return hit ? hit[0].slice(0, 60) : null; };
+const hdr = (k, re) => (c) => (c.headers[k] && (!re || re.test(c.headers[k])) ? `${k}: ${c.headers[k].slice(0, 40)}` : null);
+
+const S = (id, name, slug, cat, test, what, when, alt = []) => ({ id, name, slug, cat, test, what, when, alt });
+export const SITE_SIGNS = [
+  // platforms & frameworks
+  S('wordpress', 'WordPress', 'wordpress', 'frame', has(/wp-content|wp-includes|WordPress \d/i), 'A website builder and blogging system that powers a huge share of the web.', 'you want lots of plugins and a familiar editor.', ['webflow', 'ghost', 'squarespace']),
+  S('shopify', 'Shopify', 'shopify', 'frame', has(/cdn\.shopify\.com|Shopify\.theme|myshopify\.com/i), 'A hosted platform for running an online shop.', 'you sell products and want checkout handled.', ['woocommerce', 'squarespace']),
+  S('webflow', 'Webflow', 'webflow', 'frame', has(/webflow\.(com|js|io)|data-wf-site/i), 'Design websites visually; it writes the code for you.', 'designers want full control without coding.', ['wordpress', 'framersite']),
+  S('squarespace', 'Squarespace', 'squarespace', 'frame', has(/squarespace(-cdn)?\.com|static1\.squarespace/i), 'A drag-and-drop website builder with hosting included.', 'you want a polished site with no setup.', ['wix', 'webflow']),
+  S('wix', 'Wix', 'wix', 'frame', (c) => has(/wix\.com|wixstatic|_wixCssImports/i)(c) || hdr('x-wix-request-id')(c), 'A drag-and-drop website builder.', 'beginners want a site in an afternoon.', ['squarespace']),
+  S('ghost', 'Ghost', 'ghost', 'frame', has(/ghost\.(io|org)|content="Ghost \d/i), 'A publishing platform for blogs and newsletters.', 'writing and memberships are the core.', ['wordpress']),
+  S('framersite', 'Framer', 'framer', 'frame', has(/framerusercontent\.com|framer\.com\/m\//i), 'A visual site builder that publishes fast React sites.', 'designers want animated sites quickly.', ['webflow']),
+  S('next', 'Next.js', 'nextdotjs', 'frame', has(/\/_next\/static|__NEXT_DATA__|next-route-announcer/i), BY_ID.next.what, BY_ID.next.when, ['remix', 'astro', 'nuxt']),
+  S('nuxt', 'Nuxt', 'nuxt', 'frame', has(/\/_nuxt\/|__NUXT__/i), BY_ID.nuxt.what, BY_ID.nuxt.when, ['next']),
+  S('gatsby', 'Gatsby', 'gatsby', 'frame', has(/___gatsby|\/page-data\//i), BY_ID.gatsby.what, BY_ID.gatsby.when, ['astro', 'next']),
+  S('astro', 'Astro', 'astro', 'frame', has(/astro-island|data-astro-cid|\/_astro\//i), BY_ID.astro.what, BY_ID.astro.when, ['next']),
+  S('sveltekit', 'SvelteKit', 'svelte', 'frame', has(/__sveltekit|\/_app\/immutable/i), BY_ID.sveltekit.what, BY_ID.sveltekit.when, ['next']),
+  S('angular', 'Angular', 'angular', 'frame', has(/ng-version=|ng-app/i), BY_ID.angular.what, BY_ID.angular.when, ['react']),
+  S('react', 'React', 'react', 'ui', has(/data-reactroot|react-dom|__reactContainer|_reactListening/i), BY_ID.react.what, BY_ID.react.when, ['vue', 'svelte']),
+  S('vue', 'Vue', 'vuedotjs', 'ui', has(/data-v-[0-9a-f]{6,}|vue(\.runtime)?(\.min)?\.js|__vue__/i), BY_ID.vue.what, BY_ID.vue.when, ['react']),
+  S('jquery', 'jQuery', 'jquery', 'ui', has(/jquery(\.min)?\.js|jquery-\d/i), BY_ID.jquery.what, BY_ID.jquery.when, ['react']),
+  S('tailwind', 'Tailwind CSS', 'tailwindcss', 'style', has(/tailwindcss|--tw-(ring|shadow|translate)/i), BY_ID.tailwind.what, BY_ID.tailwind.when, ['bootstrap']),
+  S('bootstrap', 'Bootstrap', 'bootstrap', 'style', has(/bootstrap(\.min)?\.(css|js)/i), BY_ID.bootstrap.what, BY_ID.bootstrap.when, ['tailwind']),
+  S('gfonts', 'Google Fonts', 'googlefonts', 'style', has(/fonts\.googleapis\.com|fonts\.gstatic\.com/i), 'Free web fonts loaded from Google.', 'you want nice type for free.', []),
+  S('fontawesome', 'Font Awesome', 'fontawesome', 'style', has(/fontawesome|font-awesome/i), 'A big library of icons for websites.', 'you need lots of icons quickly.', ['lucide']),
+  S('mediawiki', 'MediaWiki', 'wikipedia', 'frame', has(/content="MediaWiki|mediawiki|\/w\/load\.php/i), 'The free software that runs Wikipedia and many wikis.', 'many people edit pages together.', ['wordpress']),
+  S('drupal', 'Drupal', 'drupal', 'frame', has(/Drupal \d|drupal\.js|\/sites\/default\/files/i), 'A powerful content system used by governments and universities.', 'big organisations manage lots of content.', ['wordpress']),
+  S('docusaurus', 'Docusaurus', 'docusaurus', 'frame', has(/docusaurus/i), 'Builds documentation websites from Markdown.', 'you write docs for a project.', ['mkdocs']),
+  S('discourse', 'Discourse', 'discourse', 'frame', has(/discourse-cdn|content="Discourse/i), 'Software for community discussion forums.', 'you run an online community.', []),
+  S('substack', 'Substack', 'substack', 'frame', has(/substackcdn|substack\.com/i), 'A platform for paid newsletters and blogs.', 'writers want subscribers fast.', ['ghost']),
+  S('ats', 'Apache Traffic Server', 'apache', 'host', hdr('server', /ATS|Traffic ?Server/i), 'A caching server that keeps copies of pages close to readers.', 'huge sites serve the same pages to millions.', ['fastly', 'cloudflare']),
+  S('varnish', 'Varnish', '', 'host', (c) => hdr('via', /varnish/i)(c) || hdr('x-varnish')(c), 'A super-fast cache that sits in front of a website.', 'a busy site needs to answer instantly.', ['fastly']),
+  // delivery
+  S('cloudflare', 'Cloudflare', 'cloudflare', 'host', (c) => hdr('cf-ray')(c) || hdr('server', /cloudflare/i)(c), 'A network in front of the site that speeds it up and blocks attacks.', 'you want speed and protection worldwide.', ['fastly', 'akamai']),
+  S('vercel', 'Vercel', 'vercel', 'host', (c) => hdr('x-vercel-id')(c) || hdr('server', /vercel/i)(c), BY_ID.vercel.what, BY_ID.vercel.when, ['netlify', 'cloudflare']),
+  S('netlify', 'Netlify', 'netlify', 'host', (c) => hdr('x-nf-request-id')(c) || hdr('server', /netlify/i)(c), BY_ID.netlify.what, BY_ID.netlify.when, ['vercel']),
+  S('fastly', 'Fastly', 'fastly', 'host', (c) => hdr('x-fastly-request-id')(c) || hdr('x-served-by', /cache-/i)(c), 'A network of servers that caches pages close to visitors.', 'huge sites need fast, controllable caching.', ['cloudflare', 'akamai']),
+  S('akamai', 'Akamai', 'akamai', 'host', (c) => hdr('server', /akamai/i)(c) || has(/akamaihd|akamaized/i)(c), 'One of the oldest, largest content delivery networks.', 'big enterprises serve the whole world.', ['cloudflare', 'fastly']),
+  S('cloudfront', 'Amazon CloudFront', '', 'host', (c) => hdr('x-amz-cf-id')(c) || hdr('via', /cloudfront/i)(c), 'Amazon’s network for delivering pages and files quickly.', 'the site already runs on AWS.', ['cloudflare', 'fastly']),
+  S('ghpages', 'GitHub Pages', 'githubpages', 'host', (c) => hdr('x-github-request-id')(c) || hdr('server', /github\.com/i)(c), BY_ID.ghpages.what, BY_ID.ghpages.when, ['netlify', 'vercel']),
+  S('nginx', 'nginx', 'nginx', 'host', hdr('server', /nginx/i), BY_ID.nginx.what, BY_ID.nginx.when, ['apache', 'cloudflare']),
+  S('apache', 'Apache', 'apache', 'host', hdr('server', /apache/i), 'A classic web server that hands out pages.', 'traditional hosting, often with PHP.', ['nginx']),
+  S('fly', 'Fly.io', 'flydotio', 'host', hdr('fly-request-id'), BY_ID.fly.what, BY_ID.fly.when, ['railway']),
+  S('jsdelivr', 'jsDelivr', 'jsdelivr', 'host', has(/cdn\.jsdelivr\.net/i), 'A free network that serves open-source code files.', 'you load libraries without hosting them.', ['unpkg']),
+  // services
+  S('stripe', 'Stripe', 'stripe', 'pay', has(/js\.stripe\.com/i), BY_ID.stripe.what, BY_ID.stripe.when, ['paypal']),
+  S('paypal', 'PayPal', 'paypal', 'pay', has(/paypal\.com\/sdk|paypalobjects/i), BY_ID.paypal.what, BY_ID.paypal.when, ['stripe']),
+  S('klarna', 'Klarna', 'klarna', 'pay', has(/klarna/i), 'Lets shoppers pay later or in instalments.', 'shops want buy-now-pay-later.', ['paypal']),
+  S('ga', 'Google Analytics', 'googleanalytics', 'watch', has(/google-analytics\.com|gtag\(|googletagmanager\.com\/gtag/i), BY_ID.ga.what, BY_ID.ga.when, ['plausible', 'posthog']),
+  S('gtm', 'Google Tag Manager', 'googletagmanager', 'watch', has(/googletagmanager\.com\/gtm\.js|GTM-[A-Z0-9]{4,}/i), 'A container that loads tracking and marketing scripts.', 'marketers add tools without developers.', []),
+  S('plausible', 'Plausible', 'plausibleanalytics', 'watch', has(/plausible\.io\/js/i), 'Simple, privacy-friendly visitor stats.', 'you want stats without cookies.', ['ga']),
+  S('posthog', 'PostHog', 'posthog', 'watch', has(/posthog/i), BY_ID.posthog.what, BY_ID.posthog.when, ['mixpanel']),
+  S('mixpanel', 'Mixpanel', 'mixpanel', 'watch', has(/mixpanel/i), 'Tracks what people do inside a product.', 'you study user behaviour in detail.', ['posthog']),
+  S('hotjar', 'Hotjar', 'hotjar', 'watch', has(/hotjar/i), 'Records heatmaps of where visitors click and scroll.', 'you want to see how people use pages.', []),
+  S('sentry', 'Sentry', 'sentry', 'watch', has(/sentry(-cdn)?\.(io|com)|browser\.sentry/i), BY_ID.sentry.what, BY_ID.sentry.when, []),
+  S('datadog', 'Datadog', 'datadog', 'watch', has(/datadoghq|dd-rum/i), 'Monitors apps and servers in one dashboard.', 'teams run many services.', ['sentry']),
+  S('newrelic', 'New Relic', 'newrelic', 'watch', has(/newrelic|nr-data\.net/i), 'Measures how fast the site is for real visitors.', 'performance matters to the business.', ['datadog']),
+  S('fbpixel', 'Meta Pixel', 'meta', 'watch', has(/connect\.facebook\.net|fbq\(/i), 'Tracks visits for Facebook and Instagram ads.', 'the site advertises on Meta.', []),
+  S('tiktokpixel', 'TikTok Pixel', 'tiktok', 'watch', has(/analytics\.tiktok\.com/i), 'Tracks visits for TikTok ads.', 'the site advertises on TikTok.', []),
+  S('intercom', 'Intercom', 'intercom', 'mail', has(/intercom(cdn)?\.(io|com)|widget\.intercom/i), 'The chat bubble for talking to support.', 'you want live chat with customers.', ['zendesk']),
+  S('zendesk', 'Zendesk', 'zendesk', 'mail', has(/zdassets|zendesk/i), 'Customer support tickets and chat.', 'support teams handle many requests.', ['intercom']),
+  S('hubspot', 'HubSpot', 'hubspot', 'mail', has(/hs-scripts|hubspot/i), 'Marketing tools: forms, emails, contact lists.', 'marketing and sales share data.', ['mailchimp']),
+  S('mailchimp', 'Mailchimp', 'mailchimp', 'mail', has(/mailchimp|list-manage\.com/i), 'Sends newsletters to email lists.', 'you run a newsletter.', ['hubspot']),
+  S('recaptcha', 'reCAPTCHA', 'google', 'check', has(/recaptcha/i), 'Checks that visitors are humans, not bots.', 'forms get spam.', []),
+  S('youtube', 'YouTube embeds', 'youtube', 'files', has(/youtube\.com\/embed|youtube-nocookie/i), 'Videos played from YouTube inside the page.', 'you show video without hosting it.', ['vimeo']),
+  S('vimeo', 'Vimeo', 'vimeo', 'files', has(/player\.vimeo\.com/i), 'Ad-free video player embedded in the page.', 'brands want clean video.', ['youtube']),
+  S('cloudinary', 'Cloudinary', 'cloudinary', 'files', has(/res\.cloudinary\.com/i), BY_ID.cloudinary.what, BY_ID.cloudinary.when, []),
+  S('algolia', 'Algolia', 'algolia', 'search', has(/algolia(net)?\.(com|net)|algoliasearch/i), BY_ID.algolia.what, BY_ID.algolia.when, []),
+];
+
+export function detectSite(F) {
+  const all = [F.html || '', ...(F.scripts || []), ...(F.styles || []), F.generator || ''].join('\n');
+  const clues = { all, headers: F.headers || {} };
+  const out = [];
+  for (const s of SITE_SIGNS) { const ev = s.test(clues); if (ev) out.push({ ...s, evidence: [ev], used: [] }); }
+  // trust the page's own generator tag if nothing else matched it
+  if (F.generator && !out.some((x) => x.cat === 'frame')) out.push({ id: 'gen', name: F.generator.split(/[ ;]/)[0], slug: '', cat: 'frame', what: `The page says it was made with ${F.generator}.`, when: '', alt: [], evidence: ['generator tag'], used: [] });
+  // a framework implies its UI library
+  if (out.some((x) => ['next', 'gatsby', 'remix'].includes(x.id)) && !out.some((x) => x.id === 'react')) out.push({ ...SITE_SIGNS.find((x) => x.id === 'react'), evidence: ['comes with the framework'], used: [] });
+  return out;
+}
+
+export function buildSitePrompt(F, found, level) {
+  let p = `LEVEL: ${level === 'kid' ? 'kid (lots of analogies, zero jargon)' : level === 'engineer' ? 'engineer' : 'curious beginner'}\n`;
+  p += `SITE: ${F.final} (status ${F.status}, ${F.ms} ms, ${Math.round(F.bytes / 1024)} KB of HTML)\nTITLE: ${F.title}\nDESCRIPTION: ${F.description}\n${F.generator ? `GENERATOR: ${F.generator}\n` : ''}`;
+  p += `HEADERS:\n${Object.entries(F.headers).map(([k, v]) => `${k}: ${v}`).join('\n')}\n`;
+  p += `COUNTS: ${JSON.stringify(F.counts)}\n`;
+  p += `DETECTED (use these ids): ${found.map((s) => `${s.id} = ${s.name} [${s.cat}] (${s.evidence[0]})`).join('; ') || 'nothing obvious'}\n`;
+  p += `SCRIPT URLS (first ones):\n${(F.scripts || []).slice(0, 30).join('\n')}\n`;
+  p += `PAGE TEXT (excerpt):\n${(F.text || '').slice(0, 1800)}\n`;
+  return p;
+}

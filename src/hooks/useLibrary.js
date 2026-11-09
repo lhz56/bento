@@ -1,0 +1,145 @@
+import { useEffect, useRef, useState } from 'react';
+import { ndjsonParser } from '../lesson.js';
+import { detectStack, buildAtlasPrompt, emptyNarr, applyNarr } from '../atlas/analyze.js';
+import { detectSite, buildSitePrompt } from '../atlas/site.js';
+import { load, save, cleanErr } from '../store.js';
+import FEATURED from '../atlas-featured.json';
+export { FEATURED };
+
+// Everything about bringing code in from outside: GitHub repos and local folders (the Atlas),
+// websites, the Projects list, and the narration that explains them. App.jsx just uses the results.
+export default function useLibrary({ api, settings, setProgress, setProjectRaw, setViewRaw }) {
+  const [atlases, setAtlases] = useState({});
+  const [atlasKey, setAtlasKey] = useState(null);
+  const [projects, setProjects] = useState(() => load('bento.projects', []));
+  const atlasRef = useRef({}); atlasRef.current = atlases;
+  useEffect(() => save('bento.projects', projects.slice(0, 200)), [projects]);
+  const [sites, setSites] = useState({});
+  const [siteKey, setSiteKey] = useState(null);
+  // ---------------------------------------------------------------- Atlas: bring a repo in, take it apart
+  const patchAtlas = (key, p) => setAtlases((m) => ({ ...m, [key]: { ...m[key], ...(typeof p === 'function' ? p(m[key]) : p) } }));
+  const asProject = (A) => ({ kind: A.src.kind, root: A.src.root, name: A.name, atlasKey: A.key, files: A.facts.files.map((f) => f.p) });
+  const remember = (A) => {
+    const lang = Object.entries(A.facts?.langs || {}).sort((a, b) => b[1] - a[1]).find(([l]) => !['HTML', 'CSS', 'Shell'].includes(l))?.[0];
+    setProjects((ps) => [{ key: A.key, name: A.name, kind: A.src.kind, full: A.src.full, root: A.src.root, lang, at: Date.now() }, ...ps.filter((p) => p.key !== A.key)]);
+  };
+  const stoppers = useRef({});
+  const stopReading = (key) => stoppers.current[key]?.();
+  const narrate = (key, model = settings.model, firstErr = null) => {
+    const A = atlasRef.current[key]; if (!A?.facts) return;
+    patchAtlas(key, { status: 'narrating', narr: emptyNarr(), error: null });
+    const parser = ndjsonParser((b) => {
+      patchAtlas(key, (a) => ({ narr: applyNarr(a.narr || emptyNarr(), b) }));
+      if (b.t === 'term' && b.term) setProgress((p) => { const k = String(b.term).toLowerCase(); if (p.words?.[k]) return p; return { ...p, words: { ...(p.words || {}), [k]: { term: b.term, plain: b.plain, like: b.like, from: null, title: A.name, at: Date.now() } } }; });
+    });
+    const prompt = buildAtlasPrompt(A.facts, A.meta, detectStack(A.facts), settings.level);
+    const finish = (status, error) => {
+      parser.end();
+      if (status === 'done' && !document.hasFocus()) { try { new Notification('Bento finished reading', { body: `${A.name} is ready to explore.`, silent: true }); } catch {} }
+      setAtlases((m) => { const a = { ...m[key], status, error }; api.cachePut(key, { facts: a.facts, meta: a.meta, narr: a.narr, src: a.src, name: a.name, done: status === 'done', at: Date.now() }); return { ...m, [key]: a }; });
+    };
+    const onErr = (m) => {
+      // this AI can't answer right now: try your other one once, before showing the first error
+      if (!firstErr && /usage limit|isn’t signed in|isn’t installed/.test(m) && !atlasRef.current[key]?.narr?.gist) { parser.end(); return narrate(key, model.startsWith('codex') ? 'claude:sonnet' : 'codex:default', m); }
+      finish('narr-error', firstErr || m);
+    };
+    const cancel = api.ask(model, prompt, { chunk: (t) => parser.push(t), think: (t) => patchAtlas(key, { thinking: t }), done: () => finish('done', null), error: onErr }, 'atlas');
+    stoppers.current[key] = () => { cancel?.(); finish('narr-error', 'You stopped the reading. Press retry to continue.'); };
+  };
+  const openAtlas = async (src, { quiet, big } = {}) => {
+    const key = src.kind === 'github' ? src.full : `local:${src.root}`;
+    const name = src.kind === 'github' ? src.full : src.name;
+    if (!quiet) { setAtlasKey(key); setViewRaw('atlas'); }
+    const have = atlasRef.current[key];
+    if (have?.facts) { setProjectRaw(asProject(have)); if (!quiet && have.status === 'done-quiet') narrate(key); return have; }
+    if (have && !have.error) return null; // already loading
+    setAtlases((m) => ({ ...m, [key]: { key, name, src, status: 'cloning', progress: null } }));
+    try {
+      const cached = await api.cacheGet(key);
+      if (cached?.facts && (await api.atlasReopen(cached.src.root))) {
+        if (cached.facts.v !== 4) { try { cached.facts = await api.atlasAnalyze(cached.src.root, name); api.cachePut(key, { ...cached }); } catch {} }
+        const A = { key, name, src: cached.src, meta: cached.meta, facts: cached.facts, narr: cached.narr || emptyNarr(), status: cached.done ? 'done' : 'narr-error', error: cached.done ? null : 'The explanation stopped early.' };
+        setAtlases((m) => ({ ...m, [key]: A })); atlasRef.current = { ...atlasRef.current, [key]: A }; setProjectRaw(asProject(A)); remember(A);
+        // the app was closed before the reading wrote anything: just start it again instead of showing an error
+        if (!cached.done && !cached.narr?.gist && !quiet) setTimeout(() => narrate(key), 0);
+        return A;
+      }
+      // featured projects ship already taken apart: show them now, fetch the code quietly for reading files
+      const F0 = src.kind === 'github' && FEATURED[key];
+      if (F0) {
+        const A = { key, name, src: { kind: 'github', full: src.full, root: null }, meta: F0.meta, facts: F0.facts, narr: F0.narr, status: 'done', featured: true };
+        setAtlases((m) => ({ ...m, [key]: A })); atlasRef.current = { ...atlasRef.current, [key]: A };
+        api.atlasFetch(src.full).then((s2) => {
+          patchAtlas(key, { src: s2 });
+          const A2 = { ...A, src: s2 }; setProjectRaw(asProject(A2)); remember(A2);
+          api.cachePut(key, { facts: F0.facts, meta: F0.meta, narr: F0.narr, src: s2, name, done: true, at: Date.now() });
+        }).catch((e) => patchAtlas(key, { fetchError: cleanErr(e) }));
+        return A;
+      }
+      const metaP = src.kind === 'github' ? api.atlasMeta(src.full).catch(() => null) : Promise.resolve(null);
+      let s2 = src;
+      if (src.kind === 'github' && !big) { const m = await metaP; if (m?.size > 400000) { patchAtlas(key, { status: 'big', meta: m }); return null; } }
+      if (src.kind === 'github') s2 = await api.atlasFetch(src.full);
+      patchAtlas(key, { status: 'reading', src: s2 });
+      const facts = await api.atlasAnalyze(s2.root, name);
+      const meta = await metaP;
+      const A = { key, name, src: s2, meta, facts, narr: emptyNarr(), status: quiet ? 'done-quiet' : 'narrating' };
+      setAtlases((m) => ({ ...m, [key]: { ...m[key], ...A } }));
+      atlasRef.current = { ...atlasRef.current, [key]: A };
+      setProjectRaw(asProject(A)); remember(A);
+      api.cachePut(key, { facts, meta, narr: null, src: s2, name, done: false, at: Date.now() });
+      if (!quiet) narrate(key);
+      return A;
+    } catch (e) {
+      patchAtlas(key, { status: 'error', error: cleanErr(e) });
+      return null;
+    }
+  };
+  const openRepo = (full) => openAtlas({ kind: 'github', full });
+  const openSite = async (url) => {
+    let host; try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { return; }
+    const put = (p) => setSites((m) => ({ ...m, [host]: { ...m[host], ...(typeof p === 'function' ? p(m[host] || {}) : p) } }));
+    setSiteKey(host); setViewRaw('site');
+    if (sites[host]?.facts && sites[host].status !== 'error') return;
+    put({ host, url, status: 'loading', facts: null, narr: emptyNarr(), error: null });
+    const cached = await api.cacheGet(`site:${host}`).catch(() => null);
+    if (cached?.facts && cached.narr) { put({ host, url, status: 'done', facts: cached.facts, narr: cached.narr }); setProjects((ps) => [{ key: `site:${host}`, name: host, kind: 'site', url, at: Date.now() }, ...ps.filter((x) => x.key !== `site:${host}`)]); return; }
+    try {
+      const facts = await api.siteInspect(url);
+      put({ facts, status: 'narrating' });
+      const found = detectSite(facts);
+      const parser = ndjsonParser((b) => { put((x) => ({ narr: applyNarr(x.narr || emptyNarr(), b) })); if (b.t === 'term' && b.term) setProgress((p) => { const k = String(b.term).toLowerCase(); if (p.words?.[k]) return p; return { ...p, words: { ...(p.words || {}), [k]: { term: b.term, plain: b.plain, like: b.like, from: null, title: host, at: Date.now() } } }; }); });
+      setProjects((ps) => [{ key: `site:${host}`, name: host, kind: 'site', url, at: Date.now() }, ...ps.filter((x) => x.key !== `site:${host}`)]);
+      api.ask(settings.model, buildSitePrompt(facts, found, settings.level), { chunk: (t) => parser.push(t), done: () => { parser.end(); setSites((m) => { const x = { ...m[host], status: 'done' }; api.cachePut(`site:${host}`, { facts: x.facts, narr: x.narr, url, host, at: Date.now() }); return { ...m, [host]: x }; }); }, error: (m) => { parser.end(); put({ status: 'narr-error', error: m }); } }, 'site');
+    } catch (e) { put({ status: 'error', error: cleanErr(e) }); }
+  };
+  const [pendingFile, setPendingFile] = useState(null);
+  const openRepoAt = (full, path) => { setPendingFile({ key: full, path }); openRepo(full); };
+  const findWild = async (L) => {
+    const code = L.work ?? L.code ?? '';
+    const py = L.lang === 'python';
+    const fn = (py ? /^def\s+(\w+)/m : /^(?:function\s+(\w+)|const\s+(\w+)\s*=\s*(?:\(|function|async))/m).exec(code);
+    const name = fn ? (fn[1] || fn[2]) : null;
+    const q = name && name.length > 3 && !/^(main|show|draw|run|test|demo)$/.test(name) ? `${py ? 'def' : 'function'} ${name}` : (L.terms?.[0]?.term || L.concepts?.[0] || L.title).replace(/-/g, ' ');
+    return api.ghCode(q, py ? 'python' : 'javascript');
+  };
+  const openFolderAtlas = async () => { const r = await api.openFolder(); if (r) openAtlas({ kind: 'local', root: r.root, name: r.name }); };
+  const openProject = (p) => (p.kind === 'site' ? openSite(p.url) : p.kind === 'github' ? openRepo(p.full) : openAtlas({ kind: 'local', root: p.root, name: p.name }));
+  useEffect(() => api.onAtlasProgress?.((full, p) => patchAtlas(full, { progress: p })), []);
+  useEffect(() => { api.atlasList?.().then((list) => setProjects((ps) => { const seen = new Set(ps.map((p) => p.key)); return [...ps, ...list.filter((x) => !seen.has(x.key))].sort((a, b) => b.at - a.at); })).catch(() => {}); }, []);
+  const showAtlas = (key) => {
+    const sp = projects.find((x) => x.key === key && x.kind === 'site'); if (sp) return openSite(sp.url); setAtlasKey(key); setViewRaw('atlas'); const p = projects.find((x) => x.key === key); if (!atlasRef.current[key]?.facts && p) openProject(p); };
+
+  // feature mode on Home picks a project: bring it in quietly (no narration)
+  const setProject = async (p) => {
+    if (p === null) return setProjectRaw(null);
+    if (p === 'folder') { const r = await api.openFolder(); if (r) openAtlas({ kind: 'local', root: r.root, name: r.name }, { quiet: true }); return; }
+    if (p.repo) { setProjectRaw({ kind: 'github', name: p.repo, files: [], loading: true }); const A = await openAtlas({ kind: 'github', full: p.repo }, { quiet: true }); if (!A) setProjectRaw(null); }
+  };
+
+  const ensureProject = (key) => { const p = projects.find((x) => x.key === key); if (p && !atlasRef.current[key]?.facts) openAtlas(p.kind === 'github' ? { kind: 'github', full: p.full } : { kind: 'local', root: p.root, name: p.name }, { quiet: true }); };
+
+  return { atlases, setAtlases, atlasKey, setAtlasKey, atlasRef, projects, setProjects, sites, setSites, siteKey, setSiteKey,
+    stopReading, patchAtlas, asProject, narrate, openAtlas, openRepo, openRepoAt, openSite, openFolderAtlas, openProject, showAtlas, setProject, ensureProject,
+    pendingFile, setPendingFile, findWild };
+}
