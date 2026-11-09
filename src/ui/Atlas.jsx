@@ -52,7 +52,14 @@ export default function Atlas({ onMakePath, atlas: A, onStopReading, onBig, onOt
   const totalL = langs.reduce((s, [, n]) => s + n, 0) || 1;
   const mainLang = N?.lang?.name && LANGS[N.lang.name] ? N.lang.name : langs.find(([l]) => !['HTML', 'CSS', 'Shell', 'SQL'].includes(l))?.[0] || langs[0]?.[0];
 
-  if (!F) return <AtlasLoading A={A} onRetry={onRetry} onBig={onBig} />;
+  // a fresh download keeps the three steps on screen long enough to read; reopening a saved project stays instant
+  const shownAt = useRef(Date.now()); const worked = useRef(false);
+  if (A.status === 'reading' || (A.progress && A.progress.phase !== 'cached')) worked.current = true;
+  const [hold, setHold] = useState(!F);
+  const holding = hold && (!F || worked.current);
+  useEffect(() => { if (!F || !holding) return; const t = setTimeout(() => setHold(false), Math.max(1100, 1800 - (Date.now() - shownAt.current))); return () => clearTimeout(t); }, [F, holding]);
+
+  if (holding) return <AtlasLoading A={A} F={F} onRetry={onRetry} onBig={onBig} />;
 
   return (
     <div className="atlas" ref={scroller}>
@@ -153,9 +160,16 @@ function Donut({ langs, total }) {
   );
 }
 
-function AtlasLoading({ A, onRetry, onBig }) {
+function AtlasLoading({ A, F, onRetry, onBig }) {
   const steps = [['clone', 'Bringing the code onto your Mac'], ['read', 'Reading every file and following the imports'], ['narr', 'Asking your model to explain it']];
-  const at = A.status === 'cloning' ? 0 : A.status === 'reading' ? 1 : 2;
+  const real = F ? 2 : A.status === 'cloning' ? 0 : A.status === 'reading' ? 1 : 2;
+  const [at, setAt] = useState(0);
+  useEffect(() => { if (at >= real) return; const t = setTimeout(() => setAt((x) => x + 1), 480); return () => clearTimeout(t); }, [at, real]);
+  const counts = F && {
+    files: F.totals.code, lines: F.totals.lines,
+    links: F.files.reduce((a, f) => a + (f.imp?.length || 0), 0),
+    outside: new Set(F.files.flatMap((f) => f.ext || [])).size,
+  };
   return (
     <div className="atlas-loading">
       <div className="al-name">{A.name}</div>
@@ -169,6 +183,7 @@ function AtlasLoading({ A, onRetry, onBig }) {
             <div key={k} className={`al-step ${i < at ? 'done' : i === at ? 'now' : ''}`}>
               <span className="al-dot">{i < at ? '✓' : ''}</span>{l}
               {i === 0 && at === 0 && A.progress?.pct != null && <span className="al-pct">{A.progress.phase === 'cached' ? 'already here' : `${A.progress.pct}%`}</span>}
+              {i === 1 && at >= 1 && counts && <span className="al-pct">{counts.files.toLocaleString()} files · {counts.lines.toLocaleString()} lines · {counts.links.toLocaleString()} imports followed · {counts.outside} outside packages</span>}
             </div>
           ))}
         </div>

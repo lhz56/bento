@@ -76,6 +76,10 @@ Bento opens with a short welcome. It checks which AI you already have on this Ma
 
 - **The path, reworked.** Paths are compact tabs with progress rings. Each one has a header with where it ends, the number of stops, rough time and a **Continue** button. **Make your own path** now designs one running project: every stop says what it adds ("you'll make…"), each new stop's lesson knows the whole path and continues from the previous stop's code, and the last stop finishes the project.
 
+- Fixed: panels that slide in from the right (a file from the Files map, for example) opened off screen when you had scrolled down the Atlas. Line links no longer repeat a number the text already says ("line 7⁷"). **Second opinion** now asks the AI that *didn't* write the answer, even after you switch models, and both answers are labelled.
+- Taking apart a new repo now shows each step long enough to read, with what it found ("8 files · 706 lines · 10 imports followed · 2 outside packages"). Saved and featured projects still open instantly (about 0.35 s).
+- Bento runs as a single copy. Opening it again brings the open window forward. Two copies on one profile used to fight over its storage, which made every launch wait about 4 s.
+
 ## Checking it yourself
 
 ```bash

@@ -41,6 +41,10 @@ function createWindow() {
   win.webContents.on('did-start-loading', () => { try { bootStore = JSON.parse(JSON.stringify(readStore())); } catch {} });
 }
 
+// two copies on one profile fight over its storage lock (each launch then stalls ~4 s) and overwrite each other's saves
+if (!app.requestSingleInstanceLock()) app.quit();
+app.on('second-instance', () => { if (!win || win.isDestroyed()) return; if (win.isMinimized()) win.restore(); win.show(); win.focus(); });
+
 app.whenReady().then(() => {
   // play://<id>/ serves a lesson's web page on its own origin, so it can never reach the app.
   protocol.handle('play', (req) => {

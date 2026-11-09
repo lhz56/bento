@@ -4,6 +4,7 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import BigPicture from './BigPicture.jsx';
 import { Visuals } from './Viz.jsx';
 import Editor from './Editor.jsx';
+import { modelLabel } from './Side.jsx';
 const EMPTY = new Map();
 
 const RX = /(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|`[^`]+`|\[\[\d+(?:-\d+)?\|[^\]]+\]\])/g;
@@ -14,8 +15,9 @@ export function Md({ text, onLink, onLinkClick, onTerm }) {
     if (s.startsWith('**')) return <b key={i}>{s.slice(2, -2)}</b>;
     if (s.startsWith('[[')) {
       const m = /^\[\[(\d+)(?:-(\d+))?\|([^\]]+)\]\]$/.exec(s);
-      const r = [+m[1], +(m[2] || m[1])];
-      return <span key={i} className="lnk" onMouseEnter={() => onLink?.(r)} onMouseLeave={() => onLink?.(null)} onClick={() => onLinkClick?.(r)}>{m[3].replace(/`/g, '')}<sup>{r[0] === r[1] ? r[0] : `${r[0]}–${r[1]}`}</sup></span>;
+      const r = [+m[1], +(m[2] || m[1])]; const label = m[3].replace(/`/g, '');
+      const named = (label.match(/\d+/g) || []).map(Number); const says = named.includes(r[0]) && named.includes(r[1]);
+      return <span key={i} className="lnk" onMouseEnter={() => onLink?.(r)} onMouseLeave={() => onLink?.(null)} onClick={() => onLinkClick?.(r)}>{label}{!says && <sup>{r[0] === r[1] ? r[0] : `${r[0]}–${r[1]}`}</sup>}</span>;
     }
     if (s.startsWith('`')) { const w = s.slice(1, -1); return <code key={i} className="term" onClick={(e) => onTerm?.(w, e.currentTarget)}>{w}</code>; }
     if (s.startsWith('*') && s.endsWith('*') && s.length > 2) return <i key={i}>{s.slice(1, -1)}</i>;
@@ -128,7 +130,7 @@ export default function Story(p) {
             {L.chat.map((c, i) => (
               <div key={i} className="qa fade-in">
                 <div className="qa-q">{c.q}</div>
-                <div className="qa-a">{c.loading ? <span className="dots"><i /><i /><i /></span> : <><Md text={c.a} onLink={p.onLink} onLinkClick={p.onLinkClick} onTerm={p.onTerm} />{c.term && c.plain && <span className="qa-term"><b>{c.term}</b> {c.plain}</span>}<div className="qa-acts"><button className="qa-more" onClick={() => p.onFollowUp(c.q)}>Make this a full lesson →</button>{p.altModel && !c.second && <button className="qa-more alt" onClick={() => p.onSecondOpinion?.(i)}>Second opinion from {p.altModel}</button>}</div>{c.second && <div className={`qa-second ${c.second.loading ? 'loading' : ''}`}><span className="qa-who">{c.second.who}</span>{c.second.loading ? <span className="dots"><i /><i /><i /></span> : <Md text={c.second.a} onLink={p.onLink} onLinkClick={p.onLinkClick} onTerm={p.onTerm} />}</div>}</>}</div>
+                <div className="qa-a">{c.loading ? <span className="dots"><i /><i /><i /></span> : <>{c.second && c.by && <span className="qa-who">{modelLabel(c.by)}</span>}<Md text={c.a} onLink={p.onLink} onLinkClick={p.onLinkClick} onTerm={p.onTerm} />{c.term && c.plain && <span className="qa-term"><b>{c.term}</b> {c.plain}</span>}<div className="qa-acts"><button className="qa-more" onClick={() => p.onFollowUp(c.q)}>Make this a full lesson →</button>{p.altFor?.(c) && !c.second && <button className="qa-more alt" onClick={() => p.onSecondOpinion?.(i)}>Second opinion from {p.altFor(c)}</button>}</div>{c.second && <div className={`qa-second ${c.second.loading ? 'loading' : ''}`}><span className="qa-who">{c.second.who}</span>{c.second.loading ? <span className="dots"><i /><i /><i /></span> : <Md text={c.second.a} onLink={p.onLink} onLinkClick={p.onLinkClick} onTerm={p.onTerm} />}</div>}</>}</div>
               </div>
             ))}
           </div>

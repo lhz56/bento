@@ -1178,7 +1178,7 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 @media (prefers-color-scheme: dark) { .side { background: color-mix(in srgb, var(--bg-2) 90%, transparent); } }
 /* calm screen changes */
 @keyframes viewIn { from { opacity: 0; transform: translateY(4px); } }
-.home, .explore, .ideas, .atlas, .lesson, .atlas-loading { animation: viewIn .2s ease-out both; }
+.home, .explore, .ideas, .atlas, .lesson, .atlas-loading { animation: viewIn .2s ease-out backwards; }
 .streak { color: var(--accent) !important; } .streak b { color: var(--accent) !important; }
 .path-party { position: fixed; left: 50%; top: 22%; z-index: 90; transform: translateX(-50%); pointer-events: none; }
 .path-party span { display: block; padding: 12px 20px; border-radius: 16px; background: var(--ink); color: var(--bg); font: 700 15px var(--round); box-shadow: var(--shadow-2); animation: pop .3s both; white-space: nowrap; }

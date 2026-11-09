@@ -340,7 +340,8 @@ export default function App() {
       story: [{ t: 'p', md: 'A blank page that explains itself. Type any code on the right: Bento turns each line into plain English as you go, **Run** shows the result, and **Step** walks through it line by line.' }, { t: 'p', md: 'Hover any word for a quick explanation. Stuck? Ask below, like “why does range start at 0?”.' }, { t: 'try', items: ['Change 3 to 10', 'Step through the loop', py ? 'Print your own name' : 'Log your own name'] }] };
     setLessons((ls) => [L, ...ls.filter((x) => !(x.scratch && !x.work && x.title === 'Scratchpad'))]); setCurrentId(L.id); setViewRaw('lesson'); setStepSel(null);
   };
-  const altModel = settings.model.startsWith('claude') ? (providers?.codex ? 'codex:default' : null) : (providers?.claude ? 'claude:sonnet' : null);
+  const altOf = (m) => (m.startsWith('claude') ? (providers?.codex ? 'codex:default' : null) : (providers?.claude ? 'claude:sonnet' : null));
+  const altModel = altOf(settings.model);
   // a new bug every day (generated once, then kept), the built-in one when no AI is connected
   const openDaily = () => {
     const day = new Date().toISOString().slice(0, 10);
@@ -475,7 +476,7 @@ export default function App() {
               onNext={(q) => current.mode === 'challenge' ? askLesson(/another/i.test(q) ? (current.concepts?.[0] || 'arrays') : q, { mode: /another/i.test(q) ? 'challenge' : 'explain', lang: current.lang }) : askLesson(q, { prev: current, lang: current.lang })}
               onFollowUp={(q) => askLesson(q, { prev: current, lang: current.lang })}
               onSecondOpinion={async (i) => {
-                const L = current; const id = L.id; const c = L.chat[i]; if (!altModel) return;
+                const L = current; const id = L.id; const c = L.chat[i]; const altModel = altOf(c.by || settings.model); if (!altModel) return;
                 const set = (second) => setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, chat: l.chat.map((x, k) => (k === i ? { ...x, second } : x)) } : l)));
                 set({ who: modelLabel(altModel), loading: true });
                 const code = (L.work ?? L.code ?? '').split('\n').map((x, k) => `${k + 1}| ${x}`).join('\n').slice(0, 5000);
@@ -502,14 +503,14 @@ export default function App() {
                 const hist = (L.chat || []).slice(-3).map((c) => `Q: ${c.q}\nA: ${c.a}`).join('\n');
                 try {
                   const j = parseJSONLoose(await api.quick(settings.model, `You are tutoring a ${settings.level} learner inside a lesson titled "${L.title}".\nThe lesson's ${L.lang} code (with line numbers):\n${code}\n${hist ? `\nEarlier in this chat:\n${hist}\n` : ''}\nThe learner asks: ${q}\nAnswer warmly and precisely in at most 110 words. You may use **bold**, \`code\` and line links like [[3-5|the loop]] that point at lines of the code above.\nReply JSON: {"answer":"...","term":"a technical term you used that they may not know, or null","plain":"one-line definition of it, or null"}`));
-                  put(j?.answer ? { q, a: j.answer, term: j.term, plain: j.plain } : { q, a: 'I couldn’t answer that one. Try making it a full lesson.' });
+                  put(j?.answer ? { q, a: j.answer, term: j.term, plain: j.plain, by: settings.model } : { q, a: 'I couldn’t answer that one. Try making it a full lesson.' });
                   if (j?.term && j?.plain) setProgress((p) => { const k = String(j.term).toLowerCase(); if (p.words?.[k]) return p; return { ...p, words: { ...(p.words || {}), [k]: { term: j.term, plain: j.plain, from: id, title: L.title, at: Date.now() } } }; });
                 } catch { put({ q, a: 'The model didn’t answer. Check your connection and try again.' }); }
               }}
               onDepth={(dir) => { const lv = ['kid', 'student', 'engineer']; const base = current.level || settings.level; const level = lv[Math.max(0, Math.min(2, lv.indexOf(base) + (dir === 'deeper' ? 1 : -1)))]; askLesson(dir === 'deeper' ? `Go deeper on "${current.title}": what's really happening under the hood, and the trade-offs a pro would think about` : `Explain "${current.title}" again, much simpler, with an everyday analogy and a smaller example`, { prev: current, lang: current.lang, level }); }}
               onQuiz={(ok) => ok && award(current, 'quiz')} onConcept={(c) => askLesson(`Teach me ${c.replace(/-/g, ' ')}`, { lang: current.lang })}
               stepSel={stepSel} onStepSelect={setStepSel}
-              onWild={providers?.gh ? findWild : null} onOpenAt={openRepoAt} onOpenRepo={openRepo} altModel={altModel ? modelLabel(altModel) : null} onRetryWith={() => { const a = current; setSettings({ model: altModel }); setLessons((ls) => ls.filter((l) => l.id !== a.id)); setTimeout(() => askLesson(a.q, { mode: a.mode, lang: a.lang, context: a.context }), 0); }}
+              onWild={providers?.gh ? findWild : null} onOpenAt={openRepoAt} onOpenRepo={openRepo} altModel={altModel ? modelLabel(altModel) : null} altFor={(c) => { const m = altOf(c.by || settings.model); return m ? modelLabel(m) : null; }} onRetryWith={() => { const a = current; setSettings({ model: altModel }); setLessons((ls) => ls.filter((l) => l.id !== a.id)); setTimeout(() => askLesson(a.q, { mode: a.mode, lang: a.lang, context: a.context }), 0); }}
               article={article} onArticle={() => setArticle((a) => { localStorage.setItem('bento.article', a ? '' : '1'); return !a; })} run={runs[current.id]}
               onStop={() => { const id = current.id; cancels.current.get(id)?.(); cancels.current.delete(id); setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, status: l.code || l.story.length ? 'done' : 'error', error: l.code || l.story.length ? null : 'Stopped before anything arrived.', thinking: null } : l))); }}
               onBackToRepo={showAtlas} onOpenUrl={(u) => api.openExternal(u)} knownWords={progress.words}
