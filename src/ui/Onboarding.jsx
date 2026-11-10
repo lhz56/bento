@@ -4,10 +4,12 @@ import Brand from './Brand.jsx';
 // First run: say what Bento is, find the AI subscriptions already on this Mac, learn a little about the person.
 // Nothing gets installed or signed in for them; we only look, and show the exact command when something is missing.
 
+// Install commands that work on this Mac: Claude Code's own installer needs nothing else; Codex and GitHub's tool use
+// Homebrew or npm when you have them (scan.tools says which), or point at the download page.
 const CONNS = [
-  { id: 'claude', name: 'Claude Code', slug: 'claude', what: 'Your Claude subscription (Pro or Max)', install: 'npm install -g @anthropic-ai/claude-code', login: 'claude', loginHint: 'Run it once in Terminal and sign in with your Claude account.' },
-  { id: 'codex', name: 'Codex', slug: '', color: '#111', what: 'Your ChatGPT subscription (Plus or Pro)', install: 'npm install -g @openai/codex', login: 'codex login', loginHint: 'Signs in with your ChatGPT account in the browser.' },
-  { id: 'gh', name: 'GitHub', slug: 'github', what: 'Optional: your repos, private ones too', install: 'brew install gh', login: 'gh auth login', loginHint: 'Lets Bento read your repos and fork projects you like.' },
+  { id: 'claude', name: 'Claude Code', slug: 'claude', what: 'Your Claude subscription (Pro or Max)', install: () => ({ cmd: 'curl -fsSL https://claude.ai/install.sh | bash' }), update: () => 'claude update', login: 'claude', loginHint: 'Run it once in Terminal and sign in with your Claude account.' },
+  { id: 'codex', name: 'Codex', slug: '', color: '#111', what: 'Your ChatGPT subscription (Plus or Pro)', install: (tl) => (tl?.brew ? { cmd: 'brew install --cask codex' } : tl?.npm ? { cmd: 'npm install -g @openai/codex' } : { cmd: 'npm install -g @openai/codex', need: ['Needs Node.js first', 'https://nodejs.org/en/download'] }), update: (tl) => (tl?.brew ? 'brew upgrade --cask codex' : 'npm install -g @openai/codex@latest'), login: 'codex login', loginHint: 'Signs in with your ChatGPT account in the browser.' },
+  { id: 'gh', name: 'GitHub', slug: 'github', what: 'Optional: your repos, private ones too', install: (tl) => (tl?.brew ? { cmd: 'brew install gh' } : { link: ['Download the installer', 'https://cli.github.com'] }), update: (tl) => (tl?.brew ? 'brew upgrade gh' : 'gh --version'), login: 'gh auth login', loginHint: 'Lets Bento read your repos and fork projects you like.' },
 ];
 const LEVELS = [['kid', 'Totally new', 'I’ve never written code. Explain everything with everyday examples.', '🌱'], ['student', 'I know a little', 'I’ve seen some code. Teach me the real words as we go.', '🌿'], ['engineer', 'I write code', 'Skip the basics, show me trade-offs and how pros do it.', '🌳']];
 const INTERESTS = [['games', 'Games', '🎮'], ['web', 'Websites', '🌐'], ['ai', 'AI', '✳'], ['data', 'Data', '📊'], ['bots', 'Bots', '🤖'], ['apps', 'Phone apps', '📱'], ['art', 'Art & visuals', '🎨'], ['systems', 'How big apps scale', '🏙']];
@@ -23,14 +25,20 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
   const [copied, setCopied] = useState(null);
   const doScan = async () => { setScanning(true); setScan(null); const t0 = Date.now(); try { const r = await api.scan(); await new Promise((ok) => setTimeout(ok, Math.max(0, 1300 - (Date.now() - t0)))); setScan(r); } catch { setScan({}); } setScanning(false); };
   useEffect(() => { if (step === 1 && !scan && !scanning) doScan(); }, [step]);
-  const ready = (c) => scan?.[c]?.installed && scan?.[c]?.loggedIn;
+  // back from Terminal after installing something: look again by itself
+  useEffect(() => {
+    if (step !== 1) return;
+    const back = () => { if (!scanning && !(ready('claude') && ready('codex') && ready('gh'))) doScan(); };
+    addEventListener('focus', back); return () => removeEventListener('focus', back);
+  }, [step, scan, scanning]);
+  const ready = (c) => scan?.[c]?.installed && scan?.[c]?.loggedIn && !scan?.[c]?.outdated;
   const anyModel = ready('claude') || ready('codex');
   const model = ready('claude') ? 'claude:sonnet' : ready('codex') ? 'codex:default' : settings.model;
   const copy = (t) => { navigator.clipboard?.writeText(t); setCopied(t); setTimeout(() => setCopied(null), 1400); };
   const finish = (go) => { setSettings({ onboarded: true, level, lang, interests, model, voice }); onDone(go); };
 
   return (
-    <div className="onb">
+    <div className="onb" role="dialog" aria-modal="true" aria-label="Welcome to Bento">
       <div className="onb-drag" />
       <div className="onb-dots">{[0, 1, 2, 3].map((i) => <i key={i} className={i === step ? 'on' : i < step ? 'past' : ''} />)}</div>
 
@@ -56,7 +64,7 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
           <div className="conns">
             {CONNS.map((c, i) => {
               const r = scan?.[c.id];
-              const state = !scan ? 'wait' : !r?.installed ? 'missing' : !r.loggedIn ? 'login' : 'ok';
+              const state = !scan ? 'wait' : !r?.installed ? 'missing' : r.outdated ? 'old' : !r.loggedIn ? 'login' : 'ok';
               return (
                 <div key={c.id} className={`conn s-${state}`} style={{ animationDelay: `${i * 90}ms` }}>
                   <Brand slug={c.slug} name={c.name} color={c.color} size={42} />
@@ -66,15 +74,21 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
                       {state === 'wait' && <span className="scan-line">checking…</span>}
                       {state === 'ok' && <>{c.id === 'gh' ? <>Signed in as <b>{r.user}</b></> : <>Signed in{r.plan ? <> · <b>{r.plan[0].toUpperCase() + r.plan.slice(1)}</b> plan</> : r.method ? <> with {r.method}</> : null}</>}{r.version ? <span className="ver">v{r.version}</span> : null}</>}
                       {state === 'login' && <>Installed, but not signed in. {c.loginHint}</>}
+                      {state === 'old' && <>Version {r.version || '?'} is installed, but it can’t do everything Bento needs. Update it, and Bento checks again when you come back.</>}
                       {state === 'missing' && <>{c.what}. Not installed yet.</>}
                     </div>
-                    {(state === 'login' || state === 'missing') && (
-                      <button className="cmd" onClick={() => copy(state === 'missing' ? c.install : c.login)}>
-                        <span className="cmd-p">$</span>{state === 'missing' ? c.install : c.login}<span className="cmd-c">{copied === (state === 'missing' ? c.install : c.login) ? 'copied ✓' : 'copy'}</span>
-                      </button>
-                    )}
+                    {(state === 'login' || state === 'missing' || state === 'old') && (() => {
+                      const how = state === 'missing' ? c.install(scan?.tools) : state === 'old' ? { cmd: c.update(scan?.tools) } : { cmd: c.login };
+                      return (
+                        <div className="cmd-row">
+                          {how.cmd && <button className="cmd" onClick={() => copy(how.cmd)}><span className="cmd-p">$</span>{how.cmd}<span className="cmd-c">{copied === how.cmd ? 'copied ✓' : 'copy'}</span></button>}
+                          {how.link && <button className="btn ghost small" onClick={() => api.openExternal?.(how.link[1])}>{how.link[0]} ↗</button>}
+                          {how.need && <button className="link small" onClick={() => api.openExternal?.(how.need[1])}>{how.need[0]} ↗</button>}
+                        </div>
+                      );
+                    })()}
                   </div>
-                  <span className={`conn-state ${state}`}>{state === 'wait' ? <span className="lens-spin" /> : state === 'ok' ? '✓' : state === 'login' ? '!' : '+'}</span>
+                  <span className={`conn-state ${state}`}>{state === 'wait' ? <span className="lens-spin" /> : state === 'ok' ? '✓' : state === 'login' || state === 'old' ? '!' : '+'}</span>
                 </div>
               );
             })}
@@ -82,11 +96,14 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
           {scan && (
             <div className={`route ${anyModel ? 'ok' : 'no'}`}>
               {anyModel ? <><span className="route-dot" />Bento will teach with <b>{ready('claude') ? 'Claude Sonnet' : 'Codex'}</b>{ready('claude') && ready('codex') ? ' (switch to Codex any time, bottom-left)' : ''}. Quick answers use a faster model from the same plan.</>
-                : <>No AI found yet. Copy a command above into Terminal, then press <b>Scan again</b>. The built-in lessons work meanwhile.</>}
+                : <>No AI found yet. Copy a command above, paste it into Terminal and press Return. Bento looks again when you come back. The built-in lessons work meanwhile.</>}
             </div>
           )}
           <div className="onb-nav">
-            <button className="btn ghost" onClick={doScan} disabled={scanning}>{scanning ? 'Scanning…' : 'Scan again'}</button>
+            <span className="onb-tools">
+              <button className="btn ghost" onClick={doScan} disabled={scanning}>{scanning ? 'Scanning…' : 'Scan again'}</button>
+              {scan && !(ready('claude') && ready('codex')) && api.openTerminal && /Mac/.test(navigator.platform) && <button className="btn ghost" onClick={() => api.openTerminal()}>Open Terminal</button>}
+            </span>
             <button className="onb-go small" onClick={() => setStep(2)}>{anyModel ? 'Continue' : 'Skip for now'} <span>→</span></button>
           </div>
         </div>
@@ -133,7 +150,9 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
             {level === 'engineer'
               ? <button className="s3" onClick={() => finish('home')}><Art kind="code" /><b>Ask anything</b><span>“How does consistent hashing work?” Get a lesson with live code.</span></button>
               : <button className="s3" onClick={() => finish('path')}><Art kind="code" /><b>Start from zero</b><span>Eleven short stops from “what is a program?” to your first app.</span></button>}
+            <button className="s3" onClick={() => finish('puzzles')}><Art kind="puzzle" /><b>Solve a puzzle</b><span>Interview puzzles from the top down, raced from 10 items to a billion.</span></button>
           </div>
+          {level !== 'engineer' && <button className="onb-ask" onClick={() => finish('home')}>or just ask anything <span>→</span></button>}
         </div>
       )}
     </div>
@@ -166,7 +185,7 @@ function OwnIt() {
   return (
     <div className="pr-art own" aria-hidden="true">
       <div className="pr-ais"><span><Brand slug="claude" name="Claude" size={18} plain /></span><span><Brand slug="" name="Codex" color="#111" size={18} plain /></span></div>
-      <svg viewBox="0 0 60 60" className="pr-wires"><path d="M2 16 C 30 16, 30 30, 58 30" /><path d="M2 44 C 30 44, 30 30, 58 30" /></svg>
+      <svg viewBox="0 0 60 60" className="pr-wires" aria-hidden="true"><path d="M2 16 C 30 16, 30 30, 58 30" /><path d="M2 44 C 30 44, 30 30, 58 30" /></svg>
       <div className="onb-logo mini"><span className="b1" /><span className="b2" /><span className="b3" /></div>
     </div>
   );
@@ -174,13 +193,16 @@ function OwnIt() {
 
 export function Art({ kind }) {
   if (kind === 'city') return (
-    <svg viewBox="0 0 120 70" className="s3-art">{[[20, 40, 18, '#ff8a5b'], [34, 34, 28, '#5aa9ff'], [48, 42, 14, '#a78bfa'], [62, 36, 24, '#4cc9a0'], [76, 44, 10, '#ff8a5b'], [90, 38, 20, '#5aa9ff']].map(([x, y, h, c], i) => <g key={i}><path d={`M${x} ${y} l7 -4 l7 4 v${-h + 10} l-7 -4 l-7 4 Z`} fill={c} opacity=".25" /><path d={`M${x} ${y - h + 10} l7 -4 l7 4 l-7 4 Z`} fill={c} /><path d={`M${x} ${y - h + 10} l7 4 v${h - 6} l-7 -4 Z`} fill={c} opacity=".55" /><path d={`M${x + 7} ${y - h + 14} l7 -4 v${h - 6} l-7 4 Z`} fill={c} opacity=".8" /></g>)}</svg>
+    <svg viewBox="0 0 120 70" className="s3-art" aria-hidden="true">{[[20, 40, 18, '#ff8a5b'], [34, 34, 28, '#5aa9ff'], [48, 42, 14, '#a78bfa'], [62, 36, 24, '#4cc9a0'], [76, 44, 10, '#ff8a5b'], [90, 38, 20, '#5aa9ff']].map(([x, y, h, c], i) => <g key={i}><path d={`M${x} ${y} l7 -4 l7 4 v${-h + 10} l-7 -4 l-7 4 Z`} fill={c} opacity=".25" /><path d={`M${x} ${y - h + 10} l7 -4 l7 4 l-7 4 Z`} fill={c} /><path d={`M${x} ${y - h + 10} l7 4 v${h - 6} l-7 -4 Z`} fill={c} opacity=".55" /><path d={`M${x + 7} ${y - h + 14} l7 -4 v${h - 6} l-7 4 Z`} fill={c} opacity=".8" /></g>)}</svg>
+  );
+  if (kind === 'puzzle') return (
+    <svg viewBox="0 0 120 70" className="s3-art" aria-hidden="true"><path d="M14 60 H108 M14 60 V10" stroke="var(--line-2)" strokeWidth="1.5" /><path d="M16 58 C 60 56, 80 40, 104 10" fill="none" stroke="#ff8a5b" strokeWidth="3" strokeLinecap="round" /><path d="M16 58 L104 44" fill="none" stroke="#4cc9a0" strokeWidth="3" strokeLinecap="round" /><text x="96" y="22" fontSize="9" fill="#ff8a5b" fontFamily="ui-monospace">n²</text><text x="98" y="56" fontSize="9" fill="#2b8a3e" fontFamily="ui-monospace">n</text></svg>
   );
   if (kind === 'hex') return (
-    <svg viewBox="0 0 120 70" className="s3-art">{Array.from({ length: 18 }, (_, i) => { const c = i % 6, r = Math.floor(i / 6); const x = 22 + c * 15 + (r % 2) * 7.5, y = 18 + r * 13; return <path key={i} d={hexPath(x, y, 8)} fill={[3, 8, 9, 14].includes(i) ? '#ff8a5b' : [2, 10, 15].includes(i) ? '#ffd2bf' : 'none'} stroke="var(--line-2)" />; })}</svg>
+    <svg viewBox="0 0 120 70" className="s3-art" aria-hidden="true">{Array.from({ length: 18 }, (_, i) => { const c = i % 6, r = Math.floor(i / 6); const x = 22 + c * 15 + (r % 2) * 7.5, y = 18 + r * 13; return <path key={i} d={hexPath(x, y, 8)} fill={[3, 8, 9, 14].includes(i) ? '#ff8a5b' : [2, 10, 15].includes(i) ? '#ffd2bf' : 'none'} stroke="var(--line-2)" />; })}</svg>
   );
   return (
-    <svg viewBox="0 0 120 70" className="s3-art"><rect x="14" y="12" width="56" height="46" rx="6" fill="var(--panel)" stroke="var(--line-2)" />{[0, 1, 2, 3].map((i) => <rect key={i} x={20 + (i % 2) * 6} y={20 + i * 9} width={20 + ((i * 13) % 22)} height="4" rx="2" fill={['#d9480f', '#6a45f5', '#2b8a3e', '#1c74d6'][i]} opacity=".7" />)}{[0, 1, 2, 3, 4].map((i) => <rect key={i} x={78 + i * 7} y={52 - [12, 20, 30, 24, 36][i]} width="5" height={[12, 20, 30, 24, 36][i]} rx="2" fill="#4cc9a0" />)}</svg>
+    <svg viewBox="0 0 120 70" className="s3-art" aria-hidden="true"><rect x="14" y="12" width="56" height="46" rx="6" fill="var(--panel)" stroke="var(--line-2)" />{[0, 1, 2, 3].map((i) => <rect key={i} x={20 + (i % 2) * 6} y={20 + i * 9} width={20 + ((i * 13) % 22)} height="4" rx="2" fill={['#d9480f', '#6a45f5', '#2b8a3e', '#1c74d6'][i]} opacity=".7" />)}{[0, 1, 2, 3, 4].map((i) => <rect key={i} x={78 + i * 7} y={52 - [12, 20, 30, 24, 36][i]} width="5" height={[12, 20, 30, 24, 36][i]} rx="2" fill="#4cc9a0" />)}</svg>
   );
 }
 export const hexPath = (x, y, r) => Array.from({ length: 6 }, (_, k) => { const a = Math.PI / 6 + (k * Math.PI) / 3; return `${k ? 'L' : 'M'}${(x + r * Math.cos(a)).toFixed(1)},${(y + r * Math.sin(a)).toFixed(1)}`; }).join(' ') + 'Z';

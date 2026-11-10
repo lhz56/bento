@@ -5,6 +5,13 @@ import * as walk from 'acorn-walk';
 const STEP_LIMIT = 2500;
 const COUNT_LIMIT = 4_000_000;
 class Stop extends Error {}
+class NeedInput extends Error { constructor(prompt) { super(prompt); this.prompt = prompt; } }
+let liveId = null, liveMode = null, liveT0 = 0, liveLast = 0, liveBuf = [];
+function live(k, s) {
+  if (liveMode !== 'run') return;
+  liveBuf.push({ k, s }); const now = performance.now();
+  if (now - liveT0 > 250 && now - liveLast > 50) { self.postMessage({ id: liveId, live: liveBuf }); liveBuf = []; liveLast = now; }
+}
 
 // ---------- value formatting
 function short(v, d = 0) {
@@ -46,13 +53,27 @@ function toViz(x, label) {
 
 // ---------- helpers exposed to user code
 let out;
-function fresh() { out = { logs: [], visuals: [], canvas: null }; }
+function fresh() { out = { logs: [], visuals: [], canvas: null }; answers = []; }
+let answers = [];
 function canvas() { if (!out.canvas) { out.canvas = { type: 'canvas', w: 400, h: 400, cmds: [] }; out.visuals.push(out.canvas); } return out.canvas; }
 const cap = (c) => { if (c.cmds.length > 60000) throw new Error('Too many drawing commands'); return c; };
-const logf = (k) => (...a) => out.logs.push({ k, s: a.map((x) => (typeof x === 'string' ? x : short(x))).join(' ') });
+const logf = (k) => (...a) => { const s = a.map((x) => (typeof x === 'string' ? x : short(x))).join(' '); out.logs.push({ k, s }); live(k, s); };
+// prompt()/input(): answers come from the learner; with none left, the run pauses to ask
+const ask = (msg = '') => { const p = String(msg ?? ''); if (answers.length) { const a = String(answers.shift()); out.logs.push({ k: 'in', p, s: a }); live('in', p + a); return a; } throw new NeedInput(p); };
+// fetch() goes through the app, so sites that block browser pages still answer
+async function netFetch(url, opts = {}) {
+  const headers = {}; for (const [k, v] of Object.entries(opts.headers || {})) headers[`x-h-${k.toLowerCase()}`] = v;
+  const r = await self.fetch(`/__net?u=${encodeURIComponent(String(url))}`, { method: opts.method || 'GET', headers, body: opts.body });
+  const status = +r.headers.get('x-status') || 0; const text = await r.text();
+  if (!status) throw new TypeError(`Failed to fetch: ${text}`);
+  return new Response(text, { status, headers: { 'content-type': r.headers.get('x-content-type') || 'text/plain' } });
+}
 const H = {
   print: logf('log'),
   console: { log: logf('log'), info: logf('log'), warn: logf('warn'), error: logf('err'), table: (x) => out.visuals.push(toViz(x)) },
+  prompt: ask, input: ask,
+  fetch: netFetch,
+  sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
   show: (x, label) => { if (out.visuals.length < 40) out.visuals.push(toViz(x, label)); },
   size: (w, h) => { const c = canvas(); c.w = w; c.h = h; },
   background: (c) => cap(canvas()).cmds.push(['bg', c]),
@@ -179,8 +200,9 @@ const settle = () => new Promise((r) => setTimeout(r, 40));
 const clone = (x) => (typeof structuredClone === 'function' ? structuredClone(x) : JSON.parse(JSON.stringify(x)));
 function eq(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 
-async function handle({ mode, code, extra }) {
-  fresh();
+async function handle({ id, mode, code, extra }) {
+  fresh(); answers = [...(extra?.answers || [])];
+  liveId = id; liveMode = mode; liveT0 = performance.now(); liveLast = 0; liveBuf = [];
   const se = syntaxCheck(code);
   if (se) return { logs: [], visuals: [], error: se };
   const t0 = performance.now();
@@ -190,7 +212,7 @@ async function handle({ mode, code, extra }) {
       const tr = makeTracer({ snapshots: false });
       const inst = instrument(code, { snapshots: false });
       try { await exec(inst, Object.keys(tr.T), Object.values(tr.T)); await settle(); }
-      catch (e) { const ei = errInfo(e, 0); ei.line = ei.line ? mapLine(code, inst, ei.line) : null; return { ...out, error: ei, ms: performance.now() - t0 }; }
+      catch (e) { if (e instanceof NeedInput) return { ...out, need: { prompt: e.prompt }, ms: performance.now() - t0 }; const ei = errInfo(e, 0); ei.line = ei.line ? mapLine(code, inst, ei.line) : null; return { ...out, error: ei, ms: performance.now() - t0 }; }
       return { ...out, ms: performance.now() - t0 };
     }
     if (mode === 'trace') {
@@ -198,7 +220,7 @@ async function handle({ mode, code, extra }) {
       const inst = instrument(code, { snapshots: true });
       let error = null;
       try { await exec(inst, Object.keys(tr.T), Object.values(tr.T)); await settle(); }
-      catch (e) { error = errInfo(e); if (error.line) error.line = mapLine(code, inst, error.line); }
+      catch (e) { if (e instanceof NeedInput) { const steps = tr.steps; return { ...out, steps, need: { prompt: e.prompt } }; } error = errInfo(e); if (error.line) error.line = mapLine(code, inst, error.line); }
       const steps = tr.steps;
       if (steps.length) steps.push({ line: steps[steps.length - 1].line, vars: steps[steps.length - 1].vars, stack: [], end: true, logs: out.logs.length, viz: out.visuals.length });
       return { ...out, steps, error };

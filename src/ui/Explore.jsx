@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { t, tx } from '../i18n.js';
 import { sizeWord, fmtN, langColor } from '../atlas/analyze.js';
 import FEATURED from '../atlas-featured.json';
 
@@ -6,7 +7,7 @@ import FEATURED from '../atlas-featured.json';
 const monthAgo = () => { const d = new Date(Date.now() - 30 * 864e5); return d.toISOString().slice(0, 10); };
 const SHELVES = [
   ['New this month', () => `created:>${monthAgo()}`, '🆕', null, { stars: '>100' }],
-  ['Tiny games', 'snake game', '🎮', 'javascript'], ['To-do apps', 'todo app react', '✓'], ['Discord bots', 'discord bot', '🤖', 'python'],
+  ['Tiny games', 'topic:game', '🎮', 'javascript', { stars: '>50' }], ['To-do apps', 'todo app react', '✓'], ['Discord bots', 'discord bot', '🤖', 'python'],
   ['Chrome extensions', 'chrome extension', '🧩', 'javascript'], ['Portfolio sites', 'portfolio nextjs', '✦'], ['AI chat apps', 'ai chatbot nextjs', '✳'],
   ['Chat apps', 'realtime chat socket.io', '💬'], ['Markdown editors', 'markdown editor', '✎'], ['CLI tools', 'command line tool', '⌘', 'python'], ['Weather apps', 'weather app', '☀'],
 ];
@@ -19,7 +20,7 @@ export const parseRepo = (s) => {
   return m ? `${m[1]}/${m[2]}` : null;
 };
 
-export default function Explore({ api, onOpenAt, onCompare, onOpenSite, onOpenRepo, onOpenFolder, projects, onOpenProject, repos, loadRepos, user }) {
+export default function Explore({ top, api, onOpenAt, onCompare, onOpenSite, onOpenRepo, onOpenFolder, projects, onOpenProject, repos, loadRepos, user }) {
   const [q, setQ] = useState('');
   const [shelf, setShelf] = useState(1);
   const [res, setRes] = useState(null);
@@ -42,9 +43,10 @@ export default function Explore({ api, onOpenAt, onCompare, onOpenSite, onOpenRe
   return (
     <div className="explore">
       <div className="ex-inner">
-        <div className="hello">Explore</div>
-        <h1 className="home-h">Take apart <em>any</em> app.</h1>
-        <p className="ex-sub">Search open source, paste a GitHub link, or paste any website. Bento shows what every part does, how the parts connect, which outside tools it leans on, and why it was built that way.</p>
+        {top}
+        <div className="hello">{t('Explore')}</div>
+        <h1 className="home-h">{tx('Take apart *any* app.')}</h1>
+        <p className="ex-sub">{t('Search open source, paste a GitHub link, or paste any website. Bento shows what every part does, how the parts connect, which outside tools it leans on, and why it was built that way.')}</p>
 
         <form className={`ex-search ${repo || site ? 'is-repo' : ''}`} onSubmit={submit}>
           <span className="ex-ic">{repo ? '⌥' : site ? '◎' : '⌕'}</span>
@@ -82,7 +84,7 @@ export default function Explore({ api, onOpenAt, onCompare, onOpenSite, onOpenRe
             </div>
           </div>
 
-          <aside className="ex-side">
+          <aside className="ex-side" aria-label="Your projects">
             {Object.keys(FEATURED).length > 0 && (
               <div className="ex-box feat">
                 <div className="mini-h">ready instantly</div>

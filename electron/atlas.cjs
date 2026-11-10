@@ -16,9 +16,9 @@ const LOCK = /(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb?|p
 // --------------------------------------------------------------------------- fetch
 function run(cmd, args, opts = {}, onErrLine) {
   return new Promise((resolve, reject) => {
-    const c = spawn(cmd, args, { ...opts, stdio: ['ignore', 'pipe', 'pipe'] });
+    const c = spawn(cmd, args, { ...opts, stdio: ['ignore', 'pipe', 'pipe'], ...(process.platform === 'win32' ? { shell: true, windowsHide: true } : {}) });
     let out = '', err = '';
-    c.stdout.on('data', (d) => { out += d; });
+    c.stdout.on('data', (d) => { out += d; if (opts.maxOut && out.length > opts.maxOut) { c.kill(); reject(new Error('too much history')); } });
     c.stderr.on('data', (d) => { const s = d.toString(); err += s; if (onErrLine) s.split(/[\r\n]+/).forEach((l) => l && onErrLine(l)); });
     c.on('error', reject);
     c.on('close', (code) => (code === 0 ? resolve(out) : reject(new Error((err.trim().split('\n').filter((l) => !/%/.test(l)).slice(-2).join(' ')) || `${cmd} failed (${code})`))));
@@ -52,7 +52,7 @@ async function fetchRepo({ full, base, env, hasGh, onProgress }) {
 function walkAll(root) {
   const out = [];
   const go = (rel, depth) => {
-    if (out.length > 5000 || depth > 12) return;
+    if (out.length > 40000 || depth > 12) return; // names only, so this stays fast; pickFiles chooses what to read
     let ents = []; try { ents = fs.readdirSync(path.join(root, rel), { withFileTypes: true }); } catch { return; }
     for (const d of ents) {
       const name = d.name;
@@ -114,26 +114,42 @@ function readText(root, p, max = 400_000) {
 }
 function jsonLoose(s) { try { return JSON.parse(s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:"'])\/\/.*$/gm, '$1').replace(/,(\s*[}\]])/g, '$1')); } catch { return null; } }
 
+const extOf = (p) => (/\.([^./]+)$/.exec(p)?.[1] || '').toLowerCase();
+const isTextPath = (p) => !!(LANG[extOf(p)] || DOC.test(p) || DATA.test(p) || /(^|\/)(Dockerfile|Makefile|Procfile|Gemfile|CNAME|LICENSE|artisan)$/i.test(p));
+const skipPath = (p) => LOCK.test(p) || ASSET.test(p) || /\.min\.(js|css)$/.test(p) || /(^|\/)(generated|__generated__)\//.test(p);
+// Big projects (monorepos with apps/web, apps/server, packages/…) have more files than Bento reads. Instead of
+// the first 3,000 in alphabetical order (which can skip whole apps), every part of the project gets a fair turn,
+// with source before tests, examples and docs.
+const MONO = /^(apps|packages|libs|lib|services|crates|modules|plugins|extensions|projects|components|sdks|tools)$/;
+function pickFiles(all, max = 3000) {
+  const cands = all.filter((p) => !skipPath(p) && isTextPath(p));
+  if (cands.length <= max) return { picked: cands, of: cands.length };
+  const area = (p) => { const s = p.split('/'); return s.length > 2 && MONO.test(s[0]) ? `${s[0]}/${s[1]}` : s.length > 1 ? s[0] : '.'; };
+  const rank = (p) => (/(^|\/)(__tests__|tests?|spec|specs|e2e|fixtures?|__mocks__|mocks?|testing|stories|__snapshots__|testdata)(\/|$)|\.(test|spec|stories)\.[a-z]+$/i.test(p) ? 3 : 0)
+    + (/(^|\/)(docs?|examples?|demos?|samples?|benchmarks?)(\/|$)/i.test(p) ? 2 : 0) + (LANG[extOf(p)] ? 0 : 1) + p.split('/').length * 0.05;
+  const groups = new Map();
+  for (const p of cands) { const a = area(p); if (!groups.has(a)) groups.set(a, []); groups.get(a).push(p); }
+  const queues = [...groups.values()].map((g) => g.sort((x, y) => rank(x) - rank(y)));
+  const keep = new Set(); let i = 0;
+  while (keep.size < max) { let added = false; for (const q of queues) if (i < q.length && keep.size < max) { keep.add(q[i]); added = true; } if (!added) break; i++; }
+  return { picked: cands.filter((p) => keep.has(p)), of: cands.length };
+}
+
 function analyze(root, meta = {}) {
   const all = walkAll(root);
   const set = new Set(all);
   const files = []; const idx = new Map();
   let assets = 0, assetBytes = 0;
-  for (const p of all) {
-    if (LOCK.test(p)) continue;
-    const ext = (/\.([^./]+)$/.exec(p)?.[1] || '').toLowerCase();
-    if (ASSET.test(p)) { assets++; try { assetBytes += fs.statSync(path.join(root, p)).size; } catch {} continue; }
-    if (/\.min\.(js|css)$/.test(p) || /(^|\/)(generated|__generated__)\//.test(p)) continue;
-    const lang = LANG[ext] || null;
-    const isText = lang || DOC.test(p) || DATA.test(p) || /(^|\/)(Dockerfile|Makefile|Procfile|Gemfile|CNAME|LICENSE|artisan)$/i.test(p);
-    if (!isText) continue;
+  for (const p of all) if (ASSET.test(p) && !LOCK.test(p)) { assets++; if (assets <= 4000) { try { assetBytes += fs.statSync(path.join(root, p)).size; } catch {} } }
+  const { picked, of } = pickFiles(all);
+  for (const p of picked) {
+    const lang = LANG[extOf(p)] || null;
     const text = readText(root, p);
     const lines = text == null ? 0 : text.split('\n').length;
     const [layer, sub] = classify(p, lang);
     const f = { p, lang, lines, layer, sub, imp: [], ext: [] };
     if (text && lang) f._t = text;
     idx.set(p, files.length); files.push(f);
-    if (files.length >= 3000) break;
   }
 
   // tsconfig paths ("@/*": ["./src/*"])
@@ -305,8 +321,44 @@ function analyze(root, meta = {}) {
   return {
     root, name: meta.name || path.basename(root), files, langs, sig, readme, readmeP, heads, cycles, assets, assetBytes,
     totals: { files: files.length, lines: files.reduce((a, f) => a + (f.lang ? f.lines : 0), 0), code: files.filter((f) => f.lang).length },
-    analyzedAt: Date.now(), v: 4,
+    analyzedAt: Date.now(), v: 5, readOf: of,
   };
 }
 
-module.exports = { fetchRepo, analyze, walkAll };
+// Watch it grow: the project's history (commits and folder trees only, no file contents), boiled down to
+// ~90 snapshots of which files existed, plus the biggest moments. Mainline commits only (--first-parent).
+async function history({ full, base, env, onProgress }) {
+  const dir = path.join(base, '__history', `${full.replace('/', '__')}.git`);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(path.dirname(dir), { recursive: true });
+    const tmp = `${dir}.part`; fs.rmSync(tmp, { recursive: true, force: true });
+    try { await run('git', ['clone', '--bare', '--filter=blob:none', '--single-branch', '--progress', `https://github.com/${full}.git`, tmp], { env }, (l) => { const m = /(Receiving objects|Resolving deltas):\s+(\d+)%/.exec(l); if (m) onProgress?.({ phase: m[1].split(' ')[0].toLowerCase(), pct: +m[2] }); }); }
+    catch (e) { fs.rmSync(tmp, { recursive: true, force: true }); throw e; }
+    fs.renameSync(tmp, dir);
+  }
+  const count = +(await run('git', ['-C', dir, 'rev-list', '--count', '--first-parent', 'HEAD'], { env })).trim();
+  if (count > 40000) throw new Error(`This project has ${count.toLocaleString()} commits, too many to replay here.`);
+  onProgress?.({ phase: 'reading', pct: 0, commits: count });
+  const log = await run('git', ['-C', dir, 'log', '--first-parent', '--reverse', '--no-renames', '--name-status', '--format=%x1e%at%x1f%an%x1f%s%x1f%b%x1d'], { env, maxOut: 400e6 });
+  const files = new Set(); const people = new Set(); const commits = [];
+  for (const chunk of log.split('\x1e')) {
+    if (!chunk.trim()) continue;
+    const cut = chunk.indexOf('\x1d'); const [at, author, subject, body = ''] = chunk.slice(0, cut).split('\x1f'); const rest = chunk.slice(cut + 1).split('\n');
+    // "Merge pull request #12 from someone/branch" says little; the pull request's title is the body's first line
+    const title = body.split('\n').map((l) => l.trim()).find((l) => l && !l.startsWith('#'));
+    const msg = /^Merge pull request/.test(subject) && title ? title : subject;
+    let add = 0, del = 0;
+    for (const line of rest) { const m = /^([AMDT])\t(.+)$/.exec(line); if (!m) continue; if (m[1] === 'A') { if (!files.has(m[2])) add++; files.add(m[2]); } else if (m[1] === 'D') { if (files.delete(m[2])) del++; } }
+    people.add(author);
+    commits.push({ at: +at * 1000, author, msg: String(msg || '').slice(0, 120), add, del, total: files.size, people: people.size, snap: null });
+    // keep a folder count for sampled commits only (cheap enough to recompute)
+    commits[commits.length - 1].files = commits.length % Math.max(1, Math.floor(count / 90)) === 0 || commits.length === count ? [...files] : null;
+  }
+  const top = (p) => (p.includes('/') ? p.split('/')[0] : '(top level)');
+  const frames = commits.filter((c) => c.files).map((c) => { const dirs = {}; for (const f of c.files) { const k = top(f); dirs[k] = (dirs[k] || 0) + 1; } return { at: c.at, author: c.author, msg: c.msg, total: c.total, people: c.people, n: commits.indexOf(c) + 1, dirs }; });
+  if (commits.length && !frames.length) frames.push({ at: commits[0].at, author: commits[0].author, msg: commits[0].msg, total: commits[0].total, people: 1, n: 1, dirs: {} });
+  const moments = [commits[0] && { ...commits[0], n: 1, first: true }, ...commits.map((c, i) => ({ ...c, n: i + 1 })).slice(1).sort((a, b) => b.add + b.del - (a.add + a.del)).slice(0, 6)].filter(Boolean).map(({ files: _f, snap: _s, ...c }) => c).sort((a, b) => a.n - b.n);
+  return { full, commits: commits.length, people: people.size, from: commits[0]?.at, to: commits[commits.length - 1]?.at, frames, moments };
+}
+
+module.exports = { fetchRepo, analyze, walkAll, history };

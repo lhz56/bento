@@ -1,4 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import Grow from './Grow.jsx';
+import Contribute from './Contribute.jsx';
 import { CATS, BY_ID, CATALOG, LANGS } from '../atlas/catalog.js';
 import { LAYERS, LAYER, detectStack, displayName, setDupes, guessRole, measuredHotspots, heat, langColor, fmtN } from '../atlas/analyze.js';
 import Brand from './Brand.jsx';
@@ -6,8 +8,11 @@ import Editor from './Editor.jsx';
 import City from './City.jsx';
 import BigPicture, { fallbackFlow } from './BigPicture.jsx';
 import { Md } from './Story.jsx';
+import { keys, mod } from '../platform.js';
+import { t } from '../i18n.js';
+import { save } from '../store.js';
 
-const SECTIONS = [['overview', 'Overview'], ['anatomy', 'Anatomy'], ['stack', 'Toolbelt'], ['language', 'Language'], ['hot', 'Hot spots'], ['files', 'Files'], ['study', 'Study it']];
+const SECTIONS = [['overview', 'Overview'], ['anatomy', 'Anatomy'], ['grow', 'Growth'], ['stack', 'Toolbelt'], ['language', 'Language'], ['hot', 'Hot spots'], ['files', 'Files'], ['study', 'Study it'], ['help', 'Help out']];
 const edLang = (l) => (l === 'Python' ? 'python' : l === 'TypeScript' ? 'typescript' : 'javascript');
 const ago = (d) => { if (!d) return ''; const s = (Date.now() - new Date(d)) / 1000; const u = [[31536000, 'year'], [2592000, 'month'], [86400, 'day'], [3600, 'hour'], [60, 'minute']].find((x) => s >= x[0]); if (!u) return 'just now'; const n = Math.floor(s / u[0]); return `${n} ${u[1]}${n > 1 ? 's' : ''} ago`; };
 const lc = (t) => (/^[A-Z][a-z]/.test(t) ? t[0].toLowerCase() + t.slice(1) : t);
@@ -20,7 +25,7 @@ export function mergeTools(stack, narrStack = {}) {
   return [...main, ...extra];
 }
 
-export default function Atlas({ onMakePath, atlas: A, onStopReading, onBig, onOthers, onQuick, initialFile, onInitialFileShown, onBuild, onCompare, onAsk, onExplainFile, onFeature, readFile, onRefresh, onFork, onOpenUrl, onRetry, modelLabel }) {
+export default function Atlas({ asked, onAskedDone, onIdeaInstead, onPlanIssue,  onMakePath, atlas: A, onStopReading, onBig, onOthers, onQuick, initialFile, onInitialFileShown, onBuild, onCompare, onAsk, onExplainFile, onFeature, readFile, onRefresh, onFork, onOpenUrl, onRetry, modelLabel }) {
   const F = A.facts; const N = A.narr; const meta = A.meta || {};
   const scroller = useRef(null);
   const [drawer, setDrawer] = useState(null);
@@ -34,7 +39,8 @@ export default function Atlas({ onMakePath, atlas: A, onStopReading, onBig, onOt
   const pathIdx = useMemo(() => new Map((F?.files || []).map((f, i) => [f.p, i])), [F]);
   const hot = useMemo(() => (F ? [...(N?.hot || []), ...measuredHotspots(F).filter((m) => !(N?.hot || []).some((h) => h.p && h.p === m.p))] : []), [F, N?.hot]);
   const role = (p) => N?.roles?.[p] || (F && pathIdx.has(p) ? guessRole(F.files[pathIdx.get(p)]) : '');
-  const openFile = (p) => { if (pathIdx.has(p)) setDrawer(p); };
+  // any file in the project can open, even ones the big-project sampling didn't analyse (answers can point at them)
+  const openFile = (p) => { if (pathIdx.has(p) || (A.src?.root && typeof p === 'string' && /^[\w@.\-+/ ]+$/.test(p) && !p.includes('..'))) setDrawer(p); };
   useEffect(() => { if (initialFile && F && pathIdx.has(initialFile)) { setDrawer(initialFile); onInitialFileShown?.(); } }, [initialFile, F]);
 
   useEffect(() => {
@@ -44,6 +50,7 @@ export default function Atlas({ onMakePath, atlas: A, onStopReading, onBig, onOt
     return () => io.disconnect();
   }, [F]);
   const go = (id) => scroller.current?.querySelector(`#sec-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  useEffect(() => { document.querySelector('.ab-nav button.on')?.scrollIntoView({ inline: 'nearest', block: 'nearest' }); }, [section]);
   useEffect(() => { const h = () => setTimeout(() => go('files'), 30); addEventListener('atlas-layer', h); return () => removeEventListener('atlas-layer', h); }, []);
 
   const narrating = A.status === 'narrating';
@@ -59,7 +66,17 @@ export default function Atlas({ onMakePath, atlas: A, onStopReading, onBig, onOt
   const holding = hold && (!F || worked.current);
   useEffect(() => { if (!F || !holding) return; const t = setTimeout(() => setHold(false), Math.max(1100, 1800 - (Date.now() - shownAt.current))); return () => clearTimeout(t); }, [F, holding]);
 
-  if (holding) return <AtlasLoading A={A} F={F} onRetry={onRetry} onBig={onBig} />;
+  // more sections than fit? fade the edge you can scroll towards, and keep the one you picked in view
+  const navRef = useRef(null); const [navMore, setNavMore] = useState('');
+  useLayoutEffect(() => {
+    const n = navRef.current; if (!n) return undefined;
+    const upd = () => { const over = n.scrollWidth - n.clientWidth > 4; setNavMore(!over ? '' : [n.scrollLeft > 4 && 'more-l', n.scrollLeft + n.clientWidth < n.scrollWidth - 4 && 'more-r'].filter(Boolean).join(' ')); };
+    upd(); const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(upd) : null; ro?.observe(n); n.addEventListener('scroll', upd, { passive: true });
+    return () => { ro?.disconnect(); n.removeEventListener('scroll', upd); };
+  }, [holding]); // the bar only exists once the project has loaded
+  useEffect(() => { navRef.current?.querySelector('button.on')?.scrollIntoView({ inline: 'nearest', block: 'nearest' }); }, [section, holding]);
+
+  if (holding) return <AtlasLoading A={A} F={F} onRetry={onRetry} onBig={onBig} asked={asked} onIdeaInstead={onIdeaInstead} />;
 
   return (
     <div className="atlas" ref={scroller}>
@@ -68,21 +85,22 @@ export default function Atlas({ onMakePath, atlas: A, onStopReading, onBig, onOt
           {meta.avatar ? <img src={meta.avatar} alt="" /> : <span className="ab-folder">▢</span>}
           <span className="ab-name"><span className="muted">{(meta.full || A.name).includes('/') ? (meta.full || A.name).split('/')[0] + ' / ' : ''}</span>{(meta.full || A.name).split('/').pop()}</span>
         </div>
-        <nav className="ab-nav">{SECTIONS.map(([id, l]) => <button key={id} className={section === id ? 'on' : ''} onClick={() => go(id)}>{l}</button>)}</nav>
+        <nav className={`ab-nav ${navMore}`} ref={navRef} aria-label="Sections">{SECTIONS.filter(([id]) => !['grow', 'help'].includes(id) || A.src?.kind === 'github').map(([id, l]) => <button key={id} className={section === id ? 'on' : ''} onClick={() => go(id)}>{l}</button>)}</nav>
         <div className="ab-act">
           {narrating && <button className="ab-live" title={`${modelLabel} is reading the code. Click to stop.`} onClick={onStopReading}><span className="dots"><i /><i /><i /></span>reading</button>}
-          {A.status === 'narr-error' && <button className="chip warnchip" onClick={onRetry} title={A.error}>Explanations failed · retry</button>}
+          {A.status === 'narr-error' && (/^You stopped/.test(A.error || '') ? <button className="chip" onClick={onRetry} title={A.error}>❚❚ Reading paused · continue</button> : <button className="chip warnchip" onClick={onRetry} title={A.error}>Explanations failed · retry</button>)}
           {A.src?.kind === 'github' && <>
-            <button className="chip" title="Fork: copy this project into your own GitHub account, so you can change it without touching the original" disabled={forkState === 'busy'} onClick={async () => { setForkState('busy'); try { const r = await onFork(); setForkState(r); } catch (e) { setForkState({ err: String(e.message).replace(/^Error invoking remote method '[^']+': (Error: )?/, '') }); } }}><span className="ic">⑂</span><span className="lbl">{forkState === 'busy' ? 'Forking…' : forkState?.url ? 'Forked ✓' : 'Fork'}</span></button>
-            <button className="chip" onClick={() => onOpenUrl(meta.url || `https://github.com/${A.src.full}`)}><span className="lbl">GitHub </span>↗</button>
+            <button className="chip" aria-label="Fork into your GitHub" title="Fork: copy this project into your own GitHub account, so you can change it without touching the original" disabled={forkState === 'busy'} onClick={async () => { setForkState('busy'); try { const r = await onFork(); setForkState(r); } catch (e) { setForkState({ err: String(e.message).replace(/^Error invoking remote method '[^']+': (Error: )?/, '') }); } }}><span className="ic">⑂</span><span className="lbl">{forkState === 'busy' ? 'Forking…' : forkState?.url ? 'Forked ✓' : 'Fork'}</span></button>
+            <button className="chip" title="Open on GitHub" aria-label="Open on GitHub" onClick={() => onOpenUrl(meta.url || `https://github.com/${A.src.full}`)}><span className="lbl">GitHub </span>↗</button>
           </>}
-          <button className="chip" onClick={onCompare} title="Put it next to another app">⇄<span className="lbl"> Compare</span></button>
+          <button className="chip" onClick={onCompare} title="Compare: put it next to another app" aria-label="Compare with another app">⇄<span className="lbl"> Compare</span></button>
           <button className="chip icon" title="Copy as study notes (Markdown)" onClick={() => { navigator.clipboard?.writeText(notesMd(A, tools, hot)); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>{copied ? '✓' : '⧉'}</button>
           <button className="chip icon" title="Read it again from scratch" aria-label="Read it again from scratch" onClick={onRefresh}>↻</button>
         </div>
         {forkState?.url && <div className="fork-note">Forked to <button className="link" onClick={() => onOpenUrl(forkState.url)}>{forkState.url.replace('https://github.com/', '')}</button>. It’s now in your GitHub, ready to change.</div>}
         {forkState?.err && <div className="fork-note err">{forkState.err}</div>}
       </div>
+      {asked && <AskedBanner asked={asked} A={A} onIdeaInstead={onIdeaInstead} onClose={onAskedDone} />}
 
       {/* ------------------------------------------------ overview: a headline, vitals, and the whole system as one picture */}
       <section className="asec a-over" id="sec-overview">
@@ -121,13 +139,15 @@ export default function Atlas({ onMakePath, atlas: A, onStopReading, onBig, onOt
       </section>
 
       <City F={F} N={N} tools={tools} pathIdx={pathIdx} role={role} onOpen={openFile} narrating={narrating} hot={hot} />
+      {A.src?.kind === 'github' && <Grow full={A.src.full || meta.full} />}
       <Toolbelt tools={tools} stack={stack} N={N} narrating={narrating} onShowFiles={(ids) => { window.dispatchEvent(new CustomEvent('atlas-focus', { detail: ids })); go('anatomy'); }} />
       <Language langs={langs} totalL={totalL} main={mainLang} N={N} narrating={narrating} />
       <Hotspots hot={hot} role={role} onOpen={openFile} narrating={narrating} F={F} pathIdx={pathIdx} />
       <FileList F={F} role={role} onOpen={openFile} />
       <Study F={F} readFile={readFile} onOpen={openFile} A={A} N={N} onAsk={onAsk} onFeature={onFeature} narrating={narrating} tour={(N?.tour || []).filter((t) => pathIdx.has(t.p))} role={role} onTour={(i) => { const st = (N?.tour || []).filter((t) => pathIdx.has(t.p)); setTourAt(i); setDrawer(st[i].p); }} />
+      {A.src?.kind === 'github' && <Contribute full={A.src.full || meta.full} onPlan={onPlanIssue} onOpen={openFile} onOpenUrl={onOpenUrl} pathIdx={pathIdx} />}
       <div style={{ height: 110 }} />
-      <AskBar name={(meta.full || A.name).split('/').pop()} onAsk={onAsk} onQuick={onQuick} onOpen={openFile} pathIdx={pathIdx} />
+      <AskBar name={(meta.full || A.name).split('/').pop()} threadKey={A.key} onAsk={onAsk} onQuick={onQuick} onOpen={openFile} pathIdx={pathIdx} initial={asked && A.src?.root ? asked : null} onFeature={onFeature} />
       {drawer && <Drawer onOthers={onOthers} tour={tourAt != null ? { i: tourAt, steps: (N?.tour || []).filter((t) => pathIdx.has(t.p)), go: (i) => { const st = (N?.tour || []).filter((t) => pathIdx.has(t.p)); if (i < 0 || i >= st.length) { setTourAt(null); setDrawer(null); return; } setTourAt(i); setDrawer(st[i].p); } } : null} p={drawer} F={F} pathIdx={pathIdx} role={role} stack={stack} onClose={() => { setDrawer(null); setTourAt(null); }} onOpen={openFile} readFile={readFile} onExplain={onExplainFile} onAsk={onAsk} />}
     </div>
   );
@@ -160,7 +180,7 @@ function Donut({ langs, total }) {
   );
 }
 
-function AtlasLoading({ A, F, onRetry, onBig }) {
+function AtlasLoading({ A, F, onRetry, onBig, asked, onIdeaInstead }) {
   const steps = [['clone', 'Bringing the code onto your Mac'], ['read', 'Reading every file and following the imports'], ['narr', 'Asking your model to explain it']];
   const real = F ? 2 : A.status === 'cloning' ? 0 : A.status === 'reading' ? 1 : 2;
   const [at, setAt] = useState(0);
@@ -172,9 +192,11 @@ function AtlasLoading({ A, F, onRetry, onBig }) {
   };
   return (
     <div className="atlas-loading">
-      <div className="al-name">{A.name}</div>
+      {asked && <AskedBanner asked={asked} A={A} onIdeaInstead={onIdeaInstead} waiting />}
+      <h1 className="sr-only">Reading {A.name}</h1>
+      <div className="al-name" aria-hidden="true">{A.name}</div>
       {A.status === 'big' ? (
-        <div className="big-warn"><b>This one is huge.</b> {A.meta?.full} is about {(A.meta.size / 1024 / 1024).toFixed(1)} GB of code, so downloading could take a while and use real disk space. Small projects are much easier to learn from.<div className="big-acts"><button className="btn" onClick={onBig}>Take it apart anyway</button><span className="muted small">or try a “bite-size” project in Explore</span></div></div>
+        <div className="big-warn"><b>This one is huge.</b> GitHub lists {A.meta?.full} at {(A.meta.size / 1024 / 1024).toFixed(1)} GB with its whole history. Bento only downloads the latest version, but that can still take a few minutes and real disk space.<div className="big-acts"><button className="btn" onClick={onBig}>Take it apart anyway</button><span className="muted small">or try a “bite-size” project in Explore</span></div></div>
       ) : A.status === 'error' ? (
         <div className="story-err"><b>Couldn’t open it.</b> {A.error}<div><button className="btn tiny" onClick={onRetry}>Try again</button></div></div>
       ) : (
@@ -554,35 +576,101 @@ function Study({ F, readFile, onOpen, A, N, onAsk, onFeature, narrating, tour = 
   );
 }
 
-// Quick answers about the repo (a few seconds), with file names you can click. ⌘↵ makes it a full lesson.
-function AskBar({ name, onAsk, onQuick, onOpen, pathIdx }) {
-  const [v, setV] = useState('');
-  const [qa, setQa] = useState(null); // { q, loading, a, files }
-  const submit = async (full) => {
-    const q = v.trim(); if (!q) return; setV('');
-    if (full || !onQuick) return onAsk(q);
-    setQa({ q, loading: true });
-    try { const r = await onQuick(q); setQa({ q, ...r }); } catch (e) { setQa({ q, a: 'That didn’t work. Try again, or press ⌘↵ for a full lesson.' }); }
-  };
+// Why you're here: you asked about a real project, and this is its real code (found on your Mac or on GitHub)
+const asIcon = (asked, A) => asked.d?.pick?.app?.icon || A.meta?.avatar || (asked.d?.pick?.full ? `https://avatars.githubusercontent.com/${asked.d.pick.full.split('/')[0]}?size=96` : null);
+function AskedBanner({ asked, A, onIdeaInstead, onClose, waiting }) {
+  const pick = asked.d?.pick || {}; const icon = asIcon(asked, A);
+  const home = (p) => String(p || '').replace(/^\/Users\/[^/]+/, '~');
   return (
-    <div className="atlas-ask">
-      {qa && (
-        <div className="aq-card">
-          <div className="aq-top"><b>{qa.q}</b><button className="ib" aria-label="Close" onClick={() => setQa(null)}>✕</button></div>
-          {qa.loading ? <div className="writing"><span className="dots"><i /><i /><i /></span>Reading the code…</div> : (
-            <>
-              <div className="aq-a"><Md text={qa.a} /></div>
-              {qa.files?.filter((f) => pathIdx.has(f)).length > 0 && <div className="aq-files">{qa.files.filter((f) => pathIdx.has(f)).map((f) => <button key={f} className="file-chip" onClick={() => onOpen(f)}>{f}</button>)}</div>}
-              <button className="qa-more" onClick={() => onAsk(qa.q)}>Turn this into a full lesson with the code →</button>
-            </>
-          )}
+    <div className={`asked fade-in ${waiting ? 'waiting' : ''}`} role="status">
+      {icon ? <img className="asked-ic" src={icon} alt="" /> : <span className="asked-ic ph" aria-hidden="true">?</span>}
+      <div className="asked-t">
+        <b>“{asked.q.length > 90 ? asked.q.slice(0, 90) + '…' : asked.q}”</b>
+        <span className="asked-why">
+          {pick.app && <span className="aw-chip mac">✓ {pick.app.app}{pick.app.version ? ` ${pick.app.version}` : ''} {t('is on this Mac')}</span>}
+          {pick.local && <span className="aw-chip mac">✓ {t('your copy')} · {home(pick.local.root)}</span>}
+          {asked.d?.why === 'recent' && <span className="aw-chip mac">↩ {t('you were just reading it')}</span>}
+          {asked.d?.why === 'named' && <span className="aw-chip mac">↩ {t('you opened it before')}</span>}
+          {pick.full && <span className="aw-chip">{pick.full}{pick.stars ? ` · ★ ${fmtN(pick.stars)}` : ''}</span>}
+          <span className="aw-say">{waiting ? t('Answering from its real code as soon as it’s in…') : t('Here’s its real code. Your answer is in the box below; ask follow-ups there.')}</span>
+        </span>
+      </div>
+      <button className="link" onClick={() => onIdeaInstead?.(asked.q)}>{t('Just the idea instead')}</button>
+      {onClose && <button className="ib" aria-label={t('Close')} onClick={onClose}>✕</button>}
+    </div>
+  );
+}
+
+// Ask about the repo and keep talking: quick answers from the real files (a few seconds), each one remembered,
+// so follow-ups make sense. File names are buttons. ⌘↵ turns any question into a full lesson.
+const askedOnce = new Set();
+const okPath = (f) => typeof f === 'string' && /^[\w@.\-+/ ]+$/.test(f) && !f.includes('..') && /\.[a-z0-9]+$/i.test(f);
+const DO = /^(?:(?:can|could) you |please |let'?s |lets |i want to |help me )?(?:build|make|add|create|write|implement|change|modify|refactor|extend|port|clone|recreate|rebuild|fix)\b/i;
+// each project's conversation is kept (last 8 questions), so it's still there when you come back
+const THREADS = 'bento.atlasThreads';
+const loadThread = (k) => { try { return (JSON.parse(localStorage.getItem(THREADS) || '{}')[k] || []).filter((x) => !x.loading); } catch { return []; } };
+const saveThread = (k, th) => { try { const all = JSON.parse(localStorage.getItem(THREADS) || '{}'); const keep = th.filter((x) => !x.loading).slice(-8); if (!keep.length && !all[k]) return; all[k] = keep; const keys = Object.keys(all); if (keys.length > 30) delete all[keys[0]]; save(THREADS, all); } catch {} }; // also mirrored to disk
+function AskBar({ name, threadKey, onAsk, onQuick, onOpen, pathIdx, initial, onFeature }) {
+  const [v, setV] = useState('');
+  const [thread, setThread] = useState(() => loadThread(threadKey)); // [{ id, q, loading, a, files }]
+  useEffect(() => { saveThread(threadKey, thread); }, [thread, threadKey]);
+  // browser storage can lose the last writes if the app is closed abruptly; the copy on disk fills in
+  useEffect(() => { if (thread.length) return; window.bento?.storeGet?.().then((d) => { const th = (d?.[THREADS]?.[threadKey] || []).filter((x) => !x.loading); if (th.length) setThread((cur) => (cur.length ? cur : th)); }).catch(() => {}); }, [threadKey]);
+  const [opened, setOpened] = useState(null); // an earlier answer you reopened (the latest one is always open)
+  const list = useRef(null); const inp = useRef(null);
+  const ask = async (q, full) => {
+    q = String(q || '').trim(); if (!q) return;
+    if (full || !onQuick) return onAsk(q);
+    const id = Date.now() + Math.random();
+    const history = thread.filter((x) => !x.loading && x.a).map(({ q: hq, a }) => ({ q: hq, a }));
+    setThread((th) => [...th.slice(-7), { id, q, loading: true }]);
+    let r; try { r = await onQuick(q, history); } catch { r = { a: `That didn’t work. Try again, or press ${keys('⌘↵')} for a full lesson.`, files: [] }; }
+    setThread((th) => th.map((x) => (x.id === id ? { ...x, loading: false, ...r } : x)));
+  };
+  const submit = (full) => { const q = v.trim(); if (!q) return; setV(''); ask(q, full); };
+  // the question you came with is asked for you, once, as soon as the code is here
+  useEffect(() => { if (initial?.q && !askedOnce.has(initial.at)) { askedOnce.add(initial.at); ask(initial.q, false); } }, [initial?.at]);
+  useEffect(() => { list.current?.scrollTo({ top: list.current.scrollHeight, behavior: 'smooth' }); }, [thread]);
+  const busy = thread.some((x) => x.loading);
+  const [min, setMin] = useState(false);
+  useEffect(() => { if (busy) setMin(false); }, [busy]);
+  const form = (
+    <form className="fu" onSubmit={(e) => { e.preventDefault(); submit(false); }}>
+      <span className="ask-ic" aria-hidden="true">?</span>
+      <input id="atlas-ask" ref={inp} value={v} onChange={(e) => setV(e.target.value)} aria-busy={busy || undefined}
+        placeholder={thread.length ? t('Ask a follow-up…') : `Ask anything about ${name}…`} aria-label={thread.length ? t('Ask a follow-up') : `Ask anything about ${name}`}
+        onKeyDown={(e) => { if (e.key === 'Enter' && mod(e)) { e.preventDefault(); submit(true); } }} />
+      <kbd aria-hidden="true">↵</kbd>
+    </form>
+  );
+  // a conversation sits beside the code (the page makes room), so you can read and ask at the same time
+  if (thread.length && min) return <div className="atlas-ask"><button className="aq-pill" onClick={() => { setMin(false); setTimeout(() => inp.current?.focus(), 50); }}>💬 {t('Your conversation')} · {thread.length}</button></div>;
+  if (!thread.length) return <div className="atlas-ask">{form}</div>;
+  return (
+    <div className="atlas-ask docked">
+      <aside className="aq-dock" aria-label={`${t('Conversation about')} ${name}`}>
+        <div className="aq-dock-h"><span className="mini-h">{t('asking about')} <b>{name}</b></span>
+          <button className="ib" aria-label={t('Make it small')} title={t('Make it small')} onClick={() => setMin(true)}>–</button>
+          <button className="ib" aria-label={t('Close the conversation')} title={t('Clear the conversation')} onClick={() => setThread([])}>✕</button></div>
+        <div className="aq-thread" ref={list} aria-live="polite">
+          {thread.map((x, i) => i < thread.length - 1 && opened !== x.id ? (
+            <button key={x.id} className="aq-turn aq-folded" onClick={() => setOpened(x.id)} aria-expanded="false"><span className="aq-q">{x.q}</span><span aria-hidden="true">▸</span></button>
+          ) : (
+            <div key={x.id} className="aq-turn">
+              <div className="aq-q">{x.q}{i < thread.length - 1 && <button className="link" onClick={() => setOpened(null)}>{t('fold')}</button>}</div>
+              {x.loading ? <div className="writing"><span className="dots"><i /><i /><i /></span>{t('Reading the code…')}</div> : (
+                <>
+                  <div className="aq-a"><Md text={x.a} /></div>
+                  {x.files?.filter(okPath).length > 0 && <div className="aq-files">{x.files.filter(okPath).map((f) => <button key={f} className="file-chip" title={f} aria-label={`Open ${f}`} onClick={() => onOpen(f)}>{f.split('/').length > 2 ? `…/${f.split('/').slice(-2).join('/')}` : f}</button>)}</div>}
+                  {onFeature && DO.test(x.q) ? <button className="btn tiny aq-do" onClick={() => onFeature(x.q)}>✦ {t('Build it with me, step by step')} →</button> : null}
+                  <button className="qa-more" onClick={() => onAsk(x.q)}>{t('Turn this into a full lesson with the code')} →</button>
+                </>
+              )}
+            </div>
+          ))}
         </div>
-      )}
-      <form className="fu" onSubmit={(e) => { e.preventDefault(); submit(false); }}>
-        <span className="ask-ic">?</span>
-        <input id="atlas-ask" value={v} onChange={(e) => setV(e.target.value)} placeholder={`Ask anything about ${name}…`} onKeyDown={(e) => { if (e.key === 'Enter' && e.metaKey) { e.preventDefault(); submit(true); } }} />
-        <kbd>↵</kbd>
-      </form>
+        {form}
+      </aside>
     </div>
   );
 }
@@ -631,9 +719,11 @@ function Ripple({ F, idx, onOpen }) {
 }
 
 // =====================================================================================================
+const EXT_LANG = { ts: 'TypeScript', tsx: 'TypeScript', js: 'JavaScript', jsx: 'JavaScript', mjs: 'JavaScript', cjs: 'JavaScript', py: 'Python', go: 'Go', rs: 'Rust', rb: 'Ruby', java: 'Java', kt: 'Kotlin', swift: 'Swift', c: 'C', cpp: 'C++', cs: 'C#', php: 'PHP', vue: 'Vue', svelte: 'Svelte', css: 'CSS', html: 'HTML', sql: 'SQL', sh: 'Shell' };
 function Drawer({ onOthers, tour, p, F, pathIdx, role, stack, onClose, onOpen, readFile, onExplain, onAsk }) {
-  const f = F.files[pathIdx.get(p)];
   const [text, setText] = useState(null);
+  // a file outside the analysed sample: what we know from its name and its text
+  const f = F.files[pathIdx.get(p)] || { p, lang: EXT_LANG[(/\.([^./]+)$/.exec(p)?.[1] || '').toLowerCase()] || null, lines: text ? text.split('\n').length : 0, layer: Object.keys(LAYER).includes('logic') ? 'logic' : Object.keys(LAYER)[0], imp: [], ext: [], used: 0 };
   const [q, setQ] = useState('');
   const [others, setOthers] = useState(null);
   useEffect(() => { let on = true; setText(null); readFile(p).then((t) => on && setText(t)).catch((e) => on && setText(`// ${e.message}`)); return () => { on = false; }; }, [p]);
@@ -647,7 +737,7 @@ function Drawer({ onOthers, tour, p, F, pathIdx, role, stack, onClose, onOpen, r
   return (
     <>
       <div className="drawer-veil" onClick={onClose} />
-      <aside className="drawer">
+      <aside className="drawer" aria-label="File">
         <div className="dr-top">
           <span className="dr-layer" style={{ '--c': lcolor }}>{lname}</span>
           {f.entry && <span className="dr-layer" style={{ '--c': 'var(--mint)' }}>starts here</span>}
@@ -676,7 +766,7 @@ function Drawer({ onOthers, tour, p, F, pathIdx, role, stack, onClose, onOpen, r
             {tools.length > 0 && <div><div className="mini-h">outside help</div><div className="dr-tools">{tools.map((s) => <span key={s.id} className="ws"><Brand slug={s.slug} name={s.name} color={s.color} size={18} plain />{s.name}</span>)}</div></div>}
           </div>
         )}
-        <Ripple F={F} idx={idx} onOpen={onOpen} />
+        {idx != null && <Ripple F={F} idx={idx} onOpen={onOpen} />}
         <div className="dr-code">
           {text == null ? <div className="pad"><div className="shimmer" /><div className="shimmer short" /></div> : <Editor value={text.length > 60000 ? text.slice(0, 60000) + '\n// …' : text} lang={edLang(f.lang)} readOnly lens="code" />}
         </div>

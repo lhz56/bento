@@ -1,11 +1,10 @@
 // Main-thread side of the code runners. One worker per language, restarted on timeout.
 import JsWorker from './jsWorker.js?worker';
 import PyWorker from './pyWorker.js?worker';
-import { transform } from 'sucrase';
-
 // TypeScript runs as JavaScript once its types are stripped. Sucrase keeps every line where it was,
-// so step-through, errors and line links still point at the right place.
-const stripTypes = (code) => transform(code, { transforms: ['typescript'], disableESTransforms: true }).code;
+// so step-through, errors and line links still point at the right place. It loads the first time TypeScript runs.
+let sucrase = null;
+const stripTypes = async (code) => (await (sucrase ??= import('sucrase'))).transform(code, { transforms: ['typescript'], disableESTransforms: true }).code;
 
 const make = { javascript: () => new JsWorker(), python: () => new PyWorker() };
 const workers = {};
@@ -17,7 +16,11 @@ const notify = () => pyState.listeners.forEach((f) => f(pyState.ready));
 function get(lang) {
   if (!workers[lang]) {
     const w = make[lang]();
-    w.onmessage = (e) => { const p = pending.get(e.data.id); if (p) { pending.delete(e.data.id); clearTimeout(p.timer); p.resolve(e.data.result); } };
+    w.onmessage = (e) => {
+      const p = pending.get(e.data.id); if (!p) return;
+      if (e.data.live) { p.onLive?.(e.data.live); return; } // lines printed while the program is still running
+      pending.delete(e.data.id); clearTimeout(p.timer); p.resolve(e.data.result);
+    };
     workers[lang] = w;
   }
   return workers[lang];
@@ -52,24 +55,26 @@ export async function runWeb(code, key) {
   return { logs: [], visuals: [{ type: 'web', id, v: ++playV }], web: true };
 }
 
-export function run(lang, mode, code, extra) {
-  if (lang === 'html') return mode === 'run' ? runWeb(code, extra?.key) : Promise.resolve({ logs: [], visuals: [], error: { msg: 'Step-through works for Python, JavaScript and TypeScript. For web pages, change the code and watch the page update.', line: null } });
+export async function run(lang, mode, code, extra, opts = {}) {
+  if (lang === 'html') return mode === 'run' ? runWeb(code, extra?.key) : { logs: [], visuals: [], error: { msg: 'Step-through works for Python, JavaScript and TypeScript. For web pages, change the code and watch the page update.', line: null } };
   if (lang === 'typescript') {
     try {
-      code = stripTypes(code);
-      if (extra?.setup) extra = { ...extra, setup: stripTypes(extra.setup) };
-    } catch (e) { return Promise.resolve({ logs: [], visuals: [], error: { msg: `TypeScript: ${String(e.message).replace(/\s*\(\d+:\d+\)$/, '')}`, line: e.loc?.line ?? null } }); }
+      code = await stripTypes(code);
+      if (extra?.setup) extra = { ...extra, setup: await stripTypes(extra.setup) };
+    } catch (e) { return { logs: [], visuals: [], error: { msg: `TypeScript: ${String(e.message).replace(/\s*\(\d+:\d+\)$/, '')}`, line: e.loc?.line ?? null } }; }
   }
   lang = lang === 'python' ? 'python' : 'javascript';
   const id = ++seq;
   const w = get(lang);
-  const limit = lang === 'python' ? (pyState.ready ? 12000 : 30000) : 6000;
+  // programs that wait on purpose (sleep, countdowns, typing answers) get longer before Bento calls it an infinite loop
+  const patient = /\bsleep\s*\(|setTimeout|setInterval/.test(code);
+  const limit = (lang === 'python' ? (pyState.ready ? 12000 : 30000) : 6000) * (patient ? 5 : 1);
   return new Promise((resolve) => {
     const timer = setTimeout(() => {
       pending.delete(id); restart(lang);
       resolve({ logs: [], visuals: [], error: { msg: `Stopped: took longer than ${limit / 1000}s (infinite loop?)`, line: null } });
     }, limit);
-    pending.set(id, { resolve, timer });
+    pending.set(id, { resolve, timer, onLive: opts.onLive });
     w.postMessage({ id, mode, code, extra });
   });
 }

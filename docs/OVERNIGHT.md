@@ -31,8 +31,117 @@ Bento opens with a short welcome. It checks which AI you already have on this Ma
    - **Explain it back** (end of every lesson): write the idea in your own words; your AI says what you got, what to add, and asks one question that pushes further, with a 3-step meter. A vague answer about Bloom filters scored *Getting there*; a full one scored *You've got it*. It's saved with the lesson.
    - **◫ Web page** saves the lesson as one self-contained `.html` blog post (to `Desktop/Bento pages`) that anyone can open in a browser: the code is editable and **Run** works there too (JavaScript directly, Python by loading Pyodide), with drawings, bar charts and the quizzes.
    - Also: **Listen**, **Copy as notes**, **Share** (`.bento` files), and **⎘ remix** into your own scratchpad.
-7. **Your words**: every new technical term, with flashcards that space themselves out.
-8. **⌘K** searches or asks anything. **⌘,** opens settings (22 explanation languages). **?** shows all shortcuts.
+7. **Puzzles: LeetCode, from the top down** (new, sidebar ◇):
+   - **The one chart behind every puzzle**: a slider from n = 10 to a billion, with six Big-O classes racing as bars ("compare every pair: 3 thousand years; try every combination: longer than the universe’s age"). Each row opens a puzzle that runs at that speed.
+   - A **metro line of 13 patterns**, easiest at the top: the shape of every puzzle → hash maps → two pointers → sliding window → stacks → binary search → heaps → trees → graphs → dynamic programming → backtracking → sort-then-sweep → design a tiny system → *beyond one computer* (which hands over to Clever ideas). Each station has a small animated picture and an everyday analogy.
+   - **34 puzzles** (FizzBuzz, Two Sum, Valid Parentheses, Number of Islands, Coin Change, N-Queens, LRU Cache…), each 🌱 warm-up, 🧩 classic or 🔥 boss, with its LeetCode number. Statements are written fresh and link to the same puzzle on LeetCode.
+   - Each puzzle opens with **code that already works** (the obvious way), or a short starter, then earns three stars: ✓ **works** (tests), 👾 **gremlin-proof** (3 hidden edge cases, like an empty list or a repeated number) and 🚀 **scales**. **Check** races the obvious way, your code and the clever way on inputs up to 131,072 items in real Python, then shows the ladder up to a billion: "Two Sum, obvious way: 2 s at LeetCode’s size (*Time Limit Exceeded*), 5.7 hours at a million, 648 years at a billion; the clever way: 2 minutes." The recursive paint bucket visibly **crashes** at 1,024 squares; recursive Climbing Stairs would take **5 million years** at 100 steps.
+   - **Blank page** turns it into LeetCode mode (just the function signature). Hints step up gently; **Show me a clever solution** needs two clicks.
+   - **Talk me through it** (with an AI connected): explain your solution like in an interview. Your AI plays a fair interviewer and asks the follow-up a real one would ("What happens if you swap the check and the store, with [3, 3]?").
+   - **🧭 Which pattern?**: a game where you read a puzzle and pick the way of thinking, the skill interviews actually test.
+   - Every puzzle ends with **when n is bigger than one computer**: where this exact pattern runs at real scale (Redis’s hash table, LevelDB’s merging, `git bisect`, Lucene’s top-k queue, SQLite’s B-tree, Python’s own `heapq` and `lru_cache`), with the matching clever idea.
+   - Works with no AI connected. `npm test` now also runs every puzzle in real Python (`scripts/check-puzzles.mjs`).
+8. **Your words**: every new technical term, with flashcards that space themselves out.
+9. **⌘K** searches or asks anything. **⌘,** opens settings (22 explanation languages). **?** shows all shortcuts.
+
+## Ready for the Mac (Nov 10, early morning)
+
+**Learning**
+
+- **Home, split.** One calm ask box on the left with ideas drifting underneath as tiny moving pictures (a search tree growing, cars bunching into a traffic jam, a fire spreading, money snowballing). Each opens instantly. On the right, *Today*: your next path stop, a short plan that ticks itself off, how your map is filling in, and your streak. Past chats moved to the sidebar's *Recent* shelf, grouped by day.
+- **The map is a treemap** (option 9): six areas sized by how many skills they hold. Tiles fill in only from evidence (seen → practising → yours), and picking one shows what earned it, what would move it on, and **Quiz me**.
+- **Topics aren't mistaken for projects.** "How does a binary search tree work?" used to send Bento searching GitHub for a project called *binary search tree*; a name that matches one of Bento's own lessons is now treated as a topic. Real projects ("how does T3 Code work?") still open their code. The suggestions under the ask box pick the lesson named after your topic, and stay quiet for vague questions ("how does this code work?").
+- **⌘K knows what ships with Bento.** Typing "binary search trees" offers the built-in lesson first (*instant*), above "ask for a new lesson". Before, it went to your AI and spent your plan on a lesson Bento already had.
+- **Map tiles fit their names.** Columns follow each area's real width (one column when an area is narrow, as with the card open), so names like "Interactive pages" and "Backtracking" are never cut mid-word.
+- **⌘K puts the lesson named exactly what you typed first**, ahead of look-alikes ("Remix of…").
+- **⌘K searches inside your lessons**, not just their titles, and shows the passage that matched ("vector clock" finds the Amazon cart lesson).
+- **Waiting for a new lesson is a picture now**: six small marks on a line (👀 🎯 ☕️ ⌨️ 👉 🧩), ticked as the tutor plans, with only the current step in words.
+- **Asking inside a lesson shows you the answer.** Before, the answer appeared at the bottom of the lesson while the page stayed where it was; now the question scrolls into view, and again when the answer lands.
+- **Day one on the map** shows where to begin: the first skill says *start here* instead of 43 grey tiles.
+- **Recent stays tidy.** Remixing the same lesson again replaces a remix you never touched, instead of adding another identical "Remix of…". Anything you've changed or asked about stays.
+
+**A real Mac app**
+
+- **A real Mac menu bar**: About, Check for Updates…, Settings, New Question, Search, the sidebar, Keyboard Shortcuts, Report a Problem and Show Logs. Electron's own links and DevTools are gone. Bento also reopens where you left it, brings itself back if the page ever crashes, and keeps a small error log for bug reports.
+- **A friendlier first run**: install commands that work on *this* Mac (Claude Code's own installer needs nothing else; Homebrew or npm for the others, or a download link), an **Open Terminal** button, and Bento looks again by itself when you come back from Terminal. The last step also offers "or just ask anything".
+- **Settings shows your version** with Check now and an Automatically switch for updates.
+- **Small windows work.** At the smallest window size the code panel's Run button was cut off; the lenses now shorten to Code / Both / Plain when the panel is narrow. The map scrolls instead of squashing tiles, and the Atlas tabs fade at the edge when there are more to scroll to, with its buttons turning into icons when space is short.
+- **Quitting mid-lesson asks first.** ⌘Q or Restart-to-update while a lesson is being written would throw it away, and the part of your plan it used. Bento now asks.
+- **A real installer window**: the DMG opens on "Drag Bento into *Applications*" with an arrow, sharp on Retina.
+- **Easier on the battery.** Home's drifting ideas, glows and the path's "you are here" ring now rest while Bento isn't the app you're using, or after 45 seconds without a touch, and start again with the first mouse move. Idle on Home went from about 12% CPU to under 1%. Spinners and progress keep moving; with Reduce Motion on, the decorations don't move at all.
+
+**Shipping**
+
+- **Signed, notarized, self-updating**: `npm run dist` makes the `.dmg` and `.zip` for Apple Silicon and Intel. Tag `v0.3.0` and `.github/workflows/release.yml` signs, notarizes and publishes them. Installed copies update quietly and show **Update ready · Restart**. All you need is the Apple Developer certificate and five GitHub secrets: [RELEASING.md](RELEASING.md).
+- **`npm run preflight`** checks a release before you tag it: version, files, packaging, fuses, entitlements, your Developer ID certificate and notarization key, then the tests.
+
+**Safe and reliable**
+
+- **Finds `claude` however you installed it.** Opened from the Dock, Bento now asks your login shell for its `PATH`, like T3 Code does, so nvm, fnm, volta, asdf and pnpm installs are found, not just Homebrew and npm.
+- **Locked down for shipping**: the window can't be sent to a website, only Bento's own page can use its bridge, camera and microphone requests are refused, symlinks in a downloaded project can't lead outside it, and the shipped app's code is integrity-checked with Electron's dangerous switches off.
+- **Saving is safe on a full disk.** Saving on quit used to write straight over your lessons file, so quitting with a full disk could leave it half-written. Every Bento file is now written as a new copy, then swapped in.
+- **Outdated CLIs are caught early.** The welcome checks that Claude Code and Codex still understand every option Bento passes them. If one is too old, it says so with the update command, and Bento uses your other AI meanwhile. If a CLI update ever renames an option, the error says to update instead of showing a parser message.
+- **A daily copy of your learning**, kept for a week, in the same format as a manual backup: Settings → Restore… opens them, so any day can come back.
+
+**Tested without spending your plan**
+
+- **The core path is tested for free**: a pretend Claude streams a lesson so CI checks asking, streaming and running on every change, without spending anyone's plan.
+- **Every check lives in the repo now**, and CI runs them on each change: the app smoke test, a learner's tour (`scripts/smoke-tour.mjs`), a lesson streaming in from the pretend AI, the guard rails (`scripts/smoke-guards.mjs`), every screen through axe-core in light and dark (`scripts/audit-a11y.mjs`) and the keyboard walk (`scripts/audit-keyboard.mjs`). They set up what they need themselves. Running them from a fresh profile found three things the old checks never reached: the first-lesson tips bubble, a project's loading screen and the model picker's "Connect" row. All three are fixed.
+- **Tests never spend your plan.** The "no AI" app test was quietly running Claude Sonnet, because hiding a CLI only hid it from detection. A hidden CLI now can't be started at all.
+
+## A sky you earn, answers you can use (Nov 10)
+
+- **Your map is a night sky** (since replaced by the treemap above), and a star only glows with evidence: questions you asked, checks you got right, puzzles solved. Opening a lesson just leaves a faint ring. Pick a star for what earned it, what would make it shine, and a **Quiz me** that writes fresh questions when your lessons have none.
+- **Answers you can do something with.** After an answer: tap a suggested next question, ask for it *simpler* or *with an example*, and an optional *check yourself* question (right answers count on your map).
+- **Path lessons say where they are**: the path, the stop number and a *Next stop* button.
+- **Room to read**: a wider story column, whole-width answers instead of chat bubbles pushed to the side, and a sidebar you can hide (⌘\\).
+- **A real model picker**: each AI as a card with what it's good at, speed and depth, and whether it's connected.
+- **Stepping through code you can follow**: slow, normal or fast, a longer look wherever something changes or prints, and what changed on each step ("score: 0 → 10").
+
+## Real projects, and a calmer sidebar (Nov 10)
+
+- **"How does T3 Code work?"** Bento looks on your Mac first (your installed T3 Code says its code is `pingdotgg/t3code`), opens the real code and answers there, from its files. A copy already on your Mac is used instead of downloading. Something found only on GitHub asks first.
+- **It remembers what you were reading.** Name a project you've opened, or ask about "it" right after, and the question goes to that project's conversation, docked beside its code. Follow-ups remember earlier answers, and files named in answers open with one click.
+- **Big projects read properly.** The "this one is huge" warning used GitHub's size with the whole history (0.7 GB for T3 Code; Bento downloads about 120 MB). Every app and package of a big monorepo is now read, not just the first folders in alphabetical order.
+- **The sidebar is five places**: Learn, Explore, Practice, Path, You. Related pages are tabs at the top. Lessons and projects share one *Recent* list, and the model, AI use and GitHub sit in one footer row. Buttons give a little when pressed; cards lift when you point at them.
+- **Fixed on the way**: file reads checked only that a path *started with* the project folder (so `../bento-secrets` passed); a stopped reading restarted on its own when you reopened the project; big files were invisible to answers.
+
+## Quality pass (Nov 10)
+
+- **Lessons are checked against reality.** After a new lesson's code runs, Bento fixes what it can prove for free (links and notes past the end of the code, broken quizzes), then asks your fast model whether each quiz answer and claim matches the code's real output. Wrong answers get corrected with a new explanation, and the lesson shows **✓ Checked · N fixes**. On a lesson with three planted mistakes it caught all three; on three real lessons it changed nothing.
+- **You can see what uses your AI.** A meter in the sidebar counts today's requests with real token counts. A repeat quick question answers from a saved copy, free, and asking for a lesson you already have reopens it.
+- **Lesson code can't reach your Mac or home network.** `requests.get("http://192.168.1.1")` or a public link that redirects there is refused, checked again at the moment of connecting.
+- **Keyboard and screen readers.** 15 screens × light and dark mode pass axe-core with zero violations, down from 288 problems. Text meets WCAG AA contrast. Windows keep focus inside and give it back when they close. The map stars, the system designer's parts and the code city work with Tab, the arrow keys and Enter. Charts have text summaries, and runs, crashes and finished lessons are announced.
+- **Windows and Linux.** Shortcuts used to check only the Mac's ⌘ key, so none of them worked on Windows or Linux. Now Ctrl works there, and the app writes "Ctrl+K". CI tests, packages and opens the real app on macOS, Windows and Ubuntu (`scripts/smoke-app.mjs`, 14 checks).
+
+## New after the audit (Nov 10)
+
+Everything from the full audit, built and checked in the app:
+
+- **Beginner walls gone.** `input()` works: the program pauses and you answer right in the output. Slow programs print as they go. Lesson code can reach the internet (a real London temperature from a weather service, GitHub's API). Pressing Enter with no AI connected no longer starts a lesson that never arrives.
+- **Small fixes.**
+  - Compare offers the three ready-made apps.
+  - The Run button stays visible in narrow windows.
+  - `⌘/` (or `?` in an empty ask box) opens the shortcut sheet.
+  - The games shelf shows real variety (2048, Flexbox Froggy, shapez.io) instead of twenty Snakes.
+  - Grey text now meets the WCAG AA contrast minimum.
+  - Puzzle pictures respect "Reduce motion".
+  - The welcome offers Puzzles.
+  - Your words starts with eight everyday words.
+  - Menus and buttons switch language too (Spanish appeared in about 3 seconds, then instantly after a relaunch).
+  - A damaged save file can no longer blank the app, and a crash shows a friendly recovery screen.
+- **One journey.**
+  - Every lesson opens with its picture.
+  - The end of a lesson is one card: Play with it, Go further, Prove it.
+  - Algorithm races moved into Puzzles.
+  - Home has a **Today** strip.
+  - **Your map** shows every concept as a star that dims when you haven't touched it; *Review what's fading* replays your own lessons' quick checks.
+- **Playgrounds.** A SQL café database with eight challenges and a step-by-step picture of each query; a pretend terminal and Git with eight missions, a status picture and a commit graph; and **Design for a billion**, five levels from "your app goes viral" to a million requests a second.
+- **Multi-file projects** (Python modules, or a web page with its CSS and JS), **Publish** to GitHub Pages with your own account, **Back up / Restore**, and an **Open in Bento** bookmark (`bento://`).
+- **Movie mode** for step-through (arrows for `i`/`j`, windows for slices) and a **Stuck?** card after three identical errors or three failed test runs.
+- **Watch it grow** (Flask's 2,283 commits replay in about half a second to load) and **Help out**: good first issues, explained, with the files and the real pull-request steps (tried on Excalidraw).
+- **Content packs**: a shareable JSON of puzzles, paths and ideas ([PACKS.md](PACKS.md), [example-pack.json](example-pack.json)), checked in real Python by `check-puzzles --pack`.
+- **Windows and Linux builds** are set up (`npm run dist:win`, `npm run dist:linux`): CLIs start through a shell, prompts go over standard input, and the window has its own title bar. They are **not tested yet** on those systems.
 
 ## New since last night
 
@@ -83,7 +192,8 @@ Bento opens with a short welcome. It checks which AI you already have on this Ma
 ## Checking it yourself
 
 ```bash
-npm test                       # 63 checks: runtimes, stepping, TypeScript, loop guard, repo analysis, error explanations, web-page export, construct spotting
+node scripts/smoke-app.mjs     # open the real app and use it, hidden, no AI used (after npx vite build)
+npm test                       # runtimes, stepping, TypeScript, repo analysis, errors, export, constructs, playgrounds, skill map, packs, Big-O fitting, input() + all 34 puzzles in real Python
 npm run dev                    # hot reload
 npm run app                    # rebuild release/mac-arm64/Bento.app
 BENTO_USERDATA=/tmp/demo npm start                           # a clean profile (fresh welcome)
@@ -93,8 +203,10 @@ BENTO_FAKE_LIMIT=claude BENTO_USERDATA=/tmp/x npm start                 # Claude
 
 ## Known gaps
 
-- The app is unsigned; the first launch needs right-click → Open.
+- Until the Apple Developer certificate is added, builds are unsigned: the first launch needs right-click → Open, and they can't update themselves. Everything else for signing, notarizing and updates is in place ([RELEASING.md](RELEASING.md)).
 - New lessons you ask for take 10–40 s (longer ones up to a minute). The wait shows progress stages.
 - Very large repos show their most important ~100 buildings in the city; everything else is in the Files map.
 - Website detection only sees what a browser sees (headers, scripts, markup), so server-side databases are inferred, not proven. The lesson says "likely" when it guesses.
-- Nothing has been committed to git yet. The repo is ready for a first commit when you want it.
+- Linux was run for real (Debian 12 on arm64, in a container): the tests pass, the app packages, opens, runs Python and JavaScript, and passes all 14 smoke checks. Windows was checked by making the app believe it runs on Windows (shortcuts, labels, Ctrl+Enter); the CI workflow runs it on a real Windows machine on the next push. Ubuntu 24.04 limits the Chromium sandbox for AppImages, so some desktops may need an AppArmor profile or `--no-sandbox`. That hasn't been tested.
+- Accessibility was checked with axe-core and keyboard-only scripts, not yet with VoiceOver, NVDA or a real screen-reader user.
+- Publishing to GitHub Pages was checked with a dry run (the exact `gh` commands), not on a real account.

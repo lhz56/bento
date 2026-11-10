@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { t, tx } from '../i18n.js';
 import { Visual, Visuals } from './Viz.jsx';
 import { explainLocal } from '../errors.js';
+import { announce } from './a11y.js';
+import { K } from '../platform.js';
 
 const TAB_TIPS = { output: 'What the code printed and drew', steps: 'Replay the program one line at a time, with every value', growth: 'How much more work the code does as its input grows (Big-O)', tests: 'Checks that say whether the code does what it should' };
 
@@ -10,21 +13,27 @@ export default function Stage(p) {
   const [pred, setPred] = useState(null); // { phase: 'ask' | 'wait' | 'done', guess, result }
   useEffect(() => setPred(null), [lesson?.id]);
   useEffect(() => { if (pred?.phase === 'wait' && p.result && p.result !== pred.before) setPred((x) => ({ ...x, phase: 'done', result: p.result })); }, [p.result]);
+  // screen readers hear how each run ended, without losing their place in the code
+  useEffect(() => {
+    const r = p.result; if (!r || p.running) return;
+    if (r.error) announce(`${t('Your code stopped')}${r.error.line ? ` ${t('on line')} ${r.error.line}` : ''}: ${r.error.msg}`);
+    else if (!r.need) { const n = (r.logs || []).filter((l) => l.k !== 'in').length; const v = (r.visuals || []).length; announce(`${t('Ran')}. ${n} ${n === 1 ? t('line printed') : t('lines printed')}${v ? `, ${v} ${v === 1 ? t('picture') : t('pictures')}` : ''}.`); }
+  }, [p.result, p.running]);
   const tabs = [['output', 'Output'], ['steps', 'Steps'], ['growth', 'Growth'], ...(lesson?.tests ? [['tests', 'Tests']] : [])];
   return (
     <div className="stage">
       <div className="stage-tabs">
         {tabs.map(([k, label]) => (
-          <button key={k} className={`stab ${tab === k ? 'on' : ''}`} onClick={() => setTab(k)} title={TAB_TIPS[k]}>
-            {label}
+          <button key={k} className={`stab ${tab === k ? 'on' : ''}`} onClick={() => setTab(k)} title={t(TAB_TIPS[k])}>
+            {t(label)}
             {k === 'tests' && p.tests && <span className={`stab-dot ${p.tests.every((r) => r.ok) ? 'ok' : 'bad'}`} />}
             {k === 'output' && p.result?.error && <span className="stab-dot bad" />}
           </button>
         ))}
-        {p.onWhyDiff && <button className={`stab predict ${pred ? 'on' : ''}`} title="Guess what the code will print before you run it" onClick={() => { setTab('output'); setPred(pred ? null : { phase: 'ask', guess: '' }); }}>🔮 Predict</button>}
+        {p.onWhyDiff && <button className={`stab predict ${pred ? 'on' : ''}`} title="Guess what the code will print before you run it" onClick={() => { setTab('output'); setPred(pred ? null : { phase: 'ask', guess: '' }); }}>{t('🔮 Predict')}</button>}
         <div className="stage-meta">{p.running ? <span className="runpulse">running</span> : p.result?.ms != null && tab === 'output' ? `${p.result.ms < 1 ? '<1' : Math.round(p.result.ms)} ms` : ''}</div>
       </div>
-      <div className="stage-body">
+      <div className="stage-body" tabIndex={0} role="region" aria-label={t('What your code did')}>
         {tab === 'output' && pred && <Predict pred={pred} setPred={setPred} run={() => { setPred((x) => ({ ...x, phase: 'wait', before: p.result })); p.onRun(); }} onWhyDiff={p.onWhyDiff} />}
         {tab === 'output' && (!pred || pred.phase === 'done') && <Output {...p} />}
         {tab === 'steps' && <Steps {...p} />}
@@ -64,13 +73,17 @@ function Predict({ pred, setPred, run, onWhyDiff }) {
   );
 }
 
-function Output({ result, onExplainError, onHoverLine, pyReady, lang, onRun }) {
+function Output({ result, onExplainError, onHoverLine, pyReady, lang, onRun, running, live = [], onAnswer, stuck, onUnstick, onStepThrough, onStuckHint }) {
   const [ex, setEx] = useState(null);
   useEffect(() => setEx(null), [result]);
+  // a slow program: show what it has printed so far
+  if (running && live.length) return (
+    <div className="output"><div className="console live">{live.map((l, i) => <div key={i} className={`log ${l.k}`}>{l.s || ' '}</div>)}<div className="log live-dot">▍</div></div></div>
+  );
   if (!result) {
     return (
       <div className="stage-empty">
-        <div className="kbd-hint"><kbd>⌘</kbd><kbd>↵</kbd> run · <kbd>⌘</kbd><kbd>⇧</kbd><kbd>↵</kbd> step through · hold <kbd>⌥</kbd> and drag a number</div>
+        <div className="kbd-hint"><kbd>{K.mod}</kbd><kbd>{K.enter}</kbd> run · <kbd>{K.mod}</kbd><kbd>{K.shift}</kbd><kbd>{K.enter}</kbd> step through · hold <kbd>{K.alt}</kbd> and drag a number</div>
         {lang === 'python' && !pyReady && <div className="warm">Python is warming up…</div>}
         <button className="btn ghost" onClick={onRun}>Run it</button>
       </div>
@@ -79,8 +92,9 @@ function Output({ result, onExplainError, onHoverLine, pyReady, lang, onRun }) {
   const { logs = [], visuals = [], error } = result;
   return (
     <div className="output">
+      {stuck && <Stuck stuck={stuck} onUnstick={onUnstick} onStepThrough={onStepThrough} onStuckHint={onStuckHint} />}
       {error && (
-        <div className="err-card">
+        <div className="err-card" role="alert">
           <div className="err-top">
             <span className="err-msg">{error.msg}</span>
             {error.line && <button className="err-line" onMouseEnter={() => onHoverLine([error.line, error.line])} onMouseLeave={() => onHoverLine(null)}>line {error.line}</button>}
@@ -94,26 +108,107 @@ function Output({ result, onExplainError, onHoverLine, pyReady, lang, onRun }) {
         </div>
       )}
       {visuals.length > 0 && <div className="visuals"><Visuals list={visuals} /></div>}
-      {logs.length > 0 && (
+      {(logs.length > 0 || result.need) && (
         <div className="console">
-          {logs.map((l, i) => <div key={i} className={`log ${l.k}`}>{l.s || ' '}</div>)}
+          {logs.map((l, i) => (l.k === 'in' ? <div key={i} className="log in">{l.p}<b>{l.s}</b></div> : <div key={i} className={`log ${l.k}`}>{l.s || ' '}</div>))}
+          {result.need && onAnswer && <AnswerLine prompt={result.need.prompt} onAnswer={onAnswer} />}
         </div>
       )}
-      {!error && !logs.length && !visuals.length && <div className="stage-empty small">Ran fine, but nothing was printed. Add <code>print()</code> or <code>show()</code>.</div>}
+      {result.need && <div className="ask-note">⌨ The program is asking you something. Type an answer and press <kbd>↵</kbd>.</div>}
+      {!error && !result.need && !logs.length && !visuals.length && <div className="stage-empty small">Ran fine, but nothing was printed. Add <code>print()</code> or <code>show()</code>.</div>}
+    </div>
+  );
+}
+
+// Same wall three times: offer a different way in, without giving the answer away
+function Stuck({ stuck, onUnstick, onStepThrough, onStuckHint }) {
+  const [hint, setHint] = useState(null);
+  return (
+    <div className="stuck fade-in">
+      <div className="stuck-top">🧭 <b>{stuck.why === 'error' ? 'Same error three times. Want another way in?' : 'Those tests are being stubborn. Want another way in?'}</b><button className="link" onClick={onUnstick}>✕</button></div>
+      <div className="stuck-acts">
+        <button className="btn tiny" onClick={onStepThrough}>⏵⏵ Step through and watch the values</button>
+        {onStuckHint && <button className="btn tiny ghost" disabled={hint === '…'} onClick={async () => { setHint('…'); try { setHint(await onStuckHint()); } catch { setHint('Your AI didn’t answer. Try stepping through instead.'); } }}>✦ A picture-first hint</button>}
+      </div>
+      {hint && <div className="stuck-hint">{hint === '…' ? 'Thinking of a nudge…' : <Tick s={hint} />}</div>}
+    </div>
+  );
+}
+
+// The program called input(): answer right where it asked
+function AnswerLine({ prompt, onAnswer }) {
+  const [v, setV] = useState('');
+  return (
+    <form className="log in asking" onSubmit={(e) => { e.preventDefault(); onAnswer(v); setV(''); }}>
+      <span>{prompt}</span><input autoFocus value={v} onChange={(e) => setV(e.target.value)} aria-label={prompt || 'your answer'} placeholder="type here…" />
+    </form>
+  );
+}
+
+// Movie mode: lists as rows of cells, index variables as arrows under the cell they point at,
+// slices as a highlighted window. Built from the code itself: nums[i], h[j], s[start:start + k]…
+const num = (v) => (/^-?\d+$/.test(String(v ?? '')) ? +v : null);
+function evalIdx(expr, vars) {
+  const parts = String(expr).replace(/\s+/g, '').match(/[+-]?[^+-]+/g) || []; let total = 0;
+  for (const p of parts) { const sign = p[0] === '-' ? -1 : 1; const t = p.replace(/^[+-]/, ''); const v = /^\d+$/.test(t) ? +t : num(vars[t]); if (v == null) return null; total += sign * v; }
+  return total;
+}
+function moviePlan(code) {
+  const pointers = {}, windows = {};
+  for (const m of String(code || '').matchAll(/\b([A-Za-z_]\w*)\[\s*([A-Za-z_]\w*(?:\s*[+-]\s*\w+)?)\s*\]/g)) (pointers[m[1]] ||= new Set()).add(m[2].replace(/\s+/g, ' '));
+  for (const m of String(code || '').matchAll(/\b([A-Za-z_]\w*)\[\s*([\w\s+-]*?)\s*:\s*([\w\s+-]*?)\s*\]/g)) (windows[m[1]] ||= []).push([m[2] || '0', m[3]]);
+  return { pointers, windows, any: Object.keys(pointers).length + Object.keys(windows).length > 0 };
+}
+function Movie({ s, prev, plan }) {
+  const vars = s.vars || {};
+  const lists = Object.entries(vars).map(([k, v]) => [k, asBoxes(v)]).filter(([, b]) => b?.kind === 'list');
+  const scalars = Object.entries(vars).filter(([k, v]) => !asBoxes(v) && String(v).length <= 24);
+  if (!lists.length) return null;
+  return (
+    <div className="movie">
+      {lists.map(([name, box]) => {
+        const pb = prev ? asBoxes(prev.vars?.[name]) : null;
+        const arrows = [...(plan.pointers[name] || [])].map((e) => [e, evalIdx(e, vars)]).filter(([, v]) => v != null);
+        const win = (plan.windows[name] || []).map(([a, b]) => [evalIdx(a, vars), b ? evalIdx(b, vars) : box.items.length]).find(([a, b]) => a != null && b != null);
+        return (
+          <div key={name} className="mv-list">
+            <span className="mv-name">{name}</span>
+            <div className="mv-row" style={{ '--n': box.items.length }}>
+              {box.items.map((x, i) => (
+                <span key={i} className={`mv-cell ${pb?.kind === 'list' && pb.items[i] !== x ? 'chg' : ''} ${win && i >= win[0] && i < win[1] ? 'in-win' : ''}`}><i>{i}</i>{x}</span>
+              ))}
+              {arrows.map(([e, v], k) => { const at = Math.max(-0.6, Math.min(box.items.length - 0.4, v)); const off = v < 0 || v >= box.items.length; return (
+                <span key={e} className={`mv-arrow a${k % 4} ${off ? 'off' : ''}`} style={{ left: `calc(${at} * var(--cw) + var(--cw) / 2)` }}>▲<b>{e}</b></span>
+              ); })}
+            </div>
+          </div>
+        );
+      })}
+      {scalars.length > 0 && <div className="mv-scalars">{scalars.map(([k, v]) => <span key={k} className={`mv-sc ${prev && prev.vars?.[k] !== v ? 'chg' : ''}`}><b>{k}</b>{v}</span>)}</div>}
     </div>
   );
 }
 
 function Steps({ trace, stepIdx, setStepIdx, playing, setPlaying, english, onStep, code, tracing }) {
+  const plan = useMemo(() => moviePlan(code), [code]);
+  const [movie, setMovie] = useState(() => localStorage.getItem('bento.movie') !== 'off');
   const steps = trace?.steps || [];
   const s = steps[stepIdx];
   const prev = steps[stepIdx - 1];
+  // playback you can follow: a speed you pick, and a longer look wherever something happens
+  const [speed, setSpeed] = useState(() => localStorage.getItem('bento.stepSpeed') || 'normal');
+  const BASE = { slow: 1700, normal: 950, fast: 380 }[speed] || 950;
+  const changesAt = (k) => { const a = steps[k], b = steps[k - 1]; if (!a || !b) return []; return Object.keys(a.vars || {}).filter((v) => b.vars?.[v] !== a.vars[v]).map((v) => [v, b.vars?.[v], a.vars[v]]); };
   useEffect(() => {
     if (!playing) return;
     if (stepIdx >= steps.length - 1) { setPlaying(false); return; }
-    const t = setTimeout(() => setStepIdx(stepIdx + 1), s?.ret ? 520 : 380);
-    return () => clearTimeout(t);
-  }, [playing, stepIdx, steps.length]);
+    const nxt = steps[stepIdx + 1] || {}; const cur = steps[stepIdx] || {};
+    const printed = (nxt.logs || 0) > (cur.logs || 0) || (nxt.viz || 0) > (cur.viz || 0);
+    const dwell = BASE * (1 + (s?.ret ? 0.5 : 0) + (changesAt(stepIdx).length ? 0.35 : 0) + (printed ? 0.4 : 0));
+    const tm = setTimeout(() => setStepIdx(stepIdx + 1), dwell);
+    return () => clearTimeout(tm);
+  }, [playing, stepIdx, steps.length, BASE]);
+  // the keyboard (← → step, space plays, Home/End jump) is handled by the desk, for the whole window
   if (!trace) return <div className="stage-empty"><p>Watch your code run one line at a time: the variables, the call stack, and what each line means.</p><button className="btn" onClick={onStep}>{tracing ? 'Tracing…' : 'Step through'}</button></div>;
   if (!steps.length) return <div className="stage-empty">{trace.error ? <span className="err-msg">{trace.error.msg}</span> : 'Nothing to step through.'}</div>;
   const lines = (code || '').split('\n');
@@ -121,19 +216,26 @@ function Steps({ trace, stepIdx, setStepIdx, playing, setPlaying, english, onSte
   const logs = trace.logs?.slice(0, s.logs) || [];
   const viz = trace.visuals?.slice(0, s.viz) || [];
   return (
-    <div className="steps">
+    <div className="steps" tabIndex={0} aria-label={t('Step through the code. Left and right arrows step, space plays.')}>
       <div className="step-bar">
         <button className="ib" onClick={() => setStepIdx(0)} title="First">⏮</button>
         <button className="ib" onClick={() => setStepIdx(Math.max(0, stepIdx - 1))} title="Back (←)">◀</button>
         <button className="ib play" onClick={() => { if (stepIdx >= steps.length - 1) setStepIdx(0); setPlaying(!playing); }}>{playing ? '❚❚' : '▶'}</button>
         <button className="ib" onClick={() => setStepIdx(Math.min(steps.length - 1, stepIdx + 1))} title="Next (→)">▶︎</button>
-        <input type="range" min="0" max={steps.length - 1} value={stepIdx} onChange={(e) => { setPlaying(false); setStepIdx(+e.target.value); }} />
+        <span className="step-track">
+          <input type="range" min="0" max={steps.length - 1} value={stepIdx} aria-label={t('Step')} onChange={(e) => { setPlaying(false); setStepIdx(+e.target.value); }} />
+          <span className="st-marks" aria-hidden="true">{steps.map((x, k) => k > 0 && ((x.logs || 0) > (steps[k - 1].logs || 0) || (x.viz || 0) > (steps[k - 1].viz || 0)) ? <i key={k} style={{ left: `${(k / Math.max(1, steps.length - 1)) * 100}%` }} title={t('prints something')} /> : null)}</span>
+        </span>
         <span className="step-count">{stepIdx + 1}<span>/{steps.length}</span></span>
+        <span className="step-speed" role="radiogroup" aria-label={t('Speed')}>{[['slow', '🐢'], ['normal', '1×'], ['fast', '⚡']].map(([k, l]) => <button key={k} role="radio" aria-checked={speed === k} className={speed === k ? 'on' : ''} title={t(k)} onClick={() => { setSpeed(k); localStorage.setItem('bento.stepSpeed', k); }}>{l}</button>)}</span>
+        {plan.any && <button className={`ib movie-t ${movie ? 'on' : ''}`} title="Movie: draw lists, with arrows for the variables that point into them" onClick={() => { localStorage.setItem('bento.movie', movie ? 'off' : 'on'); setMovie(!movie); }}>🎬</button>}
       </div>
       <div className={`narration ${s.ret ? 'ret' : ''} ${s.end ? 'end' : ''}`} key={stepIdx}>
         {!s.end && <span className="nar-line">line {s.line}</span>}
         <span className="nar-text">{say}</span>
+        {changesAt(stepIdx).length > 0 && <span className="nar-chg">{changesAt(stepIdx).slice(0, 3).map(([k, from, to]) => <span key={k}><b>{k}</b>{from === undefined ? ' = ' : <> <s>{String(from).slice(0, 14)}</s> → </>}<em>{String(to).slice(0, 18)}</em></span>)}</span>}
       </div>
+      {movie && plan.any && <Movie s={s} prev={prev} plan={plan} key="movie" />}
       <div className="step-cols">
         <div className="vars">
           <div className="col-h">Variables</div>
@@ -168,9 +270,9 @@ function Steps({ trace, stepIdx, setStepIdx, playing, setPlaying, english, onSte
           </div>
         </div>
         <div className="sofar">
-          <div className="col-h">Output so far</div>
+          <div className="col-h">{t('Output so far')}</div>
           {viz.length > 0 && <div className="mini-viz"><Visual v={viz[viz.length - 1]} /></div>}
-          <div className="console small">{logs.slice(-8).map((l, i) => <div key={i} className={`log ${l.k}`}>{l.s}</div>)}{!logs.length && !viz.length && <div className="muted">nothing yet</div>}</div>
+          <div className="console small">{logs.slice(-8).map((l, i) => <div key={i} className={`log ${l.k}`}>{l.k === "in" ? (l.p || "") + l.s : l.s}</div>)}{!logs.length && !viz.length && <div className="muted">nothing yet</div>}</div>
         </div>
       </div>
     </div>
@@ -263,7 +365,7 @@ function GrowthSvg({ series, log }) {
   const y = log ? (c) => H - P.b - ((Math.log10(Math.max(c, minC)) - Math.log10(minC)) / Math.max(0.5, Math.log10(maxC) - Math.log10(minC))) * (H - P.t - P.b) : (c) => H - P.b - (c / maxC) * (H - P.t - P.b);
   const fmt = (v) => v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? (v / 1e3).toFixed(v >= 1e4 ? 0 : 1) + 'k' : String(v);
   return (
-    <svg className="gchart" viewBox={`0 0 ${W} ${H}`}>
+    <svg className="gchart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={series.map((s) => `${s.name || s.label || 'run'}: ${s.pts.map(([n, c]) => `n=${n} took ${fmt(Math.round(c))}`).join(', ')}`).join('. ')}>
       {(log ? [minC, Math.sqrt(minC * maxC), maxC] : [0, maxC / 2, maxC]).map((v, k) => <g key={k}><line x1={P.l} x2={W - P.r} y1={y(v)} y2={y(v)} className="grid-l" /><text x={P.l - 8} y={y(v) + 4} textAnchor="end">{fmt(Math.round(v))}</text></g>)}
       {series[0]?.pts.map(([n]) => <text key={n} x={x(n)} y={H - 8} textAnchor="middle">{n}</text>)}
       <text x={W - P.r} y={H - 8} textAnchor="end" className="axis-l">n →</text>
@@ -284,14 +386,14 @@ function Tests({ lesson, tests, onRunTests, testing }) {
   return (
     <div className={`tests ${allOk ? 'win' : ''}`}>
       <div className="tests-head">
-        <div className="col-h">{allOk ? 'All green 🎉' : tests ? `${tests.filter((r) => r.ok).length} of ${cases.length} passing` : `${cases.length} tests`}</div>
-        <button className="btn" onClick={onRunTests} disabled={testing}>{testing ? 'Running…' : 'Run tests'}</button>
+        <div className="col-h" role="status">{allOk ? 'All green 🎉' : tests ? `${tests.filter((r) => r.ok).length} of ${cases.length} passing` : `${cases.length} tests`}</div>
+        <button className="btn" onClick={onRunTests} disabled={testing}>{testing ? t('Running…') : t('Run tests')}</button>
       </div>
       {cases.map((c, i) => {
         const r = tests?.[i];
         return (
           <div key={i} className={`test ${r ? (r.ok ? 'ok' : 'bad') : ''}`}>
-            <span className="lamp" />
+            <span className="lamp" aria-hidden="true" />
             <span className="mono">{lesson.tests.fn}({fmtArgs(c.args)})</span>
             <span className="muted">→ {JSON.stringify(c.expect)}</span>
             {r && !r.ok && <span className="got">got {r.got}</span>}

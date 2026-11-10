@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import { t, tx } from '../i18n.js';
 import { CATS } from '../atlas/catalog.js';
 import { detectStack, langColor, fmtN } from '../atlas/analyze.js';
 import BigPicture, { fallbackFlow } from './BigPicture.jsx';
 import Brand from './Brand.jsx';
+import FEATURED from '../atlas-featured.json';
 
 // Two apps that do similar jobs, side by side: their pictures, their tools, and how each one solves the same problem.
 const QUESTIONS = ['How does each one start up?', 'How does each one store its data?', 'How does each one talk to outside services?', 'How does each one handle errors?', 'Which one is easier to read, and why?'];
@@ -18,11 +20,12 @@ export default function Compare({ projects, atlases, ensure, pair, setPair, onCo
   const Pick = ({ i }) => (
     <select className="cmp-pick" value={pair[i] || ''} onChange={(e) => setPair(i === 0 ? [e.target.value, pair[1]] : [pair[0], e.target.value])}>
       <option value="">Choose a project…</option>
-      {projects.map((p) => <option key={p.key} value={p.key}>{p.name}</option>)}
+      {projects.length > 0 && <optgroup label="Taken apart">{projects.map((p) => <option key={p.key} value={p.key}>{p.name}</option>)}</optgroup>}
+      {Object.keys(FEATURED).some((k) => !projects.some((p) => p.key === k)) && <optgroup label="Ready instantly">{Object.keys(FEATURED).filter((k) => !projects.some((p) => p.key === k)).map((k) => <option key={k} value={k}>{k}</option>)}</optgroup>}
     </select>
   );
   const Side = ({ X, k }) => {
-    if (!k) return <div className="cmp-empty">Pick a project you’ve taken apart.</div>;
+    if (!k) return <div className="cmp-empty">Pick a second app. <b>{Object.keys(FEATURED).length} are ready instantly</b>, or take apart any GitHub project first.</div>;
     if (!X?.facts) return <div className="cmp-empty"><span className="lens-spin" /> bringing it in…</div>;
     const langs = Object.entries(X.facts.langs).sort((a, b) => b[1] - a[1]); const tot = langs.reduce((s, [, n]) => s + n, 0) || 1;
     return (
@@ -37,9 +40,9 @@ export default function Compare({ projects, atlases, ensure, pair, setPair, onCo
   return (
     <div className="explore">
       <div className="ex-inner wide">
-        <div className="hello">Compare</div>
-        <h1 className="home-h">Same job, <em>different</em> choices.</h1>
-        <p className="ex-sub">Put two apps side by side. See how each is shaped, which tools they share, and ask how each one solves the same problem, with the real code from both.</p>
+        <div className="hello">{t('Compare')}</div>
+        <h1 className="home-h">{tx('Same job, *different* choices.')}</h1>
+        <p className="ex-sub">{t('Put two apps side by side. See how each is shaped, which tools they share, and ask how each one solves the same problem, with the real code from both.')}</p>
         <div className="cmp-cols">
           <div><Pick i={0} /><Side X={A} k={pair[0]} /></div>
           <div className="cmp-vs">vs</div>

@@ -7,6 +7,8 @@ import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 import { python } from '@codemirror/lang-python';
 import { html } from '@codemirror/lang-html';
 import { javascript } from '@codemirror/lang-javascript';
+import { sql, SQLite } from '@codemirror/lang-sql';
+import { css } from '@codemirror/lang-css';
 import { tags as t } from '@lezer/highlight';
 
 // ---------------------------------------------------------------- theme
@@ -152,7 +154,7 @@ function tokenTooltip(getExplain) {
 }
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 
-const langExt = (lang) => (lang === 'python' ? python() : lang === 'html' ? html() : javascript({ jsx: true, typescript: lang === 'typescript' }));
+const langExt = (lang) => (lang === 'python' ? python() : lang === 'html' ? html() : lang === 'css' ? css() : lang === 'sql' ? sql({ dialect: SQLite, upperCaseKeywords: true }) : javascript({ jsx: true, typescript: lang === 'typescript' }));
 
 // ---------------------------------------------------------------- component
 const Editor = forwardRef(function Editor(props, ref) {
@@ -181,6 +183,7 @@ const Editor = forwardRef(function Editor(props, ref) {
           lineNumbers(), highlightActiveLine(), highlightActiveLineGutter(), drawSelection(), history(), indentOnInput(), bracketMatching(), closeBrackets(),
           indentUnit.of(lang === 'python' ? '    ' : '  '), EditorState.tabSize.of(4),
           syntaxHighlighting(hl), theme, marksField, marksDeco, numberPlugin,
+          EditorView.contentAttributes.of({ 'aria-label': props.label || (readOnly ? `${lang} code (read only)` : `${lang} code editor. Press Escape, then Tab, to leave it.`) }),
           scrubHandler(() => cb.current.onScrub), tokenTooltip(() => cb.current.explain),
           langC.current.of(langExt(lang)), roC.current.of(EditorState.readOnly.of(!!readOnly)),
           keymap.of([

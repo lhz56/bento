@@ -1,11 +1,24 @@
 import { useMemo, useState } from 'react';
+import { t, tx } from '../i18n.js';
 
 // Every technical word a lesson introduced, collected in one place. Review them like flashcards.
 // Spaced repetition, the simple way: "got it" doubles the gap before a word comes back, "again" resets it.
 const DAY = 864e5;
 const due = (w) => !w.next || w.next <= Date.now();
 
-export default function Words({ words, onOpen, onAsk, onGrade }) {
+// A first handful of words everyone meets, so the page isn't empty on day one
+const STARTER = [
+  ['variable', 'a named box that holds a value your program can change', 'a labelled jar on a shelf'],
+  ['function', 'a named set of steps you can run again and again, with different inputs', 'a recipe card'],
+  ['loop', 'code that repeats steps, once for each item or until something is true', 'stirring until the sauce thickens'],
+  ['list', 'an ordered row of values you can reach by position', 'a numbered shopping list'],
+  ['bug', 'a mistake in code that makes it do something you didn’t mean', 'a typo in a recipe'],
+  ['algorithm', 'a precise, step-by-step way to solve a problem', 'directions to a friend’s house'],
+  ['API', 'a menu of things one program lets other programs ask it to do', 'a restaurant menu'],
+  ['Big-O', 'how much more work code does as its input grows', 'how much longer a queue takes as it gets longer'],
+];
+
+export default function Words({ words, onOpen, onAsk, onGrade, onAdd }) {
   const [openW, setOpenW] = useState(null); // definitions open on hover or click: the picture (analogy) comes first
   const [q, setQ] = useState('');
   const [review, setReview] = useState(null); // { order, i, flipped }
@@ -18,11 +31,22 @@ export default function Words({ words, onOpen, onAsk, onGrade }) {
   return (
     <div className="explore">
       <div className="ex-inner">
-        <div className="hello">Your words</div>
-        <h1 className="home-h">The language of code, <em>yours</em> now.</h1>
-        <p className="ex-sub">Every new word from your lessons, with an everyday comparison. Point at a word for its real definition.</p>
+        <div className="hello">{t('Your words')}</div>
+        <h1 className="home-h">{tx('The language of code, *yours* now.')}</h1>
+        <p className="ex-sub">{t('Every new word from your lessons, with an everyday comparison. Point at a word for its real definition.')}</p>
         {list.length === 0 ? (
-          <div className="words-empty"><div className="we-cards"><span>API</span><span>hash</span><span>webhook</span></div><p>No words yet. Open any lesson or clever idea and new words will collect here.</p></div>
+          <div className="words-empty">
+            <p>Words from your lessons collect here. Start with eight everyone meets:</p>
+            <div className="words starter">
+              {STARTER.map(([term, plain, like]) => (
+                <div key={term} className="word has-like" title={plain}>
+                  <div className="w-term">{term}</div><div className="w-like">≈ {like}</div>
+                  <div className="w-foot"><button className="link" style={{ marginLeft: 0 }} onClick={() => onAdd?.({ term, plain, like, title: 'Starter words' })}>+ keep it</button><button className="link" onClick={() => onAsk(term)}>show me →</button></div>
+                </div>
+              ))}
+            </div>
+            {onAdd && <button className="btn" onClick={() => STARTER.forEach(([term, plain, like]) => onAdd({ term, plain, like, title: 'Starter words' }))}>Keep all eight</button>}
+          </div>
         ) : (
           <>
             <div className="words-bar">

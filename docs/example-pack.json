@@ -1,0 +1,232 @@
+{
+ "bento": "pack",
+ "id": "starter-pack",
+ "name": "Starter pack",
+ "author": "Bento examples",
+ "url": "https://github.com/lhz56/bento/blob/main/docs/example-pack.json",
+ "puzzles": [
+  {
+   "id": "vowels",
+   "st": "start",
+   "tier": "warm",
+   "title": "Count the vowels",
+   "lc": null,
+   "hook": "How many vowels are in a sentence?",
+   "md": "Return how many vowels (a, e, i, o, u, upper or lower case) are in `text`.",
+   "fn": "count_vowels",
+   "startWorks": false,
+   "start": "def count_vowels(text):          #> take some text\n    count = 0                      #> no vowels yet\n    for ch in text:                #> look at each letter\n        if ch == \"a\":             #> TODO: only checks for a lowercase a\n            count += 1             #> one more vowel\n    return count                   #> how many",
+   "fast": "def count_vowels(text):          #> take some text\n    count = 0                      #> no vowels yet\n    for ch in text.lower():        #> look at each letter, in lower case\n        if ch in \"aeiou\":         #> is it a vowel?\n            count += 1             #> one more vowel\n    return count                   #> how many",
+   "demo": "print(count_vowels(\"Hello, World\"))  #> 3",
+   "tests": [
+    [
+     [
+      "banana"
+     ],
+     3
+    ],
+    [
+     [
+      "Hello, World"
+     ],
+     3
+    ],
+    [
+     [
+      "rhythm"
+     ],
+     0
+    ]
+   ],
+   "gremlins": [
+    [
+     "an empty string",
+     [
+      ""
+     ],
+     0
+    ],
+    [
+     "capital letters",
+     [
+      "AEIOU"
+     ],
+     5
+    ],
+    [
+     "numbers and spaces",
+     [
+      "2 apples"
+     ],
+     2
+    ]
+   ],
+   "setup": "def make_input(n):\n    return \"abcde\" * (n // 5 + 1)",
+   "call": "count_vowels(make_input(n))",
+   "target": "O(n)",
+   "big": 100000,
+   "hints": [
+    "Upper and lower case both count: try lowering the text first.",
+    "`ch in \"aeiou\"` checks all five vowels at once."
+   ],
+   "scale": {
+    "text": "Search engines count and index letters and words across billions of pages with exactly this kind of single pass."
+   }
+  },
+  {
+   "id": "missing",
+   "st": "hash",
+   "tier": "classic",
+   "title": "Missing number",
+   "lc": [
+    268,
+    "missing-number"
+   ],
+   "hook": "One number from 0 to n is missing. Which one?",
+   "md": "`nums` holds every number from 0 to n except one. Return the missing number.",
+   "fn": "missing",
+   "startWorks": true,
+   "start": "def missing(nums):               #> take the numbers\n    for x in range(len(nums) + 1): #> try every number from 0 to n\n        if x not in nums:          #> is it absent? (this scans the whole list!)\n            return x               #> found the missing one",
+   "fast": "def missing(nums):               #> take the numbers\n    n = len(nums)                  #> n numbers are here, so they go up to n\n    expected = n * (n + 1) // 2    #> what 0 + 1 + … + n adds up to\n    return expected - sum(nums)    #> the gap is the missing number",
+   "demo": "print(missing([3, 0, 1]))        #> 2",
+   "tests": [
+    [
+     [
+      [
+       3,
+       0,
+       1
+      ]
+     ],
+     2
+    ],
+    [
+     [
+      [
+       0,
+       1
+      ]
+     ],
+     2
+    ],
+    [
+     [
+      [
+       9,
+       6,
+       4,
+       2,
+       3,
+       5,
+       7,
+       0,
+       1
+      ]
+     ],
+     8
+    ]
+   ],
+   "gremlins": [
+    [
+     "only zero",
+     [
+      [
+       0
+      ]
+     ],
+     1
+    ],
+    [
+     "zero is missing",
+     [
+      [
+       1
+      ]
+     ],
+     0
+    ],
+    [
+     "missing in the middle",
+     [
+      [
+       0,
+       1,
+       3
+      ]
+     ],
+     2
+    ]
+   ],
+   "setup": "def make_input(n):\n    return list(range(n))",
+   "call": "missing(make_input(n))",
+   "target": "O(n)",
+   "big": 10000,
+   "hints": [
+    "`x not in nums` looks through the whole list every time.",
+    "You know what 0 + 1 + … + n adds up to. What does that tell you?"
+   ],
+   "scale": {
+    "text": "Checksums work the same way: add everything up, and a missing piece shows up as a gap in the total."
+   }
+  }
+ ],
+ "ideas": [
+  {
+   "id": "luhn",
+   "title": "How your card number catches typos by itself",
+   "company": "Visa & Mastercard",
+   "hook": "One digit at the end checks all the others.",
+   "concepts": [
+    "checksums",
+    "validation"
+   ],
+   "lang": "python",
+   "mins": 5,
+   "brief": "The Luhn algorithm (Hans Peter Luhn, IBM, 1954) adds a check digit to card numbers: double every second digit from the right, subtract 9 from results over 9, add everything up; a valid number's total ends in 0. It catches every single-digit typo and most swaps of neighbouring digits, so shops reject mistyped numbers before contacting the bank.",
+   "link": "https://en.wikipedia.org/wiki/Luhn_algorithm"
+  }
+ ],
+ "paths": [
+  {
+   "id": "data-detective",
+   "title": "Data detective",
+   "d": "From a list of numbers to answering questions about real data.",
+   "stops": [
+    {
+     "t": "Lists of numbers",
+     "d": "Store and loop through measurements.",
+     "q": "Teach me Python lists with a week of temperatures",
+     "words": [
+      "list",
+      "loop"
+     ]
+    },
+    {
+     "t": "Averages and extremes",
+     "d": "Mean, min and max by hand.",
+     "q": "Teach me how to compute average, minimum and maximum of a list without built-ins",
+     "words": [
+      "average"
+     ]
+    },
+    {
+     "t": "Counting things",
+     "d": "How often does each value appear?",
+     "q": "Teach me counting with a dictionary using survey answers",
+     "words": [
+      "dictionary"
+     ]
+    },
+    {
+     "t": "Ask a database",
+     "d": "The same questions, in SQL.",
+     "q": "Teach me SQL SELECT, WHERE and GROUP BY with a tiny table of survey answers",
+     "words": [
+      "SQL",
+      "query"
+     ]
+    }
+   ]
+  }
+ ]
+}

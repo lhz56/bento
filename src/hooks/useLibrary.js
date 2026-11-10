@@ -33,18 +33,18 @@ export default function useLibrary({ api, settings, setProgress, setProjectRaw, 
       if (b.t === 'term' && b.term) setProgress((p) => { const k = String(b.term).toLowerCase(); if (p.words?.[k]) return p; return { ...p, words: { ...(p.words || {}), [k]: { term: b.term, plain: b.plain, like: b.like, from: null, title: A.name, at: Date.now() } } }; });
     });
     const prompt = buildAtlasPrompt(A.facts, A.meta, detectStack(A.facts), settings.level);
-    const finish = (status, error) => {
+    const finish = (status, error, stopped = false) => {
       parser.end();
       if (status === 'done' && !document.hasFocus()) { try { new Notification('Bento finished reading', { body: `${A.name} is ready to explore.`, silent: true }); } catch {} }
-      setAtlases((m) => { const a = { ...m[key], status, error }; api.cachePut(key, { facts: a.facts, meta: a.meta, narr: a.narr, src: a.src, name: a.name, done: status === 'done', at: Date.now() }); return { ...m, [key]: a }; });
+      setAtlases((m) => { const a = { ...m[key], status, error }; api.cachePut(key, { facts: a.facts, meta: a.meta, narr: a.narr, src: a.src, name: a.name, done: status === 'done', stopped, at: Date.now() }); return { ...m, [key]: a }; });
     };
     const onErr = (m) => {
       // this AI can't answer right now: try your other one once, before showing the first error
-      if (!firstErr && /usage limit|isn’t signed in|isn’t installed/.test(m) && !atlasRef.current[key]?.narr?.gist) { parser.end(); return narrate(key, model.startsWith('codex') ? 'claude:sonnet' : 'codex:default', m); }
+      if (!firstErr && /usage limit|isn’t signed in|isn’t installed|can’t talk to yet/.test(m) && !atlasRef.current[key]?.narr?.gist) { parser.end(); return narrate(key, model.startsWith('codex') ? 'claude:sonnet' : 'codex:default', m); }
       finish('narr-error', firstErr || m);
     };
     const cancel = api.ask(model, prompt, { chunk: (t) => parser.push(t), think: (t) => patchAtlas(key, { thinking: t }), done: () => finish('done', null), error: onErr }, 'atlas');
-    stoppers.current[key] = () => { cancel?.(); finish('narr-error', 'You stopped the reading. Press retry to continue.'); };
+    stoppers.current[key] = () => { cancel?.(); finish('narr-error', 'You stopped the reading. Press retry to continue.', true); };
   };
   const openAtlas = async (src, { quiet, big } = {}) => {
     const key = src.kind === 'github' ? src.full : `local:${src.root}`;
@@ -57,11 +57,11 @@ export default function useLibrary({ api, settings, setProgress, setProjectRaw, 
     try {
       const cached = await api.cacheGet(key);
       if (cached?.facts && (await api.atlasReopen(cached.src.root))) {
-        if (cached.facts.v !== 4) { try { cached.facts = await api.atlasAnalyze(cached.src.root, name); api.cachePut(key, { ...cached }); } catch {} }
-        const A = { key, name, src: cached.src, meta: cached.meta, facts: cached.facts, narr: cached.narr || emptyNarr(), status: cached.done ? 'done' : 'narr-error', error: cached.done ? null : 'The explanation stopped early.' };
+        if (cached.facts.v !== 5) { try { cached.facts = await api.atlasAnalyze(cached.src.root, name); api.cachePut(key, { ...cached }); } catch {} }
+        const A = { key, name, src: cached.src, meta: cached.meta, facts: cached.facts, narr: cached.narr || emptyNarr(), status: cached.done ? 'done' : 'narr-error', error: cached.done ? null : cached.stopped ? 'You stopped the reading. Press retry to continue.' : 'The explanation stopped early.' };
         setAtlases((m) => ({ ...m, [key]: A })); atlasRef.current = { ...atlasRef.current, [key]: A }; setProjectRaw(asProject(A)); remember(A);
         // the app was closed before the reading wrote anything: just start it again instead of showing an error
-        if (!cached.done && !cached.narr?.gist && !quiet) setTimeout(() => narrate(key), 0);
+        if (!cached.done && !cached.narr?.gist && !cached.stopped && !quiet) setTimeout(() => narrate(key), 0); // but never restart one you stopped yourself
         return A;
       }
       // featured projects ship already taken apart: show them now, fetch the code quietly for reading files
@@ -78,7 +78,8 @@ export default function useLibrary({ api, settings, setProgress, setProjectRaw, 
       }
       const metaP = src.kind === 'github' ? api.atlasMeta(src.full).catch(() => null) : Promise.resolve(null);
       let s2 = src;
-      if (src.kind === 'github' && !big) { const m = await metaP; if (m?.size > 400000) { patchAtlas(key, { status: 'big', meta: m }); return null; } }
+      // GitHub counts the whole history; Bento only downloads the latest version, usually a small part of that
+      if (src.kind === 'github' && !big) { const m = await metaP; if (m?.size > 2500000) { patchAtlas(key, { status: 'big', meta: m }); return null; } }
       if (src.kind === 'github') s2 = await api.atlasFetch(src.full);
       patchAtlas(key, { status: 'reading', src: s2 });
       const facts = await api.atlasAnalyze(s2.root, name);
@@ -137,7 +138,7 @@ export default function useLibrary({ api, settings, setProgress, setProjectRaw, 
     if (p.repo) { setProjectRaw({ kind: 'github', name: p.repo, files: [], loading: true }); const A = await openAtlas({ kind: 'github', full: p.repo }, { quiet: true }); if (!A) setProjectRaw(null); }
   };
 
-  const ensureProject = (key) => { const p = projects.find((x) => x.key === key); if (p && !atlasRef.current[key]?.facts) openAtlas(p.kind === 'github' ? { kind: 'github', full: p.full } : { kind: 'local', root: p.root, name: p.name }, { quiet: true }); };
+  const ensureProject = (key) => { const p = projects.find((x) => x.key === key); if (!p && FEATURED[key] && !atlasRef.current[key]?.facts) { openAtlas({ kind: 'github', full: key }, { quiet: true }); return; } if (p && !atlasRef.current[key]?.facts) openAtlas(p.kind === 'github' ? { kind: 'github', full: p.full } : { kind: 'local', root: p.root, name: p.name }, { quiet: true }); };
 
   return { atlases, setAtlases, atlasKey, setAtlasKey, atlasRef, projects, setProjects, sites, setSites, siteKey, setSiteKey,
     stopReading, patchAtlas, asProject, narrate, openAtlas, openRepo, openRepoAt, openSite, openFolderAtlas, openProject, showAtlas, setProject, ensureProject,

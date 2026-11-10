@@ -35,8 +35,8 @@ BLOCKS
 {"t":"quiz","q":"...","choices":["...","...","..."],"answer":0,"why":"..."}
   One question that checks real understanding (predict output / where does X go / what breaks). 2–4 short choices.
 {"t":"try","items":["Change 0.38 to 2.4","Insert 5 and predict where it lands"]}
-  2–3 tiny experiments the student can do in the editor right now (≤ 8 words each).
-{"t":"next","items":["...","..."]}   2–3 natural follow-up questions (≤ 8 words).
+  2–3 tiny experiments, each a concrete edit to THIS code that Bento can make and run for them: start with a verb (Change / Add / Remove / Swap), name the exact value or name to change, and pick edits whose result is visible when it runs. Make at least one surprising (it breaks, or the picture changes a lot). ≤ 8 words each.
+{"t":"next","items":["...","...","..."]}   3 follow-up questions, phrased the way the learner would ask them (≤ 8 words): first one step deeper into this idea, then where they meet it in apps they already use, then the natural next topic to learn.
 {"t":"term","term":"hash function","plain":"...","like":"..."}
   NEW WORDS. The first time the lesson uses a real technical term the learner may not know, emit a term block right after that paragraph. plain: a one-sentence definition with no other jargon (≤ 22 words). like: an everyday comparison (≤ 14 words). 1–4 per lesson. Bold the term in the paragraph too.
 {"t":"diagram","nodes":[{"id":"you","label":"You","kind":"person","does":"Type an address","term":"browser","more":"…"}],"edges":[{"from":"you","to":"dns","label":"a name"}]}

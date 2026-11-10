@@ -184,6 +184,17 @@ export function applyNarr(N, b) {
 }
 
 // Pick the files that matter for a question about the repo (for "Ask about this repo").
+// "How does this whole thing work?": the project's main parts (each app or package, biggest first),
+// with the most-used file of each, so an overview answer starts from the big picture, not one corner.
+const MONO_AREA = /^(apps|packages|libs|lib|services|crates|modules|plugins|extensions|projects|sdks)$/;
+export const areaOf = (p) => { const s = p.split('/'); return s.length > 2 && MONO_AREA.test(s[0]) ? `${s[0]}/${s[1]}` : s.length > 1 ? s[0] : '.'; };
+export function projectParts(F, max = 10) {
+  const by = new Map();
+  for (const f of F.files) { if (!f.lang || f.layer === 'support' || f.sub === 'docs' || f.sub === 'tests') continue; const a = areaOf(f.p); if (a === '.' || /^(\.github|docs?|scripts|infra|evals?|third-party.*)$/.test(a)) continue; const x = by.get(a) || { area: a, files: 0, lines: 0, top: null }; x.files++; x.lines += f.lines || 0; if (!x.top || (f.used || 0) > (x.top.used || 0) || (f.entry && !x.top.entry)) x.top = f; by.set(a, x); }
+  return [...by.values()].sort((a, b) => b.lines - a.lines).slice(0, max);
+}
+export const isOverviewQuestion = (q) => /\b(how (does|do|is|are) .{0,40}\bwork|what (is|does) |overview|architecture|big picture|explain|walk me through|talk about|tell me about|learn about|what about|how .{0,30}(built|structured|put together))\b/i.test(q) && !/\b(where|which file|function|line|bug|error|why does .{0,30} fail)\b/i.test(q);
+
 export function filesForQuestion(F, narr, q) {
   const words = (q.toLowerCase().match(/[a-z]{3,}/g) || []).filter((w) => !['the', 'how', 'does', 'what', 'where', 'when', 'this', 'that', 'work', 'works', 'with', 'from', 'here', 'app', 'code', 'file', 'why'].includes(w));
   const score = (f) => {
@@ -191,4 +202,12 @@ export function filesForQuestion(F, narr, q) {
     return words.reduce((s, w) => s + (hay.includes(w) ? (f.p.toLowerCase().includes(w) ? 3 : 2) : 0), 0) + (f.entry ? 0.5 : 0) + Math.min(1, f.used / 10);
   };
   return F.files.filter((f) => f.lang && f.sub !== 'docs').map((f) => [f, score(f)]).sort((a, b) => b[1] - a[1]).slice(0, 4).map((x) => x[0].p);
+}
+
+// The words in a question worth searching the code for, plus the words code usually uses for them
+const STOP = new Set(['the', 'how', 'does', 'what', 'where', 'when', 'this', 'that', 'work', 'works', 'with', 'from', 'here', 'app', 'code', 'file', 'files', 'why', 'and', 'for', 'are', 'can', 'you', 'your', 'its', 'into', 'about', 'there', 'they', 'them', 'have', 'has', 'any', 'all', 'some', 'add', 'make', 'build', 'want', 'would', 'could', 'should', 'please', 'hey', 'lets', 'let', 'talk', 'tell', 'explain', 'show', 'which', 'who', 'way', 'thing', 'things', 'part', 'parts', 'use', 'uses', 'used', 'using', 'get', 'gets', 'like', 'just', 'really', 'actually', 'handle', 'handles', 'project', 'repo']);
+const ALSO = { answer: ['message', 'reply', 'response', 'assistant'], answers: ['message', 'assistant'], chat: ['message', 'thread', 'conversation'], copy: ['clipboard', 'copy'], copies: ['clipboard', 'copy'], login: ['auth', 'session', 'token'], auth: ['auth', 'token', 'session'], signin: ['auth', 'login'], ai: ['agent', 'model', 'provider'], agent: ['agent', 'provider'], agents: ['agent', 'provider'], claude: ['claude', 'anthropic'], codex: ['codex', 'openai'], database: ['db', 'sql', 'schema'], save: ['persist', 'store', 'write'], saves: ['persist', 'store'], settings: ['settings', 'config', 'preferences'], theme: ['theme', 'dark', 'color'], button: ['button', 'onclick'], key: ['shortcut', 'keybinding', 'hotkey'], shortcut: ['shortcut', 'keybinding', 'hotkey'], notify: ['notification'], upload: ['upload', 'attachment'], image: ['image', 'attachment'], search: ['search', 'filter', 'query'], terminal: ['terminal', 'pty', 'shell'], git: ['git', 'commit', 'branch'], test: ['test', 'spec'], tests: ['test', 'spec'] };
+export function searchWords(q) {
+  const ws = (String(q).toLowerCase().match(/[a-z][a-z0-9]{2,}/g) || []).filter((w) => !STOP.has(w));
+  return [...new Set(ws.flatMap((w) => [w.replace(/(ies|es|s)$/, (m) => (m === 'ies' ? 'y' : '')), ...(ALSO[w] || [])]))].filter((w) => w.length >= 3).slice(0, 10);
 }

@@ -1,16 +1,68 @@
 name: ci
 on: [push, pull_request]
+
+# Every change is tested on all three systems Bento ships for: the logic tests, then the real app is packaged,
+# opened and used (Python, JavaScript, input(), SQL, the terminal, shortcuts, the network guard), and a lesson is asked
+# for and streamed in from a pretend AI, so nothing is spent.
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    env:
-      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+  app:
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - run: npm ci
-      - run: npm test
+      - name: Logic tests
+        run: npm test
       - run: npx vite build
+      - name: Package the app (unpacked, unsigned; the debugger switch stays on so the test can drive it)
+        run: npx electron-builder --dir --publish never -c.electronFuses.enableNodeCliInspectArguments=true
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Open the app and use it (virtual screen)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a node scripts/smoke-app.mjs --packaged
+      - name: Open the app and use it
+        if: runner.os != 'Linux'
+        run: node scripts/smoke-app.mjs --packaged
+      - name: The tour (lessons, projects, the code city, Compare, ideas, notes; virtual screen)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a node scripts/smoke-tour.mjs --packaged
+      - name: The tour (lessons, projects, the code city, Compare, ideas, notes)
+        if: runner.os != 'Linux'
+        run: node scripts/smoke-tour.mjs --packaged
+      - name: Ask a question and watch the lesson stream in (pretend AI, virtual screen)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a node scripts/smoke-stream.mjs --packaged
+      - name: Ask a question and watch the lesson stream in (pretend AI)
+        if: runner.os != 'Linux'
+        run: node scripts/smoke-stream.mjs --packaged
+      - name: Guard rails (what pages can reach, menu, crash recovery, updates note, idle motion; virtual screen)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a node scripts/smoke-guards.mjs --packaged
+      - name: Guard rails (what pages can reach, menu, crash recovery, updates note, idle motion)
+        if: runner.os != 'Linux'
+        run: node scripts/smoke-guards.mjs --packaged
+      - name: Accessibility, every screen, light and dark (axe-core)
+        if: runner.os == 'macOS'
+        run: node scripts/audit-a11y.mjs --packaged
+      - name: Everything with only a keyboard
+        if: runner.os == 'macOS'
+        run: node scripts/audit-keyboard.mjs --packaged
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-${{ matrix.os }}
+          path: smoke-out/
+          if-no-files-found: ignore

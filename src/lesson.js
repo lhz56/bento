@@ -1,3 +1,4 @@
+import { keys } from './platform.js';
 // Lesson model: streaming NDJSON parser, prompt builders, and the built-in lessons.
 
 // the model may say "py", "Python", "ts"…; keep TypeScript only if the lesson asked for it
@@ -219,7 +220,7 @@ for (let i = 0; i < 260; i++) {
     story: [
       { t: 'p', md: 'Generative art is a loop with a rule. Here the rule is: **turn a little, step out a little, draw a dot.**' },
       { t: 'p', md: '[[8-9|These two lines]] are the whole idea. `Math.cos` and `Math.sin` turn an angle and a distance into a position on screen: [[10-11|x and y]].' },
-      { t: 'p', md: 'Hold **⌥ Option** and drag any number in the code. The picture redraws as you drag. Try an angle step of **2.4**: the golden angle, the one sunflowers use.' },
+      { t: 'p', md: `Hold **${keys('⌥ Option')}** and drag any number in the code. The picture redraws as you drag. Try an angle step of **2.4**: the golden angle, the one sunflowers use.` },
       { t: 'quiz', q: 'What happens if you change 0.38 to 0?', choices: ['A straight line of dots', 'A circle', 'Nothing is drawn'], answer: 0, why: 'No turning, only stepping out: every dot sits on the same ray, so they form a line.' },
       { t: 'try', items: ['Change 0.38 to 2.4', 'Change 0.7 to 1.4', 'Change 260 to 900'] },
       { t: 'next', items: ['How do I animate this?', 'What are sin and cos, really?', 'How do I make random art?'] },

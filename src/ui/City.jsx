@@ -3,6 +3,7 @@ import { BY_ID } from '../atlas/catalog.js';
 import { ICONS } from '../atlas/icons.js';
 import { LAYERS, LAYER, displayName, heat, langColor } from '../atlas/analyze.js';
 import { Md } from './Story.jsx';
+import { pressable } from './a11y.js';
 
 // The repo as a little isometric city.
 // District = layer, building = file (height = how much code), roof = language,
@@ -207,7 +208,14 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
           )}
         </div>
       <div className={`city ${lit ? 'has-lit' : ''}`} ref={wrap}>
-        <svg width={width} height={geo.h} className="city-svg">
+        <svg width={width} height={geo.h} className="city-svg" tabIndex={0} role="group" aria-roledescription="city" aria-label={`A city of this project's ${lots.length} files in ${city.length} districts. Use the arrow keys to walk between buildings, Enter to open one.`}
+          onKeyDown={(e) => {
+            const order = city.flatMap((d) => d.lots.map((l) => `f:${l.i}`)); if (!order.length) return;
+            const at = order.indexOf(hover); const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+            if (step) { e.preventDefault(); setHover(order[at < 0 ? 0 : (at + step + order.length) % order.length]); }
+            else if (e.key === 'Home' || e.key === 'End') { e.preventDefault(); setHover(order[e.key === 'Home' ? 0 : order.length - 1]); }
+            else if ((e.key === 'Enter' || e.key === ' ') && at >= 0) { e.preventDefault(); const l = lots.find((x) => `f:${x.i}` === hover); if (l) onOpen(l.f.p); }
+          }} onBlur={() => setHover(null)}>
           <defs>
             <radialGradient id="glow"><stop offset="0" stopColor="var(--violet)" stopOpacity=".5" /><stop offset="1" stopColor="var(--violet)" stopOpacity="0" /></radialGradient>
           </defs>
@@ -275,13 +283,14 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
           {city.map((d) => {
             const [x, y] = P(d.x + d.W, d.y + d.D); const [, name] = LAYER[d.id]; const label = `${GLYPH[d.id]}  ${name}`; const w = label.length * 7 + 40;
             return (
-              <g key={`s${d.id}`} className={`sign ${hoveredD === d.id ? 'on' : ''}`} style={{ '--c': LAYER[d.id][3] }} transform={`translate(${x - w / 2},${y + 14})`} onMouseEnter={() => setHover(`d:${d.id}`)} onMouseLeave={() => setHover(null)} onClick={() => window.dispatchEvent(new CustomEvent('atlas-layer', { detail: d.id }))}>
+              <g key={`s${d.id}`} className={`sign ${hoveredD === d.id ? 'on' : ''}`} style={{ '--c': LAYER[d.id][3] }} transform={`translate(${x - w / 2},${y + 14})`} onMouseEnter={() => setHover(`d:${d.id}`)} onMouseLeave={() => setHover(null)} {...pressable(() => window.dispatchEvent(new CustomEvent('atlas-layer', { detail: d.id })))}>
                 <title>Show every file in {LAYER[d.id][1]}</title>
                 <rect width={w} height="22" rx="11" /><text x="11" y="15">{label}</text><text className="sign-n" x={w - 11} y="15" textAnchor="end">{d.total}</text>
               </g>
             );
           })}
         </svg>
+        <span className="sr-only" aria-live="polite">{(() => { const l = hover?.startsWith('f:') && lots.find((x) => `f:${x.i}` === hover); return l ? `${l.f.p}, in ${LAYER[l.d.id][1]}` : ''; })()}</span>
         {jPath.length > 0 && jPath[jPath.length - 1].cur && <span key={`dot${jr.j}-${jr.s}`} className="jdot" style={{ offsetPath: `path('${jPath[jPath.length - 1].d}')` }} />}
 
       </div>

@@ -1,11 +1,12 @@
 import { useState } from 'react';
+import { t, tx } from '../i18n.js';
 import { IDEAS, THEMES } from '../ideas.js';
 import Brand from './Brand.jsx';
 import { hexPath } from './Onboarding.jsx';
 
-export default function Ideas({ onRead, readIds = {}, interests = [], races = [], onRace, instant = {} }) {
+export default function Ideas({ onRead, readIds = {}, interests = [], races = [], onRace, instant = {}, extra = [] }) {
   const [theme, setTheme] = useState('all');
-  const list = IDEAS.filter((i) => theme === 'all' || i.theme === theme);
+  const list = [...IDEAS, ...extra].filter((i) => theme === 'all' || i.theme === theme);
   // today's pick: something you haven't read yet, changing each day
   const unread = list.filter((i) => !readIds[i.id]);
   const day = Math.floor(Date.now() / 864e5);
@@ -14,9 +15,9 @@ export default function Ideas({ onRead, readIds = {}, interests = [], races = []
   return (
     <div className="ideas">
       <div className="ideas-inner">
-        <div className="hello">Clever ideas</div>
-        <h1 className="home-h">The tricks behind <em>famous</em> software.</h1>
-        <p className="ex-sub">{IDEAS.length} real problems from Uber, Google, Amazon, Discord and more, each a short blog post with code you can run: the obvious way next to the clever way.</p>
+        <div className="hello">{t('Clever ideas')}</div>
+        <h1 className="home-h">{tx('The tricks behind *famous* software.')}</h1>
+        <p className="ex-sub">{t(`${IDEAS.length} real problems from Uber, Google, Amazon, Discord and more, each a short blog post with code you can run: the obvious way next to the clever way.`)}</p>
         <div className="shelves">{THEMES.map(([k, l]) => <button key={k} className={`shelf ${theme === k ? 'on' : ''}`} onClick={() => setTheme(k)}>{l}</button>)}</div>
 
         {featured && (
@@ -38,7 +39,7 @@ export default function Ideas({ onRead, readIds = {}, interests = [], races = []
             <div className="race-row">
               {races.map((r, i) => (
                 <button key={r.id} className="race-card" onClick={() => onRace(r)}>
-                  <svg viewBox="0 0 120 54" className="race-art">{(r.growth.calls || []).map((c, k) => { const f = [(x) => x * x * 0.9, (x) => x * 1.6 + 2, (x) => Math.log2(x + 1) * 6][k % 3]; const pts = Array.from({ length: 12 }, (_, j) => `${8 + j * 9.5},${50 - Math.min(44, f(j * 0.6 + (i % 2)) * (k === 0 ? 1.2 : 1))}`).join(' '); return <polyline key={k} points={pts} fill="none" stroke={['#ff8a5b', '#4cc9a0', '#a78bfa'][k]} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />; })}</svg>
+                  <svg viewBox="0 0 120 54" className="race-art" aria-hidden="true">{(r.growth.calls || []).map((c, k) => { const f = [(x) => x * x * 0.9, (x) => x * 1.6 + 2, (x) => Math.log2(x + 1) * 6][k % 3]; const pts = Array.from({ length: 12 }, (_, j) => `${8 + j * 9.5},${50 - Math.min(44, f(j * 0.6 + (i % 2)) * (k === 0 ? 1.2 : 1))}`).join(' '); return <polyline key={k} points={pts} fill="none" stroke={['#ff8a5b', '#4cc9a0', '#a78bfa'][k]} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />; })}</svg>
                   <b>{r.title.split(':')[0]}</b>
                   <span>{r.title.split(':')[1]?.trim()}</span>
                 </button>
@@ -66,7 +67,7 @@ export default function Ideas({ onRead, readIds = {}, interests = [], races = []
 const O = '#ff8a5b', V = '#a78bfa', M = '#4cc9a0', S = '#5aa9ff', Y = '#f5b82e';
 export function IdeaArt({ kind, big }) {
   const vb = '0 0 200 110';
-  const wrap = (children) => <svg viewBox={vb} className={`idea-art ${big ? 'big' : ''}`} preserveAspectRatio="xMidYMid meet">{children}</svg>;
+  const wrap = (children) => <svg viewBox={vb} className={`idea-art ${big ? 'big' : ''}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">{children}</svg>;
   switch (kind) {
     case 'hex': {
       const cells = []; for (let r = 0; r < 6; r++) for (let c = 0; c < 10; c++) { const x = 22 + c * 17.3 + (r % 2) * 8.65, y = 14 + r * 15; const d = Math.hypot(x - 100, y - 52); cells.push(<path key={`${r}-${c}`} d={hexPath(x, y, 9.6)} fill={d < 6 ? O : d < 22 ? '#ffc4ab' : d < 38 ? '#ffe6db' : 'none'} stroke="var(--line-2)" strokeWidth=".8" />); }

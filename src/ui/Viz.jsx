@@ -123,7 +123,7 @@ function TreeViz({ root }) {
   const W = Math.max(L.width * sx, 120) + pad * 2 - sx + 40, H = (L.depth + 1) * sy + pad;
   const pos = Object.fromEntries(L.nodes.map((n) => [n.path, [pad + 20 + n.x * sx, pad + n.d * sy]]));
   return (
-    <svg className="tree" viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', maxWidth: W * 1.2, maxHeight: 340 }}>
+    <svg className="tree" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`A tree with ${L.nodes.length} nodes, ${L.depth + 1} levels deep: ${L.nodes.slice(0, 30).map((n) => n.v).join(', ')}`} style={{ width: '100%', maxWidth: W * 1.2, maxHeight: 340 }}>
       {L.edges.map(([a, b]) => pos[a] && pos[b] && <line key={a + b} x1={pos[a][0]} y1={pos[a][1]} x2={pos[b][0]} y2={pos[b][1]} className="tree-edge" />)}
       {L.nodes.map((n) => (
         <g key={n.path} className={`tree-node ${isNew(n) ? 'new' : ''}`} transform={`translate(${pos[n.path][0]},${pos[n.path][1]})`}>
