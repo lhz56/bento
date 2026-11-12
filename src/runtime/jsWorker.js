@@ -10,7 +10,7 @@ let liveId = null, liveMode = null, liveT0 = 0, liveLast = 0, liveBuf = [];
 function live(k, s) {
   if (liveMode !== 'run') return;
   liveBuf.push({ k, s }); const now = performance.now();
-  if (now - liveT0 > 250 && now - liveLast > 50) { self.postMessage({ id: liveId, live: liveBuf }); liveBuf = []; liveLast = now; }
+  if (now - liveT0 > 250 && now - liveLast > 50) { self.postMessage?.({ id: liveId, live: liveBuf }); liveBuf = []; liveLast = now; }
 }
 
 // ---------- value formatting
@@ -29,7 +29,9 @@ function short(v, d = 0) {
   const ks = Object.keys(v); const s = ks.slice(0, 6).map((k) => `${k}: ${short(v[k], d + 1)}`); if (ks.length > 6) s.push('…');
   return `{${s.join(', ')}}`;
 }
-const isNode = (v) => v && typeof v === 'object' && !Array.isArray(v) && (('left' in v && 'right' in v) || Array.isArray(v.children));
+// a tree node: left and right (either may be empty), or only one of them holding a node (a chain), or a children list
+const kid = (x) => x == null || (typeof x === 'object' && !Array.isArray(x));
+const isNode = (v) => v && typeof v === 'object' && !Array.isArray(v) && ((('left' in v && 'right' in v) && kid(v.left) && kid(v.right)) || ('left' in v) !== ('right' in v) && [v.left, v.right].some((x) => x && typeof x === 'object' && !Array.isArray(x)) || Array.isArray(v.children));
 const nodeLabel = (v) => ['val', 'value', 'key', 'data', 'name', 'label'].map((k) => v[k]).find((x) => x !== undefined) ?? '•';
 
 function toTree(n, seen = new Set(), budget = { n: 0 }) {
@@ -53,7 +55,22 @@ function toViz(x, label) {
 
 // ---------- helpers exposed to user code
 let out;
-function fresh() { out = { logs: [], visuals: [], canvas: null }; answers = []; }
+function fresh() { out = { logs: [], visuals: [], canvas: null }; answers = []; stopTimers(); lateError = null; }
+// Timers and fetches the program starts: the run waits for them to finish (a promise lesson's "soup ready" after 300 ms
+// is the point of the lesson), instead of ending as soon as the top-level code does. A timer that repeats forever is
+// stopped after a few seconds, and says so. An error inside a timer, or a rejected promise nobody handled, is the run's
+// error instead of vanishing.
+const timers = new Map(); let timerSeq = 0, inflight = 0, lateError = null;
+const WAIT_LIMIT = 20000, REPEAT_LIMIT = 3000;
+function stopTimers() { for (const t of timers.values()) (t.every ? clearInterval : clearTimeout)(t.h); timers.clear(); inflight = 0; }
+const later = (every) => (fn, ms = 0, ...args) => {
+  const id = ++timerSeq;
+  const run = () => { if (!every) timers.delete(id); try { if (typeof fn === 'function') fn(...args); } catch (e) { lateError ||= e; } };
+  timers.set(id, { every, h: every ? setInterval(run, Math.max(10, +ms || 0)) : setTimeout(run, +ms || 0) });
+  return id;
+};
+const cancel = (id) => { const t = timers.get(id); if (t) { (t.every ? clearInterval : clearTimeout)(t.h); timers.delete(id); } };
+self.addEventListener?.('unhandledrejection', (e) => { lateError ||= e.reason ?? new Error('A promise was rejected and nothing caught it'); e.preventDefault?.(); });
 let answers = [];
 function canvas() { if (!out.canvas) { out.canvas = { type: 'canvas', w: 400, h: 400, cmds: [] }; out.visuals.push(out.canvas); } return out.canvas; }
 const cap = (c) => { if (c.cmds.length > 60000) throw new Error('Too many drawing commands'); return c; };
@@ -72,8 +89,9 @@ const H = {
   print: logf('log'),
   console: { log: logf('log'), info: logf('log'), warn: logf('warn'), error: logf('err'), table: (x) => out.visuals.push(toViz(x)) },
   prompt: ask, input: ask,
-  fetch: netFetch,
-  sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+  fetch: (...a) => { inflight++; return netFetch(...a).finally(() => { inflight = Math.max(0, inflight - 1); }); },
+  sleep: (ms) => new Promise((r) => later(false)(r, ms)),
+  setTimeout: later(false), setInterval: later(true), clearTimeout: cancel, clearInterval: cancel,
   show: (x, label) => { if (out.visuals.length < 40) out.visuals.push(toViz(x, label)); },
   size: (w, h) => { const c = canvas(); c.w = w; c.h = h; },
   background: (c) => cap(canvas()).cmds.push(['bg', c]),
@@ -196,7 +214,20 @@ async function exec(code, extraNames = [], extraVals = [], suffix = '') {
   const fn = new AsyncFunction(...names, `\n${code}\n${suffix}`);
   return fn(...HN.map((k) => H[k]), ...extraVals);
 }
-const settle = () => new Promise((r) => setTimeout(r, 40));
+const tick = (ms) => new Promise((r) => setTimeout(r, ms));
+// after the program's own code: wait for its timers and fetches, then a moment for the promises they settle
+async function settle() {
+  const t0 = performance.now(); await tick(0);
+  let repeatSince = null;
+  while ((timers.size || inflight) && performance.now() - t0 < WAIT_LIMIT) {
+    const onlyRepeats = !inflight && [...timers.values()].every((t) => t.every);
+    if (onlyRepeats) { repeatSince ??= performance.now(); if (performance.now() - repeatSince > REPEAT_LIMIT) break; } else repeatSince = null;
+    await tick(10);
+  }
+  if (timers.size) { const n = timers.size; const rep = [...timers.values()].some((t) => t.every); stopTimers(); logf('warn')(rep ? `(Bento stopped ${n === 1 ? 'a timer that repeats' : `${n} timers that repeat`} after a few seconds, so the run could finish.)` : '(Bento stopped waiting for timers after 20 seconds.)'); }
+  await tick(40);
+  if (lateError) { const e = lateError; lateError = null; throw e; }
+}
 const clone = (x) => (typeof structuredClone === 'function' ? structuredClone(x) : JSON.parse(JSON.stringify(x)));
 function eq(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 

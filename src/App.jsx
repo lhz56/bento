@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SAMPLES, CHALLENGE, emptyLesson, applyBlock, ndjsonParser, buildPrompt, parseJSONLoose } from './lesson.js';
+import { tidyLesson } from './verify.js'; // when a lesson finishes: slipped plain English is written again, slipped line links moved back
 import { projectNames, decide, mentionedProject, pointsBack, namesALesson } from './findProject.js';
 import { explainToken } from './explain.js';
 import { pyState, warmPython } from './runtime/runner.js';
@@ -35,6 +36,7 @@ import BUGS_RAW from './bugs-prebuilt.json'; // one pre-written Python daily bug
 import { useDialog } from './ui/a11y.js';
 const SIM_PRE = Object.fromEntries(Object.entries(SIM_RAW).map(([k, l], i) => [k, { ...l, id: `sim-${i}`, builtin: true, status: 'done', thinking: null, chat: [], work: null, createdAt: 0 }]));
 import { ALL_STOPS, tracksWith, stopSkills } from './paths.js';
+import { noAI, altOf, usableModel } from './ai.js';
 const PATH_PRE = Object.fromEntries(Object.entries(PATH_RAW).map(([k, l]) => [k, { ...l, id: `path-${k}`, builtin: true, status: 'done', thinking: null, chat: [], work: null, createdAt: 0 }]));
 const PREBUILT = Object.fromEntries(Object.entries(PREBUILT_RAW).map(([k, l]) => [k, { ...l, id: `idea-${k}`, builtin: true, status: 'done', thinking: null, chat: [], work: null, createdAt: 0 }]));
 import { Sidebar, modelLabel, groupOf, rememberTab } from './ui/Side.jsx';
@@ -102,7 +104,7 @@ export default function App() {
     // menus and buttons in the same language: translated once by your own AI, then kept on this Mac
     setUILanguage(settings.voice || 'English', async (strings, language) => parseJSONLoose(await api.quick(settings.model, `Translate these short labels from a friendly app that teaches coding into ${language}. They are buttons, menu items and headings, so keep each one about as short as the English. Keep words wrapped in *stars* wrapped in stars (they are emphasised). Keep product and technical names as they are: Bento, Python, JavaScript, TypeScript, LeetCode, GitHub, Big-O, O(n), ⌘ and other symbols.\nReply with only a JSON object mapping each English string exactly to its translation.\n${JSON.stringify(strings)}`)));
   }, [settings.voice]);
-  const lib = useLibrary({ api, settings, setProgress, setProjectRaw, setViewRaw });
+  const lib = useLibrary({ api, settings, setProgress, setProjectRaw, setViewRaw, getProviders: () => providersRef.current });
   const { atlases, setAtlases, atlasKey, setAtlasKey, atlasRef, projects, setProjects, sites, setSites, siteKey, setSiteKey,
     stopReading, patchAtlas, asProject, narrate, openAtlas, openRepo, openRepoAt, openSite, openFolderAtlas, openProject, showAtlas, setProject, ensureProject,
     pendingFile, setPendingFile, findWild } = lib;
@@ -157,7 +159,7 @@ export default function App() {
   const knownWordSet = useMemo(() => new Set(Object.keys(progress.words || {})), [progress.words]);
   // design a custom learning path for any goal (used by The path and by an Atlas's "what it takes" card)
   const makePath = async (goal) => {
-            if (providers && !providers.claude && !providers.codex) throw new Error('Connect Claude or Codex first (bottom-left), then Bento can design a path for you.');
+            if (noAI(providers)) throw new Error('Connect an AI first (bottom-left), then Bento can design a path for you.');
             const j = parseJSONLoose(await api.quick(settings.model, `Design a learning path for a ${settings.level} learner whose goal is: "${goal}".\nThe whole path builds ONE small project, chosen to fit the goal. 6–9 short stops: the first starts from nothing, each later stop extends the program from the stop before (same names, same data), and the last stop puts it all together into a working result the learner can show someone. Each stop is ONE lesson taught with a small runnable program (Python or JavaScript; use "html" for web pages; for SQL use Python's sqlite3 in memory). No network, files or installs. Introduce at most 3 new ideas per stop, in an order where nothing is used before it's taught.\nReply JSON: {"title":"≤ 4 words","d":"one sentence, ≤ 14 words","project":"the project's name and one line about it, ≤ 12 words","end":"what the learner will have at the end, concrete, ≤ 14 words","stops":[{"t":"stop title ≤ 6 words","d":"≤ 14 words, plain","make":"what this stop's program adds to the project, ≤ 10 words","mins":5-15,"q":"the exact question to ask for this lesson, ≤ 25 words","lang":"python|javascript|html","words":["2-3 technical words this stop introduces"]}]}`));
             if (!j?.stops?.length) throw new Error('Couldn’t design that path. Try wording the goal differently.');
             const id = `c${Date.now().toString(36)}`;
@@ -211,7 +213,7 @@ export default function App() {
   useEffect(() => {
     api.providers().then((p) => {
       setProviders(p);
-      if (!p.claude && p.codex && settings.model.startsWith('claude')) setSettings({ model: 'codex:default' });
+      const usable = usableModel(settings.model, p); if (usable !== settings.model) setSettings({ model: usable }); // the chosen AI isn't on this Mac: use one that is
       if (p.gh) api.ghMe().then(setUser).catch(() => {});
     });
     const f = (r) => setPyReady(r); pyState.listeners.add(f); warmPython();
@@ -267,12 +269,12 @@ export default function App() {
     const cancel = api.ask(model, prompt, {
       chunk: (t) => parser.push(t),
       think: (t) => setLessons((ls) => ls.map((l) => (l.id === L0.id ? { ...l, thinking: t } : l))),
-      done: () => { if (!document.hasFocus() && window.Notification?.permission !== 'denied') { try { new Notification('Your lesson is ready', { body: q ? String(q).slice(0, 90) : 'Bento finished writing.', silent: true }).onclick = () => { window.focus(); setCurrentId(L0.id); setViewRaw('lesson'); }; } catch {} } parser.end(); setLessons((ls) => ls.map((l) => (l.id === L0.id ? { ...l, status: l.code || l.story.length ? 'done' : 'error', error: l.code || l.story.length ? null : 'The model replied, but not in the lesson format. Try again or switch model.' } : l))); cancels.current.delete(L0.id); },
+      done: () => { if (!document.hasFocus() && window.Notification?.permission !== 'denied') { try { new Notification('Your lesson is ready', { body: q ? String(q).slice(0, 90) : 'Bento finished writing.', silent: true }).onclick = () => { window.focus(); setCurrentId(L0.id); setViewRaw('lesson'); }; } catch {} } parser.end(); setLessons((ls) => ls.map((l) => (l.id === L0.id ? { ...l, ...tidyLesson(l), status: l.code || l.story.length ? 'done' : 'error', error: l.code || l.story.length ? null : 'The model replied, but not in the lesson format. Try again or switch model.' } : l))); cancels.current.delete(L0.id); },
       error: (m) => {
         parser.end(); cancels.current.delete(L0.id);
         // Auto-route: if this AI can't answer right now (usage limit, signed out, missing), quietly ask your other one.
-        const alt = model.startsWith('claude') ? (providersRef.current?.codex ? 'codex:default' : null) : (providersRef.current?.claude ? 'claude:sonnet' : null);
-        const account = /usage limit|isn’t signed in|isn’t installed|can’t talk to yet/.test(m);
+        const alt = altOf(model, providersRef.current);
+        const account = /usage limit|isn’t signed in|isn’t installed|can’t talk to yet|doesn’t have Copilot|no longer lets personal|isn’t set up with a key|doesn’t offer|can’t use Gemini/.test(m);
         const cur = lessonsRef.current.find((l) => l.id === L0.id);
         if (alt && account && !o.routed && !cur?.code && !cur?.story?.length) {
           setLessons((ls) => ls.filter((l) => l.id !== L0.id));
@@ -515,8 +517,8 @@ export default function App() {
       story: [{ t: 'p', md: 'A blank page that explains itself. Type any code on the right: Bento turns each line into plain English as you go, **Run** shows the result, and **Step** walks through it line by line.' }, { t: 'p', md: 'Hover any word for a quick explanation. Stuck? Ask below, like “why does range start at 0?”.' }, { t: 'try', items: ['Change 3 to 10', 'Step through the loop', py ? 'Print your own name' : 'Log your own name'] }] };
     setLessons((ls) => [L, ...ls.filter((x) => !untouchedTwin(x, L))]); setCurrentId(L.id); setViewRaw('lesson'); setStepSel(null);
   };
-  const altOf = (m) => (m.startsWith('claude') ? (providers?.codex ? 'codex:default' : null) : (providers?.claude ? 'claude:sonnet' : null));
-  const altModel = altOf(settings.model);
+  const altFor = (m) => altOf(m, providers);
+  const altModel = altFor(settings.model);
   // a new bug every day (generated once, then kept), the built-in one when no AI is connected
   const openDaily = () => {
     const day = new Date().toISOString().slice(0, 10);
@@ -530,7 +532,7 @@ export default function App() {
       setProgress((p) => ({ ...p, daily: { ...(p.daily || {}), [day]: L.id } }));
       return openLesson(L);
     }
-    if (!providers || (!providers.claude && !providers.codex)) return openLesson(CHALLENGE);
+    if (!providers || noAI(providers)) return openLesson(CHALLENGE);
     const nid = askLesson(topic, { mode: 'challenge', lang: settings.lang });
     setProgress((p) => ({ ...p, daily: { ...(p.daily || {}), [day]: nid } }));
   };
@@ -653,8 +655,8 @@ export default function App() {
           onRetry={() => { const x = sites[siteKey]; setSites((m) => { const n = { ...m }; delete n[siteKey]; return n; }); setTimeout(() => openSite(x.url), 0); }}
           onAsk={(q) => askLesson(`${q} (I'm studying the website ${siteKey}${sites[siteKey]?.narr?.gist?.one ? `: ${sites[siteKey].narr.gist.one}` : ''})`, {})} />}
         {view === 'ideas' && <Ideas instant={!settings.voice || settings.voice === 'English' ? PREBUILT : {}} races={[]} onRace={openLesson} onPuzzles={() => setViewRaw('puzzles')} extra={packStuff.ideas} onRead={readIdea} readIds={readIds} interests={settings.interests} />}
-        {view === 'play' && <Playgrounds top={trailBar()} tab={playTab} setTab={setPlayTab} progress={progress} onProgress={(kind, id) => setProgress((p) => (p[kind]?.[id] ? p : { ...p, [kind]: { ...(p[kind] || {}), [id]: Date.now() } }))} quick={providers && !providers.claude && !providers.codex ? null : (m, q) => api.quick(m, q)} model={settings.model} pyReady={pyReady} onAsk={(q) => askLesson(q, {})} />}
-        {view === 'map' && <SkillMap readyFor={readyFor} mastery={mastery} lessons={lessons} onAsk={(q) => askLesson(q, {})} onPuzzle={openPuzzle} onOpenLesson={(id) => { const l = lessons.find((x) => x.id === id); if (l) openLesson(l); }} quick={providers && !providers.claude && !providers.codex ? null : (m, q) => api.quick(m, q)} model={settings.model} onReviewed={(ids, score = 0, total = 0) => setProgress((p) => ({ ...p, reviewed: { ...(p.reviewed || {}), ...Object.fromEntries(ids.map((id) => [id, Date.now()])) }, reviewScores: { ...(p.reviewScores || {}), ...Object.fromEntries(ids.map((id) => { const old = p.reviewScores?.[id] || { right: 0, total: 0 }; return [id, { right: old.right + (ids.length === 1 ? score : Math.min(score, 1)), total: old.total + total, at: Date.now() }]; })) } }))} />}
+        {view === 'play' && <Playgrounds top={trailBar()} tab={playTab} setTab={setPlayTab} progress={progress} onProgress={(kind, id) => setProgress((p) => (p[kind]?.[id] ? p : { ...p, [kind]: { ...(p[kind] || {}), [id]: Date.now() } }))} quick={noAI(providers) ? null : (m, q) => api.quick(m, q)} model={settings.model} pyReady={pyReady} onAsk={(q) => askLesson(q, {})} />}
+        {view === 'map' && <SkillMap readyFor={readyFor} mastery={mastery} lessons={lessons} onAsk={(q) => askLesson(q, {})} onPuzzle={openPuzzle} onOpenLesson={(id) => { const l = lessons.find((x) => x.id === id); if (l) openLesson(l); }} quick={noAI(providers) ? null : (m, q) => api.quick(m, q)} model={settings.model} onReviewed={(ids, score = 0, total = 0) => setProgress((p) => ({ ...p, reviewed: { ...(p.reviewed || {}), ...Object.fromEntries(ids.map((id) => [id, Date.now()])) }, reviewScores: { ...(p.reviewScores || {}), ...Object.fromEntries(ids.map((id) => { const old = p.reviewScores?.[id] || { right: 0, total: 0 }; return [id, { right: old.right + (ids.length === 1 ? score : Math.min(score, 1)), total: old.total + total, at: Date.now() }]; })) } }))} />}
         {view === 'puzzles' && <Puzzles races={RACE_LESSONS} onRace={openLesson} progress={progress} onOpen={openPuzzle} onIdeas={() => setViewRaw('ideas')} onIdea={readIdea} />}
         {view === 'words' && <Words onAdd={(w) => setProgress((p) => { const k = w.term.toLowerCase(); if (p.words?.[k]) return p; return { ...p, words: { ...(p.words || {}), [k]: { ...w, at: Date.now() } } }; })} onGrade={(term, g) => setProgress((p) => { const k = String(term).toLowerCase(); return { ...p, words: { ...p.words, [k]: { ...p.words[k], ...g } } }; })} words={progress.words || {}} onOpen={(id) => { const l = lessons.find((x) => x.id === id); if (l) openLesson(l); }} onAsk={(t) => askLesson(`Explain "${t}" with a tiny example`, {})} />}
         {view === 'explore' && <Explore top={trailBar()} api={api} onOpenAt={openRepoAt} onOpenSite={openSite} onCompare={() => openCompare()} onOpenRepo={openRepo} onOpenFolder={openFolderAtlas} projects={projects} onOpenProject={openProject} repos={repos} loadRepos={loadRepos} user={user} />}
@@ -662,7 +664,7 @@ export default function App() {
           <Atlas key={atlasKey} atlas={A} asked={atlasQ?.key === A.key ? atlasQ : null} onAskedDone={() => setAtlasQ(null)} onIdeaInstead={(q) => { setAtlasQ(null); askLesson(q, { noRoute: true }); }} onMakePath={async (goal) => { const id = await makePath(goal); if (id) { localStorage.setItem('bento.track', id); setViewRaw('path'); } }} onStopReading={() => stopReading(A.key)} onBig={() => { setAtlases((m) => { const n = { ...m }; delete n[A.key]; atlasRef.current = n; return n; }); setTimeout(() => openAtlas(A.src, { big: true }), 0); }} initialFile={pendingFile?.key === A.key ? pendingFile.path : null} onInitialFileShown={() => setPendingFile(null)} modelLabel={modelLabel(settings.model)}
             readFile={(p) => (A.src.root ? api.readFile(A.src.root, p) : Promise.reject(new Error(A.fetchError ? `Couldn’t download the code: ${A.fetchError}` : 'Downloading the code… try again in a few seconds.')))}
             onAsk={(q, focus) => askRepo(A, q, focus)}
-            onPlanIssue={providers && !providers.claude && !providers.codex ? null : async (iss) => {
+            onPlanIssue={noAI(providers) ? null : async (iss) => {
               const tree = (A.facts?.files || []).filter((f) => f.lang).slice(0, 160).map((f) => `${f.p} — ${A.narr?.roles?.[f.p] || guessRole(f)}`).join('\n');
               const j = parseJSONLoose(await api.quick(settings.model, `A ${settings.level} learner wants to make their first open-source contribution by fixing this open issue in ${A.name}${A.narr?.gist?.one ? ` (${A.narr.gist.one})` : ''}.\nISSUE #${iss.n}: ${iss.title}\n${iss.body}\n\nFILES (path — role):\n${tree}\n\nBe encouraging and concrete. Only name files that appear in the list.\nReply JSON: {"plain":"what the issue asks for, in plain words, at most 60 words","files":["2-4 exact paths from the list most likely to change"],"steps":["4-6 short, concrete steps to fix it"],"skills":["2-3 skills they will practise"]}`));
               return j?.plain ? j : { err: 'No plan this time. Read the issue on GitHub, then ask about it in the box below.' };
@@ -731,7 +733,7 @@ export default function App() {
               onNext={(q) => current.mode === 'challenge' ? askLesson(/another/i.test(q) ? (current.concepts?.[0] || 'arrays') : q, { mode: /another/i.test(q) ? 'challenge' : 'explain', lang: current.lang }) : askLesson(q, { prev: current, lang: current.lang })}
               onFollowUp={(q) => askLesson(q, { prev: current, lang: current.lang })}
               onSecondOpinion={async (i) => {
-                const L = current; const id = L.id; const c = L.chat[i]; const altModel = altOf(c.by || settings.model); if (!altModel) return;
+                const L = current; const id = L.id; const c = L.chat[i]; const altModel = altFor(c.by || settings.model); if (!altModel) return;
                 const set = (second) => setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, chat: l.chat.map((x, k) => (k === i ? { ...x, second } : x)) } : l)));
                 set({ who: modelLabel(altModel), loading: true });
                 const code = (L.work ?? L.code ?? '').split('\n').map((x, k) => `${k + 1}| ${x}`).join('\n').slice(0, 5000);
@@ -740,7 +742,7 @@ export default function App() {
                   set({ who: modelLabel(altModel), a: j?.answer || 'No answer this time.' });
                 } catch { set({ who: modelLabel(altModel), a: 'That model didn’t answer. Is it signed in?' }); }
               }}
-              onTeachBack={providers && !providers.claude && !providers.codex ? null : async (L, said) => {
+              onTeachBack={noAI(providers) ? null : async (L, said) => {
                 const id = L.id; const story = (L.story || []).map((b) => b.md || b.text || '').filter(Boolean).join('\n').slice(0, 3500);
                 let j = null;
                 const pz = L.puzzle ? puzzleById(L.puzzle) : null;
@@ -754,7 +756,7 @@ export default function App() {
               onQuickAsk={async (q) => {
                 const L = current; const id = L.id; const n = (L.chat || []).length;
                 const put = (c) => setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, chat: [...(l.chat || []).slice(0, n), c] } : l)));
-                if (providers && !providers.claude && !providers.codex) { put({ q, a: 'Bento needs an AI to answer questions. Connect Claude Code or Codex (bottom-left → **Connect an AI**); it uses the subscription you already have.' }); return; }
+                if (noAI(providers)) { put({ q, a: 'Bento needs an AI to answer questions. Connect one (bottom-left → **Connect an AI**): Claude, ChatGPT, Gemini or Copilot, on the plan you already have.' }); return; }
                 put({ q, loading: true });
                 const code = (L.work ?? L.code ?? '').split('\n').map((x, i) => `${i + 1}| ${x}`).join('\n').slice(0, 5000);
                 const hist = (L.chat || []).slice(-3).map((c) => `Q: ${c.q}\nA: ${c.a}`).join('\n');
@@ -768,7 +770,7 @@ export default function App() {
               onDepth={(dir) => { const lv = ['kid', 'student', 'engineer']; const base = current.level || settings.level; const level = lv[Math.max(0, Math.min(2, lv.indexOf(base) + (dir === 'deeper' ? 1 : -1)))]; askLesson(dir === 'deeper' ? `Go deeper on "${current.title}": what's really happening under the hood, and the trade-offs a pro would think about` : `Explain "${current.title}" again, much simpler, with an everyday analogy and a smaller example`, { prev: current, lang: current.lang, level }); }}
               onQuiz={(ok) => ok && award(current, 'quiz')} onCheck={(ok) => { if (ok) award(current, 'quiz'); setLessons((ls) => ls.map((l) => (l.id === current.id ? { ...l, checks: [...(l.checks || []), { ok, at: Date.now() }].slice(-20) } : l))); }} onConcept={(c) => askLesson(`Teach me ${c.replace(/-/g, ' ')}`, { lang: current.lang })}
               stepSel={stepSel} onStepSelect={setStepSel}
-              onWild={providers?.gh ? findWild : null} onOpenAt={openRepoAt} onOpenRepo={openRepo} altModel={altModel ? modelLabel(altModel) : null} altFor={(c) => { const m = altOf(c.by || settings.model); return m ? modelLabel(m) : null; }} onRetryWith={() => { const a = current; setSettings({ model: altModel }); setLessons((ls) => ls.filter((l) => l.id !== a.id)); setTimeout(() => askLesson(a.q, { mode: a.mode, lang: a.lang, context: a.context }), 0); }}
+              onWild={providers?.gh ? findWild : null} onOpenAt={openRepoAt} onOpenRepo={openRepo} altModel={altModel ? modelLabel(altModel) : null} altFor={(c) => { const m = altFor(c.by || settings.model); return m ? modelLabel(m) : null; }} onRetryWith={() => { const a = current; setSettings({ model: altModel }); setLessons((ls) => ls.filter((l) => l.id !== a.id)); setTimeout(() => askLesson(a.q, { mode: a.mode, lang: a.lang, context: a.context }), 0); }}
               article={article} onArticle={() => setArticle((a) => { localStorage.setItem('bento.article', a ? '' : '1'); return !a; })} run={runs[current.id]}
               onStop={() => { const id = current.id; cancels.current.get(id)?.(); cancels.current.delete(id); setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, status: l.code || l.story.length ? 'done' : 'error', error: l.code || l.story.length ? null : 'Stopped before anything arrived.', thinking: null } : l))); }}
               onBackToRepo={showAtlas} onOpenUrl={(u) => api.openExternal(u)} knownWords={progress.words}

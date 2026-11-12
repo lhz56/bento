@@ -1,0 +1,3845 @@
+{
+  "at": "2026-11-11T04:37:21.333Z",
+  "app": "source",
+  "ais": {
+    "claude": {
+      "version": "2.1.317",
+      "plan": "Max",
+      "ready": true
+    },
+    "codex": {
+      "version": "0.166.0",
+      "plan": "ChatGPT",
+      "ready": true
+    },
+    "antigravity": {
+      "version": "1.5.5",
+      "plan": "Google account",
+      "ready": true
+    },
+    "copilot": {
+      "version": "1.0.109",
+      "plan": "GitHub",
+      "ready": true
+    },
+    "gemini": {
+      "version": "0.68.0",
+      "plan": "Google account",
+      "ready": false
+    }
+  },
+  "lessons": [
+    {
+      "id": "picture",
+      "q": "What is recursion? Show it with a picture.",
+      "lang": "python",
+      "level": "student"
+    },
+    {
+      "id": "algorithm",
+      "q": "How does binary search find a number so fast?",
+      "lang": "python",
+      "level": "student"
+    },
+    {
+      "id": "webpage",
+      "q": "Make a tiny web page with a button that counts clicks.",
+      "lang": "html",
+      "level": "student"
+    },
+    {
+      "id": "beginner",
+      "q": "What is a variable? I have never written code before.",
+      "lang": "python",
+      "level": "kid"
+    },
+    {
+      "id": "engineer",
+      "q": "How does consistent hashing spread keys across servers, and what moves when a server is added?",
+      "lang": "python",
+      "level": "engineer"
+    },
+    {
+      "id": "javascript",
+      "q": "How do promises and async/await work in JavaScript?",
+      "lang": "javascript",
+      "level": "student"
+    }
+  ],
+  "question": "Why is that faster than checking every item one by one?",
+  "goal": "learn SQL for a small online shop",
+  "judges": [
+    "claude:sonnet",
+    "antigravity:flash"
+  ],
+  "results": [
+    {
+      "model": "copilot:auto",
+      "tasks": [
+        {
+          "task": "lesson:picture",
+          "ok": true,
+          "error": null,
+          "firstMs": 17177,
+          "writtenMs": 23630,
+          "checkedMs": 31673,
+          "title": "Recursion",
+          "blocks": 6,
+          "paragraphs": 2,
+          "quiz": true,
+          "terms": 1,
+          "notes": 3,
+          "codeLines": 12,
+          "pseudoLines": 12,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 2,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 5,
+              "clear": 3,
+              "visual": 4,
+              "code": 3,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "The tree nodes show running totals (\"3 + 3\", \"4 + 6\"), but the text says the total is 4+3+2+1+0. Nothing explains why the picture reads differently, and the lesson never says which way to read it (top is sum_to(4), bottom is sum_to(0)).",
+                "The code returns a (total, picture) tuple and builds dicts alongside the arithmetic. A beginner has to untangle that before seeing plain recursion, so the picture code hides the idea. Lines 8-9 have no plain-English note either.",
+                "The terms \"base case\" and \"call stack\" are never introduced; only \"stopping point\" appears in a margin note. The quiz is just arithmetic (4+3+2+1+0) and doesn't check understanding of the stopping condition or the order of calls, and the [try] items give no hint of what to expect (e.g. n == 1 prints 9)."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 4,
+              "visual": 5,
+              "code": 4,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "Embedding visual tree-building dictionary syntax into the recursive function clutters the core recursion concept for a beginner.",
+                "The quiz asks for the final sum rather than checking understanding of base cases or the call stack."
+              ]
+            }
+          },
+          "quality": 78
+        },
+        {
+          "task": "lesson:algorithm",
+          "ok": true,
+          "error": null,
+          "firstMs": 13717,
+          "writtenMs": 19761,
+          "checkedMs": 25795,
+          "title": "Find it fast",
+          "blocks": 8,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 1,
+          "notes": 3,
+          "codeLines": 18,
+          "pseudoLines": 17,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 2,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 5,
+              "clear": 4,
+              "visual": 3,
+              "code": 4,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "The pictures don't show the idea. The bar chart doesn't highlight the checked positions or the shrinking low/high range, and the table only lists [16, 38, 23] at the end. A learner can't see half the list being discarded at each step.",
+                "The 'so fast' question is only answered vaguely ('much faster'). The lesson never says that 9 items took 3 checks, never contrasts that with checking every item, and never gives a number like 100 items needing about 7 checks. The 'how many checks for 100 numbers' idea is left to the follow-up questions.",
+                "The quiz repeats a result the text already states (16 < 23, so the left half is ruled out), so it checks recall rather than understanding. The code also never covers a target that isn't in the list, so the loop ending when low > high goes unexplained. The line 18 gloss 'checked so far' is misleading, because the display only runs after the search finishes."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 4,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "The bar chart shows the static list rather than highlighting the narrowing low/high search range at each step."
+              ]
+            }
+          },
+          "quality": 85
+        },
+        {
+          "task": "lesson:webpage",
+          "ok": true,
+          "error": null,
+          "firstMs": 19352,
+          "writtenMs": 25801,
+          "checkedMs": 25801,
+          "title": "A click counter",
+          "blocks": 6,
+          "paragraphs": 2,
+          "quiz": true,
+          "terms": 1,
+          "notes": 3,
+          "codeLines": 31,
+          "pseudoLines": 32,
+          "pseudoFixed": false,
+          "ran": "page",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": true,
+          "longParas": 0,
+          "links": 3,
+          "shows": null,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 2,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 3,
+              "visual": 3,
+              "code": 5,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "Line references are off: the text links 'to each click' to lines 26-29 and the visible update to 27-28, but the listener is at lines 25-28, count starts at line 23, and the display update is line 27. The plain-English column also leaves lines 24, 25, 28 blank and gives line 27 the add-one explanation while line 26 is mislabeled 'When clicked' (actually line 25). The explanations are shifted by one line.",
+                "Quiz is weak: 'two clicks' answer 2 is trivial and does not test understanding of the variable, the event, or the DOM update (e.g. why the page doesn't change without textContent). The [try] item also says 'count += 1' but the code has it at line 26 with no pointer, and the new-word definition has a typo ('Like a doorbell' repeated as 'like Like').",
+                "Little visual or concrete tracing: no step-by-step values (0 → 1 → 2) or diagram connecting a click to count and the label. The tally-counter analogy is brief, and the lesson skips explaining the arrow function, addEventListener, and why textContent is used, so a learner who knows 'a little' gets the code but not the mechanism."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 3,
+              "clear": 3,
+              "visual": 3,
+              "code": 5,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "Line-by-line annotations and text links for JavaScript (lines 25–29) are shifted and misaligned.",
+                "Typo in the click event definition: '(like Like a doorbell telling you someone is there.)'.",
+                "The quiz checks basic addition (0 + 2) rather than testing understanding of the event listener or DOM updates."
+              ]
+            }
+          },
+          "quality": 67
+        },
+        {
+          "task": "lesson:beginner",
+          "ok": true,
+          "error": null,
+          "firstMs": 16975,
+          "writtenMs": 20208,
+          "checkedMs": 28264,
+          "title": "Names that remember",
+          "blocks": 7,
+          "paragraphs": 3,
+          "quiz": true,
+          "terms": 1,
+          "notes": 2,
+          "codeLines": 9,
+          "pseudoLines": 9,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 2,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 3,
+              "code": 4,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "The quiz is too easy and only checks reading a table. It never asks what happens to the old value ('apple' is gone) or why 7 became 8 (the line `favorite_number = favorite_number + 1`). The lesson never explains that `=` means 'put this value in the name', which is the core idea for a beginner.",
+                "The third 'try' suggestion, `[\"cookie\"] * 20`, introduces lists and multiplication for someone who has never coded. It would confuse them and probably make the table look odd. The step-by-step flow breaks here.",
+                "The tables show only values, not the lunchbox/label analogy, so the picture does not reinforce it. The analogy is also thin: the lesson doesn't say a name can be reused, and 'show()' is never explained. The text says 'the names still work' without saying what that means."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 3,
+              "visual": 5,
+              "code": 4,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "Line 7 introduces self-referential update (x = x + 1) without explaining how or why the syntax works to a first-time coder.",
+                "The [try] section suggests `['cookie'] * 20`, introducing advanced list replication syntax before containers or operators are taught.",
+                "The quiz checks visual observation of the rendered table rather than testing conceptual understanding of variable assignment."
+              ]
+            }
+          },
+          "quality": 73
+        },
+        {
+          "task": "lesson:engineer",
+          "ok": true,
+          "error": null,
+          "firstMs": 34287,
+          "writtenMs": 43164,
+          "checkedMs": 62282,
+          "title": "Consistent hashing",
+          "blocks": 9,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 2,
+          "notes": 3,
+          "codeLines": 26,
+          "pseudoLines": 27,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 3,
+              "visual": 3,
+              "code": 3,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "Plain-English line notes are shifted: they describe lines 21-26 as 20-25 (e.g. line 20 'Starts with three servers' is actually line 19), so the beside-code explanations mismatch the code. Link ranges like 21-25 also skip the show() line.",
+                "The picture shows only 16 of 24 keys, with one move (user-7 A to D). It barely shows the ring, the balance, or the moved fraction, so the 'only some keys move' claim isn't visibly quantified. No ring diagram or count summary is shown.",
+                "Text contradicts itself: 'D leaves existing points in place' is fine, but 'More points ... at the cost of a larger ring' is thin. The quiz distractors are weak, and the quiz doesn't test the key insight that keys only move to the new server, never between old ones. The [try] item range(3) is hard-coded inside build_ring and range(1) will change results for the learner without any prompt about what to observe."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 4,
+              "clear": 5,
+              "visual": 4,
+              "code": 4,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "Plain-English annotations from line 19 onward are shifted by one line relative to the code.",
+                "`owner()` recomputes `positions = [position for position, _ in ring]` on every lookup instead of pre-extracting it once.",
+                "Defining fundamental concepts like 'hash function' as a '[new word]' is patronizing for a working engineer audience."
+              ]
+            }
+          },
+          "quality": 72
+        },
+        {
+          "task": "lesson:javascript",
+          "ok": true,
+          "error": null,
+          "firstMs": 18950,
+          "writtenMs": 24603,
+          "checkedMs": 39694,
+          "title": "Promises and async/await",
+          "blocks": 7,
+          "paragraphs": 2,
+          "quiz": true,
+          "terms": 2,
+          "notes": 3,
+          "codeLines": 20,
+          "pseudoLines": 20,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 1,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 2,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 95,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 3,
+              "visual": 3,
+              "code": 4,
+              "teaching": 2,
+              "overall": 3,
+              "issues": [
+                "Quiz is wrong or misleading: the table order is tea, tea ready, toast, but the 'why' says toast wait begins only after tea is ready, which is true, yet the event 'tea' is recorded in the timer callback before 'tea ready', not 'tea ready before tea' — distractors are trivial and the quiz mostly checks reading the table rather than understanding await. Also the lesson says 'nothing is printed' which is confusing for a learner; the result appears only as a picture.",
+                "Explanation is thin and has glitches: 'like It’s like' typo in the analogies, the take-a-number slip analogy is muddled (the slip says it's finished, not that work happens), and the text never explains pending/fulfilled states, what resolve does, or that code after main() would not wait (non-blocking).",
+                "Table shows tea and tea ready both at 32ms, so the 'tea' vs 'tea ready' distinction is hard to see; the lesson doesn't point out that toast at 45 reflects 30+10 sequential waiting, and the 'try' items (e.g. removing await) are not explained in terms of what would change."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 4,
+              "visual": 4,
+              "code": 5,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "Dictionary definition callouts have duplicated phrasing: '(like It’s like...)'",
+                "Mentioning 'but nothing is printed in this run' in the main explanation is distracting meta-commentary for the learner",
+                "The quiz asks the learner to read event order directly off the visible table rather than testing predictive understanding of await"
+              ]
+            }
+          },
+          "quality": 73
+        },
+        {
+          "task": "answer",
+          "ok": true,
+          "ms": 9719,
+          "words": 60,
+          "next": 2,
+          "check": true,
+          "by": "copilot:auto",
+          "score": 100
+        },
+        {
+          "task": "path",
+          "ok": true,
+          "ms": 32055,
+          "stops": 8,
+          "allLessons": true,
+          "title": "Shop SQL",
+          "ending": true,
+          "error": null,
+          "score": 100
+        }
+      ],
+      "tokens": 22329,
+      "requests": 14,
+      "lessonScore": 99,
+      "verdict": "good",
+      "quality": 75,
+      "criteria": {
+        "correct": 4.2,
+        "clear": 3.7,
+        "visual": 3.7,
+        "code": 4.2,
+        "teaching": 3.3,
+        "overall": 3.4
+      },
+      "byJudge": {
+        "claude:sonnet": 67,
+        "antigravity:flash": 83
+      },
+      "issues": [
+        "picture: The tree nodes show running totals (\"3 + 3\", \"4 + 6\"), but the text says the total is 4+3+2+1+0. Nothing explains why the picture reads differently, and the lesson never says which way to read it (top is sum_to(4), bottom is sum_to(0)).",
+        "picture: The code returns a (total, picture) tuple and builds dicts alongside the arithmetic. A beginner has to untangle that before seeing plain recursion, so the picture code hides the idea. Lines 8-9 have no plain-English note either.",
+        "picture: The terms \"base case\" and \"call stack\" are never introduced; only \"stopping point\" appears in a margin note. The quiz is just arithmetic (4+3+2+1+0) and doesn't check understanding of the stopping condition or the order of calls, and the [try] items give no hint of what to expect (e.g. n == 1 prints 9).",
+        "picture: Embedding visual tree-building dictionary syntax into the recursive function clutters the core recursion concept for a beginner.",
+        "picture: The quiz asks for the final sum rather than checking understanding of base cases or the call stack.",
+        "algorithm: The pictures don't show the idea. The bar chart doesn't highlight the checked positions or the shrinking low/high range, and the table only lists [16, 38, 23] at the end. A learner can't see half the list being discarded at each step.",
+        "algorithm: The 'so fast' question is only answered vaguely ('much faster'). The lesson never says that 9 items took 3 checks, never contrasts that with checking every item, and never gives a number like 100 items needing about 7 checks. The 'how many checks for 100 numbers' idea is left to the follow-up questions.",
+        "algorithm: The quiz repeats a result the text already states (16 < 23, so the left half is ruled out), so it checks recall rather than understanding. The code also never covers a target that isn't in the list, so the loop ending when low > high goes unexplained. The line 18 gloss 'checked so far' is misleading, because the display only runs after the search finishes."
+      ]
+    },
+    {
+      "model": "claude:sonnet",
+      "tasks": [
+        {
+          "task": "lesson:picture",
+          "ok": true,
+          "error": null,
+          "firstMs": 8266,
+          "writtenMs": 16363,
+          "checkedMs": 20395,
+          "title": "Recursion",
+          "blocks": 9,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 2,
+          "notes": 3,
+          "codeLines": 12,
+          "pseudoLines": 12,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 5,
+              "code": 4,
+              "teaching": 3,
+              "overall": 4,
+              "issues": [
+                "The nesting-doll analogy is linear (one doll inside one doll), but the code branches into two calls per level. The lesson never connects the analogy to the branching tree, so the picture and the analogy don't line up.",
+                "The [try] suggestion 'Change n < 2 to n < 3' makes fib(4) return 5, which is no longer Fibonacci, and the lesson doesn't say what to expect. A learner could take it as a bug or a mistake. The suggestions are bare and have no prompts about what to notice.",
+                "fib is a heavier first example than a single-branch function like factorial or countdown. The tree repeats fib(2), fib(1) and fib(0) without comment, and the margin note says 'forever' where the quiz says RecursionError. The quiz tests only the base case, not the shrinking step or the bottom-up flow."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 4,
+              "visual": 5,
+              "code": 4,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "The Russian nesting dolls analogy describes linear recursion, which contradicts the branching tree recursion used in Fibonacci.",
+                "Embedding dictionary structures into the return values to power show() adds syntactic clutter that obscures the core recursion mechanics for a beginner."
+              ]
+            }
+          },
+          "quality": 83
+        },
+        {
+          "task": "lesson:algorithm",
+          "ok": true,
+          "error": null,
+          "firstMs": 12101,
+          "writtenMs": 20563,
+          "checkedMs": 28605,
+          "title": "Binary search",
+          "blocks": 9,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 2,
+          "notes": 3,
+          "codeLines": 19,
+          "pseudoLines": 19,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 3,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 5,
+              "clear": 4,
+              "visual": 3,
+              "code": 4,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "The only picture of the shrinking zone is a table of lo/mid/hi numbers. The \"sorted list\" bars never highlight the zone or the discarded halves, so the central idea of throwing away half stays abstract.",
+                "The quiz mostly tests index arithmetic (lo = 16 + 1 = 17) rather than why discarding half is safe or why sorting matters. The try-it prompt \"Change 100 to 3000\" points at a number that doesn't appear in the code, since 100 is only the range end.",
+                "The analogy uses a 1-100 guessing game while the code uses 33 multiples of 3, which is a small mismatch. Both new-word notes also have a pasted \"like Like\" glitch, and the \"about 7 checks\" claim is never tied to log2 or shown in the output."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 5,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "Repeated word 'like Like' in both vocabulary parentheticals.",
+                "The [try] instruction 'Change 100 to 3000' targets an inline literal in range() rather than an explicit list size variable."
+              ]
+            }
+          },
+          "quality": 90
+        },
+        {
+          "task": "lesson:webpage",
+          "ok": true,
+          "error": null,
+          "firstMs": 10886,
+          "writtenMs": 19824,
+          "checkedMs": 19824,
+          "title": "A button that counts clicks",
+          "blocks": 8,
+          "paragraphs": 3,
+          "quiz": true,
+          "terms": 2,
+          "notes": 3,
+          "codeLines": 28,
+          "pseudoLines": 28,
+          "pseudoFixed": false,
+          "ran": "page",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": true,
+          "longParas": 0,
+          "links": 5,
+          "shows": null,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 4,
+              "visual": 3,
+              "code": 4,
+              "teaching": 4,
+              "overall": 3,
+              "issues": [
+                "The [try] suggestion 'Change `clicks + 1` to `clicks * 2`' is a trap. `clicks` starts at 0, so 0*2 is always 0 and the counter never moves. The message at 10 also never appears. The learner will think the page is broken, and the lesson never explains why.",
+                "The text says lines 18-19 'grab those elements', but they grab only the count and the message. The button is grabbed inline on line 20, so the explanation of how JavaScript finds each id is incomplete.",
+                "Line 23, the 'Ten!' message, is never explained in the text, even though it is the only reason `msg` exists and the 'Change 10 to 3' try depends on it. Nothing shows the flow of variable to screen to console either, for example a small table of click number and value. The quiz's distractor 'jumps straight to 10' is also implausible."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 4,
+              "clear": 5,
+              "visual": 4,
+              "code": 5,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "In [try], changing `clicks + 1` to `clicks * 2` leaves the counter stuck at 0 because clicks starts at 0.",
+                "The text mentions three elements (number, button, message) then says lines 18-19 grab them, but the button is fetched separately on line 20."
+              ]
+            }
+          },
+          "quality": 78
+        },
+        {
+          "task": "lesson:beginner",
+          "ok": true,
+          "error": null,
+          "firstMs": 6476,
+          "writtenMs": 13324,
+          "checkedMs": 17352,
+          "title": "What is a variable?",
+          "blocks": 8,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 1,
+          "notes": 3,
+          "codeLines": 11,
+          "pseudoLines": 11,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 2,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 4,
+              "code": 5,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "Text says 'Compare the two tables' and 'The first table shows both boxes', but the tables are only labeled by captions; the text never tells the learner where to look or that the pictures appear after running. The 'sticky label' box analogy isn't drawn as an actual box picture.",
+                "Text says 'swap what's inside... the label stays the same' but the 'score = score + 5' line is hard for a beginner: the = sign explanation sits only in a margin note, not in the main text where it's first needed (line 2).",
+                "Quiz checks only one step (10+5=15) and is essentially answerable by reading the text; it doesn't test the key idea that the old value is replaced (e.g., what is pet after line 8?). The definition 'points to a value' also mixes in a different model than the box metaphor."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 4,
+              "visual": 5,
+              "code": 5,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "Line 3 (`pet = 'cat'`) is never introduced in the text before referencing 'both boxes' and replacing 'cat'.",
+                "The margin note explaining quotes for text strings is attached to line 8 instead of line 3 where strings first appear.",
+                "Introducing self-referential assignment (`score = score + 5`) alongside string variables is a steep leap for an absolute beginner's first lesson."
+              ]
+            }
+          },
+          "quality": 87
+        },
+        {
+          "task": "lesson:engineer",
+          "ok": true,
+          "error": null,
+          "firstMs": 10891,
+          "writtenMs": 22585,
+          "checkedMs": 32645,
+          "title": "Consistent hashing",
+          "blocks": 9,
+          "paragraphs": 5,
+          "quiz": true,
+          "terms": 1,
+          "notes": 3,
+          "codeLines": 23,
+          "pseudoLines": 23,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 2,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 5,
+              "clear": 4,
+              "visual": 3,
+              "code": 4,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "The clock-face ring is only described in words. The pictures are two tables of counts, so the learner never sees pins, arcs, or where D's pins land. A ring diagram or a before/after arc view would show the idea directly.",
+                "The output shows uneven balance (C 378 vs B 298 before) even with 50 vnodes. The text claims vnodes give better balance but never points to this spread or shows what happens with vnodes=1, so the learner has to run the [try] to see the effect.",
+                "The quiz is easy: distractor 2 ('server after D') is implausible, and the answer is basically stated in the text above it. The last trade-offs paragraph packs replication, migration and real systems into dense jargon. build_ring('ABC') iterates a string, which is a quirky way to pass servers."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 4,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "The visualization outputs two summary tables, but a ring diagram or bar chart would show the arc takeovers more intuitively."
+              ]
+            }
+          },
+          "quality": 88
+        },
+        {
+          "task": "lesson:javascript",
+          "ok": true,
+          "error": null,
+          "firstMs": 10087,
+          "writtenMs": 19777,
+          "checkedMs": 25814,
+          "title": "Promises and async/await",
+          "blocks": 10,
+          "paragraphs": 5,
+          "quiz": true,
+          "terms": 2,
+          "notes": 4,
+          "codeLines": 23,
+          "pseudoLines": 23,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 5,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 3,
+              "visual": 4,
+              "code": 4,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "Text says the juice arrives 'near 100ms' and bread 'near 200ms', and the table shows 106 and 203. Fine, but the text says 'The two waits overlapped instead of adding up to 300ms' without noting the toast wait (200) and juice wait (100) are what overlap. Also the quiz explanation says 'only then does line 18 run', which is misleading: line 18 runs after makeToast() returns, but the quiz asks what is logged next and the answer (toast: start) is fine. The ordering claim is sound, but 'hits its first await' is explained before the learner knows what await does.",
+                "Text says 'Look at the promise... Anyone holding it can attach .then (as on the juice)' but line 19 attaches .then to the wait promise and stores the .then result (a promise resolving to undefined) in `juice`, not the original promise. Promise.all([toast, juice]) therefore waits on a derived promise; the lesson never explains this chaining, which can confuse learners. Error handling (rejection, try/catch) is mentioned in text but never demonstrated in the code, and the new word 'promise' definition reuses the buzzer analogy without showing pending/resolved/rejected states.",
+                "Teaching is a bit dense: three concepts (promise, await, Promise.all) plus concurrency are packed into one run, and the quiz only checks the 'runs until first await' ordering, not the key insight that waits overlap (total ~200ms). The [try] item 'Remove await on line 11' is hard to predict (bread becomes a promise, 'got [object Promise]'), with no guidance on what to expect. The table shows no 'toast' timeline, so the overlap is only inferred from timestamps."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 5,
+              "code": 4,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "Line 19's .then callback does not return a value, resolving juice to undefined and forcing line 20 to destructure only [t].",
+                "Mixing .then chains and async/await across lines 19-20 may confuse beginners about modern async/await best practices."
+              ]
+            }
+          },
+          "quality": 82
+        },
+        {
+          "task": "answer",
+          "ok": true,
+          "ms": 5646,
+          "words": 71,
+          "next": 2,
+          "check": true,
+          "by": "claude:sonnet",
+          "score": 100
+        },
+        {
+          "task": "path",
+          "ok": true,
+          "ms": 20480,
+          "stops": 7,
+          "allLessons": true,
+          "title": "Learn SQL: Online Shop",
+          "ending": true,
+          "error": null,
+          "score": 100
+        }
+      ],
+      "tokens": 59069,
+      "requests": 13,
+      "lessonScore": 100,
+      "verdict": "great",
+      "quality": 85,
+      "criteria": {
+        "correct": 4.4,
+        "clear": 4.3,
+        "visual": 4.2,
+        "code": 4.4,
+        "teaching": 4.1,
+        "overall": 4.1
+      },
+      "byJudge": {
+        "claude:sonnet": 77,
+        "antigravity:flash": 93
+      },
+      "issues": [
+        "picture: The nesting-doll analogy is linear (one doll inside one doll), but the code branches into two calls per level. The lesson never connects the analogy to the branching tree, so the picture and the analogy don't line up.",
+        "picture: The [try] suggestion 'Change n < 2 to n < 3' makes fib(4) return 5, which is no longer Fibonacci, and the lesson doesn't say what to expect. A learner could take it as a bug or a mistake. The suggestions are bare and have no prompts about what to notice.",
+        "picture: fib is a heavier first example than a single-branch function like factorial or countdown. The tree repeats fib(2), fib(1) and fib(0) without comment, and the margin note says 'forever' where the quiz says RecursionError. The quiz tests only the base case, not the shrinking step or the bottom-up flow.",
+        "picture: The Russian nesting dolls analogy describes linear recursion, which contradicts the branching tree recursion used in Fibonacci.",
+        "picture: Embedding dictionary structures into the return values to power show() adds syntactic clutter that obscures the core recursion mechanics for a beginner.",
+        "algorithm: The only picture of the shrinking zone is a table of lo/mid/hi numbers. The \"sorted list\" bars never highlight the zone or the discarded halves, so the central idea of throwing away half stays abstract.",
+        "algorithm: The quiz mostly tests index arithmetic (lo = 16 + 1 = 17) rather than why discarding half is safe or why sorting matters. The try-it prompt \"Change 100 to 3000\" points at a number that doesn't appear in the code, since 100 is only the range end.",
+        "algorithm: The analogy uses a 1-100 guessing game while the code uses 33 multiples of 3, which is a small mismatch. Both new-word notes also have a pasted \"like Like\" glitch, and the \"about 7 checks\" claim is never tied to log2 or shown in the output."
+      ]
+    },
+    {
+      "model": "claude:opus",
+      "tasks": [
+        {
+          "task": "lesson:picture",
+          "ok": true,
+          "error": null,
+          "firstMs": 11333,
+          "writtenMs": 24633,
+          "checkedMs": 30672,
+          "title": "Recursion: a function that calls itself",
+          "blocks": 10,
+          "paragraphs": 5,
+          "quiz": true,
+          "terms": 2,
+          "notes": 3,
+          "codeLines": 15,
+          "pseudoLines": 15,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 1,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 4,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 95,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 5,
+              "clear": 4,
+              "visual": 5,
+              "code": 4,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "The nesting-doll analogy is linear (one doll inside one doll), but fib branches into two calls. The lesson never says where the analogy stops fitting, which may confuse a learner when the tree appears.",
+                "The code returns a (value, node) tuple and builds dicts for the picture. That bookkeeping sits inside the very function meant to show the bare idea, so a beginner has to read past it. A simpler first example such as factorial or countdown would be gentler, with fib as the follow-up.",
+                "The quiz only checks that the base case is needed. It does not test tracing the calls or the order in which answers return, which the lesson stresses. The 'try' prompts are bare commands that don't say what to expect."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 4,
+              "visual": 5,
+              "code": 3,
+              "teaching": 3,
+              "overall": 4,
+              "issues": [
+                "Russian nesting dolls illustrate linear recursion, but Fibonacci is branching tree recursion (dolls do not split into two).",
+                "Bundling dictionary tree-building and tuple unpacking inside fib() clutters the core recursive logic for a beginner."
+              ]
+            }
+          },
+          "quality": 83
+        },
+        {
+          "task": "lesson:algorithm",
+          "ok": true,
+          "error": null,
+          "firstMs": 11701,
+          "writtenMs": 25813,
+          "checkedMs": 32850,
+          "title": "Binary search: halving your way to the answer",
+          "blocks": 10,
+          "paragraphs": 5,
+          "quiz": true,
+          "terms": 2,
+          "notes": 4,
+          "codeLines": 20,
+          "pseudoLines": 20,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 4,
+          "shows": 3,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 3,
+              "code": 4,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "The demo target 9 is found in 5 guesses, while the text admits a plain scan needs only 3. For a lesson on why binary search is fast, this undercuts the point. A target like 99 or 75 would show the payoff (about 5 or 6 guesses vs 25 or 33).",
+                "The only picture is a table of lo/mid/hi/value numbers, plus a plain bar chart of the list. Nothing highlights the shrinking range or the discarded halves, so the 'half vanishes' idea has to be inferred from the numbers.",
+                "The plain-English gloss for line 8 says 'Range is empty, show the guesses', which is wrong because the target was just found. The code also repeats show(steps) on lines 8 and 14. The reverse() try-it makes the search fail with no explanation of why."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 4,
+              "clear": 5,
+              "visual": 5,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "Line 8 plain-English annotation mistakenly reads 'Range is empty, show the guesses' inside the target-found branch instead of explaining that the target was matched."
+              ]
+            }
+          },
+          "quality": 87
+        },
+        {
+          "task": "lesson:webpage",
+          "ok": true,
+          "error": null,
+          "firstMs": 8469,
+          "writtenMs": 23789,
+          "checkedMs": 23789,
+          "title": "A click-counting button",
+          "blocks": 10,
+          "paragraphs": 5,
+          "quiz": true,
+          "terms": 2,
+          "notes": 4,
+          "codeLines": 35,
+          "pseudoLines": 35,
+          "pseudoFixed": false,
+          "ran": "page",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": true,
+          "longParas": 0,
+          "links": 5,
+          "shows": null,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 2,
+              "clear": 3,
+              "visual": 3,
+              "code": 4,
+              "teaching": 3,
+              "overall": 2,
+              "issues": [
+                "Line 25 plain-English note says 'Put zero on screen' but the code sets display.textContent = clicks (the new total). This is false and contradicts the lesson text, which says line 25 copies the variable to the page. It would confuse a learner who reads the side notes.",
+                "Text references are off: it says 'Line 24 changes the variable, and line 25 copies it' but links the listener as 23-27 and then says 'console still counts up' while the quiz explanation says line 26 logs. Also the [[25|this line]] link and the 'Leave out line 25' try step are fine, but the quiz answer relies on the console, which the learner may not open; the preview shows no console, so the 'console logs 1, 2, 3' choice cannot be verified visually.",
+                "The reset button and its handler (lines 15, 29-32) are never explained in the text, though the request was just for a click-counting button. This adds unneeded code. The explanation also gives only analogies and no concrete picture of the count changing (e.g., a click-by-click table of clicks vs. screen value), and the DOM 'puppet' analogy is weak."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 3,
+              "clear": 4,
+              "visual": 3,
+              "code": 4,
+              "teaching": 4,
+              "overall": 3,
+              "issues": [
+                "Line 25 plain-English annotation incorrectly says 'Put zero on screen' instead of showing the updated count.",
+                "The code includes an unrequested reset button that adds cognitive load and is omitted from the main explanation.",
+                "Lacks any visual diagram or tree inspection despite explaining the DOM tree concept."
+              ]
+            }
+          },
+          "quality": 63
+        },
+        {
+          "task": "lesson:beginner",
+          "ok": true,
+          "error": null,
+          "firstMs": 6068,
+          "writtenMs": 17351,
+          "checkedMs": 22381,
+          "title": "What is a variable?",
+          "blocks": 10,
+          "paragraphs": 5,
+          "quiz": true,
+          "terms": 2,
+          "notes": 3,
+          "codeLines": 13,
+          "pseudoLines": 13,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 4,
+          "shows": 2,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 4,
+              "code": 5,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "Quiz asks about 'after line 10' but the learner only sees tables for before and after; a plain-language reference would be easier, and the question is fairly easy since the margin note already gives the answer away.",
+                "The definition says a variable is 'a name the computer remembers, pointing to a thing' while the analogy says the box holds the thing; the 'pointing' wording is slightly confusing for a beginner and mixes two models.",
+                "The [try] suggestion 'Remove line 9 and compare the tables' is not explained (age stays 9), and the lesson never explains what show() or print() do, nor the terms 'string' and 'number', so quote marks appear without a reason beyond the margin note."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 5,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "Line 10 (changing favorite_fruit) is quizzed but never walked through in the main narrative text, unlike the age update.",
+                "Line 12 (the second show call) is not linked or mentioned in the text before referencing the two side-by-side tables."
+              ]
+            }
+          },
+          "quality": 92
+        },
+        {
+          "task": "lesson:engineer",
+          "ok": true,
+          "error": null,
+          "firstMs": 24195,
+          "writtenMs": 43167,
+          "checkedMs": 54230,
+          "title": "Consistent hashing: a ring of servers",
+          "blocks": 10,
+          "paragraphs": 5,
+          "quiz": true,
+          "terms": 2,
+          "notes": 4,
+          "codeLines": 27,
+          "pseudoLines": 27,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 2,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 1,
+          "links": 4,
+          "shows": 2,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 85,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 4,
+              "visual": 3,
+              "code": 4,
+              "teaching": 4,
+              "overall": 3,
+              "issues": [
+                "The prose numbers don't match the run. It says A, B and C each drop from about 333 to about 236, but the table shows A 318→231, B 361→239 and C 321→239. B at 361 is far from 333, and 'about 333' is just the ideal share. The text should cite the real numbers or say the figures are approximate.",
+                "The idea is shown only as tables. The clock-face ring that the lesson leans on is never drawn, so a learner never sees the arcs, the vnodes or D's points splitting them. The code could show() a ring or arc view.",
+                "The definition says a change moves 'about 1/N of the keys', while the body gives 1/(N+1) (25%). The suggested try of changing 'ABCD' to 'AB' makes the 'where moved keys went' table empty and makes both rings the same, which would confuse a learner without an explanation."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 4,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "The code renders data tables via show(), but does not draw a ring or arc graphic to support the clock-face mental model."
+              ]
+            }
+          },
+          "quality": 83
+        },
+        {
+          "task": "lesson:javascript",
+          "ok": true,
+          "error": null,
+          "firstMs": 11804,
+          "writtenMs": 27117,
+          "checkedMs": 35165,
+          "title": "Promises and async/await",
+          "blocks": 11,
+          "paragraphs": 5,
+          "quiz": true,
+          "terms": 3,
+          "notes": 4,
+          "codeLines": 27,
+          "pseudoLines": 27,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 1,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 5,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 95,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 5,
+              "clear": 4,
+              "visual": 4,
+              "code": 5,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "The event loop gets a definition and a café analogy, but nothing in the code or the timeline shows it. It reads as a stranded term, and the learner can't connect it to why 'keep going' runs before the toast arrives.",
+                "The quiz only checks a fact the text already states outright (an async function runs synchronously until its first await). It doesn't make the learner predict anything, such as the timing of Promise.all versus two separate awaits. The first three log rows all show 0 ms, so only row order tells them apart.",
+                "The claim that tea arrives near 400 ms never appears in the table, because no note() is logged for it. The learner has to take it on trust. The lesson also skips rejection and error handling entirely, leaving it only as a follow-up question."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 5,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "Mentioning that tea arrives near 400 ms could confuse learners since tea is not logged individually in the table.",
+                "Mixing .then on line 24 with async/await in makeBreakfast without explaining top-level await vs .then may leave learners unsure when to use which."
+              ]
+            }
+          },
+          "quality": 93
+        }
+      ],
+      "tokens": 55756,
+      "requests": 11,
+      "lessonScore": 96,
+      "verdict": "good",
+      "quality": 84,
+      "criteria": {
+        "correct": 4.2,
+        "clear": 4.3,
+        "visual": 4.1,
+        "code": 4.4,
+        "teaching": 4.2,
+        "overall": 4
+      },
+      "byJudge": {
+        "claude:sonnet": 77,
+        "antigravity:flash": 91
+      },
+      "issues": [
+        "picture: The nesting-doll analogy is linear (one doll inside one doll), but fib branches into two calls. The lesson never says where the analogy stops fitting, which may confuse a learner when the tree appears.",
+        "picture: The code returns a (value, node) tuple and builds dicts for the picture. That bookkeeping sits inside the very function meant to show the bare idea, so a beginner has to read past it. A simpler first example such as factorial or countdown would be gentler, with fib as the follow-up.",
+        "picture: The quiz only checks that the base case is needed. It does not test tracing the calls or the order in which answers return, which the lesson stresses. The 'try' prompts are bare commands that don't say what to expect.",
+        "picture: Russian nesting dolls illustrate linear recursion, but Fibonacci is branching tree recursion (dolls do not split into two).",
+        "picture: Bundling dictionary tree-building and tuple unpacking inside fib() clutters the core recursive logic for a beginner.",
+        "algorithm: The demo target 9 is found in 5 guesses, while the text admits a plain scan needs only 3. For a lesson on why binary search is fast, this undercuts the point. A target like 99 or 75 would show the payoff (about 5 or 6 guesses vs 25 or 33).",
+        "algorithm: The only picture is a table of lo/mid/hi/value numbers, plus a plain bar chart of the list. Nothing highlights the shrinking range or the discarded halves, so the 'half vanishes' idea has to be inferred from the numbers.",
+        "algorithm: The plain-English gloss for line 8 says 'Range is empty, show the guesses', which is wrong because the target was just found. The code also repeats show(steps) on lines 8 and 14. The reverse() try-it makes the search fail with no explanation of why."
+      ]
+    },
+    {
+      "model": "claude:haiku",
+      "tasks": [
+        {
+          "task": "lesson:picture",
+          "ok": true,
+          "error": null,
+          "firstMs": 2487,
+          "writtenMs": 8535,
+          "checkedMs": 14575,
+          "title": "What is recursion?",
+          "blocks": 9,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 1,
+          "notes": 2,
+          "codeLines": 15,
+          "pseudoLines": 0,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": false,
+          "tries": 3,
+          "nexts": 3,
+          "score": 95,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 3,
+              "visual": 1,
+              "code": 3,
+              "teaching": 3,
+              "overall": 2,
+              "issues": [
+                "The text promises a tree of every call to total(4), but show() only outputs the text '10 1+2+3+4'. No tree is drawn, so the user's request for a picture goes unmet and the lesson refers to something that isn't there.",
+                "Line references are off: the text says line 11 is 'Adding this number', but line 11 is the `if n == 0` check; the combining happens on line 13. The try-it also says to remove the `return 0` line, but the quiz and margin note talk about the `if n == 0` check, which is confusing. Removing only `return 0` leaves an empty if body (a syntax error), not the RecursionError the learner is told to expect.",
+                "The quiz answer says Python 'runs out of memory and crashes', while its explanation correctly says Python raises a RecursionError at a depth cap. The two statements contradict each other. The lesson also never traces total(4) with concrete values (4 + total(3) -> 3 + total(2) ...), and the 'n + 1' try-it is untested. Two functions are introduced at once, which dilutes the focus."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 3,
+              "clear": 4,
+              "visual": 1,
+              "code": 3,
+              "teaching": 3,
+              "overall": 2,
+              "issues": [
+                "The text promises a tree drawing of the calls, but show() only produced plain text displaying '10 1+2+3+4'.",
+                "Line link [[11|Adding this number]] incorrectly points to 'if n == 0:' rather than line 13 where addition occurs.",
+                "The quiz states it runs out of memory and crashes, whereas Python halts at recursion depth limit and raises RecursionError."
+              ]
+            }
+          },
+          "quality": 52
+        },
+        {
+          "task": "lesson:algorithm",
+          "ok": true,
+          "error": null,
+          "firstMs": 2024,
+          "writtenMs": 7676,
+          "checkedMs": 14726,
+          "title": "Binary search: finding things by halving",
+          "blocks": 7,
+          "paragraphs": 3,
+          "quiz": true,
+          "terms": 1,
+          "notes": 3,
+          "codeLines": 19,
+          "pseudoLines": 19,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 1,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 0,
+          "shows": 2,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 95,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 3,
+              "visual": 4,
+              "code": 4,
+              "teaching": 4,
+              "overall": 3,
+              "issues": [
+                "The text walks through 64 numbers and up to 7 checks, but the code searches only 32 items (range(0, 64, 2)). The step table shows 3 and 5 rows, not the 6-7 the text sets up, so the numbers don't match what the learner sees.",
+                "The line-by-line explanations and margin notes are off by one from line 8 onward. Line 8 (show in the found case) is explained as 'Report that the target is missing', 'too small' is attached to line 9, and the 'missing case' note points at line 13. This confuses a learner trying to map the text to the code.",
+                "The third [try] (swap in [5, 1, 9, 3]) doesn't show anything useful. Target 22 isn't in that list, so it returns -1 either way. The text also says sorted can be 'or the reverse', but the code only works for ascending order."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 2,
+              "clear": 4,
+              "visual": 4,
+              "code": 4,
+              "teaching": 3,
+              "overall": 2,
+              "issues": [
+                "Line-by-line explanations are misaligned from line 8 to 13 (e.g., line 9 'return mid' is labeled 'Otherwise, if middle is too small').",
+                "Line 8 inside the match block is incorrectly described as 'Report that the target is missing'.",
+                "'range(0, 64, 2)' generates only 32 numbers, conflicting with the text's explanation of searching across 64 numbers."
+              ]
+            }
+          },
+          "quality": 67
+        },
+        {
+          "task": "lesson:webpage",
+          "ok": true,
+          "error": null,
+          "firstMs": 2026,
+          "writtenMs": 6871,
+          "checkedMs": 11894,
+          "title": "A button that counts clicks",
+          "blocks": 7,
+          "paragraphs": 3,
+          "quiz": true,
+          "terms": 1,
+          "notes": 1,
+          "codeLines": 27,
+          "pseudoLines": 0,
+          "pseudoFixed": false,
+          "ran": "page",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": true,
+          "longParas": 0,
+          "links": 0,
+          "shows": null,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": false,
+          "tries": 3,
+          "nexts": 3,
+          "score": 95,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 4,
+              "visual": 4,
+              "code": 5,
+              "teaching": 4,
+              "overall": 3,
+              "issues": [
+                "The margin note is attached to line 25 (`</script>`), but it talks about the `clicks` variable, which is declared on line 16. The note points at the wrong line and would confuse a learner.",
+                "The DOM definition has a typo, 'like Like a restaurant's order board', and the text says 'as in the two lookups' without pointing at lines 17-18. The quiz also says the button 'still works' while the handler errors, which is muddled.",
+                "The text never shows a concrete sequence of values (0 → 1 → 2) beside the code, so the 'tally counter' idea isn't tied to anything on screen. The `console.log` on line 23 is never mentioned in the lesson, and the line 23 explanation sends the learner to a developer console they may not know how to open."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 4,
+              "code": 5,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "The margin note about the `clicks` variable persisting state is anchored to line 25 instead of line 16.",
+                "The lesson text does not include any [[n|text]] code links to connect its explanation directly to the code lines.",
+                "Typo in the DOM definition: '(like Like a restaurant's order board...'."
+              ]
+            }
+          },
+          "quality": 83
+        },
+        {
+          "task": "lesson:beginner",
+          "ok": true,
+          "error": null,
+          "firstMs": 1639,
+          "writtenMs": 6479,
+          "checkedMs": 10506,
+          "title": "What is a variable?",
+          "blocks": 8,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 1,
+          "notes": 2,
+          "codeLines": 6,
+          "pseudoLines": 6,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 1,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 1,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 95,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 3,
+              "code": 4,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "The quiz answer is given as index 2 (choice '7'), which is correct, but the quiz only tests the 'score = score + 2' idea and never checks the core idea that a variable is a named box holding a value.",
+                "The text says the line 'adds one' is line 4 and the 'try' tasks mention 'after line 3' and 'Change 3 to 10', but the beginner isn't told that '3' is on line 2; also 'print' is used without being explained, and show() is only mentioned at the end.",
+                "The picture is a plain table of final values only; it doesn't show the age box changing from 3 to 4 (before and after), so the key idea of 'refilling' a box isn't visualized. The 'Swap \"cat\" for 42' try also isn't tied to the lesson's explanation."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 4,
+              "visual": 5,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "The text introduces 'pet' on line 1, but skips explaining 'age = 3' before jumping directly to updating it on line 4.",
+                "'print()' appears on lines 3 and 5 and produces output, but is not introduced or explained in the main lesson text."
+              ]
+            }
+          },
+          "quality": 87
+        },
+        {
+          "task": "lesson:engineer",
+          "ok": true,
+          "error": null,
+          "firstMs": 1619,
+          "writtenMs": 8480,
+          "checkedMs": 17530,
+          "title": "Consistent hashing",
+          "blocks": 5,
+          "paragraphs": 1,
+          "quiz": true,
+          "terms": 1,
+          "notes": 3,
+          "codeLines": 32,
+          "pseudoLines": 0,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 0,
+          "shows": 2,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": false,
+          "tries": 3,
+          "nexts": 3,
+          "score": 90,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 2,
+              "clear": 3,
+              "visual": 3,
+              "code": 2,
+              "teaching": 3,
+              "overall": 2,
+              "issues": [
+                "Line 31 is a dead/buggy computation: `moved = sum(1 for k in keys if ring.owner(k) != \"x\")` compares against a nonexistent server \"x\", so it counts all 60 keys, is never printed, and never computes what actually moved. The lesson's central question (what moves when a server is added?) is never answered with a number; the before/after must be compared by eye in a truncated table.",
+                "The plain-English explanation of line 31 (\"Counts keys not owned by a server named x\") is accurate but exposes the pointless code; also lines 26 and 29 are described as \"Prints\" though show() draws a table. Margin note says bisect finds the first point 'at or after' the key, but bisect_right with (pos, \"\") returns the first point strictly after it (a tie on position with a non-empty server name still sorts after), so the note is imprecise.",
+                "The analogy is thin and wrong in direction (\"nearest chair to their left\" vs. text's 'clockwise'), and the text never shows the naive `% 3` failure in code for contrast. The [try] item says to change vnodes=3, but the code calls Ring([...]) with the default and has no visible `vnodes=3` argument at the call site; the 'compare bars' instruction refers to bars, though the output is a table. The quiz is fine but D's vnodes could also shift the distribution, and 12 points on a 360 space gives lumpy results that undermine the balance message."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 3,
+              "clear": 4,
+              "visual": 2,
+              "code": 3,
+              "teaching": 4,
+              "overall": 3,
+              "issues": [
+                "Line 31 compares owner to dummy string 'x' instead of comparing owners before and after adding D, and never outputs the moved count.",
+                "The [try] prompt tells the learner to 'compare bars', but show() outputs a raw dictionary table rather than a bar chart or distribution counts.",
+                "Dumping 60 raw key-to-server pairs in a text table makes it difficult to see key distribution or spot which keys actually moved."
+              ]
+            }
+          },
+          "quality": 57
+        },
+        {
+          "task": "lesson:javascript",
+          "ok": true,
+          "error": null,
+          "firstMs": 1629,
+          "writtenMs": 8904,
+          "checkedMs": 15956,
+          "title": "Promises and async/await",
+          "blocks": 9,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 2,
+          "notes": 4,
+          "codeLines": 26,
+          "pseudoLines": 0,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 2,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 0,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": false,
+          "tries": 3,
+          "nexts": 3,
+          "score": 80,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 3,
+              "visual": 2,
+              "code": 4,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "Text and margin notes point at wrong lines: the prose says the first await is on line 14 and 'main() resumes on line 16', but the first await is on line 15 (line 14 is console.log('start')). The 'try' suggestion to add a log after the await 'on line 14' is also wrong. The margin note on line 21 ('runs first') sits on an empty line, while the 'main() returned early' print is on line 26.",
+                "The quiz is weak and its explanation is slightly off: 'start' printing first is trivial, since main() runs synchronously and logs before anything else, so it doesn't test the key idea (the order of 'main() returned early' vs 'got latte'). The 'why' text also says 'the code after main() runs before any timer fires', which is vague. The try suggestion 'change latte to undefined' is fine, but the error path is only demonstrated with the second wait, not explained in the text.",
+                "No picture or timeline despite show() being available: nothing visualizes the promise states (pending/resolved/rejected) or the order of events over time. The try-catch error path, reject, and the promise states are not explained in the lesson text, so the learner gets only the output list. The line-by-line plain English for 6 ('Otherwise, handle the case...') and 9 is clumsy."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 3,
+              "clear": 4,
+              "visual": 1,
+              "code": 4,
+              "teaching": 4,
+              "overall": 3,
+              "issues": [
+                "Line references are misaligned: the text calls line 14 'the coffee line' and the await pause point, but await is on line 15.",
+                "Margin note 21-21 attaches the note about printing before 'got latte' to a closing brace instead of line 26.",
+                "No visual output is generated because the code never calls show() to diagram the promise state or timeline."
+              ]
+            }
+          },
+          "quality": 62
+        }
+      ],
+      "tokens": 50650,
+      "requests": 15,
+      "lessonScore": 92,
+      "verdict": "weak",
+      "quality": 68,
+      "criteria": {
+        "correct": 3.3,
+        "clear": 3.8,
+        "visual": 2.8,
+        "code": 3.8,
+        "teaching": 3.7,
+        "overall": 3
+      },
+      "byJudge": {
+        "claude:sonnet": 64,
+        "antigravity:flash": 72
+      },
+      "issues": [
+        "picture: The text promises a tree of every call to total(4), but show() only outputs the text '10 1+2+3+4'. No tree is drawn, so the user's request for a picture goes unmet and the lesson refers to something that isn't there.",
+        "picture: Line references are off: the text says line 11 is 'Adding this number', but line 11 is the `if n == 0` check; the combining happens on line 13. The try-it also says to remove the `return 0` line, but the quiz and margin note talk about the `if n == 0` check, which is confusing. Removing only `return 0` leaves an empty if body (a syntax error), not the RecursionError the learner is told to expect.",
+        "picture: The quiz answer says Python 'runs out of memory and crashes', while its explanation correctly says Python raises a RecursionError at a depth cap. The two statements contradict each other. The lesson also never traces total(4) with concrete values (4 + total(3) -> 3 + total(2) ...), and the 'n + 1' try-it is untested. Two functions are introduced at once, which dilutes the focus.",
+        "picture: The text promises a tree drawing of the calls, but show() only produced plain text displaying '10 1+2+3+4'.",
+        "picture: Line link [[11|Adding this number]] incorrectly points to 'if n == 0:' rather than line 13 where addition occurs.",
+        "picture: The quiz states it runs out of memory and crashes, whereas Python halts at recursion depth limit and raises RecursionError.",
+        "algorithm: The text walks through 64 numbers and up to 7 checks, but the code searches only 32 items (range(0, 64, 2)). The step table shows 3 and 5 rows, not the 6-7 the text sets up, so the numbers don't match what the learner sees.",
+        "algorithm: The line-by-line explanations and margin notes are off by one from line 8 onward. Line 8 (show in the found case) is explained as 'Report that the target is missing', 'too small' is attached to line 9, and the 'missing case' note points at line 13. This confuses a learner trying to map the text to the code."
+      ]
+    },
+    {
+      "model": "antigravity:flash-low",
+      "tasks": [
+        {
+          "task": "lesson:picture",
+          "ok": true,
+          "error": null,
+          "firstMs": 8150,
+          "writtenMs": 13816,
+          "checkedMs": 18852,
+          "title": "Thinking in loops that call themselves",
+          "blocks": 8,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 1,
+          "notes": 3,
+          "codeLines": 9,
+          "pseudoLines": 9,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 2,
+              "clear": 2,
+              "visual": 3,
+              "code": 3,
+              "teaching": 2,
+              "overall": 2,
+              "issues": [
+                "Text contradicts the code and picture: the intro and title frame recursion as a simple 'loop' / nesting dolls (a linear chain), but countdown calls itself twice, so it produces a 15-node binary tree. The doll analogy never matches the branching, and the lesson doesn't explain why it branches, which adds confusion for a beginner.",
+                "Function name 'countdown' is misleading: it never counts down or prints anything, it builds a dict tree with 2 recursive calls per level (exponential growth). A single-call version (e.g. factorial or sum to n) would show the core idea. The picture shows 15 nodes with unexplained values (0,0,1,...,3) and the lesson never explains how to read them. Also the text says 'folding back up into a single nested dictionary', which is not what the learner sees (a tree drawing).",
+                "Quiz and try-it are weak or flawed: the quiz answer is okay in principle, but deleting lines 2-3 also gives a RecursionError rather than 'memory limits' (it's the recursion depth limit, not memory). The 'try' items are bare commands with no prediction of what to expect, and 'Swap n - 1 with n - 2' can skip past 0 (e.g. n=3 -> 1 -> -1, fine here, but the base case n <= 0 only coincidentally saves it). Also the text says 'lines 4 and 5' ask to solve n-1 but never mentions line 6, the combine step."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 4,
+              "clear": 3,
+              "visual": 4,
+              "code": 3,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "The Russian doll analogy describes single/linear recursion, which contradicts the code's branching binary tree.",
+                "Naming a function that splits into left and right branches 'countdown' is confusing and does not match standard countdown behavior.",
+                "Manually constructing nested dictionary structures ({'val', 'children'}) adds boilerplate that distracts a beginner from how recursion itself works."
+              ]
+            }
+          },
+          "quality": 57
+        },
+        {
+          "task": "lesson:algorithm",
+          "ok": true,
+          "error": null,
+          "firstMs": 6056,
+          "writtenMs": 13709,
+          "checkedMs": 26776,
+          "title": "Binary search",
+          "blocks": 8,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 1,
+          "notes": 3,
+          "codeLines": 18,
+          "pseudoLines": 18,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 1,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 2,
+          "shows": 2,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 95,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 3,
+              "code": 4,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "\"Double the list to 1,000 items\" is sloppy: doubling a 9-item list doesn't give 1,000. The ~10 steps claim is right (log2 1000 ≈ 10), but the wording confuses the learner and never shows why doubling adds only one step.",
+                "The only picture is a plain table of lo/mid/hi/val. It doesn't show the shrinking window over the list, so the 'half eliminated each step' idea is told rather than seen. The 9-item example is also too short to show the speed the learner asked about.",
+                "The quiz distractors (integer division failing, while loops needing sorted lists) are implausible, so the question is easy to guess. The 'change < to >' try prompt has no explanation of what should happen or why the search breaks."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 4,
+              "code": 5,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "Phrasing 'If we double the list to 1,000 items' is mathematically incorrect as neither 9 nor 100 doubles to 1,000.",
+                "The quiz distractors are obviously absurd rather than addressing plausible student misconceptions.",
+                "The table output only displays index pointers rather than showing which elements are kept or discarded."
+              ]
+            }
+          },
+          "quality": 80
+        },
+        {
+          "task": "lesson:webpage",
+          "ok": true,
+          "error": null,
+          "firstMs": 5245,
+          "writtenMs": 12901,
+          "checkedMs": 19926,
+          "title": "A click-counting button",
+          "blocks": 6,
+          "paragraphs": 2,
+          "quiz": true,
+          "terms": 1,
+          "notes": 2,
+          "codeLines": 30,
+          "pseudoLines": 0,
+          "pseudoFixed": false,
+          "ran": "page",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": true,
+          "longParas": 0,
+          "links": 3,
+          "shows": null,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": false,
+          "tries": 3,
+          "nexts": 3,
+          "score": 95,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 1,
+              "clear": 2,
+              "visual": 3,
+              "code": 4,
+              "teaching": 2,
+              "overall": 1,
+              "issues": [
+                "Line references are wrong throughout: the code has only 30 lines and line 30 is the closing </script> tag, yet the text says line 30 updates the screen (it is line 28), 'line 25' for count (it is line 23), and the click handler is on line 26, not 28. The quiz about deleting 'line 30' would remove </script>, and the correct answer given (button stays Clicks: 0) is not what that deletion would do. The try-it 'line 25' is a blank line, not the 0.",
+                "Plain-English column is misaligned with the code: it describes the 'creates a clickable button' on line 20 correctly, but the JS explanations are shifted (e.g. line 23 'tracks the count' is right, yet 26-28 are described correctly while 30 is blank), and margin notes point at line 22 (the <script> tag) for the button element and 25-26 for count/btn, which are wrong. Learners will be confused matching text to code.",
+                "The quiz and 'try' items depend on the broken line numbers, and the 'Change 0 to 10' tweak would show Clicks: 0 in the HTML but count would still start at 0 unless both places change, which is not explained. The event listener analogy is fine, but there is no visual of the memory vs. screen split (e.g. showing count value next to the displayed text), so the core idea is only told."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 2,
+              "clear": 3,
+              "visual": 3,
+              "code": 4,
+              "teaching": 3,
+              "overall": 2,
+              "issues": [
+                "Line references are severely misaligned: screen update is on line 28, not line 30, and count is initialized on line 23, not line 25.",
+                "The quiz asks about deleting line 30 (which is '</script>'), causing broken HTML/JS rather than suppressing the UI update as claimed.",
+                "Margin notes reference the wrong line numbers (e.g., annotating the button's id at line 22, which is the '<script>' tag)."
+              ]
+            }
+          },
+          "quality": 50
+        },
+        {
+          "task": "lesson:beginner",
+          "ok": true,
+          "error": null,
+          "firstMs": 4457,
+          "writtenMs": 8895,
+          "checkedMs": 13925,
+          "title": "Boxes with labels",
+          "blocks": 8,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 1,
+          "notes": 2,
+          "codeLines": 5,
+          "pseudoLines": 5,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 2,
+          "diagram": false,
+          "codeSizeOk": false,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 3,
+              "code": 4,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "The table picture repeats the plain-English text oddly: it shows 'SCORE 10 Start' as if 'Start' were a value in the row, and nothing shows a box being emptied and refilled, so the 'labeled box' metaphor isn't visualised. Line 2's explanation 'Draw the box on screen' is also misleading, since show() draws a table and not the variable itself.",
+                "The key idea, score = score + 5, is introduced with no explanation of why '=' is not a math equals sign. The text never says that the right side is worked out first, and the lesson does not say the old value 10 is replaced. Line 3 is blank and the lesson never mentions show() as a helper, so a true beginner will be confused by the curly braces and quotes in show({...}).",
+                "The quiz is too easy and checks little: it only asks for 15, which the picture already shows, and the distractors 0 and 5 do not test the misconception that the box keeps both values. The 'try' tasks ('Swap score with player_coins') are given without saying that every use of the name must change, and the lesson says 'a thing you can change later' but never shows a variable holding words even though it hints at this in the next questions."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 5,
+              "code": 4,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "Line 5 is omitted from the lesson narrative, explaining lines 1, 2, and 4 but skipping the final display call.",
+                "The label 'After winning a coin' on line 5 introduces unexplained context since 5 points were added rather than 1 coin.",
+                "Using dictionary syntax like {\"score\": score} in show() exposes an absolute beginner to unexplained braces and colons on day one."
+              ]
+            }
+          },
+          "quality": 83
+        },
+        {
+          "task": "lesson:engineer",
+          "ok": true,
+          "error": null,
+          "firstMs": 4037,
+          "writtenMs": 14129,
+          "checkedMs": 19171,
+          "title": "Consistent hashing & server churn",
+          "blocks": 9,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 2,
+          "notes": 2,
+          "codeLines": 23,
+          "pseudoLines": 23,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 3,
+              "visual": 2,
+              "code": 4,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "The only picture is a flat table of 12 rows. The learner never sees the ring, the server positions or the arcs, so \"C claims only its neighbor's arc\" is told rather than shown. The table also shows B owning about 9 of 12 keys before the change, and the lesson never explains that imbalance.",
+                "The link [[3|the ring]] points at hash_val, not at any ring. The text calls the circle \"continuous\" while the code uses 100 discrete slots, and a hash collision mod 100 would silently break the name-matching in lines 12 and 15. The two-server and three-server rings are also built in clumsy ways.",
+                "Virtual nodes are only described and never demonstrated. The try-it \"swap bisect_right with bisect_left\" changes nothing unless a key hashes exactly onto a server position, so it teaches little. The quiz checks only a recalled 1/N figure, while the demo moved about 5 of 12 keys, and the lesson doesn't reconcile the two."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 3,
+              "code": 3,
+              "teaching": 4,
+              "overall": 3,
+              "issues": [
+                "Line link [[3|the ring]] points to def hash_val(val) instead of where the ring is constructed (line 11).",
+                "The output only shows a tabular migration list rather than showing ring positions or sectors, obscuring why specific keys moved.",
+                "Lines 12 and 15 are unidiomatic, re-hashing node strings repeatedly across nested loops instead of sorting (hash, name) pairs."
+              ]
+            }
+          },
+          "quality": 67
+        },
+        {
+          "task": "lesson:javascript",
+          "ok": true,
+          "error": null,
+          "firstMs": 4442,
+          "writtenMs": 12114,
+          "checkedMs": 19163,
+          "title": "Promises and Async/Await",
+          "blocks": 8,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 1,
+          "notes": 3,
+          "codeLines": 19,
+          "pseudoLines": 19,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 5,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 3,
+              "visual": 4,
+              "code": 4,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "Text says the async function pauses 'while other code continues running', linking line 11 as 'other code', but line 11 is inside run() and there is no other code running concurrently; the lesson never demonstrates non-blocking behavior, so the claim is unsupported by the example.",
+                "Quiz answer says drink logs at ~120ms and the explanation says 80+40, but the actual picture shows 130ms (burger at 83), and the lesson never explains the timer overhead; the 'real arrival time' claim and 'roughly' wording leave the mismatch unaddressed. Also the quiz only checks addition of delays rather than understanding of sequential vs concurrent awaiting or promise states.",
+                "Teaching is thin: the buzzer analogy is placed in a [new word] block after a muddled receipt metaphor, promise states (pending/resolved/rejected) and how resolve works in new Promise are not explained, and 'try' item 'Remove await before delay(80)' would make meal a Promise object and print '[object Promise]' without guidance. Nothing printed to console, and text mentions 'messy nested callbacks' without showing them."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 3,
+              "clear": 4,
+              "visual": 5,
+              "code": 4,
+              "teaching": 4,
+              "overall": 3,
+              "issues": [
+                "Line link [[7|the async function]] wrongly targets line 7 (inside delay) instead of line 10 (`async function run`).",
+                "Line link [[11|other code]] points inside `run()`, and the script includes no concurrent code outside `run()` to show execution continuing.",
+                "The code defines a `new Promise` with `resolve` (lines 4-7) without explaining how `resolve` passes data to `await`."
+              ]
+            }
+          },
+          "quality": 72
+        },
+        {
+          "task": "answer",
+          "ok": true,
+          "ms": 6638,
+          "words": 74,
+          "next": 2,
+          "check": true,
+          "by": "antigravity:flash-low",
+          "score": 100
+        },
+        {
+          "task": "path",
+          "ok": true,
+          "ms": 8906,
+          "stops": 8,
+          "allLessons": true,
+          "title": "Shop SQL with SQLite",
+          "ending": true,
+          "error": null,
+          "score": 100
+        }
+      ],
+      "tokens": 154735,
+      "requests": 14,
+      "lessonScore": 98,
+      "verdict": "weak",
+      "quality": 68,
+      "criteria": {
+        "correct": 3.3,
+        "clear": 3.4,
+        "visual": 3.5,
+        "code": 3.8,
+        "teaching": 3.3,
+        "overall": 3
+      },
+      "byJudge": {
+        "claude:sonnet": 61,
+        "antigravity:flash": 75
+      },
+      "issues": [
+        "picture: Text contradicts the code and picture: the intro and title frame recursion as a simple 'loop' / nesting dolls (a linear chain), but countdown calls itself twice, so it produces a 15-node binary tree. The doll analogy never matches the branching, and the lesson doesn't explain why it branches, which adds confusion for a beginner.",
+        "picture: Function name 'countdown' is misleading: it never counts down or prints anything, it builds a dict tree with 2 recursive calls per level (exponential growth). A single-call version (e.g. factorial or sum to n) would show the core idea. The picture shows 15 nodes with unexplained values (0,0,1,...,3) and the lesson never explains how to read them. Also the text says 'folding back up into a single nested dictionary', which is not what the learner sees (a tree drawing).",
+        "picture: Quiz and try-it are weak or flawed: the quiz answer is okay in principle, but deleting lines 2-3 also gives a RecursionError rather than 'memory limits' (it's the recursion depth limit, not memory). The 'try' items are bare commands with no prediction of what to expect, and 'Swap n - 1 with n - 2' can skip past 0 (e.g. n=3 -> 1 -> -1, fine here, but the base case n <= 0 only coincidentally saves it). Also the text says 'lines 4 and 5' ask to solve n-1 but never mentions line 6, the combine step.",
+        "picture: The Russian doll analogy describes single/linear recursion, which contradicts the code's branching binary tree.",
+        "picture: Naming a function that splits into left and right branches 'countdown' is confusing and does not match standard countdown behavior.",
+        "picture: Manually constructing nested dictionary structures ({'val', 'children'}) adds boilerplate that distracts a beginner from how recursion itself works.",
+        "algorithm: \"Double the list to 1,000 items\" is sloppy: doubling a 9-item list doesn't give 1,000. The ~10 steps claim is right (log2 1000 ≈ 10), but the wording confuses the learner and never shows why doubling adds only one step.",
+        "algorithm: The only picture is a plain table of lo/mid/hi/val. It doesn't show the shrinking window over the list, so the 'half eliminated each step' idea is told rather than seen. The 9-item example is also too short to show the speed the learner asked about."
+      ]
+    },
+    {
+      "model": "antigravity:flash",
+      "tasks": [
+        {
+          "task": "lesson:picture",
+          "ok": true,
+          "error": null,
+          "firstMs": 40745,
+          "writtenMs": 44793,
+          "checkedMs": 49827,
+          "title": "Seeing recursion as a tree",
+          "blocks": 9,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 2,
+          "notes": 3,
+          "codeLines": 9,
+          "pseudoLines": 9,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 1,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 4,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 95,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 3,
+              "visual": 4,
+              "code": 4,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "The [try] suggestion 'change n <= 1 to n == 0' makes fib(1) call fib(0) and fib(-1), so it recurses forever and crashes. The lesson doesn't warn about this or tie it to the quiz, so it can confuse a learner who only knows a little.",
+                "The lesson never says that fib is the Fibonacci sequence or what fib(n) is supposed to compute. The nodes show fib(1) = 1 and fib(0) = 0, but the parent nodes show no values, so the learner can't see how the calls combine into an answer. This also makes the example harder to follow than a simple countdown or factorial.",
+                "The explanation is thin and a bit loose. It says the function 'runs forever' when Python actually raises a RecursionError, and the single tree picture is never walked through node by node. The mirrors and dolls analogies are only loosely linked to the tree, and the quiz tests recall of the base-case idea more than understanding of how the tree forms."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 5,
+              "code": 4,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "The function builds a visualization tree rather than adding left + right, which may blur the distinction between computing Fibonacci and constructing a tree data structure.",
+                "Parent nodes do not show their evaluated return values (e.g. 'fib(2) = 1'), missing a chance to show how results bubble back up the tree."
+              ]
+            }
+          },
+          "quality": 83
+        },
+        {
+          "task": "lesson:algorithm",
+          "ok": true,
+          "error": null,
+          "firstMs": 34689,
+          "writtenMs": 40332,
+          "checkedMs": 45358,
+          "title": "Binary search",
+          "blocks": 7,
+          "paragraphs": 3,
+          "quiz": true,
+          "terms": 1,
+          "notes": 2,
+          "codeLines": 18,
+          "pseudoLines": 18,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 1,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 4,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 95,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 3,
+              "code": 4,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "The print line hardcodes \"Found 56 at index {idx}\". If the learner follows the [try] suggestion and searches for 100, it prints \"Found 100 at index -1\" (or \"Found 56...\" with the wrong number), which is misleading and contradicts the lesson. The code should handle the idx == -1 case.",
+                "The picture is only a table of lo/mid/hi/guess numbers. It never shows the 12-item list with the discarded halves shrinking, so the \"cut in half each time\" idea has to be inferred from the numbers. Marking the active range on the list would show it directly.",
+                "The text explains only the too-small branch (lines 9-10) and never the too-large branch (hi = mid - 1). The 'try' item with an unsorted list [10, 2, 8] is offered with no explanation of what should happen, and the 12→4 and 1,000,000→20 step counts are stated without showing why (repeated halving)."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 4,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "The trace table logs pointer numbers but does not visually highlight the active search window or discarded elements.",
+                "The explanation explicitly details lines 9–10 for when a guess is too small, but glosses over the corresponding high pointer adjustment in lines 11–12."
+              ]
+            }
+          },
+          "quality": 87
+        },
+        {
+          "task": "lesson:webpage",
+          "ok": true,
+          "error": null,
+          "firstMs": 4870,
+          "writtenMs": 13337,
+          "checkedMs": 13337,
+          "title": "Click counter button",
+          "blocks": 8,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 1,
+          "notes": 3,
+          "codeLines": 40,
+          "pseudoLines": 40,
+          "pseudoFixed": false,
+          "ran": "page",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": true,
+          "longParas": 0,
+          "links": 4,
+          "shows": null,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 2,
+              "clear": 3,
+              "visual": 3,
+              "code": 4,
+              "teaching": 3,
+              "overall": 2,
+              "issues": [
+                "Line references are wrong throughout: `count` is linked to line 28 (<body>) but is declared on line 31, and `btn.textContent` is linked to line 34 but is on line 36. The margin notes are off too (querySelector is on line 32, not 29; the handler is lines 34-37, not 32-35).",
+                "The quiz says to remove \"line 34 (btn.textContent = ...)\". Line 34 is the addEventListener call, and removing it alone would cause a syntax error, which is the quiz's distractor answer. The intended answer only holds for line 36, so the question is confusing and could mark a correct reading as wrong.",
+                "The lesson is mostly telling, and nothing visual shows state changing, such as a before/after of count and the label. The doorbell analogy comes after the definition rather than first. The plain-English note calls the border 'indigo' although #2563eb is blue, and the label reads 'Clicked 1 times'."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 2,
+              "clear": 4,
+              "visual": 3,
+              "code": 5,
+              "teaching": 3,
+              "overall": 2,
+              "issues": [
+                "Code line references are misaligned: count is on line 31 (not 28), and btn.textContent is on line 36 (not 34).",
+                "Quiz asks what happens if you remove line 34, but misidentifies line 34 as btn.textContent instead of addEventListener.",
+                "Margin note line ranges are off (querySelector is on line 32, not 29; event listener is lines 34–37, not 32–35)."
+              ]
+            }
+          },
+          "quality": 60
+        },
+        {
+          "task": "lesson:beginner",
+          "ok": true,
+          "error": null,
+          "firstMs": 29428,
+          "writtenMs": 33055,
+          "checkedMs": 38085,
+          "title": "Boxes with names",
+          "blocks": 8,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 1,
+          "notes": 3,
+          "codeLines": 9,
+          "pseudoLines": 9,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 3,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 4,
+              "code": 4,
+              "teaching": 3,
+              "overall": 4,
+              "issues": [
+                "Quiz is weak: it only repeats the 'newest value' sentence from the text, and the wrong options (30, 35) are obvious. It never checks the harder idea that score = score + 5 reads the old value first. The quiz also never mentions the player variable.",
+                "Line 5 explanation says 'add 5 shiny coins', which muddles the concept (coins vs. points). The text never explains that `=` means 'put into', not 'equals' in the math sense, and `score = score + 5` will look odd to a beginner. The margin note covers it, but the main text doesn't.",
+                "The 'show()' tables never appear in the text, so the learner doesn't know what the three tables are for. The text never says that the string \"Pip\" needs quotes while the number doesn't, and the second variable `player` gets almost no attention. The 'try' suggestions are good, but they don't say what result to expect."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 5,
+              "code": 4,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "Dictionary syntax inside show() is unintroduced and may distract complete beginners."
+              ]
+            }
+          },
+          "quality": 87
+        },
+        {
+          "task": "lesson:engineer",
+          "ok": true,
+          "error": null,
+          "firstMs": 38316,
+          "writtenMs": 44377,
+          "checkedMs": 49407,
+          "title": "Consistent hashing",
+          "blocks": 10,
+          "paragraphs": 5,
+          "quiz": true,
+          "terms": 2,
+          "notes": 3,
+          "codeLines": 18,
+          "pseudoLines": 18,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 3,
+              "code": 4,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "The lesson never answers the 'how are keys spread' half of the question. Keys are raw integers with no hash function, and only 5 keys are used, so there is no distribution to see. Virtual nodes are described but never demonstrated.",
+                "The only visual is a flat table. There is no picture of the ring, and the 15→40 arc and the clockwise wrap (90→15) are never drawn. The ring metaphor needs a picture to land.",
+                "Small precision slips. K is never defined in 'K/(N+1)', and 'bounded strictly... on average' contradicts itself. The margin note says range (15, 40], but bisect_right makes it [15, 40). The quiz (removing node 40 sends its keys to 55) is correct but too easy to check real understanding."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 4,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "A tabular diff effectively shows key migrations, but rendering the circular ring visually would make clockwise routing more intuitive."
+              ]
+            }
+          },
+          "quality": 83
+        },
+        {
+          "task": "lesson:javascript",
+          "ok": true,
+          "error": null,
+          "firstMs": 44839,
+          "writtenMs": 51296,
+          "checkedMs": 56333,
+          "title": "Promises and Async / Await",
+          "blocks": 9,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 2,
+          "notes": 3,
+          "codeLines": 16,
+          "pseudoLines": 16,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 1,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 8,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 95,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 3,
+              "visual": 3,
+              "code": 4,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "Text says the lesson shows 'pour milk around 0ms' but the table order (start oven, pour milk, cookies ready) is never explained step by step; the picture is a bare table with no timeline/bar showing the 60ms gap, so the concurrency idea is only told, not drawn.",
+                "Core concept is under-explained: never shows how a Promise gets resolved (the resolve callback in delay, pending -> fulfilled states) or what 'await' actually does with it; also the claim 'JavaScript runs on a single track' plus 'runs in the background' can leave the learner confused about where the waiting happens (timer/event loop not mentioned). Text also misstates that the promise 'hands you' itself instead of explaining why callbacks/promises exist.",
+                "Quiz is fairly shallow and its correct answer is nearly a restatement of the lesson text; distractors are silly (alphabetical order, error skipped). Also 'show(log)' inside cook means the table is drawn only after 60ms, and 'try' suggestions (remove await) would show the table with different results without explaining why, and the 'Change 60 to 0' still logs pour milk before cookies, which may surprise the learner."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 5,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "Skims over how new Promise() and resolve work inside delay()."
+              ]
+            }
+          },
+          "quality": 83
+        }
+      ],
+      "tokens": 169388,
+      "requests": 11,
+      "lessonScore": 98,
+      "verdict": "good",
+      "quality": 81,
+      "criteria": {
+        "correct": 4.1,
+        "clear": 4.2,
+        "visual": 3.8,
+        "code": 4.3,
+        "teaching": 3.9,
+        "overall": 3.8
+      },
+      "byJudge": {
+        "claude:sonnet": 69,
+        "antigravity:flash": 92
+      },
+      "issues": [
+        "picture: The [try] suggestion 'change n <= 1 to n == 0' makes fib(1) call fib(0) and fib(-1), so it recurses forever and crashes. The lesson doesn't warn about this or tie it to the quiz, so it can confuse a learner who only knows a little.",
+        "picture: The lesson never says that fib is the Fibonacci sequence or what fib(n) is supposed to compute. The nodes show fib(1) = 1 and fib(0) = 0, but the parent nodes show no values, so the learner can't see how the calls combine into an answer. This also makes the example harder to follow than a simple countdown or factorial.",
+        "picture: The explanation is thin and a bit loose. It says the function 'runs forever' when Python actually raises a RecursionError, and the single tree picture is never walked through node by node. The mirrors and dolls analogies are only loosely linked to the tree, and the quiz tests recall of the base-case idea more than understanding of how the tree forms.",
+        "picture: The function builds a visualization tree rather than adding left + right, which may blur the distinction between computing Fibonacci and constructing a tree data structure.",
+        "picture: Parent nodes do not show their evaluated return values (e.g. 'fib(2) = 1'), missing a chance to show how results bubble back up the tree.",
+        "algorithm: The print line hardcodes \"Found 56 at index {idx}\". If the learner follows the [try] suggestion and searches for 100, it prints \"Found 100 at index -1\" (or \"Found 56...\" with the wrong number), which is misleading and contradicts the lesson. The code should handle the idx == -1 case.",
+        "algorithm: The picture is only a table of lo/mid/hi/guess numbers. It never shows the 12-item list with the discarded halves shrinking, so the \"cut in half each time\" idea has to be inferred from the numbers. Marking the active range on the list would show it directly.",
+        "algorithm: The text explains only the too-small branch (lines 9-10) and never the too-large branch (hi = mid - 1). The 'try' item with an unsorted list [10, 2, 8] is offered with no explanation of what should happen, and the 12→4 and 1,000,000→20 step counts are stated without showing why (repeated halving)."
+      ]
+    },
+    {
+      "model": "antigravity:flash-high",
+      "tasks": [
+        {
+          "task": "lesson:picture",
+          "ok": true,
+          "error": null,
+          "firstMs": 71816,
+          "writtenMs": 75873,
+          "checkedMs": 80932,
+          "title": "Seeing Recursion as a Tree",
+          "blocks": 9,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 2,
+          "notes": 3,
+          "codeLines": 12,
+          "pseudoLines": 12,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 4,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 3,
+              "visual": 4,
+              "code": 4,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "Quiz is wrong/misleading: removing the base case makes fib(n-1)/fib(n-2) go to negative numbers forever, so it does raise RecursionError, but the 'why' says 'smaller and smaller numbers' loosely and the text says 'fib(3) cannot compute instantly' without ever explaining return order; also the text says fib(3) spawns 'fib(2) and fib(1)' but never mentions fib(0) or why fib(1) appears twice/fib(0) appears, so the 5-node picture is not explained.",
+                "Fibonacci is a heavy example for a first look at recursion: the tree mixes two branches and a duplicated fib(1) leaf, and the text never ties the picture's leaf labels (fib(1) = 1, fib(0) = 0) back to the narrative. Simpler countdown/factorial would introduce the idea more gently; the mirrors and dolls analogies are also stacked before the real term is shown in code.",
+                "Line-note/text inconsistencies: base-case text says 'n <= 1' returns a leaf but never explains why n=0 and n=1 return themselves; the 'try' item 'Change n <= 1 to n <= 2' and the swap suggestion have no explanation of what to expect, and the code shows the tree, not the final numeric result of fib(3), so learners never see 'those leaf answers travel back up' assembled into a value."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 4,
+              "clear": 5,
+              "visual": 5,
+              "code": 4,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "The text says leaf answers travel back up to assemble the final result, but the code only builds a tree structure and never computes the Fibonacci sums for parent nodes.",
+                "The opening two-way mirror analogy conveys an infinite loop rather than divide-and-conquer problem solving with a base case."
+              ]
+            }
+          },
+          "quality": 77
+        },
+        {
+          "task": "lesson:algorithm",
+          "ok": true,
+          "error": null,
+          "firstMs": 57287,
+          "writtenMs": 64563,
+          "checkedMs": 82763,
+          "title": "Binary search",
+          "blocks": 9,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 2,
+          "notes": 3,
+          "codeLines": 18,
+          "pseudoLines": 18,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 1,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 95,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 4,
+              "visual": 3,
+              "code": 4,
+              "teaching": 4,
+              "overall": 3,
+              "issues": [
+                "The third [try], \"Change 2 to 100 to mislead search\", doesn't do what it implies. Index 0 is never examined when searching for 23 (mid goes 4, 7, 5), so the search still returns 5. The learner sees nothing break, which undercuts the point of the quiz answer.",
+                "The text says \"checking the middle element at line 5\", but line 5 only computes mid. The comparison happens on lines 7, 9 and 11, so the link points at the wrong line.",
+                "The only visual is a plain table of lo/mid/hi/val. Nothing shows the shrinking window over the 10-element list, such as grayed-out discarded cells or a highlighted mid. The halving idea is left for the learner to read off the numbers. The `return mid if lo <= hi else -1` line is also a slightly indirect way to signal found vs. not found."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 4,
+              "code": 4,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "Returning 'mid' outside the loop raises UnboundLocalError if 'nums' is empty",
+                "Showing step records as a raw index table is less intuitive than highlighting the list window visually",
+                "Logarithmic time is framed inversely (each step doubles capacity instead of doubling data adding one step)"
+              ]
+            }
+          },
+          "quality": 82
+        },
+        {
+          "task": "lesson:webpage",
+          "ok": true,
+          "error": null,
+          "firstMs": 71844,
+          "writtenMs": 76717,
+          "checkedMs": 76718,
+          "title": "Click counter button",
+          "blocks": 10,
+          "paragraphs": 5,
+          "quiz": true,
+          "terms": 2,
+          "notes": 2,
+          "codeLines": 21,
+          "pseudoLines": 21,
+          "pseudoFixed": false,
+          "ran": "page",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": true,
+          "longParas": 0,
+          "links": 4,
+          "shows": null,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 3,
+              "code": 5,
+              "teaching": 3,
+              "overall": 4,
+              "issues": [
+                "Line references are off in places: the text says line 17 'rewrites' the text and ties the listener to 15-18, fine, but the plain-English column has blanks for lines 8, 18-21 and says line 12 'starts JavaScript interactive code block' while the lesson never explains the script tag or that script runs after the button exists (placement matters for querySelector).",
+                "The analogies are weak or odd: 'DOM is a puppet with strings' is a confusing metaphor (a tree/outline of the page would fit better), and the event listener doorbell comes after the explanation rather than leading it. The lesson also opens with abstract HTML/CSS/JS talk before any everyday picture.",
+                "Quiz is shaky: the 'Clicked 1 times' grammar glitch is left in the code and the answer, and the quiz only tests variable scope, not the listener or DOM ideas just taught. Also nothing visual (e.g., a diagram or sample values like 0→1→2) shows the count changing besides the live preview."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 4,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "Relies on text analogies without an explicit diagram of the DOM tree or variable state changes across clicks."
+              ]
+            }
+          },
+          "quality": 87
+        },
+        {
+          "task": "lesson:beginner",
+          "ok": true,
+          "error": null,
+          "firstMs": 47640,
+          "writtenMs": 51282,
+          "checkedMs": 55326,
+          "title": "Boxes with labels",
+          "blocks": 8,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 1,
+          "notes": 3,
+          "codeLines": 10,
+          "pseudoLines": 10,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 3,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 3,
+              "visual": 4,
+              "code": 4,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "Quiz explanation mentions 'before adding the star points' which introduces line 8 not yet explained; also the text says 'the last line' for line 10 yet the important 60 total is only after line 8, and the try suggestion 'Change 50 to 500 on line 8' is fine but muddles with line numbers. Text says 'the computer still remembers your 60 points' without showing why (50 added on line 8 is never explained in the text).",
+                "Key idea 'score = score + 10' is explained only in words; a beginner will be confused that the equal sign means assignment, not math equality, and the margin note on line 1-2 says '=' sticks a label but never explicitly contrasts this. No mention that the box is replaced (old value gone) and no mention of show() or what the tables are.",
+                "Quiz is a simple trace that mostly checks reading one line; the 'like' in the definition is awkward ('like A labeled toy box'), and the code mixes strings and numbers without comment. The try list lacks guidance on what to expect, and the next-questions are fine but 'Can a variable hold words and numbers' is already answered by player/score."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 4,
+              "visual": 5,
+              "code": 4,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "The main text explains line 5 (+10) but skips line 8 (+50), making the jump to 60 points on line 10 slightly abrupt.",
+                "The 'player' variable is introduced and repeatedly shown, but never modified or explained beyond line 1.",
+                "The lesson doesn't explicitly explain the '=' symbol in the main text, leaving it only to a margin note."
+              ]
+            }
+          },
+          "quality": 78
+        },
+        {
+          "task": "lesson:engineer",
+          "ok": true,
+          "error": null,
+          "firstMs": 79686,
+          "writtenMs": 88218,
+          "checkedMs": 92272,
+          "title": "Consistent hashing and server joins",
+          "blocks": 11,
+          "paragraphs": 5,
+          "quiz": true,
+          "terms": 3,
+          "notes": 3,
+          "codeLines": 18,
+          "pseudoLines": 18,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 3,
+              "visual": 3,
+              "code": 4,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "Text claims 'roughly 1/(N+1) of keys (here, 1 in 4)', but the run shows 1/12 (~8%). The lesson never reconciles this, and with only 12 keys and 3 nodes the sample is too small to show the 1/4 expectation. The quiz's 'averages 1/(N+1)' is also only true on average, and without virtual nodes the arc sizes vary a lot.",
+                "The text says 'only keys in its assigned arc shift' and the table shows user_6 moving node-A→node-D, but nothing shows ring positions or arc boundaries. The learner can't see where node-D landed or why user_6 moved, so the ring stays abstract. The table is also cut off, and there is no comparison against naive modulo, which the lesson opens with.",
+                "Analogies are muddled: 'toll booth taking cars from the lane next to it' and 'runners grabbing batons dropped behind them' don't map cleanly to clockwise routing. Virtual nodes are mentioned but never demonstrated, and the text says hot spots arise from 'uneven hash buckets' without showing it. The explanation of line 9 is also slightly off: bisect_left uses binary search, not 'scanning'."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 3,
+              "clear": 4,
+              "visual": 3,
+              "code": 4,
+              "teaching": 4,
+              "overall": 3,
+              "issues": [
+                "Text claims roughly 1 in 4 keys move 'here', directly contradicting the code output where only 1 of 12 keys moved (8%).",
+                "With only 12 keys and 3 raw nodes, hash distribution is severely skewed—node-B receives zero keys, confusing learners.",
+                "The output is a flat table of strings rather than a graphic showing positions along the circular ring."
+              ]
+            }
+          },
+          "quality": 67
+        },
+        {
+          "task": "lesson:javascript",
+          "ok": true,
+          "error": null,
+          "firstMs": 69451,
+          "writtenMs": 73922,
+          "checkedMs": 78981,
+          "title": "Promises and async/await",
+          "blocks": 9,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 2,
+          "notes": 3,
+          "codeLines": 17,
+          "pseudoLines": 17,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 5,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 3,
+              "visual": 4,
+              "code": 4,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "Text says juice is poured 'at 0ms' and implies it appears before 'toast popped', but the table shows 'order toast' and 'pour juice' at 0 too; the lesson never explains that 'order toast' (line 7) runs synchronously before the first await, so the 'invoked before pouring juice' framing is muddled. The table is ordered as 'start grill, order toast, pour juice', which the text never walks through.",
+                "Inaccurate/confusing wording: 'jumps straight to the next line outside' and 'then pauses again at line 10' are imprecise. The text never explains that await returns a promise to the caller, and the 'promise as receipt' analogy is never connected to what delay() returns. The cafe buzzer and bookmark analogies are bolted onto definitions rather than introduced first. The text doesn't explain how the promise states (pending/fulfilled) or resolve work, even though line 4 is the key mechanism.",
+                "The quiz is fairly easy: one answer is obviously absurd ('reverse order') and the correct choice mirrors the paragraph wording. The 'try' prompts are bare instructions without telling the learner what to expect. The 62ms and 111ms timings (vs 60 and 100 expected) are never explained, and the 'next questions' promise try/catch and Promise.all without any foundation here."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 5,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": []
+            }
+          },
+          "quality": 83
+        }
+      ],
+      "tokens": 232186,
+      "requests": 11,
+      "lessonScore": 99,
+      "verdict": "good",
+      "quality": 79,
+      "criteria": {
+        "correct": 3.9,
+        "clear": 4,
+        "visual": 3.9,
+        "code": 4.3,
+        "teaching": 3.8,
+        "overall": 3.8
+      },
+      "byJudge": {
+        "claude:sonnet": 69,
+        "antigravity:flash": 89
+      },
+      "issues": [
+        "picture: Quiz is wrong/misleading: removing the base case makes fib(n-1)/fib(n-2) go to negative numbers forever, so it does raise RecursionError, but the 'why' says 'smaller and smaller numbers' loosely and the text says 'fib(3) cannot compute instantly' without ever explaining return order; also the text says fib(3) spawns 'fib(2) and fib(1)' but never mentions fib(0) or why fib(1) appears twice/fib(0) appears, so the 5-node picture is not explained.",
+        "picture: Fibonacci is a heavy example for a first look at recursion: the tree mixes two branches and a duplicated fib(1) leaf, and the text never ties the picture's leaf labels (fib(1) = 1, fib(0) = 0) back to the narrative. Simpler countdown/factorial would introduce the idea more gently; the mirrors and dolls analogies are also stacked before the real term is shown in code.",
+        "picture: Line-note/text inconsistencies: base-case text says 'n <= 1' returns a leaf but never explains why n=0 and n=1 return themselves; the 'try' item 'Change n <= 1 to n <= 2' and the swap suggestion have no explanation of what to expect, and the code shows the tree, not the final numeric result of fib(3), so learners never see 'those leaf answers travel back up' assembled into a value.",
+        "picture: The text says leaf answers travel back up to assemble the final result, but the code only builds a tree structure and never computes the Fibonacci sums for parent nodes.",
+        "picture: The opening two-way mirror analogy conveys an infinite loop rather than divide-and-conquer problem solving with a base case.",
+        "algorithm: The third [try], \"Change 2 to 100 to mislead search\", doesn't do what it implies. Index 0 is never examined when searching for 23 (mid goes 4, 7, 5), so the search still returns 5. The learner sees nothing break, which undercuts the point of the quiz answer.",
+        "algorithm: The text says \"checking the middle element at line 5\", but line 5 only computes mid. The comparison happens on lines 7, 9 and 11, so the link points at the wrong line.",
+        "algorithm: The only visual is a plain table of lo/mid/hi/val. Nothing shows the shrinking window over the 10-element list, such as grayed-out discarded cells or a highlighted mid. The halving idea is left for the learner to read off the numbers. The `return mid if lo <= hi else -1` line is also a slightly indirect way to signal found vs. not found."
+      ]
+    },
+    {
+      "model": "antigravity:claude",
+      "tasks": [
+        {
+          "task": "lesson:picture",
+          "ok": true,
+          "error": null,
+          "firstMs": 5295,
+          "writtenMs": 27183,
+          "checkedMs": 32246,
+          "title": "Recursion",
+          "blocks": 6,
+          "paragraphs": 2,
+          "quiz": true,
+          "terms": 1,
+          "notes": 4,
+          "codeLines": 16,
+          "pseudoLines": 16,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 2,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 2,
+          "shows": 2,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 85,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 3,
+              "visual": 3,
+              "code": 2,
+              "teaching": 3,
+              "overall": 2,
+              "issues": [
+                "The call tree is hardcoded as a literal dict rather than built from the recursion, so it isn't a real picture of the code's behavior. It also has 0!=1 at the bottom with 5! missing: the tree shows only 5 nodes (0! to 4!) and omits the root factorial(5), contradicting the table's 6 rows. The 'root': True flag is on 4!, which is misleading.",
+                "The code is heavier than needed for a first look at recursion: record dicts, list concatenation, and a depth parameter bury the simple n * factorial(n-1) idea. The 'try' suggestion to remove depth and record['depth'] is also a muddled exercise, and the text never explains the log-building lines.",
+                "The quiz is fine but the distractor 'The loop would just stop at n = 1' mentions a loop that doesn't exist, and the text says 'every branch' reaches the base case when there is only one chain. The Russian doll analogy is decent, but the text never connects the returns (unwinding) to the multiplication, which is the key insight the table shows."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 3,
+              "clear": 3,
+              "visual": 3,
+              "code": 2,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "Line 15 hardcodes a call tree that omits factorial(5)=120 and only shows 0! through 4!.",
+                "Returning (answer, call_log) tuples and concatenating lists adds heavy boilerplate that obscures the recursion.",
+                "The tree visual is manually hardcoded into the code rather than generated from the recursive execution."
+              ]
+            }
+          },
+          "quality": 55
+        },
+        {
+          "task": "lesson:algorithm",
+          "ok": true,
+          "error": null,
+          "firstMs": 4857,
+          "writtenMs": 32448,
+          "checkedMs": 44559,
+          "title": "Binary search",
+          "blocks": 10,
+          "paragraphs": 5,
+          "quiz": true,
+          "terms": 2,
+          "notes": 4,
+          "codeLines": 22,
+          "pseudoLines": 0,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 3,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 4,
+          "shows": 2,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": false,
+          "tries": 3,
+          "nexts": 3,
+          "score": 80,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 4,
+              "visual": 3,
+              "code": 5,
+              "teaching": 4,
+              "overall": 3,
+              "issues": [
+                "The third [try] suggestion is wrong: appending 100 to the end of [3..90] keeps the list sorted, so binary search still works and no wrong answer appears. To show the sorting requirement, the learner would need to insert an out-of-order value such as 5 at the end.",
+                "The visuals don't show the search range shrinking. The bar chart is a plain static list with no highlighting of lo/mid/hi or of the discarded half, so the 'halving' idea is only visible as numbers in the table.",
+                "The quiz only asks for a one-step mid calculation, which checks arithmetic rather than why half the list can be discarded. The O(n) term is used without being defined, and the paragraph on sorted order repeats the point made earlier."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 4,
+              "clear": 5,
+              "visual": 5,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "In the [try] section, appending 100 to the existing list leaves it sorted, so it will not demonstrate a failed search on unsorted data."
+              ]
+            }
+          },
+          "quality": 85
+        },
+        {
+          "task": "lesson:webpage",
+          "ok": true,
+          "error": null,
+          "firstMs": 4864,
+          "writtenMs": 25120,
+          "checkedMs": 44241,
+          "title": "Click Counter",
+          "blocks": 6,
+          "paragraphs": 2,
+          "quiz": true,
+          "terms": 1,
+          "notes": 4,
+          "codeLines": 31,
+          "pseudoLines": 0,
+          "pseudoFixed": false,
+          "ran": "page",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": true,
+          "longParas": 0,
+          "links": 1,
+          "shows": null,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": false,
+          "tries": 3,
+          "nexts": 3,
+          "score": 95,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 2,
+              "clear": 3,
+              "visual": 4,
+              "code": 5,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "Lesson text links handleClick to lines 13-17, but those lines are CSS/body markup; the function is actually on lines 23-26. Plain-English column is also misaligned at lines 13-14 (blank for closing style/head tags).",
+                "Grammar slip 'a event listener' and the quiz explanation says 'textContent is set to clicks after each increment' is fine, but quiz is trivial (just counting to 3) and option 3 'clicks + 1' is a weak distractor; it does not test understanding of listeners or state.",
+                "Doorbell analogy comes after the term is introduced and the 'try' items (e.g. clicks + 10) don't match code, which uses 'clicks = clicks + 1' and an unlinked reset button; no step-by-step build-up, whole page shown at once with heavy CSS distracting from the event concept."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 3,
+              "clear": 4,
+              "visual": 3,
+              "code": 5,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "Line link [[13-17|handleClick]] points to HTML markup instead of the handleClick function on lines 23-26.",
+                "Grammar error in the first paragraph: 'a event listener' instead of 'an event listener'.",
+                "Lacks a visual diagram or trace table showing the flow from click event to memory update to DOM render."
+              ]
+            }
+          },
+          "quality": 72
+        },
+        {
+          "task": "lesson:beginner",
+          "ok": true,
+          "error": null,
+          "firstMs": 4475,
+          "writtenMs": 19087,
+          "checkedMs": 24147,
+          "title": "What is a variable?",
+          "blocks": 6,
+          "paragraphs": 2,
+          "quiz": true,
+          "terms": 1,
+          "notes": 3,
+          "codeLines": 11,
+          "pseudoLines": 11,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 1,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 3,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 95,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 3,
+              "visual": 4,
+              "code": 4,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "The text says 'peek inside with show()' and 'swap on this line' but the links are vague. The learner is never told that show() is this app's picture tool (not standard Python), nor what the quotes around \"Alex\" mean (text vs number). The word 'string' appears in the line-10 explanation without being introduced.",
+                "The quiz is weak: the answer (11) is nearly given away by the previous sentence about swapping, so it checks recall of the text rather than understanding. Distractors like 'Nothing — the box is empty' don't probe real misconceptions (e.g. that the old value 10 is kept, or that = means equals). A better quiz would ask what name holds, or what happens to 10.",
+                "The code and text are mismatched at the end: lines 10-11 (string joining with +) are never explained in the lesson text, and the try-it items refer to a 'birthday message' that the text never introduced. Also the 'new word' analogy (sticky note on a box) duplicates the opening box picture, and the table output shows uppercase NAME/AGE labels with the repeated caption, which is slightly confusing against the lowercase variable names."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 3,
+              "clear": 3,
+              "visual": 4,
+              "code": 3,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "The 'try' prompt tells the learner to change 10 to 100 to see the birthday message, but the greeting code never includes the 'age' variable.",
+                "Margin note 10 claims line 10 reads from 'several boxes', but the line only references one variable ('name').",
+                "Passing dictionary syntax ({\"name\": name, ...}) into show() introduces confusing, unexplained syntax to an absolute beginner."
+              ]
+            }
+          },
+          "quality": 67
+        },
+        {
+          "task": "lesson:engineer",
+          "ok": true,
+          "error": null,
+          "firstMs": 4053,
+          "writtenMs": 44608,
+          "checkedMs": 52679,
+          "title": "Consistent hashing",
+          "blocks": 10,
+          "paragraphs": 5,
+          "quiz": true,
+          "terms": 2,
+          "notes": 4,
+          "codeLines": 38,
+          "pseudoLines": 0,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 1,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 2,
+          "shows": 3,
+          "diagram": false,
+          "codeSizeOk": false,
+          "pseudoFinal": true,
+          "pseudoOwn": false,
+          "tries": 3,
+          "nexts": 3,
+          "score": 90,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 2,
+              "clear": 3,
+              "visual": 3,
+              "code": 3,
+              "teaching": 2,
+              "overall": 2,
+              "issues": [
+                "Quiz answer is wrong/inconsistent: with 3 servers and 900 keys, adding a 4th moves ~1/4 of keys = 225, but the 'why' math (300 × 1/4 × 3 = 225) is fine while the text's earlier claim 'N−1/N' and 'Pie slices' framing are loose; more importantly the run shows 300 keys (not 900) and load before 94/93/113 is far from 'perfectly distributed', so the quiz premise ignores observed skew. Also text says 'In a 4-server cluster ≈25% move' yet the output never prints the moved count (`moved` is computed but never shown), so 'the tables should confirm that number' can't be verified directly (65+74+75 vs 94+93+113 implies 114 moved, ≈38%, not 25%).",
+                "Text and notes contradict the code/output: margin notes cite wrong line numbers (14-16, 19-20, 27-28, 29-31 don't match the code), 'try' says add s4/s5 'after s3' and watch 'moved-key count shrink' though moved is never displayed, and the 'first bar chart' doesn't exist (tables are shown). Claim of load std dev ~1/√V with V=150 is contradicted by visible skew (113 vs 93), and lesson's own cited 'Too-low V produces visible skew' is already visible at V=150 with only 300 keys. Also 'O(V·N) insert cost' is misdescribed (insort per position is O(n) each), and the 'balanced BST' comparison is confusing.",
+                "Teaching/code: the analogy ('pie slices', 'raffle hat') is tacked onto definitions rather than leading, and the ring/arc idea is never drawn as a picture. Code line 19 maps position without handling hash collisions, `_add` is called as a private method externally, and there's no remove. The text references line numbers for 'constructor' (5,9), 'get()' (19,20), '_add' (27) and 'move' (30) that point to wrong lines (get is at 22-25, _add call is at 34, moved is line 36)."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 4,
+              "code": 5,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "Several code links and margin notes point to wrong line numbers (e.g., [[19,20|get()]] points to _add, and [[27|_add]] points to servers list).",
+                "Text and try prompts refer to 'bar charts' and 'load bars', but show() outputs plain tables.",
+                "Naive rehashing fraction when adding a server from N to N+1 reshuffles N/(N+1) of keys, not (N-1)/N."
+              ]
+            }
+          },
+          "quality": 67
+        },
+        {
+          "task": "lesson:javascript",
+          "ok": true,
+          "error": null,
+          "firstMs": 4872,
+          "writtenMs": 30837,
+          "checkedMs": 37908,
+          "title": "Promises & async/await",
+          "blocks": 8,
+          "paragraphs": 3,
+          "quiz": true,
+          "terms": 2,
+          "notes": 4,
+          "codeLines": 30,
+          "pseudoLines": 0,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 2,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": false,
+          "tries": 3,
+          "nexts": 3,
+          "score": 95,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 3,
+              "visual": 4,
+              "code": 4,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "Text and margin note say 'await blocks the loop', which contradicts the lesson's own claim that await pauses only the function and does not block the program. 'Blocks' is misleading for beginners; it suspends the function without blocking the thread.",
+                "Top-level await is used with no mention that it needs a module context or the app's special environment. Learners copying this into a regular script or older Node will get a syntax error. The code also has no try/catch example even though the text explains error handling.",
+                "The explanation is split up and out of order: the promise states and the Promise.all definition come after the sequential-vs-parallel comparison, and the café buzzer analogy is only a one-line aside. The quiz only tests simple multiplication (3x300) rather than understanding of why parallel is faster or what await does. The 'try' suggestion to swap the loop for Promise.all is already what the code shows."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 5,
+              "code": 5,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "The text says await 'pauses only this function', but the code uses top-level await outside any function.",
+                "Line link [[14-15]] misses line 16 where the await keyword actually appears.",
+                "Focuses heavily on sequential vs. parallel timing instead of explaining how promises themselves resolve or reject."
+              ]
+            }
+          },
+          "quality": 78
+        }
+      ],
+      "tokens": 176200,
+      "requests": 15,
+      "lessonScore": 90,
+      "verdict": "good",
+      "quality": 71,
+      "criteria": {
+        "correct": 3.3,
+        "clear": 3.5,
+        "visual": 3.8,
+        "code": 4,
+        "teaching": 3.4,
+        "overall": 3.3
+      },
+      "byJudge": {
+        "claude:sonnet": 64,
+        "antigravity:flash": 77
+      },
+      "issues": [
+        "picture: The call tree is hardcoded as a literal dict rather than built from the recursion, so it isn't a real picture of the code's behavior. It also has 0!=1 at the bottom with 5! missing: the tree shows only 5 nodes (0! to 4!) and omits the root factorial(5), contradicting the table's 6 rows. The 'root': True flag is on 4!, which is misleading.",
+        "picture: The code is heavier than needed for a first look at recursion: record dicts, list concatenation, and a depth parameter bury the simple n * factorial(n-1) idea. The 'try' suggestion to remove depth and record['depth'] is also a muddled exercise, and the text never explains the log-building lines.",
+        "picture: The quiz is fine but the distractor 'The loop would just stop at n = 1' mentions a loop that doesn't exist, and the text says 'every branch' reaches the base case when there is only one chain. The Russian doll analogy is decent, but the text never connects the returns (unwinding) to the multiplication, which is the key insight the table shows.",
+        "picture: Line 15 hardcodes a call tree that omits factorial(5)=120 and only shows 0! through 4!.",
+        "picture: Returning (answer, call_log) tuples and concatenating lists adds heavy boilerplate that obscures the recursion.",
+        "picture: The tree visual is manually hardcoded into the code rather than generated from the recursive execution.",
+        "algorithm: The third [try] suggestion is wrong: appending 100 to the end of [3..90] keeps the list sorted, so binary search still works and no wrong answer appears. To show the sorting requirement, the learner would need to insert an out-of-order value such as 5 at the end.",
+        "algorithm: The visuals don't show the search range shrinking. The bar chart is a plain static list with no highlighting of lo/mid/hi or of the discarded half, so the 'halving' idea is only visible as numbers in the table."
+      ]
+    },
+    {
+      "model": "codex:default",
+      "tasks": [
+        {
+          "task": "lesson:picture",
+          "ok": true,
+          "error": null,
+          "firstMs": 35142,
+          "writtenMs": 35142,
+          "checkedMs": 39189,
+          "title": "Recursion: a function calls itself",
+          "blocks": 8,
+          "paragraphs": 3,
+          "quiz": true,
+          "terms": 2,
+          "notes": 3,
+          "codeLines": 9,
+          "pseudoLines": 9,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 2,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 3,
+              "clear": 3,
+              "visual": 4,
+              "code": 3,
+              "teaching": 3,
+              "overall": 3,
+              "issues": [
+                "The 'try' step (change n == 0 to n == 2) makes the base case stop at countdown(2), so the tree gets only 2 nodes. The lesson never says what to expect, and with countdown(3) that change is confusing. Also, countdown(1) and countdown(0) would never be reached in that case, which could mislead the learner about how the base case works.",
+                "The code builds a binary-tree dict with 'left'/'right' keys but only ever uses 'left', so the picture is a chain. This adds unneeded structure (right is always None) and the 'box inside a box' metaphor does not match a tree drawn with boxes beneath each other. The lesson also never explains what the 'value' string or the tree picture represent, beyond calling each box one call.",
+                "The lesson text says the box 'returns to the waiting call' and 'attaches the returned picture', but the code does nothing on the return path except return the node. The attaching happens when the result is assigned on line 5, before the return. The explanation of how return values flow back is muddled, and the lesson defers 'How do recursive calls return answers?' to a next question. The learner also never sees the calls actually happen in order, since the picture only shows the finished structure."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 4,
+              "clear": 5,
+              "visual": 5,
+              "code": 4,
+              "teaching": 5,
+              "overall": 4,
+              "issues": [
+                "Line 4's line-by-line explanation says 'with its attached boxes', but the base case box has no children attached yet.",
+                "Tree node dictionary structure with an unused 'right': None adds visualizer boilerplate that may briefly confuse a beginner looking at a linear countdown."
+              ]
+            }
+          },
+          "quality": 77
+        },
+        {
+          "task": "lesson:algorithm",
+          "ok": true,
+          "error": null,
+          "firstMs": 44938,
+          "writtenMs": 45347,
+          "checkedMs": 51425,
+          "title": "Find it by halving",
+          "blocks": 9,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 2,
+          "notes": 3,
+          "codeLines": 21,
+          "pseudoLines": 21,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 4,
+          "shows": 2,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 5,
+              "clear": 4,
+              "visual": 3,
+              "code": 4,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "The bar chart shows only the plain list 1 to 16. It never marks the guesses or the shrinking window, so the halving is visible only as numbers in the table, even though the text says to \"watch the shrinking search window\".",
+                "The logarithmic-time analogy (an extra fold covers twice the thickness) is muddled. Folding doubles thickness rather than showing that doubling the input adds one step. A clearer picture would be repeatedly halving 1,024 down to 1.",
+                "The quiz is easy: the two wrong choices are obviously wrong. It also tests only the discard step, not why the sorted order is needed or what happens when the target is missing. The try prompt for 99 (returns -1) is never explained in the text."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 5,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "Using values 1–16 makes values and 0-based indices differ by just 1, which can occasionally blur the distinction between values and indices for a novice learner."
+              ]
+            }
+          },
+          "quality": 90
+        },
+        {
+          "task": "lesson:webpage",
+          "ok": true,
+          "error": null,
+          "firstMs": 27158,
+          "writtenMs": 27567,
+          "checkedMs": 27567,
+          "title": "A tiny click counter",
+          "blocks": 7,
+          "paragraphs": 3,
+          "quiz": true,
+          "terms": 1,
+          "notes": 3,
+          "codeLines": 26,
+          "pseudoLines": 26,
+          "pseudoFixed": false,
+          "ran": "page",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": true,
+          "longParas": 0,
+          "links": 4,
+          "shows": null,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 4,
+              "code": 5,
+              "teaching": 3,
+              "overall": 4,
+              "issues": [
+                "Text says JavaScript finds the span 'using its name, `count`', but it actually finds it by id 'count' via getElementById and stores it in a constant also called count; this conflates the id with the variable name and could confuse a beginner.",
+                "The quiz is good but is a prediction about moving a declaration (scope/reset), which is harder than the lesson's introduction of a variable; there is no simple everyday picture first beyond a one-line 'labeled box' analogy, and 'const'/'let' and addEventListener/arrow function are never explained.",
+                "The [try] item 'Change #fff4df to hotpink' doesn't say where to find it (line 7 CSS), and the 'clicks += 100' tweak does not deepen understanding; the lesson also lacks a visual of the variable's value changing per click (e.g. a small table of click → clicks value)."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 4,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "Refers to the element's id as its 'name', which can confuse students since HTML has a distinct 'name' attribute."
+              ]
+            }
+          },
+          "quality": 88
+        },
+        {
+          "task": "lesson:beginner",
+          "ok": true,
+          "error": null,
+          "firstMs": 21079,
+          "writtenMs": 21079,
+          "checkedMs": 25125,
+          "title": "A name for a value",
+          "blocks": 8,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 1,
+          "notes": 3,
+          "codeLines": 8,
+          "pseudoLines": 8,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 3,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 4,
+              "code": 4,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "The text says 'The first line makes coins remember 3' and 'the first table shows 3 coins', but show() is never explained as a real line the learner must understand. The learner also sees a dictionary {\"coins\": coins} with no explanation of the curly braces or colon, which is unexplained syntax for a complete beginner.",
+                "The quiz only checks that coins is 5 after the update, which can be answered by simple arithmetic and doesn't test the idea of a variable being a name for a changeable value (e.g., what name holds Mia, or what happens if line 4 runs twice). The try-it 'Change + 2 to * 10' is not tied to any prediction, and the 'This line runs once' remark is unneeded.",
+                "The box analogy is introduced and then left behind; the lesson never shows the box with its label and contents changing (the 'Before' and 'After' tables are the only visuals). Also, naming the variable name = \"Mia\" is confusing ('the name name'), and the plain-English line 'Remember Mia using the name name' is awkward for a first-time learner."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 5,
+              "code": 4,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "Helper call show({\"coins\": coins}) exposes unexplained dictionary syntax to a total beginner.",
+                "The quiz asks for a result already directly stated in the text right above it rather than testing transfer."
+              ]
+            }
+          },
+          "quality": 88
+        },
+        {
+          "task": "lesson:engineer",
+          "ok": true,
+          "error": null,
+          "firstMs": 43731,
+          "writtenMs": 44136,
+          "checkedMs": 54224,
+          "title": "Consistent hashing: who moves?",
+          "blocks": 10,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 3,
+          "notes": 3,
+          "codeLines": 27,
+          "pseudoLines": 0,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": false,
+          "tries": 3,
+          "nexts": 3,
+          "score": 95,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 5,
+              "clear": 4,
+              "visual": 3,
+              "code": 4,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "The only picture is a plain table. It has no ring diagram and no marker for server positions (A=0, B=33, D=50, C=66), and the three rows that moved (key-0, key-5, key-7) aren't highlighted. The learner has to scan 12 rows and compare positions against the text to see the 'one stretch' idea.",
+                "The text says different keys can share a position, but never points to the example in the output (key-9 and key-11 both at 90). It also never notes that key-7 at position 50 moves because the lookup uses `>=`, which is a boundary case worth calling out.",
+                "The [try] suggestions give no expected outcome. For instance, a single-server ring, D at 90, or 40 keys each change what moves, but the learner isn't told what to look for. The quiz is also easy: option 1 is an obvious throwaway, and it only checks the interval wording, not why other keys stay put."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 4,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "A visual ring or arc diagram would illustrate the circular topology and partition boundaries better than a flat tabular list of keys."
+              ]
+            }
+          },
+          "quality": 88
+        },
+        {
+          "task": "lesson:javascript",
+          "ok": true,
+          "error": null,
+          "firstMs": 32827,
+          "writtenMs": 32827,
+          "checkedMs": 37883,
+          "title": "Promises and async/await",
+          "blocks": 10,
+          "paragraphs": 4,
+          "quiz": true,
+          "terms": 3,
+          "notes": 4,
+          "codeLines": 22,
+          "pseudoLines": 22,
+          "pseudoFixed": false,
+          "ran": "ok",
+          "runError": null,
+          "corrections": 0,
+          "quizWrong": false,
+          "localFixes": 0,
+          "html": null,
+          "longParas": 0,
+          "links": 3,
+          "shows": 1,
+          "diagram": false,
+          "codeSizeOk": true,
+          "pseudoFinal": true,
+          "pseudoOwn": true,
+          "tries": 3,
+          "nexts": 3,
+          "score": 100,
+          "grades": {
+            "claude:sonnet": {
+              "correct": 4,
+              "clear": 4,
+              "visual": 4,
+              "code": 5,
+              "teaching": 4,
+              "overall": 4,
+              "issues": [
+                "Text says the first two events are recorded before run() returns, but the table shows three events at 0 ms (including 'Outside keeps going'), and the claim blurs the point that Started and Timer started happen synchronously inside run() while 'Outside keeps going' comes after the call returns.",
+                "The table shows 0 ms for the first three events, so it doesn't visibly demonstrate the ordering by time. The 'event order stays the same' claim is fine, but the 30 ms jump is the only timing clue and the learner may not connect the 0s to synchronous execution.",
+                "The quiz's wrong answers are easy to dismiss, and the lesson never touches microtasks or the point that await returns control to the caller. The `.then()`/try-catch paragraph is dense and has no code, so error handling is told, not shown."
+              ]
+            },
+            "antigravity:flash": {
+              "correct": 5,
+              "clear": 5,
+              "visual": 5,
+              "code": 5,
+              "teaching": 5,
+              "overall": 5,
+              "issues": [
+                "Mixing .then() with await in the same introductory example might briefly confuse learners about modern async/await style versus older promise chaining."
+              ]
+            }
+          },
+          "quality": 92
+        },
+        {
+          "task": "answer",
+          "ok": true,
+          "ms": 10728,
+          "words": 68,
+          "next": 2,
+          "check": true,
+          "by": "codex:default",
+          "score": 100
+        },
+        {
+          "task": "path",
+          "ok": true,
+          "ms": 31695,
+          "stops": 8,
+          "allLessons": true,
+          "title": "SQL Shop Starter",
+          "ending": true,
+          "error": null,
+          "score": 100
+        }
+      ],
+      "tokens": 331553,
+      "requests": 14,
+      "lessonScore": 99,
+      "verdict": "great",
+      "quality": 87,
+      "criteria": {
+        "correct": 4.5,
+        "clear": 4.4,
+        "visual": 4.2,
+        "code": 4.4,
+        "teaching": 4.3,
+        "overall": 4.3
+      },
+      "byJudge": {
+        "claude:sonnet": 78,
+        "antigravity:flash": 97
+      },
+      "issues": [
+        "picture: The 'try' step (change n == 0 to n == 2) makes the base case stop at countdown(2), so the tree gets only 2 nodes. The lesson never says what to expect, and with countdown(3) that change is confusing. Also, countdown(1) and countdown(0) would never be reached in that case, which could mislead the learner about how the base case works.",
+        "picture: The code builds a binary-tree dict with 'left'/'right' keys but only ever uses 'left', so the picture is a chain. This adds unneeded structure (right is always None) and the 'box inside a box' metaphor does not match a tree drawn with boxes beneath each other. The lesson also never explains what the 'value' string or the tree picture represent, beyond calling each box one call.",
+        "picture: The lesson text says the box 'returns to the waiting call' and 'attaches the returned picture', but the code does nothing on the return path except return the node. The attaching happens when the result is assigned on line 5, before the return. The explanation of how return values flow back is muddled, and the lesson defers 'How do recursive calls return answers?' to a next question. The learner also never sees the calls actually happen in order, since the picture only shows the finished structure.",
+        "picture: Line 4's line-by-line explanation says 'with its attached boxes', but the base case box has no children attached yet.",
+        "picture: Tree node dictionary structure with an unused 'right': None adds visualizer boilerplate that may briefly confuse a beginner looking at a linear countdown.",
+        "algorithm: The bar chart shows only the plain list 1 to 16. It never marks the guesses or the shrinking window, so the halving is visible only as numbers in the table, even though the text says to \"watch the shrinking search window\".",
+        "algorithm: The logarithmic-time analogy (an extra fold covers twice the thickness) is muddled. Folding doubles thickness rather than showing that doubling the input adds one step. A clearer picture would be repeatedly halving 1,024 down to 1.",
+        "algorithm: The quiz is easy: the two wrong choices are obviously wrong. It also tests only the discard step, not why the sorted order is needed or what happens when the target is missing. The try prompt for 99 (returns -1) is never explained in the text."
+      ]
+    }
+  ],
+  "plans": {
+    "codex": {
+      "before": {
+        "plan": "Pro Lite",
+        "windows": [
+          {
+            "key": "10080",
+            "label": "this week",
+            "used": 28,
+            "resetsAt": 1794438111000,
+            "warn": false,
+            "out": false
+          }
+        ],
+        "out": false,
+        "at": 1794371563411
+      },
+      "after": {
+        "plan": "Pro Lite",
+        "windows": [
+          {
+            "key": "10080",
+            "label": "this week",
+            "used": 28,
+            "resetsAt": 1794438111000,
+            "warn": false,
+            "out": false
+          }
+        ],
+        "out": false,
+        "at": 1794371800289
+      }
+    },
+    "antigravity": {
+      "before": null,
+      "after": null
+    },
+    "claude": {
+      "before": null,
+      "after": {
+        "windows": [
+          {
+            "key": "seven_day",
+            "label": "this week",
+            "used": 61,
+            "resetsAt": 1794542400000,
+            "warn": false,
+            "out": false
+          }
+        ],
+        "out": false,
+        "plan": null,
+        "at": 1794370330228
+      }
+    },
+    "copilot": {
+      "before": {
+        "plan": "Free",
+        "windows": [
+          {
+            "key": "month",
+            "label": "this month",
+            "used": 14,
+            "n": 28,
+            "of": 200,
+            "unit": "requests",
+            "resetsAt": 1796083200000,
+            "warn": false,
+            "out": false
+          }
+        ],
+        "at": 1794369876294
+      },
+      "after": {
+        "plan": "Free",
+        "windows": [
+          {
+            "key": "month",
+            "label": "this month",
+            "used": 14,
+            "n": 29,
+            "of": 200,
+            "unit": "requests",
+            "resetsAt": 1796083200000,
+            "warn": false,
+            "out": false
+          }
+        ],
+        "at": 1794370091054
+      }
+    }
+  }
+}

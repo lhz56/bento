@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { noAI, provOf, provider, providerName, altOf, mainWindow, level, usedText, resetText } from '../ai.js';
+import { usePlans, Ring as PlanRing } from './Plans.jsx';
 import { t, tx } from '../i18n.js';
 import { fmtStars, bestBuiltin, projectNames, namesALesson } from '../findProject.js';
 import { parseRepo } from './Explore.jsx';
@@ -74,7 +76,9 @@ export default function Home({ builtins = [], threads = [], skyDots = [], about,
     onAsk(q.trim(), { mode, context: mode === 'code' ? { code: q } : undefined });
     setQ('');
   };
-  const noModel = providers && !providers.claude && !providers.codex;
+  const noModel = noAI(providers);
+  // the plan you're teaching with is nearly full (or full): say so here, with when it resets and what happens next
+  const { limits } = usePlans(); const prov = provOf(settings?.model); const pw = mainWindow(limits[prov]); const plv = level(pw); const alt = altOf(settings?.model, providers);
 
   const MODE_INFO = { explain: ['✦', 'Explain', 'Ask anything, get a lesson'], feature: ['⌁', 'Build a feature', 'In your own project'], code: ['❮❯', 'Explain my code', 'Paste code, read it line by line'], challenge: ['⚑', 'Challenge me', 'Practise a topic'] };
   const LANGS = [['python', 'Python'], ['javascript', 'JavaScript'], ['typescript', 'TypeScript'], ['html', 'Web page']];
@@ -147,7 +151,13 @@ export default function Home({ builtins = [], threads = [], skyDots = [], about,
               </button>
             </div>
             {finding && <div className="finding fade-in" role="status"><span className="lens-spin" aria-hidden="true" />{t('Looking for')} <b>{finding.name}</b> {t('on this Mac and on GitHub…')}<button className="link" onClick={onCancelFinding}>{t('Just explain it')}</button></div>}
-            {noModel && <div className="warn">No AI connected yet, so questions can’t be answered. The built-in lessons still work. <button className="link" onClick={onSetup}>Connect Claude or ChatGPT →</button></div>}
+            {noModel && <div className="warn">No AI connected yet, so questions can’t be answered. The built-in lessons still work. <button className="link" onClick={onSetup}>Connect an AI →</button></div>}
+            {!noModel && pw && (plv === 'high' || plv === 'out') && (
+              <div className={`plan-warn lv-${plv}`} role="status">
+                <PlanRing used={pw.unlimited ? 0 : pw.used} lv={plv} size={16} />
+                <span><b>{provider(prov).short || provider(prov).name}</b> · {usedText(pw, t)}{pw.resetsAt ? ` · ${resetText(pw.resetsAt, Date.now(), t)}` : ''}. {plv === 'out' ? (alt ? <>{t('Bento asks')} <b>{providerName(provOf(alt))}</b> {t('until then.')}</> : t('The built-in lessons still work meanwhile.')) : alt ? <>{t('If it runs out, Bento switches to')} <b>{providerName(provOf(alt))}</b>.</> : null}</span>
+              </div>
+            )}
           </div>
           {ready && !finding && !choice && (
             <button className="cx-ready fade-in" onClick={() => { setQ(''); ready.run(); }}>

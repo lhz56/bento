@@ -26,15 +26,33 @@ npx vite build                  # make sure it builds
 node scripts/smoke-app.mjs      # open the real app (hidden) and use it: lessons, Python, JavaScript, SQL, the terminal
 node scripts/smoke-tour.mjs     # a learner's tour: lessons, a project's picture and code city, Compare, ideas, notes
 node scripts/smoke-stream.mjs   # ask a question and watch a lesson stream in, from a pretend AI
+node scripts/smoke-ais.mjs      # a lesson from each AI in turn, every plan meter, falling back when one runs out
 node scripts/smoke-guards.mjs   # what pages can and can't reach, the menu, crash recovery, idle motion (~1 min)
 node scripts/audit-a11y.mjs     # every screen, light and dark, checked with axe-core (WCAG AA)
 node scripts/audit-keyboard.mjs # the skip link, dialogs, ⌘K, the map, the code city and the editor with only a keyboard
 # or all of the app checks at once: npm run smoke && npm run audit
 ```
 
-The app tests open Bento off-screen with a throwaway profile, and they never use anyone's AI plan: Claude and Codex
-are hidden (`BENTO_PRETEND_MISSING`), or a pretend Claude stands in (`BENTO_FAKE_AI=test/fixtures/fake-claude.mjs`,
-only honoured in hidden test mode). Please keep new tests that way, and don't let them touch the real clipboard.
+The app tests open Bento off-screen with a throwaway profile, and they never use anyone's AI plan: the AI tools
+are hidden (`BENTO_PRETEND_MISSING`), or pretend ones stand in (`BENTO_FAKE_AI=test/fixtures/fake-ai.mjs`, with
+`BENTO_FAKE_AS=claude,codex,gemini,copilot` for which; only honoured in hidden test mode). Each pretend tool refuses to
+run unless Bento switches its tools off, so a test fails if that ever slips.
+
+**Which models are good enough, and is any getting worse:** `node scripts/bench-ai.mjs` runs Bento's real jobs through
+each signed-in model, one AI at a time: six lessons (a picture, an algorithm, a web page, a complete beginner, an
+engineer, JavaScript), a question inside a lesson, and designing a path. Each lesson gets a structure score (written in
+full, its code runs, few corrections, plain English beside every line, a quiz, new words) and a quality score: two
+graders from different companies (Claude Sonnet and Gemini Flash by default) read it blind, with what its code really
+printed, and score it 1–5 on correct, clear, visual, code, teaching and overall. The report goes to `docs/benchmarks/`.
+It uses real plans, so it isn't part of CI. Before changing a prompt or the lesson format, compare with the baseline:
+`--compare docs/benchmarks/baseline.json` fails if any model drops more than 8 points (`--save-baseline` keeps a new
+one). `--pretend` checks the script itself for free, `--judge <file>` grades a saved run again, `--rescore <file>`
+rescores its structure, and runs for different AIs can go at the same time (`--models`, then `--judge`).
+
+**Adding an AI:** add it to `electron/ai-catalog.json` (name, models, plan, install, sign-in and update commands), give
+it an adapter in `electron/providers.cjs` (check, build a text-only command, parse its stream, read its limits if it
+can for free), and a pretend twin in `test/fixtures/fake-ai.mjs`. The contract test in `test/features.test.mjs` and
+`scripts/smoke-ais.mjs` pick it up from the catalog. Please keep new tests that way, and don't let them touch the real clipboard.
 
 New to the codebase? Start with [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 

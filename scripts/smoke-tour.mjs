@@ -26,7 +26,7 @@ if (!exe || !fs.existsSync(exe)) { console.error('✗ can’t find the app'); pr
 const MOD = process.platform === 'darwin' ? 'Meta' : 'Control';
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'bento-tour-'));
 fs.writeFileSync(path.join(profile, 'bento-store.json'), JSON.stringify({ 'bento.settings': { onboarded: true, model: 'claude:sonnet', lang: 'python' } }));
-const env = { ...process.env, BENTO_HIDDEN: '1', BENTO_USERDATA: profile, BENTO_PRETEND_MISSING: 'claude,codex,gh', BENTO_NO_GH: '1' };
+const env = { ...process.env, BENTO_HIDDEN: '1', BENTO_USERDATA: profile, BENTO_PRETEND_MISSING: 'claude,codex,antigravity,gemini,copilot,gh', BENTO_NO_GH: '1' };
 delete env.ELECTRON_RUN_AS_NODE; delete env.BENTO_DEV;
 const app = await electron.launch({ executablePath: exe, args: packaged ? [] : [root], env, timeout: 90000 });
 const p = await app.firstWindow(); await p.waitForSelector('.side', { timeout: 60000 });

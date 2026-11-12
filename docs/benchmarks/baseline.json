@@ -1,0 +1,50 @@
+{
+  "at": "2026-11-11T04:37:21.333Z",
+  "results": [
+    {
+      "model": "copilot:auto",
+      "lessonScore": 99,
+      "quality": 75
+    },
+    {
+      "model": "claude:sonnet",
+      "lessonScore": 100,
+      "quality": 85
+    },
+    {
+      "model": "claude:opus",
+      "lessonScore": 96,
+      "quality": 84
+    },
+    {
+      "model": "claude:haiku",
+      "lessonScore": 92,
+      "quality": 68
+    },
+    {
+      "model": "antigravity:flash-low",
+      "lessonScore": 92,
+      "quality": 68
+    },
+    {
+      "model": "antigravity:flash",
+      "lessonScore": 98,
+      "quality": 81
+    },
+    {
+      "model": "antigravity:flash-high",
+      "lessonScore": 99,
+      "quality": 79
+    },
+    {
+      "model": "antigravity:claude",
+      "lessonScore": 90,
+      "quality": 71
+    },
+    {
+      "model": "codex:default",
+      "lessonScore": 99,
+      "quality": 87
+    }
+  ]
+}

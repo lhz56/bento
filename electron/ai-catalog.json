@@ -1,0 +1,240 @@
+{
+  "about": "Every AI Bento can teach with. Read by the app (electron/providers.cjs) and by its screens (src/ai.js). Order is the order Bento prefers them in, and the order it falls back through when one can't answer. A model name like \"antigravity:flash\" can stand for whatever that tool's newest matching model is (see the adapter).",
+  "providers": [
+    {
+      "id": "claude",
+      "name": "Claude",
+      "maker": "Anthropic",
+      "bin": "claude",
+      "plan": "Your Claude plan (Pro or Max)",
+      "slug": "claude",
+      "color": "#D97757",
+      "install": [
+        {
+          "needs": null,
+          "cmd": "curl -fsSL https://claude.ai/install.sh | bash"
+        }
+      ],
+      "signIn": "claude",
+      "update": "claude update",
+      "default": "claude:sonnet",
+      "fast": "claude:haiku",
+      "models": [
+        {
+          "id": "claude:sonnet",
+          "label": "Claude Sonnet",
+          "short": "Sonnet",
+          "what": "The best all-rounder. Clear lessons and good code.",
+          "speed": 2,
+          "depth": 3,
+          "tag": "recommended"
+        },
+        {
+          "id": "claude:opus",
+          "label": "Claude Opus",
+          "short": "Opus",
+          "what": "Thinks hardest. Slower, and uses more of your plan.",
+          "speed": 1,
+          "depth": 4
+        },
+        {
+          "id": "claude:haiku",
+          "label": "Claude Haiku",
+          "short": "Haiku",
+          "what": "The fastest. Great for quick questions.",
+          "speed": 3,
+          "depth": 2
+        }
+      ]
+    },
+    {
+      "id": "codex",
+      "name": "ChatGPT",
+      "via": "Codex",
+      "maker": "OpenAI",
+      "bin": "codex",
+      "plan": "Your ChatGPT plan (Plus, Pro or Business), through Codex",
+      "slug": "",
+      "color": "#10A37F",
+      "install": [
+        {
+          "needs": "brew",
+          "cmd": "brew install --cask codex"
+        },
+        {
+          "needs": "npm",
+          "cmd": "npm install -g @openai/codex"
+        }
+      ],
+      "signIn": "codex login",
+      "update": "codex update",
+      "slow": true,
+      "default": "codex:default",
+      "fast": "codex:default",
+      "models": [
+        {
+          "id": "codex:default",
+          "label": "ChatGPT (Codex)",
+          "short": "ChatGPT",
+          "what": "OpenAI’s coding model, on your ChatGPT plan. Shows the lesson when it’s done.",
+          "speed": 2,
+          "depth": 3
+        }
+      ]
+    },
+    {
+      "id": "antigravity",
+      "name": "Gemini",
+      "via": "Antigravity",
+      "short": "Gemini",
+      "maker": "Google",
+      "bin": "agy",
+      "plan": "Your Google AI Pro plan (free for students), through Google’s Antigravity",
+      "slug": "googlegemini",
+      "color": "#4285F4",
+      "install": [],
+      "download": "https://antigravity.google",
+      "signIn": "agy",
+      "update": "agy update",
+      "default": "antigravity:flash-low",
+      "fast": "antigravity:flash-low",
+      "models": [
+        {
+          "id": "antigravity:flash-low",
+          "label": "Gemini Flash",
+          "short": "Flash",
+          "what": "Google’s Gemini on your AI Pro plan (free for students). Quick and good: a lesson in about 15 seconds.",
+          "speed": 3,
+          "depth": 3,
+          "tag": "recommended"
+        },
+        {
+          "id": "antigravity:flash",
+          "label": "Gemini Flash, careful",
+          "short": "Flash (careful)",
+          "what": "The same Flash, taking more care. About 40 seconds a lesson.",
+          "speed": 2,
+          "depth": 4
+        },
+        {
+          "id": "antigravity:flash-high",
+          "label": "Gemini Flash, deep",
+          "short": "Flash (deep)",
+          "what": "Thinks the longest: a minute or more a lesson. Rarely needed.",
+          "speed": 1,
+          "depth": 4
+        },
+        {
+          "id": "antigravity:claude",
+          "label": "Claude Sonnet, through Google",
+          "short": "Sonnet (Google)",
+          "what": "Claude, included in your Google plan through Antigravity.",
+          "speed": 2,
+          "depth": 3
+        }
+      ]
+    },
+    {
+      "id": "copilot",
+      "name": "GitHub Copilot",
+      "short": "Copilot",
+      "maker": "GitHub",
+      "bin": "copilot",
+      "plan": "Free with GitHub (a monthly allowance); more with Copilot Pro, free for students",
+      "slug": "githubcopilot",
+      "color": "#6E40C9",
+      "install": [
+        {
+          "needs": "brew",
+          "cmd": "brew install copilot-cli"
+        },
+        {
+          "needs": "npm",
+          "cmd": "npm install -g @github/copilot"
+        }
+      ],
+      "signIn": "copilot login",
+      "update": "copilot update",
+      "default": "copilot:auto",
+      "fast": "copilot:auto",
+      "models": [
+        {
+          "id": "copilot:auto",
+          "label": "GitHub Copilot",
+          "short": "Copilot",
+          "what": "Copilot picks the best model your plan includes. Each lesson uses one request from your monthly allowance.",
+          "speed": 2,
+          "depth": 3
+        }
+      ]
+    },
+    {
+      "id": "gemini",
+      "name": "Gemini API",
+      "maker": "Google",
+      "bin": "gemini",
+      "plan": "A Gemini API key (free from Google AI Studio, Flash only) or a Google Cloud project. Personal Google sign-in now goes through Antigravity instead.",
+      "slug": "googlegemini",
+      "color": "#8E75B2",
+      "install": [
+        {
+          "needs": "brew",
+          "cmd": "brew install gemini-cli"
+        },
+        {
+          "needs": "npm",
+          "cmd": "npm install -g @google/gemini-cli"
+        }
+      ],
+      "signIn": "gemini",
+      "update": "npm install -g @google/gemini-cli@latest",
+      "updateBrew": "brew upgrade gemini-cli",
+      "default": "gemini:auto",
+      "fast": "gemini:flash",
+      "models": [
+        {
+          "id": "gemini:auto",
+          "label": "Gemini API",
+          "short": "Gemini",
+          "what": "Google’s Gemini, picking the right model for each question.",
+          "speed": 2,
+          "depth": 3
+        },
+        {
+          "id": "gemini:pro",
+          "label": "Gemini Pro",
+          "short": "Gemini Pro",
+          "what": "Gemini’s deepest model. Slower, with a smaller allowance.",
+          "speed": 1,
+          "depth": 4
+        },
+        {
+          "id": "gemini:flash",
+          "label": "Gemini Flash",
+          "short": "Flash",
+          "what": "Gemini’s fast model. Great for quick questions.",
+          "speed": 3,
+          "depth": 2
+        }
+      ],
+      "short": "Gemini API",
+      "via": "Gemini CLI"
+    }
+  ],
+  "github": {
+    "id": "gh",
+    "name": "GitHub",
+    "bin": "gh",
+    "slug": "github",
+    "what": "Optional: your repos, private ones too, and a free sign-in for Copilot",
+    "install": [
+      {
+        "needs": "brew",
+        "cmd": "brew install gh"
+      }
+    ],
+    "download": "https://cli.github.com",
+    "signIn": "gh auth login",
+    "update": "brew upgrade gh"
+  }
+}

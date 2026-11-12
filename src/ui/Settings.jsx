@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { t, tx } from '../i18n.js';
 import { Seg } from './Home.jsx';
 import { MODELS } from './Side.jsx';
+import { PlanList, usePlans, AIMark } from './Plans.jsx';
 import { useDialog } from './a11y.js';
 
 // ⌘, : everything you can change, in one calm sheet.
@@ -23,16 +24,16 @@ export default function Settings({ packs = [], onAddPack, onRemovePack, onBackup
         <div className="set-row"><div><b>{t('Explain things in')}</b><span>Lessons, answers and pictures in your language. Code stays in English.</span></div>
           <select className="set-sel" aria-label={t('Explain things in')} value={settings.voice || 'English'} onChange={(e) => setSettings({ voice: e.target.value })}>{VOICES.map((v) => <option key={v} value={v}>{v}</option>)}</select></div>
         <div className="set-row"><div><b>{t('Programming language')}</b><span>You can switch any lesson with ⇄ later.</span></div><Seg value={settings.lang} options={[['python', 'Python'], ['javascript', 'JavaScript'], ['typescript', 'TypeScript'], ['html', 'Web page']]} onChange={(v) => setSettings({ lang: v })} /></div>
-        <div className="set-row col"><div><b>{t('Model')}</b><span>Runs on your own subscription. Sonnet: the best balance. Opus: deepest explanations, slower. Haiku: fastest. Codex: your ChatGPT plan. Quick answers always use a fast model from the same plan. If one hits its limit, Bento switches to the other for you.</span></div>
-          <div className="set-models">{avail.map(([k, l, p]) => <button key={k} className={settings.model === k ? 'on' : ''} onClick={() => setSettings({ model: k })}><span className={`mdot ${p}`} />{l}</button>)}{avail.length === 0 && <span className="muted">No AI found yet.</span>}</div>
+        <div className="set-row col"><div><b>{t('Model')}</b><span>{t('Runs on your own plan. Quick answers use a fast model from the same AI, and if one runs out, Bento asks the next one you have.')}</span></div>
+          <div className="set-models">{avail.map(([k, l, p]) => <button key={k} className={settings.model === k ? 'on' : ''} aria-pressed={settings.model === k} onClick={() => setSettings({ model: k })}><AIMark id={p} size={15} />{l}</button>)}{avail.length === 0 && <span className="muted">{t('No AI found yet.')}</span>}</div>
         </div>
         <div className="set-row col"><div><b>{t('Curious about')}</b><span>Picks the idea of the day and suggestions.</span></div>
           <div className="interests">{INTERESTS.map(([k, l]) => <button key={k} className={`int ${ints.includes(k) ? 'on' : ''}`} onClick={() => setSettings({ interests: ints.includes(k) ? ints.filter((x) => x !== k) : [...ints, k] })}>{l}</button>)}</div>
         </div>
-        <div className="set-row"><div><b>{t('Connections')}</b><span>Claude Code, Codex and GitHub on this Mac.</span></div><button className="btn ghost" onClick={onSetup}>{t('Check again')}</button></div>
+        <div className="set-row"><div><b>{t('Connections')}</b><span>{t('Claude, ChatGPT, Gemini, Copilot and GitHub on this Mac.')}</span></div><button className="btn ghost" onClick={onSetup}>{t('Check again')}</button></div>
         <div className="set-row"><div><b>{t('Your data')}</b><span>{lessonsCount} {lessonsCount === 1 ? 'lesson' : 'lessons'} and {wordsCount} {wordsCount === 1 ? 'word' : 'words'}, stored only on this Mac. A copy is kept every day for a week: Restore… opens them.</span></div><div className="set-btns"><button className="btn ghost" onClick={onOpenData}>{t('Show in Finder')}</button>{onBackup && <button className="btn ghost" onClick={async () => { const f = await onBackup(); if (f) setNote(`${t('Saved')} ${f.split('/').pop()}`); }}>{t('Back up…')}</button>}{onRestore && <button className="btn ghost" onClick={async () => { try { const n = await onRestore(); if (n != null) setNote(t('Restored. Everything from the backup is merged in.')); } catch (e) { setNote(String(e.message).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')); } }}>{t('Restore…')}</button>}</div></div>
         {note && <div className="set-note">{note}</div>}
-        {window.bento?.usage && <UsageRow />}
+        {window.bento?.usage && <UsageRow providers={providers} />}
         <CheckRow />
         {onAddPack && <PackRow packs={packs} onAddPack={onAddPack} onRemovePack={onRemovePack} />}
         <div className="set-row"><div><b>{t('Open in Bento from your browser')}</b><span>{t('Drag this button to your bookmarks bar. On any GitHub page or website, click it to take it apart in Bento.')}</span></div><a className="btn ghost bookmarklet" href={"javascript:location.href='bento://open?u='+encodeURIComponent(location.href)"} onClick={(e) => e.preventDefault()} draggable title={t('Drag me to your bookmarks bar')}>⤓ {t('Open in Bento')}</a></div>
@@ -72,15 +73,19 @@ function CheckRow() {
 }
 
 // The last 7 days of AI use, and the saved answers that made repeats free
-function UsageRow() {
+function UsageRow({ providers }) {
   const [u, setU] = useState(null); const [cleared, setCleared] = useState(false);
+  const { limits, refresh } = usePlans();
   useEffect(() => { window.bento.usage().then(setU).catch(() => {}); }, [cleared]);
+  useEffect(() => { refresh(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   if (!u) return null;
   const tot = (d) => d.lessons + d.quick + d.other; const max = Math.max(1, ...u.days.map((d) => tot(d) + d.saved));
   const week = u.days.reduce((s, d) => ({ n: s.n + tot(d), saved: s.saved + d.saved, tokens: s.tokens + d.tokens }), { n: 0, saved: 0, tokens: 0 });
   return (
     <div className="set-row col">
-      <div><b>{t('AI usage')}</b><span>{week.n} {week.n === 1 ? t('request to your AI this week') : t('requests to your AI this week')}, {t('about')} {Math.round(week.tokens / 1000).toLocaleString()}k {t('tokens')}. {week.saved} {week.saved === 1 ? t('more was answered from a saved copy, for free.') : t('more were answered from saved copies, for free.')}</span></div>
+      <div><b>{t('Your plans')}</b><span>{t('How full each plan is, as the AI itself counts it. Looking never uses your plan.')}</span></div>
+      <PlanList providers={providers} limits={limits} usage={u} />
+      <div className="set-sub"><b>{t('What Bento used')}</b><span>{week.n} {week.n === 1 ? t('request to your AI this week') : t('requests to your AI this week')}, {t('about')} {Math.round(week.tokens / 1000).toLocaleString()}k {t('tokens')}. {week.saved} {week.saved === 1 ? t('more was answered from a saved copy, for free.') : t('more were answered from saved copies, for free.')}</span></div>
       <div className="uchart" role="img" aria-label={u.days.map((d) => `${d.d}: ${d.lessons} lessons, ${d.quick} quick, ${d.other} readings, ${d.saved} saved`).join('; ')}>
         {u.days.map((d) => (
           <div key={d.d} className="uc-day">

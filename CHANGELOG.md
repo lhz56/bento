@@ -14,6 +14,14 @@ The first release for the Mac: signed, notarized, and it keeps itself up to date
 - Lessons Bento already has open instantly, from ⌘K or the ask box, without using your AI.
 - Seven paths to follow in order, four of them new: *Data and SQL*, *How teams build software*, *Apps for millions* and *Building with AI*. Each one ends in a playground, a clever idea or a real app, and every lesson on them opens instantly. Wherever a stop takes you (a lesson, a playground, a clever idea) the path comes along, with the next stop one click away, and your map points to the path lesson that teaches each skill.
 
+**Lessons that hold up, whichever AI writes them**
+- Every AI Bento offers was tested on the same six lessons and graded blind by two AIs from different companies. What the grading found is fixed for all of them:
+  - Lessons draw their idea now, not just print it: a recursion lesson shows its calls as a tree, a promise lesson a table of what happened when.
+  - JavaScript waits for timers and promises, so an async lesson shows its whole story instead of stopping after the first line. A timer that repeats forever is stopped after a few seconds, and says so.
+  - Python's `asyncio` works, and a tree written as dictionaries is drawn as a tree.
+  - The plain English beside each line stays on its own line: if an AI's list slips by a line, Bento writes it again, line by line.
+  - Links and margin notes that an AI counted wrong (pointing at a blank line, or one line off) are moved back to the code they name, on web pages too.
+
 **See what you know**
 - Your map: every skill as a tile, filled in only by evidence (questions asked, code run, checks right, puzzles solved). Quizzes are optional.
 
@@ -23,4 +31,6 @@ The first release for the Mac: signed, notarized, and it keeps itself up to date
 
 **Safe by default**
 - Your AI can only write text: no tools, no plugins, none of your Claude settings. Lesson code can't reach your Mac or home network.
-- Bento finds Claude Code and Codex however you installed them, and tells you when one needs updating.
+- Teach with whichever AI you have: Claude, ChatGPT (through Codex), Gemini on a Google AI Pro plan (free for students, through Antigravity), GitHub Copilot (free with GitHub) or the Gemini API. One click installs or signs in to any of them, in Terminal, where you see what runs. When one runs out, Bento asks the next.
+- See how much of each plan you've used, the way the plan counts it (“54% of this week”, “1 of 200 this month”), with when it resets and what Bento used of it today. Home warns you before a plan runs out.
+- Bento finds each AI tool however you installed it, and tells you when one needs updating.

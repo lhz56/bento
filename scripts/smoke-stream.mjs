@@ -27,7 +27,7 @@ if (!exe || !fs.existsSync(exe)) { console.error('✗ can’t find the app'); pr
 
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'bento-stream-'));
 fs.writeFileSync(path.join(profile, 'bento-store.json'), JSON.stringify({ 'bento.settings': { onboarded: true, model: 'claude:sonnet', lang: 'python', level: 'student' } }));
-const env = { ...process.env, BENTO_HIDDEN: '1', BENTO_USERDATA: profile, BENTO_FAKE_AI: path.join(root, 'test/fixtures/fake-claude.mjs'), BENTO_PRETEND_MISSING: 'codex,gh', BENTO_NO_GH: '1', FAKE_AI_THINK_MS: '2500', FAKE_AI_STEP_MS: '90' };
+const env = { ...process.env, BENTO_HIDDEN: '1', BENTO_USERDATA: profile, BENTO_FAKE_AI: path.join(root, 'test/fixtures/fake-claude.mjs'), BENTO_PRETEND_MISSING: 'codex,antigravity,gemini,copilot,gh', BENTO_NO_GH: '1', FAKE_AI_THINK_MS: '2500', FAKE_AI_STEP_MS: '90' };
 delete env.ELECTRON_RUN_AS_NODE; delete env.BENTO_DEV;
 const app = await electron.launch({ executablePath: exe, args: packaged ? [] : [root], env, timeout: 90000 });
 const p = await app.firstWindow();

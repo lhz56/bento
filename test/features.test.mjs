@@ -4,6 +4,34 @@ globalThis.self = globalThis.self || {};
 let fail = 0;
 const check = (ok, label, extra = '') => { if (!ok) fail++; console.log(`${ok ? '✓' : '✗'} ${label}${ok ? '' : ` → ${extra}`}`); };
 
+// timers and promises in JavaScript: the run waits for them, so a promise lesson shows its whole story
+{ const { handle } = await import('../src/runtime/jsWorker.js');
+  const dinner = 'function cook(dish, ms) {\n  return new Promise((resolve) => {\n    setTimeout(() => resolve(`${dish} ready`), ms);\n  });\n}\n\nasync function dinner() {\n  console.log("Start cooking");\n  const soup = await cook("soup", 300);\n  console.log(soup);\n  const [rice, tea] = await Promise.all([cook("rice", 200), cook("tea", 100)]);\n  console.log(rice, "+", tea);\n  return "Dinner served!";\n}\n\ndinner().then((msg) => console.log(msg));\nconsole.log("Meanwhile, setting the table...");';
+  const r = await handle({ id: 11, mode: 'run', code: dinner });
+  check(r.logs.map((l) => l.s).join(' | ') === 'Start cooking | Meanwhile, setting the table... | soup ready | rice ready + tea ready | Dinner served!' && !r.error, 'a promise lesson prints everything, in order, after its timers fire', r.logs.map((l) => l.s).join(' | '));
+  const t0 = Date.now(); const rep = await handle({ id: 12, mode: 'run', code: 'let n = 0;\nsetInterval(() => { n++; }, 50);\nconsole.log("ticking");' });
+  check(Date.now() - t0 < 6000 && /stopped a timer that repeats/.test(rep.logs.map((l) => l.s).join(' ')) && !rep.error, 'a timer that repeats forever is stopped after a few seconds, and says so', `${Date.now() - t0} ms ${JSON.stringify(rep.logs)}`);
+  const late = await handle({ id: 13, mode: 'run', code: 'console.log("first");\nsetTimeout(() => {\n  null.boom;\n}, 30);' });
+  check(late.error && /TypeError/.test(late.error.msg) && late.error.line === 3 && late.logs[0]?.s === 'first', 'an error inside a timer is the run’s error, on its own line', JSON.stringify(late.error));
+  const off = await handle({ id: 14, mode: 'run', code: 'const t = setTimeout(() => console.log("never"), 100);\nclearTimeout(t);\nconsole.log("done");' });
+  check(off.logs.map((l) => l.s).join('|') === 'done', 'a cleared timer never fires, and the run doesn’t wait for it', JSON.stringify(off.logs)); }
+
+// show() in Python draws a tree written as dicts (the way most lessons write one) as a tree, like JavaScript does; a dict
+// that merely has "left" and "right" numbers stays a table. Runs the runner's own Python functions, where Python is installed.
+{ const { spawnSync } = await import('node:child_process'); const fs = await import('node:fs');
+  const src = fs.readFileSync(new URL('../src/runtime/pyWorker.js', import.meta.url), 'utf8');
+  const code = src.slice(src.indexOf('# a tree node: an object'), src.indexOf('def show(x, label=None):'));
+  const py = ['python3', 'python'].find((c) => spawnSync(c, ['--version']).status === 0);
+  if (py) {
+    const r = spawnSync(py, ['-I', '-c', `import json\n${code}\nt = {'value': 'top', 'left': {'value': 'a', 'left': None, 'right': None}, 'right': {'value': 'b', 'left': None, 'right': None}}\nprint(json.dumps([_viz(t)['type'], _viz(t)['root']['kids'][1]['v'], _viz({'name': 'r', 'children': ['x', 1, 1]})['root']['kids'][2]['v'], _viz({'left': 3, 'right': 5})['type'], _viz({'value': 'f(2)', 'left': {'value': 'f(1)'}})['type'], _viz({'left': None})['type']]))`], { encoding: 'utf8' });
+    check(r.stdout.trim() === '["tree", "b", "1", "table", "tree", "table"]', 'Python: a tree written as dicts is drawn as a tree (a one-child chain too); {"left": 3, "right": 5} stays a table', r.stdout + r.stderr);
+  } }
+
+// show() in JavaScript: a tree (a one-child chain too) is drawn as a tree; an object with plain-number left/right is a table
+{ const { handle } = await import('../src/runtime/jsWorker.js');
+  const r = await handle({ id: 21, mode: 'run', code: 'show({ value: "f(3)", left: { value: "f(2)", left: { value: "f(1)" } } });\nshow({ value: 8, left: { value: 3, left: null, right: null }, right: null });\nshow({ left: 3, right: 5 });' });
+  check(r.visuals.map((v) => v.type).join(',') === 'tree,tree,table' && r.visuals[0].root.kids[0].kids[0].v === 'f(1)', 'JavaScript: trees and one-child chains are drawn as trees; {left: 3, right: 5} is a table', r.visuals.map((v) => v.type).join(',')); }
+
 // input()/prompt() in JavaScript: answers come in; with none left, the run asks
 { const { handle } = await import('../src/runtime/jsWorker.js');
   const code = 'const name = prompt("Name? ");\nconst age = Number(prompt("Age? "));\nconsole.log(name + " will be " + (age + 1));';
@@ -98,6 +126,33 @@ const check = (ok, label, extra = '') => { if (!ok) fail++; console.log(`${ok ? 
       { t: 'quiz', q: 'What does it print?', choices: ['5', '6', '7'], answer: 2, why: 'Because 1+2+3 is 7.' },
       { t: 'quiz', q: 'broken', choices: ['only one'], answer: 0 }] };
   const loc = V.localChecks(L);
+  // line links that slipped (counted wrong by the AI) are moved back; links that describe, or point well, stay put
+  { const code = 'function brew(name, ms) {\n  return new Promise((resolve) => setTimeout(() => resolve(name), ms));\n}\n\nconsole.log("1. ordering");\n\nbrew("Latte", 300).then(msg => console.log("3. " + msg));\n\nasync function morning() {\n  try {\n    const a = await brew("Espresso", 200);\n    console.log("4. " + a);\n  } catch (err) {}\n}';
+    const r = V.fixLinks(code, '[[4|Step 1]] orders, [[6|the latte]] uses [[6|then()]], [[8|the async function]] waits at [[10|await]]. [[7|The latte line]] and [[9-11|the morning]] are fine.');
+    check(r.md === '[[5|Step 1]] orders, [[7|the latte]] uses [[7|then()]], [[9|the async function]] waits at [[11|await]]. [[7|The latte line]] and [[9-11|the morning]] are fine.', 'line links that slipped onto a blank line, or off their code, are moved back; good ones stay', r.md);
+    const fs = await import('node:fs'); let moved = 0, paras = 0;
+    for (const f of ['path-prebuilt.json', 'ideas-prebuilt.json', 'sims-prebuilt.json']) for (const P of Object.values(JSON.parse(fs.readFileSync(new URL(`../src/${f}`, import.meta.url), 'utf8')))) for (const b of P.story || []) if (b.t === 'p' && b.md && P.code && !P.steps?.length) { paras++; moved += V.fixLinks(P.code, b.md).moved.length; }
+    check(paras > 400 && moved === 0, `the link repair leaves every hand-checked lesson alone (${paras} paragraphs)`, `${moved} moved`);
+    let nMoved = 0, nNotes = 0;
+    for (const f of ['path-prebuilt.json', 'ideas-prebuilt.json', 'sims-prebuilt.json']) for (const P of Object.values(JSON.parse(fs.readFileSync(new URL(`../src/${f}`, import.meta.url), 'utf8')))) if (P.code && P.notes?.length && !P.steps?.length) { nNotes += P.notes.length; nMoved += V.fixNotes(P.code, P.notes).moved.length; }
+    const nn = V.fixNotes(code, [{ from: 4, to: 4, label: 'the first log', text: '' }, { from: 10, to: 10, label: 'await()', text: '' }, { from: 9, to: 9, label: 'the async part', text: '' }]);
+    check(nn.notes.map((x) => x.from).join(',') === '5,11,9' && nMoved === 0 && nNotes > 100, `margin notes on blank lines, or off their code, are moved back; every hand-checked note stays put (${nNotes})`, `${nn.notes.map((x) => x.from)} · ${nMoved} hand-checked moved`);
+    const page = V.tidyLesson({ code: '<!doctype html>\n<p>hi</p>', lang: 'html', story: [{ t: 'p', md: 'See [[9|the end]].' }], notes: [{ from: 37, to: 39, label: 'x', text: 'y' }], pseudo: [] });
+    check(page.notes?.length === 0 && page.story?.[0].md === 'See the end.', 'a web page’s notes and links past the end are dropped when it finishes (Bento never runs pages)', JSON.stringify(page));
+    const T = V.tidyLesson({ code, pseudo: ['x'], story: [{ t: 'p', md: 'See [[10|await]].' }] });
+    check(T.pseudo?.length === 0 && T.story[0].md === 'See [[11|await]].', 'a finished lesson is tidied: slipped plain English cleared, slipped links moved back', JSON.stringify(T)); }
+  // plain English that slipped off its lines (one missing, so every later line explains the wrong code) is caught;
+  // English that lines up passes, with blank comments, closing brackets and tags, and a trailing blank either way
+  { const code = 'def find(items, x):\n    low = 0\n\n    while low < 3:\n        if items[low] == x:\n            return low\n        low += 1\n\n    return -1';
+    const good = ['To find x in items:', 'Start at the first spot', '', 'Keep going while there are spots', 'Is this the one?', 'Then say where it is', 'Move to the next spot', '', 'Not found'];
+    const slipped = ['To find x in items:', 'Start at the first spot', '', 'Keep going while there are spots', 'Is this the one? Then say where', 'Move to the next spot', '', 'Not found'];
+    const page = '<!doctype html>\n<html>\n<body>\n  <!-- the count -->\n  <p id="n">0</p>\n  <script>\n    let n = 0;\n    document.body.onclick = () => {\n      n += 1;\n    };\n  </script>\n</body>\n</html>';
+    const pageEn = ['A web page', 'The page starts', 'What you see', '', 'The count, at zero', 'The page’s code', 'Start counting at zero', 'On every click:', 'add one', '', '', '', ''];
+    check(V.pseudoFits(code, good) && V.pseudoFits(code, [...good, '']) && V.pseudoFits(page, pageEn) && V.pseudoFits(page, pageEn.slice(0, -1)), 'plain English that lines up with its code passes (closing tags, comments and a trailing blank are fine)', '');
+    check(!V.pseudoFits(code, slipped) && !V.pseudoFits(code, good.slice(0, 6)) && !V.pseudoFits(code, []), 'plain English that slipped a line, or is far too short, is caught', '');
+    check(V.localChecks({ code, pseudo: slipped, story: [], notes: [] }).patch.pseudo?.length === 0, 'Bento’s check clears slipped plain English so it’s written again', '');
+    const { quickPrompts } = await import('../src/lesson.js'); const qp = quickPrompts.pseudo({ code, lang: 'Python', only: [5, 6] });
+    check(/for lines 5, 6 of this/.test(qp) && qp.includes('6|             return low') && /exactly these keys: 5, 6/.test(qp), 'plain English is asked for by line number, only for the lines without it', qp.slice(0, 120)); }
   check(loc.patch.story && !loc.patch.story[0].md.includes('[[12|') && loc.patch.story[0].md.includes('[[4|print]]'), 'links to lines that don’t exist become plain text; good links stay');
   check(loc.patch.story.filter((b) => b.t === 'quiz').length === 1, 'a quiz without a valid answer is removed');
   check(loc.patch.notes?.length === 1, 'notes pointing past the code are dropped');
@@ -250,5 +305,85 @@ if (process.platform !== 'win32') { const { createRequire } = await import('node
   check(!missing.length, 'every lesson on a path ships pre-written', `not written yet: ${missing.join(' ')}`);
   const bad = Object.entries(PRE).filter(([, L]) => !L.story?.length || !(L.code || L.steps?.length) || (L.code && L.pseudo?.length !== L.code.split('\n').length)).map(([k]) => k);
   check(!bad.length, 'each pre-written path lesson has a story, code, and a plain-English line for every line of code', bad.join(' ')); }
+
+// Every AI Bento can teach with: run exactly as Bento runs it (its pretend twin refuses unless tools, plugins and
+// personal settings are off), its stream read back into the same lesson, its errors explained in its own words
+{ const { createRequire } = await import('node:module'); const P = createRequire(import.meta.url)('../electron/providers.cjs');
+  const fs = await import('node:fs'); const os = await import('node:os'); const path = await import('node:path'); const { spawnSync } = await import('node:child_process');
+  const fake = new URL('./fixtures/fake-ai.mjs', import.meta.url).pathname;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bento-ai-')); const files = P.setupFiles(dir);
+  P._resetCodexFeatures(['shell_tool', 'unified_exec', 'apps', 'plugins', 'browser_use', 'computer_use', 'view_image', 'image_generation']);
+  const sysFile = path.join(dir, 'instructions.md'); fs.writeFileSync(sysFile, 'You teach by showing short, runnable code.');
+  P._setAgyModels(['gemini-3.8-flash-medium', 'gemini-3.8-flash-low']);
+  for (const id of P.IDS) {
+    const b = P.ADAPTERS[id].build({ name: P.parseModel(P.BY[id].default).name, system: 'You teach by showing short, runnable code.', prompt: 'How does a hash map work?', sysFile, files, token: id === 'copilot' ? 'gho_pretend' : null });
+    const env = { ...process.env, ...b.env, FAKE_AI_THINK_MS: '1', FAKE_AI_STEP_MS: '1' }; for (const [k, v] of Object.entries(b.env || {})) if (v === undefined) delete env[k];
+    const r = spawnSync(process.execPath, [fake, '--as', id, ...b.args], { input: b.stdin ?? '', env, encoding: 'utf8' });
+    let full = '', tokens = null, err = ''; const seen = new Set();
+    const sink = { text: (t) => { full += t; }, think: () => {}, tokens: (i, o) => { tokens = { i, o }; }, error: (m) => { err = m; }, limits: () => {}, requests: () => {}, full: () => full, seen: (x, c) => { if (c) return seen.has(x); seen.add(x); return false; } };
+    for (const line of r.stdout.split('\n')) { let o; try { o = JSON.parse(line); } catch { continue; } P.ADAPTERS[id].parse(o, sink); }
+    const kinds = full.split('\n').map((l) => { try { return JSON.parse(l).t; } catch { return null; } }).filter(Boolean);
+    check(r.status === 0 && kinds[0] === 'title' && kinds.includes('code') && !err, `${P.label(id)}: runs as a writer only, and its stream becomes the whole lesson`, (r.stderr || err).slice(0, 160) || kinds.join(','));
+    if (id !== 'copilot') { // Copilot shares no token counts (Bento estimates them) and takes its request only as -p
+      check(!!tokens, `${P.label(id)}: token counts are read`, '');
+      check(!b.args.some((x) => /hash map work/.test(x)), `${P.label(id)}: the request never goes on the command line`, b.args.join(' ').slice(0, 120));
+    }
+  }
+  // a name Codex doesn't know is never passed (a real one stops with an error)
+  P._resetCodexFeatures(['shell_tool']); const cx = P.ADAPTERS.codex.build({ name: 'default', system: 's', prompt: 'p' });
+  check(cx.args.filter((x) => x === '--disable').length === 1 && cx.args.includes('shell_tool'), 'Codex: only the features it has are switched off', cx.args.join(' '));
+  // Copilot: a personal allow-everything setting never applies; a lent GitHub sign-in gets a home folder of its own
+  const cp = P.ADAPTERS.copilot.build({ name: 'auto', system: 's', prompt: 'p', files, token: 'gho_x' });
+  check('COPILOT_ALLOW_ALL' in cp.env && cp.env.COPILOT_ALLOW_ALL === undefined && cp.env.COPILOT_HOME === files.copilotHome, 'Copilot: no allow-all, and lessons stay out of your Copilot history', JSON.stringify(cp.env));
+  // plan limits: Claude's fraction becomes a percentage; whole percentages are never read as fractions
+  const cl = P.claudeLimits({ status: 'allowed_warning', unifiedWindows: { five_hour: { utilization: 0.86, resetsAt: 1800000000, status: 'allowed_warning' } } });
+  check(cl.windows[0].used === 86 && cl.windows[0].warn && cl.windows[0].label === '5-hour window', 'Claude’s limit reading becomes “86% of the 5-hour window”', JSON.stringify(cl));
+  // errors in each AI's own words, with its own command
+  check(/Gemini API key.*Antigravity/.test(P.humanize('gemini', 'Please set an Auth method in your settings.json')), 'Gemini CLI without a key: says how to set one up, or to use Antigravity', P.humanize('gemini', 'Please set an Auth method'));
+  check(/through Antigravity/.test(P.humanize('gemini', 'IneligibleTierError: This client is no longer supported for Gemini Code Assist for individuals. Please migrate to the Antigravity suite')), 'Gemini CLI refused for a personal account: points to Antigravity', '');
+  check(/isn’t signed in.*`agy`/.test(P.humanize('antigravity', 'Error: Please sign in to view available models.')), 'Antigravity signed out: says how to sign in', '');
+  // Gemini CLI: a personal Google sign-in is refused by Google now, so it only counts as ready with a Cloud project
+  { const home = fs.mkdtempSync(path.join(os.tmpdir(), 'bento-gem-')); const was = process.env.GEMINI_CLI_HOME;
+    process.env.GEMINI_CLI_HOME = home; fs.mkdirSync(path.join(home, '.gemini')); fs.writeFileSync(path.join(home, '.gemini', 'settings.json'), JSON.stringify({ security: { auth: { selectedType: 'oauth-personal' } } })); fs.writeFileSync(path.join(home, '.gemini', 'oauth_creds.json'), '{}');
+    const a = await P.ADAPTERS.gemini.auth({ env: {} }), b = await P.ADAPTERS.gemini.auth({ env: { GOOGLE_CLOUD_PROJECT: 'my-proj' } }), c = await P.ADAPTERS.gemini.auth({ env: { GEMINI_API_KEY: 'k' } });
+    check(!a.loggedIn && a.personal && b.loggedIn && b.method === 'Google Cloud' && c.loggedIn && c.method === 'API key', 'Gemini CLI: a personal Google sign-in isn’t ready (Google refuses it); a Cloud project or an API key is', JSON.stringify([a, b, c]));
+    if (was == null) delete process.env.GEMINI_CLI_HOME; else process.env.GEMINI_CLI_HOME = was; fs.rmSync(home, { recursive: true, force: true }); }
+  // Antigravity: model names stand for the newest matching model this account offers
+  P._setAgyModels(['gemini-3.5-flash-medium', 'gemini-3.8-flash-medium', 'gemini-3.8-flash-low', 'claude-sonnet-4-6']);
+  check(P.agyModel('flash') === 'gemini-3.8-flash-medium' && P.agyModel('flash-low') === 'gemini-3.8-flash-low' && P.agyModel('claude') === 'claude-sonnet-4-6' && P.agyModel('flash-high') === null, 'Antigravity: “flash” means the newest Flash this account has', '');
+  // only rule kinds Antigravity knows (one it doesn't would make it drop every rule), covering every kind there is
+  check(['command', 'write_file', 'read_file', 'mcp', 'read_url', 'execute_url', 'download_url'].every((k) => P.AGY_DENY.includes(`${k}(*)`)) && P.AGY_DENY.length === 7 && P.AGY_SETTINGS.allowNonWorkspaceAccess === false, 'Antigravity: every kind of tool is denied, with only rule kinds it accepts', JSON.stringify(P.AGY_DENY));
+  // the moment it reaches for any tool, Bento stops it
+  { const b = P.ADAPTERS.antigravity.build({ name: 'flash', system: 's', prompt: 'p' }); let stopped = null;
+    const r = spawnSync(process.execPath, [fake, '--as', 'agy', ...b.args], { input: b.stdin, env: { ...process.env, FAKE_AI_AGY_TOOL: 'search_web', FAKE_AI_THINK_MS: '1' }, encoding: 'utf8', timeout: 8000 });
+    const sink = { text() {}, think() {}, tokens() {}, error() {}, limits() {}, requests() {}, full: () => '', seen: () => false, abort: (m) => { stopped ||= m; } };
+    for (const line of r.stdout.split('\n')) { let o; try { o = JSON.parse(line); } catch { continue; } P.ADAPTERS.antigravity.parse(o, sink); }
+    check(/search_web.*Bento stopped it/.test(stopped || ''), 'Antigravity reaching for a tool (web search here) is stopped at once', stopped || 'not stopped'); }
+  check(/github\.com\/settings\/copilot/.test(P.humanize('copilot', 'Error: No Copilot access for this account')), 'Copilot without a plan: says how to turn on Copilot Free', '');
+  check(/version Bento can’t talk to yet.*codex update/.test(P.humanize('codex', 'Error: Unknown feature flag: shell_tool')), 'an outdated Codex: says how to update it', P.humanize('codex', 'Error: Unknown feature flag: x'));
+  check(P.parseModel('gemini:flash; rm -rf /').id === 'gemini:auto' && P.parseModel('nobody:x').prov === 'claude', 'odd model names never reach a command line', JSON.stringify(P.parseModel('gemini:flash; rm -rf /')));
+  fs.rmSync(dir, { recursive: true, force: true }); }
+
+// Reading a lesson as it streams, forgiving the slips models make: a comma after each block (Claude Haiku does this
+// on some replies), the whole lesson in [ ], fences, a block over several lines, and one broken block among good ones
+{ const { ndjsonParser } = await import('../src/lesson.js');
+  const read = (text, chunk = 7) => { const out = []; const p = ndjsonParser((b) => out.push(b)); for (let i = 0; i < text.length; i += chunk) p.push(text.slice(i, i + chunk)); p.end(); return out; };
+  const blocks = [{ t: 'title', title: 'Binary search' }, { t: 'p', md: 'Halve it, every time.' }, { t: 'code', file: 'b.py', code: 'x = 1\nprint(x)' }];
+  const kinds = (bs) => bs.map((b) => b.t).join(',');
+  check(kinds(read(blocks.map((b) => JSON.stringify(b)).join('\n'))) === 'title,p,code', 'clean lines are read', '');
+  check(kinds(read(blocks.map((b) => JSON.stringify(b) + ',').join('\n'))) === 'title,p,code', 'a comma after each block is forgiven', kinds(read(blocks.map((b) => JSON.stringify(b) + ',').join('\n'))));
+  check(kinds(read('[\n' + blocks.map((b) => JSON.stringify(b)).join(',\n') + '\n]')) === 'title,p,code', 'a lesson wrapped in [ ] is read', '');
+  check(kinds(read('```json\n' + blocks.map((b) => JSON.stringify(b)).join('\n') + '\n```')) === 'title,p,code', 'code fences around it are ignored', '');
+  check(kinds(read([JSON.stringify(blocks[0]), JSON.stringify(blocks[1], null, 2), JSON.stringify(blocks[2])].join('\n'))) === 'title,p,code', 'a block spread over several lines is read', '');
+  check(kinds(read([JSON.stringify(blocks[0]), '{"t":"p","md":"oops, cut off', JSON.stringify(blocks[1]), JSON.stringify(blocks[2])].join('\n'))) === 'title,p,code', 'one broken block doesn’t swallow the rest of the lesson', '');
+  const notes = { t: 'notes', items: [{ from: 1, to: 2, label: 'a', text: 'b' }] };
+  check(kinds(read(JSON.stringify(notes, null, 2))) === 'notes' && read(JSON.stringify(notes, null, 2))[0].items.length === 1, 'a spread-out block with objects inside stays one block', JSON.stringify(read(JSON.stringify(notes, null, 2)))); }
+// code a model wrote by hand, not quite JSON: it's mended, never dropped (a lost code block leaves a lesson pointing at nothing)
+{ const { ndjsonParser } = await import('../src/lesson.js');
+  const codeOf = (text) => { const got = []; const p = ndjsonParser((b) => got.push(b)); p.push('{"t":"title","title":"T"}\n' + text + '\n{"t":"pseudo","lines":["a"]}\n'); p.end(); return got.find((b) => b.t === 'code')?.code; };
+  check(codeOf(String.raw`{"t":"code","file":"a.py","code":"import re\nprint(re.findall(r'\d+', 'a1'), 'it\'s')"}`) === String.raw`import re` + '\n' + String.raw`print(re.findall(r'\d+', 'a1'), 'it\'s')`, 'a Python backslash left as it is (\\d, \\\') doesn’t lose the code', codeOf(String.raw`{"t":"code","file":"a.py","code":"print(r'\d')"}`));
+  const five = codeOf('{"t":"code","file":"a.py","code":"def f(n):\n    if n == 0:\n        return 1\n    return n * f(n - 1)\nprint(f(4))"}');
+  check(five === 'def f(n):\n    if n == 0:\n        return 1\n    return n * f(n - 1)\nprint(f(4))', 'code spread over many lines with real breaks is read whole, indentation kept', JSON.stringify(five));
+  check(codeOf('{"t":"code","file":"a.py","code":"x = 1\tprint(x)"}') === 'x = 1\tprint(x)', 'a raw tab inside the code is kept', ''); }
 
 process.exit(fail ? 1 : 0);

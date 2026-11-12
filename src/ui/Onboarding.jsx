@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react';
 import Brand from './Brand.jsx';
+import { PROVIDERS, GITHUB } from '../ai.js';
 
 // First run: say what Bento is, find the AI subscriptions already on this Mac, learn a little about the person.
 // Nothing gets installed or signed in for them; we only look, and show the exact command when something is missing.
 
-// Install commands that work on this Mac: Claude Code's own installer needs nothing else; Codex and GitHub's tool use
-// Homebrew or npm when you have them (scan.tools says which), or point at the download page.
-const CONNS = [
-  { id: 'claude', name: 'Claude Code', slug: 'claude', what: 'Your Claude subscription (Pro or Max)', install: () => ({ cmd: 'curl -fsSL https://claude.ai/install.sh | bash' }), update: () => 'claude update', login: 'claude', loginHint: 'Run it once in Terminal and sign in with your Claude account.' },
-  { id: 'codex', name: 'Codex', slug: '', color: '#111', what: 'Your ChatGPT subscription (Plus or Pro)', install: (tl) => (tl?.brew ? { cmd: 'brew install --cask codex' } : tl?.npm ? { cmd: 'npm install -g @openai/codex' } : { cmd: 'npm install -g @openai/codex', need: ['Needs Node.js first', 'https://nodejs.org/en/download'] }), update: (tl) => (tl?.brew ? 'brew upgrade --cask codex' : 'npm install -g @openai/codex@latest'), login: 'codex login', loginHint: 'Signs in with your ChatGPT account in the browser.' },
-  { id: 'gh', name: 'GitHub', slug: 'github', what: 'Optional: your repos, private ones too', install: (tl) => (tl?.brew ? { cmd: 'brew install gh' } : { link: ['Download the installer', 'https://cli.github.com'] }), update: (tl) => (tl?.brew ? 'brew upgrade gh' : 'gh --version'), login: 'gh auth login', loginHint: 'Lets Bento read your repos and fork projects you like.' },
-];
+// Every AI Bento can teach with (electron/ai-catalog.json), then GitHub. Install commands that work on this Mac:
+// Homebrew or npm when you have them (scan.tools says which); Claude Code's own installer needs nothing else.
+const CONNS = [...PROVIDERS.map((p) => ({ ...p, ai: true })), { ...GITHUB, ai: false }];
+const howTo = (c, state, scan) => {
+  const tl = scan?.tools || {}; const r = scan?.[c.id] || {};
+  if (state === 'missing') { const i = c.install.find((x) => !x.needs || tl[x.needs]); return i ? { action: 'install', cmd: i.cmd } : { link: c.download || 'https://nodejs.org/en/download', need: c.download ? null : 'Needs Node.js first' }; }
+  if (state === 'old') return { action: 'update', cmd: (r.brew && c.updateBrew) || c.update };
+  if (state === 'login') return { action: 'signIn', cmd: c.signIn };
+  return null;
+};
+const VERB = { install: 'Install', update: 'Update', signIn: 'Sign in' };
+const HINT = { claude: 'Opens Claude Code in Terminal. Type /login if it asks, then sign in with your Claude account.', codex: 'Signs in with your ChatGPT account in the browser.', antigravity: 'Opens Antigravity in Terminal: sign in with the Google account that has your AI Pro plan, then close Terminal.', gemini: 'Opens Gemini in Terminal. Use a Gemini API key (free from Google AI Studio) or a Google Cloud project: Google no longer lets personal accounts sign in here.', copilot: 'Signs in with your GitHub account in the browser. Copilot Free is included with GitHub.', gh: 'Lets Bento read your repos, and gives Copilot a sign-in.' };
 const LEVELS = [['kid', 'Totally new', 'I’ve never written code. Explain everything with everyday examples.', '🌱'], ['student', 'I know a little', 'I’ve seen some code. Teach me the real words as we go.', '🌿'], ['engineer', 'I write code', 'Skip the basics, show me trade-offs and how pros do it.', '🌳']];
 const INTERESTS = [['games', 'Games', '🎮'], ['web', 'Websites', '🌐'], ['ai', 'AI', '✳'], ['data', 'Data', '📊'], ['bots', 'Bots', '🤖'], ['apps', 'Phone apps', '📱'], ['art', 'Art & visuals', '🎨'], ['systems', 'How big apps scale', '🏙']];
 
@@ -28,12 +34,15 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
   // back from Terminal after installing something: look again by itself
   useEffect(() => {
     if (step !== 1) return;
-    const back = () => { if (!scanning && !(ready('claude') && ready('codex') && ready('gh'))) doScan(); };
+    const back = () => { setRunning(null); if (!scanning) doScan(); };
     addEventListener('focus', back); return () => removeEventListener('focus', back);
   }, [step, scan, scanning]);
   const ready = (c) => scan?.[c]?.installed && scan?.[c]?.loggedIn && !scan?.[c]?.outdated;
-  const anyModel = ready('claude') || ready('codex');
-  const model = ready('claude') ? 'claude:sonnet' : ready('codex') ? 'codex:default' : settings.model;
+  const readyAIs = PROVIDERS.filter((p) => ready(p.id)); const anyModel = readyAIs.length > 0;
+  // keep the model you chose if its AI is ready; otherwise the first one that is
+  const model = readyAIs.some((p) => p.id === settings.model.split(':')[0]) ? settings.model : readyAIs[0]?.default || settings.model;
+  const [running, setRunning] = useState(null); // an install or sign-in started in Terminal
+  const act = async (c, how) => { if (await api.aiTerminal?.(c.id, how.action, { ...scan?.tools, brewInstalled: !!scan?.[c.id]?.brew })) setRunning(c.id); else copy(how.cmd); };
   const copy = (t) => { navigator.clipboard?.writeText(t); setCopied(t); setTimeout(() => setCopied(null), 1400); };
   const finish = (go) => { setSettings({ onboarded: true, level, lang, interests, model, voice }); onDone(go); };
 
@@ -59,50 +68,47 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
       {step === 1 && (
         <div className="onb-pane" key="c">
           <div className="onb-k">step 1 · your AI</div>
-          <h2>Looking for what’s already on this Mac…</h2>
-          <p className="onb-sub small">Bento borrows the brains of the AI tools you’re signed into. Your subscription, your machine.</p>
-          <div className="conns">
+          <h2>Any one of these is enough.</h2>
+          <p className="onb-sub small">Bento teaches with the AI plans you already have, on this Mac. Nothing is hosted, and there are no keys to paste.</p>
+          <div className="conns ai4">
             {CONNS.map((c, i) => {
               const r = scan?.[c.id];
               const state = !scan ? 'wait' : !r?.installed ? 'missing' : r.outdated ? 'old' : !r.loggedIn ? 'login' : 'ok';
+              const how = howTo(c, state, scan); const busy = running === c.id;
               return (
-                <div key={c.id} className={`conn s-${state}`} style={{ animationDelay: `${i * 90}ms` }}>
-                  <Brand slug={c.slug} name={c.name} color={c.color} size={42} />
+                <div key={c.id} className={`conn s-${state} ${c.ai ? 'ai' : 'gh'}`} style={{ animationDelay: `${i * 70}ms` }}>
+                  <Brand slug={c.slug} name={c.name} color={c.color} size={38} />
                   <div className="conn-main">
-                    <div className="conn-top"><b>{c.name}</b>{c.id === 'gh' && <span className="opt">optional</span>}</div>
+                    <div className="conn-top"><b>{c.name}</b>{!c.ai && <span className="opt">optional</span>}</div>
                     <div className="conn-what">
                       {state === 'wait' && <span className="scan-line">checking…</span>}
-                      {state === 'ok' && <>{c.id === 'gh' ? <>Signed in as <b>{r.user}</b></> : <>Signed in{r.plan ? <> · <b>{r.plan[0].toUpperCase() + r.plan.slice(1)}</b> plan</> : r.method ? <> with {r.method}</> : null}</>}{r.version ? <span className="ver">v{r.version}</span> : null}</>}
-                      {state === 'login' && <>Installed, but not signed in. {c.loginHint}</>}
-                      {state === 'old' && <>Version {r.version || '?'} is installed, but it can’t do everything Bento needs. Update it, and Bento checks again when you come back.</>}
-                      {state === 'missing' && <>{c.what}. Not installed yet.</>}
+                      {state === 'ok' && <>{c.id === 'gh' ? <>Signed in as <b>{r.user}</b></> : <>Ready{r.plan ? <> · <b>{r.plan}</b></> : r.method && r.method !== c.name && r.method !== 'test' ? <> · {r.method}</> : null}</>}{r.version ? <span className="ver">v{r.version}</span> : null}</>}
+                      {state === 'login' && (busy ? 'Finish signing in in Terminal, then come back here.' : HINT[c.id])}
+                      {state === 'old' && (busy ? 'Updating in Terminal… come back when it’s done.' : <>Version {r.version || '?'} can’t do everything Bento needs yet.</>)}
+                      {state === 'missing' && (busy ? 'Installing in Terminal… come back when it’s done.' : c.ai ? c.plan : c.what)}
                     </div>
-                    {(state === 'login' || state === 'missing' || state === 'old') && (() => {
-                      const how = state === 'missing' ? c.install(scan?.tools) : state === 'old' ? { cmd: c.update(scan?.tools) } : { cmd: c.login };
-                      return (
-                        <div className="cmd-row">
-                          {how.cmd && <button className="cmd" onClick={() => copy(how.cmd)}><span className="cmd-p">$</span>{how.cmd}<span className="cmd-c">{copied === how.cmd ? 'copied ✓' : 'copy'}</span></button>}
-                          {how.link && <button className="btn ghost small" onClick={() => api.openExternal?.(how.link[1])}>{how.link[0]} ↗</button>}
-                          {how.need && <button className="link small" onClick={() => api.openExternal?.(how.need[1])}>{how.need[0]} ↗</button>}
-                        </div>
-                      );
-                    })()}
+                    {how && (
+                      <div className="cmd-row">
+                        {how.cmd && api.aiTerminal && /Mac/.test(navigator.platform) && <button className={`btn small ${c.ai ? '' : 'ghost'}`} onClick={() => act(c, how)} disabled={busy}>{busy ? 'In Terminal…' : VERB[how.action]}</button>}
+                        {how.cmd && <button className="cmd" onClick={() => copy(how.cmd)} title="Copy the command"><span className="cmd-p">$</span>{how.cmd}<span className="cmd-c">{copied === how.cmd ? 'copied ✓' : 'copy'}</span></button>}
+                        {how.link && <button className="link small" onClick={() => api.openExternal?.(how.link)}>{how.need || 'Download'} ↗</button>}
+                      </div>
+                    )}
                   </div>
-                  <span className={`conn-state ${state}`}>{state === 'wait' ? <span className="lens-spin" /> : state === 'ok' ? '✓' : state === 'login' || state === 'old' ? '!' : '+'}</span>
+                  <span className={`conn-state ${state}`} aria-hidden="true">{state === 'wait' ? <span className="lens-spin" /> : state === 'ok' ? '✓' : state === 'login' || state === 'old' ? '!' : '+'}</span>
                 </div>
               );
             })}
           </div>
           {scan && (
-            <div className={`route ${anyModel ? 'ok' : 'no'}`}>
-              {anyModel ? <><span className="route-dot" />Bento will teach with <b>{ready('claude') ? 'Claude Sonnet' : 'Codex'}</b>{ready('claude') && ready('codex') ? ' (switch to Codex any time, bottom-left)' : ''}. Quick answers use a faster model from the same plan.</>
-                : <>No AI found yet. Copy a command above, paste it into Terminal and press Return. Bento looks again when you come back. The built-in lessons work meanwhile.</>}
+            <div className={`route ${anyModel ? 'ok' : 'no'}`} role="status">
+              {anyModel ? <><span className="route-dot" />Bento will teach with <b>{PROVIDERS.find((p) => p.id === model.split(':')[0])?.models.find((m) => m.id === model)?.label || readyAIs[0].name}</b>{readyAIs.length > 1 ? <>. If it runs out, it asks <b>{readyAIs.filter((p) => p.id !== model.split(':')[0]).map((p) => p.short || p.name).join(', then ')}</b>.</> : '.'} Quick answers use a faster model from the same AI.</>
+                : <>No AI ready yet. Press <b>Install</b> on any one above, and Bento looks again when you come back. The built-in lessons work meanwhile.</>}
             </div>
           )}
           <div className="onb-nav">
             <span className="onb-tools">
               <button className="btn ghost" onClick={doScan} disabled={scanning}>{scanning ? 'Scanning…' : 'Scan again'}</button>
-              {scan && !(ready('claude') && ready('codex')) && api.openTerminal && /Mac/.test(navigator.platform) && <button className="btn ghost" onClick={() => api.openTerminal()}>Open Terminal</button>}
             </span>
             <button className="onb-go small" onClick={() => setStep(2)}>{anyModel ? 'Continue' : 'Skip for now'} <span>→</span></button>
           </div>

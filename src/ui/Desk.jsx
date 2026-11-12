@@ -85,29 +85,40 @@ const Desk = forwardRef(function Desk(props, ref) {
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [L.code, L.pseudo, L.pmap, pmapV]);
-  const english = useMemo(() => code.split('\n').map((l) => {
+  // a line still where the lesson wrote it keeps the lesson's own English for that spot (the same line can appear twice
+  // with different jobs: `show(steps)` mid-search and at the end); edited or moved lines are matched by their text
+  const english = useMemo(() => { const src = (L.code || '').split('\n'); return code.split('\n').map((l, i) => {
     const k = l.trim();
     if (!k || /^[}\])]+[;,)]*$/.test(k)) return '';
+    if (src[i] === l && L.pseudo[i] != null && String(L.pseudo[i]).trim()) return L.pseudo[i];
     return pmap.has(k) ? pmap.get(k) : null;
-  }), [code, pmap]);
+  }); }, [code, pmap, L.code, L.pseudo]);
   const pendingEnglish = english.some((x) => x === null);
 
+  // lines without plain English get it from the fast model, by line number (so a skipped or merged line can't move the
+  // rest onto the wrong code); lines it missed are asked for once more, then left blank rather than keep spending
+  const englishAsked = useRef({ code: null, n: 0 }); const [englishAgain, setEnglishAgain] = useState(0);
   useEffect(() => {
     if (!pendingEnglish || streaming || !quick) return;
+    const A = englishAsked.current; if (A.code !== code) { A.code = code; A.n = 0; }
+    if (A.n >= 2) return;
     const t = setTimeout(async () => {
-      const snapshot = codeRef.current;
+      const snapshot = code; const lines = snapshot.split('\n');
+      const only = english.map((e, i) => (e === null ? i + 1 : 0)).filter(Boolean);
+      const again = A.n > 0; A.n++;
       try {
-        const s = await quick(model, quickPrompts.pseudo({ code: snapshot, lang: LNAME[lang] }));
-        const j = parseJSONLoose(s);
-        if (!j?.lines) return;
+        const got = parseJSONLoose(await quick(model, quickPrompts.pseudo({ code: snapshot, lang: LNAME[lang], only, again })))?.lines;
+        // keyed by line number; a plain list only counts if it has exactly one entry per line
+        const at = (n) => (Array.isArray(got) ? (got.length === lines.length ? got[n - 1] : undefined) : got && typeof got === 'object' ? got[n] : undefined);
         const add = {};
-        snapshot.split('\n').forEach((l, i) => { if (l.trim() && j.lines[i] != null) add[l.trim()] = String(j.lines[i]); });
-        onPatch({ pmap: { ...(L.pmap || {}), ...add } }); setPmapV((v) => v + 1);
-      } catch { /* stay pending */ }
+        for (const n of only) { const v = at(n); if (v != null && typeof v !== 'object') add[lines[n - 1].trim()] = String(v); }
+        if (Object.keys(add).length) { onPatch({ pmap: { ...(L.pmap || {}), ...add } }); setPmapV((v) => v + 1); }
+        if (only.some((n) => !(lines[n - 1].trim() in add))) setEnglishAgain((v) => v + 1);
+      } catch { setEnglishAgain((v) => v + 1); }
     }, 1300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingEnglish, code, streaming]);
+  }, [pendingEnglish, code, streaming, englishAgain]);
 
   // a project runs as one thing: a web page gets its CSS and JS files stitched in; Python gets the other files next to it
   const projectBundle = (src) => {

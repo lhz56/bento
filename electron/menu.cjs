@@ -4,7 +4,7 @@
 const { app, Menu, shell, dialog } = require('electron');
 const os = require('node:os');
 
-const REPO = 'https://github.com/lhz56/bento';
+const REPO = 'https://github.com/lhz56/bento-releases'; // public: downloads, release notes and issues (the source repo is private)
 
 function build({ dev, send, checkForUpdates, logsDir }) {
   const mac = process.platform === 'darwin';

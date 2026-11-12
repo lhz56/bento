@@ -1,7 +1,7 @@
 // Before you tag a release: is everything in place to sign, notarize and publish it?
 //   node scripts/check-release.mjs          everything, including the tests
 //   node scripts/check-release.mjs --quick  skip the tests
-// Nothing is built, uploaded or changed. Missing Apple pieces are warnings on your own Mac (CI has them as secrets).
+// Nothing is built, uploaded or changed. `npm run release` runs this first.
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -22,9 +22,7 @@ console.log(`Bento ${pkg.version}\n`);
 
 // the version
 ok(/^\d+\.\d+\.\d+$/.test(pkg.version), `version ${pkg.version} is a plain release number`, 'use x.y.z (pre-releases are ignored by auto-update)');
-// in the release workflow this runs on the new tag itself, which doesn't count as already released
-const releasing = process.env.GITHUB_REF_NAME === `v${pkg.version}`;
-const tags = run('git', ['tag', '--list', 'v*']).split('\n').filter((t) => t && !(releasing && t === `v${pkg.version}`));
+const tags = run('git', ['tag', '--list', 'v*']).split('\n').filter(Boolean);
 ok(!tags.includes(`v${pkg.version}`), `v${pkg.version} hasn't been released yet`, 'bump "version" in package.json');
 const newer = (a, c) => { const x = a.split('.').map(Number), y = c.split('.').map(Number); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i]; return false; };
 const latest = tags.map((t) => t.slice(1)).filter((t) => /^\d+\.\d+\.\d+$/.test(t)).sort((a, c) => (newer(a, c) ? 1 : -1)).pop();
@@ -36,7 +34,7 @@ const cl = fs.existsSync(path.join(root, 'CHANGELOG.md')) ? fs.readFileSync(path
 ok(!!notesFor(cl, pkg.version), `CHANGELOG.md has notes for ${pkg.version} (they become the release text)`, `add a "## ${pkg.version}" section to CHANGELOG.md`);
 
 // the files the build needs
-for (const f of ['build/icon.icns', 'build/icon.png', 'build/entitlements.mac.plist', '.github/workflows/release.yml']) ok(fs.existsSync(path.join(root, f)), `${f} is there`);
+for (const f of ['build/icon.icns', 'build/icon.png', 'build/entitlements.mac.plist', 'scripts/release.mjs']) ok(fs.existsSync(path.join(root, f)), `${f} is there`);
 ok(fs.existsSync(path.join(root, 'node_modules/electron-updater')), 'electron-updater is installed', 'npm install');
 ok(pkg.dependencies?.['electron-updater'], 'electron-updater ships with the app (a dependency, not a devDependency)');
 
@@ -48,22 +46,25 @@ ok(JSON.stringify(m.target || []).includes('dmg') && JSON.stringify(m.target || 
 ok(m.identity === undefined, 'no "identity: null" left in the config (it would skip signing)', 'remove mac.identity from package.json');
 const pub = [].concat(b.publish || [])[0] || {};
 ok(pub.provider === 'github' && pub.owner && pub.repo, `publishes to github.com/${pub.owner}/${pub.repo}`);
-const remote = run('git', ['remote', 'get-url', 'origin']);
-ok(!remote || remote.includes(`${pub.owner}/${pub.repo}`), `git remote matches the publish target${remote ? ` (${remote})` : ''}`, 'update build.publish or the git remote', true);
+// where it's published: a public repo of its own, so installed copies read the update feed without signing in,
+// while the source repo can stay private
+const target = `${pub.owner}/${pub.repo}`;
+const vis = run('gh', ['repo', 'view', target, '--json', 'visibility', '--jq', '.visibility']);
+ok(vis === 'PUBLIC', `github.com/${target} is public`, vis ? `it's ${vis.toLowerCase()}: installed copies can't update from a private repo` : `couldn't see it: gh repo create ${target} --public (or gh auth login)`, !vis);
+if (vis) ok(!run('gh', ['release', 'view', `v${pkg.version}`, '--repo', target, '--json', 'tagName']), `v${pkg.version} isn't on github.com/${target} yet`, 'bump "version" in package.json');
 const fz = b.electronFuses || {};
 ok(b.asar === true && fz.onlyLoadAppFromAsar && fz.enableEmbeddedAsarIntegrityValidation, 'app code is in an integrity-checked archive');
 ok(fz.runAsNode === false && fz.enableNodeOptionsEnvironmentVariable === false && fz.enableNodeCliInspectArguments === false, 'Electron’s run-as-Node, NODE_OPTIONS and --inspect switches are off in releases');
 const ent = fs.readFileSync(path.join(root, 'build/entitlements.mac.plist'), 'utf8');
 ok(!/disable-library-validation|allow-dyld-environment-variables|get-task-allow/.test(ent), 'entitlements ask for nothing risky');
 
-// signing and notarizing on this Mac (warnings: CI uses repository secrets instead)
+// signing and notarizing on this Mac
+const PROFILE = process.env.APPLE_KEYCHAIN_PROFILE || 'lemma-notary'; // the notarytool profile in the login keychain
 if (process.platform === 'darwin') {
   const ids = run('security', ['find-identity', '-v', '-p', 'codesigning']);
-  ok(/Developer ID Application/.test(ids) || !!process.env.CSC_LINK, 'a Developer ID Application certificate is available', 'Xcode → Settings → Accounts → Manage Certificates → + Developer ID Application (see docs/RELEASING.md)', true);
-  const api = process.env.APPLE_API_KEY && process.env.APPLE_API_KEY_ID && process.env.APPLE_API_ISSUER;
-  const idp = process.env.APPLE_ID && process.env.APPLE_APP_SPECIFIC_PASSWORD && process.env.APPLE_TEAM_ID;
-  ok(api || idp || process.env.APPLE_KEYCHAIN_PROFILE, 'notarization credentials are set', 'export APPLE_API_KEY, APPLE_API_KEY_ID and APPLE_API_ISSUER (see docs/RELEASING.md)', true);
-  if (process.env.APPLE_API_KEY) ok(fs.existsSync(process.env.APPLE_API_KEY), 'the notarization key file exists', process.env.APPLE_API_KEY);
+  ok(/Developer ID Application/.test(ids), 'a Developer ID Application certificate is in the keychain', 'one certificate signs all your apps: reuse yours; only if you have none, Xcode → Settings → Accounts → Manage Certificates → + Developer ID Application', true);
+  const n = spawnSync('xcrun', ['notarytool', 'history', '--keychain-profile', PROFILE], { encoding: 'utf8', timeout: 60000 });
+  ok(n.status === 0, `notarytool profile "${PROFILE}" works`, `xcrun notarytool store-credentials ${PROFILE} --apple-id <Apple ID> --team-id <TEAMID>, or set APPLE_KEYCHAIN_PROFILE to yours`, true);
 }
 ok(!!(process.env.GH_TOKEN || run('gh', ['auth', 'token'])), 'a GitHub token is available to publish', 'gh auth login, or export GH_TOKEN', true);
 
@@ -74,5 +75,5 @@ if (!process.argv.includes('--quick')) {
   ok(t.status === 0, 'npm test passes', (t.stdout + t.stderr).split('\n').filter((l) => l.startsWith('✗')).slice(0, 5).join('\n    → '));
 }
 
-console.log(bad ? `\n${bad} thing${bad > 1 ? 's' : ''} to fix before releasing.` : warn ? `\nReady, apart from ${warn} thing${warn > 1 ? 's' : ''} only your Mac or CI can provide (above).` : '\nReady to release: tag it (git tag v' + pkg.version + ' && git push origin v' + pkg.version + ').');
+console.log(bad ? `\n${bad} thing${bad > 1 ? 's' : ''} to fix before releasing.` : warn ? `\nReady, apart from ${warn} thing${warn > 1 ? 's' : ''} only this Mac can provide (above).` : '\nReady to release: npm run release -- --publish');
 process.exit(bad ? 1 : 0);

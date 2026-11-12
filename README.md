@@ -6,7 +6,7 @@
 
 Bento is a small Mac app that works like a patient tutor. Ask it anything and you get a lesson with real code you can run, change and step through, with every line explained in plain English. Point it at any GitHub project and it draws the whole app as one picture you can read, even if you've never programmed.
 
-It drives the **Claude Code** or **Codex** command-line tools that are already signed in on your Mac. There's nothing to host and no API keys, and Bento never sees your account.
+It teaches with the AI you already have: **Claude** (Pro or Max), **ChatGPT** (through Codex), **Gemini** (Google AI Pro, free for students, through Antigravity), **GitHub Copilot** (free with GitHub) or the **Gemini API** (with a key). It drives their official command-line tools, signed in on your Mac. There's nothing to host and no API keys, and Bento never sees your account.
 
 ![Taking apart a real app](docs/screenshots/03-atlas-big-picture.png)
 
@@ -30,9 +30,13 @@ It drives the **Claude Code** or **Codex** command-line tools that are already s
 
 ## Get it
 
-1. Download **Bento for Mac** from [Releases](https://github.com/lhz56/bento/releases/latest): `arm64` for Apple Silicon (M1 and later), `x64` for Intel. macOS 12 or newer.
-2. Open the `.dmg` and drag Bento into Applications.
-3. Bento finds Claude Code or Codex if you have them, and shows the one command to install either if you don't. It updates itself from then on.
+**[Download for Mac (Apple Silicon)](https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg)** · [Intel](https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg) · macOS 12 or newer
+
+Not sure which? Apple menu → About This Mac: **Chip** (M1 or later) means Apple Silicon, **Processor** (Intel) means Intel.
+
+1. Open the downloaded `.dmg` and drag Bento into Applications.
+2. Open Bento from Applications.
+3. Bento finds the AI tools you have. For any you don't, one click installs it or signs you in, in Terminal, where you see exactly what runs. Bento updates itself from then on.
 
 ## What's inside
 
@@ -95,13 +99,21 @@ It drives the **Claude Code** or **Codex** command-line tools that are already s
 
 On first launch Bento looks for what's already on your Mac:
 
-- `claude auth status` checks Claude Code (Pro or Max subscription).
-- `codex login status` checks Codex (ChatGPT Plus or Pro).
-- `gh` checks GitHub. This one is optional; it unlocks your repos, private ones included.
+| AI | Tool | Plan |
+|---|---|---|
+| Claude | Claude Code (`claude`) | Claude Pro or Max |
+| ChatGPT | Codex (`codex`) | ChatGPT Plus, Pro or Business |
+| Gemini | Antigravity CLI (`agy`) | Google AI Pro (free for students) or Ultra, signed in with your Google account. Also offers Claude Sonnet through Google. |
+| Gemini API | Gemini CLI (`gemini`) | A Gemini API key (free from Google AI Studio, Flash only) or a Google Cloud project. Google no longer lets personal accounts sign in here; use Antigravity for those. |
+| GitHub Copilot | Copilot CLI (`copilot`) | Free with GitHub (a monthly allowance); Copilot Pro is free for students |
 
-It routes to whatever is signed in: Sonnet for lessons and Haiku for quick answers, or Codex. If something is missing, it shows the exact command to copy into Terminal. You can switch models at any time from the sidebar. If one AI hits its usage limit or is signed out, Bento quietly routes the request to the other one and tells you.
+`gh` (GitHub) is optional: it unlocks your repos, private ones included, and gives Copilot a sign-in.
 
-Bento never stores tokens. Every request is a call to your own CLI (for example `claude -p … --tools ""`), with tools disabled so the model can only write text.
+Any one AI is enough. Bento teaches with the one you pick in the sidebar (quick answers use the fastest model of the same AI), and if it hits its usage limit or is signed out, Bento asks the next one you have and tells you. If something is missing, one click runs the install or sign-in in Terminal.
+
+**How much of your plan is used.** The sidebar shows a ring for the AI you're using, filled the way that plan counts it ("54% of this week", "1 of 200 requests this month"), with when it resets. Click it for every plan, and what Bento used of each today. Claude reports its numbers with each answer; ChatGPT and Copilot can be asked any time, for free; Gemini doesn't share them, so Bento shows what it used instead. When a plan is nearly full, Home says so before you ask.
+
+Bento never stores tokens. Every request is a call to your own CLI with every tool, plugin and tool server switched off, so the model can only write text.
 
 ## Privacy
 
@@ -125,11 +137,11 @@ npm run audit        # every screen in light and dark through axe-core, then eve
 
 # ship it (see docs/RELEASING.md)
 npm run preflight    # version, release notes, signing and notarization setup, then the tests
-npm run dist         # the .dmg + .zip for Apple Silicon and Intel, signed and notarized if your Developer ID is set up
-npm run release      # the same, published to GitHub Releases; installed copies update themselves
+npm run release      # build both Macs, sign, notarize, check everything, start it once (nothing published)
+npm run release -- --publish   # the same, then publish to lhz56/bento-releases; installed copies update themselves
 ```
 
-You need Node 20+, plus `claude` and/or `codex` installed and signed in. `gh` is optional.
+You need Node 20+, plus at least one of `claude`, `codex`, `gemini` or `copilot` installed and signed in. `gh` is optional.
 
 ## Project layout
 

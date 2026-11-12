@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('bento', {
   providers: () => ipcRenderer.invoke('providers'),
   scan: () => ipcRenderer.invoke('scan'),
   openTerminal: () => ipcRenderer.invoke('open:terminal'),
+  // install, sign in to or update an AI in Terminal, where the person sees what runs (only commands Bento knows)
+  aiTerminal: (id, action, tools) => ipcRenderer.invoke('ai:terminal', String(id), String(action), { brew: !!tools?.brew, npm: !!tools?.npm, brewInstalled: !!tools?.brewInstalled }),
   exportLesson: (l) => ipcRenderer.invoke('lesson:export', l),
   saveWeb: (html, title) => ipcRenderer.invoke('web:save', html, title),
   publishWeb: (html, title) => ipcRenderer.invoke('web:publish', html, title),
@@ -20,6 +22,8 @@ contextBridge.exposeInMainWorld('bento', {
   storeGet: () => ipcRenderer.invoke('store:get'),
   backupSave: () => ipcRenderer.invoke('backup:save'),
   usage: () => ipcRenderer.invoke('usage:get'),
+  // how much of each plan is used: the last reading, or a fresh one (free) with { refresh: true }
+  limits: { get: (o) => ipcRenderer.invoke('limits:get', { refresh: !!o?.refresh }), on(fn) { const h = (_e, x) => fn(x); ipcRenderer.on('limits', h); return () => ipcRenderer.removeListener('limits', h); } },
   clearSavedAnswers: () => ipcRenderer.invoke('usage:clearSaved'),
   pendingLink: () => ipcRenderer.invoke('deeplink:pending'),
   update: { get: () => ipcRenderer.invoke('update:get'), install: () => ipcRenderer.invoke('update:install'), check: () => ipcRenderer.invoke('update:check'), setAuto: (on) => ipcRenderer.invoke('update:auto', on), on(fn) { const h = (_e, st) => fn(st); ipcRenderer.on('update:state', h); return () => ipcRenderer.removeListener('update:state', h); } },

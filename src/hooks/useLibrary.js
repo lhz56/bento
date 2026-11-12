@@ -4,11 +4,12 @@ import { detectStack, buildAtlasPrompt, emptyNarr, applyNarr } from '../atlas/an
 import { detectSite, buildSitePrompt } from '../atlas/site.js';
 import { load, save, cleanErr } from '../store.js';
 import FEATURED from '../atlas-featured.json';
+import { altOf } from '../ai.js';
 export { FEATURED };
 
 // Everything about bringing code in from outside: GitHub repos and local folders (the Atlas),
 // websites, the Projects list, and the narration that explains them. App.jsx just uses the results.
-export default function useLibrary({ api, settings, setProgress, setProjectRaw, setViewRaw }) {
+export default function useLibrary({ api, settings, setProgress, setProjectRaw, setViewRaw, getProviders = () => null }) {
   const [atlases, setAtlases] = useState({});
   const [atlasKey, setAtlasKey] = useState(null);
   const [projects, setProjects] = useState(() => load('bento.projects', []));
@@ -40,7 +41,8 @@ export default function useLibrary({ api, settings, setProgress, setProjectRaw, 
     };
     const onErr = (m) => {
       // this AI can't answer right now: try your other one once, before showing the first error
-      if (!firstErr && /usage limit|isn’t signed in|isn’t installed|can’t talk to yet/.test(m) && !atlasRef.current[key]?.narr?.gist) { parser.end(); return narrate(key, model.startsWith('codex') ? 'claude:sonnet' : 'codex:default', m); }
+      const alt = altOf(model, getProviders());
+      if (!firstErr && alt && /usage limit|isn’t signed in|isn’t installed|can’t talk to yet|doesn’t have Copilot|no longer lets personal|isn’t set up with a key|doesn’t offer|can’t use Gemini/.test(m) && !atlasRef.current[key]?.narr?.gist) { parser.end(); return narrate(key, alt, m); }
       finish('narr-error', firstErr || m);
     };
     const cancel = api.ask(model, prompt, { chunk: (t) => parser.push(t), think: (t) => patchAtlas(key, { thinking: t }), done: () => finish('done', null), error: onErr }, 'atlas');

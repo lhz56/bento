@@ -106,12 +106,23 @@ def _install_net():
     m.RequestException = Exception
     sys.modules['requests'] = m
 
+# a tree node: an object with left and right (or a children list), or the same as a dict, the way most lessons write
+# trees in Python ({"value": 5, "left": {...}, "right": None}); a dict whose left/right are plain values isn't one
+def _get(n, k, default=None):
+    return n.get(k, default) if isinstance(n, dict) else getattr(n, k, default)
+
 def _label(n):
+    if isinstance(n, (str, int, float)) and not isinstance(n, bool): return n
     for k in ('val', 'value', 'key', 'data', 'name', 'label'):
-        if hasattr(n, k): return getattr(n, k)
+        if (k in n) if isinstance(n, dict) else hasattr(n, k): return _get(n, k)
     return '•'
 
 def _is_node(x):
+    if isinstance(x, dict):
+        ks = [k for k in ('left', 'right') if k in x]  # one child is a tree too (a chain of calls), as long as it's a node
+        lr = bool(ks) and all(x[k] is None or isinstance(x[k], dict) for k in ks) and (len(ks) == 2 or isinstance(x[ks[0]], dict))
+        ch = isinstance(x.get('children'), list) and all(isinstance(c, (dict, str, int, float)) for c in x['children'])
+        return lr or ch
     return (hasattr(x, 'left') and hasattr(x, 'right')) or isinstance(getattr(x, 'children', None), list)
 
 def _short(v, d=0):
@@ -142,12 +153,14 @@ def _short(v, d=0):
 
 def _tree(n, seen=None, budget=None):
     if seen is None: seen, budget = set(), [0]
-    if n is None or id(n) in seen or budget[0] > 200: return None
+    if n is None or budget[0] > 200: return None
+    if isinstance(n, (str, int, float)): budget[0] += 1; return {'v': str(n), 'kids': [], 'binary': False}
+    if id(n) in seen: return None
     seen.add(id(n)); budget[0] += 1
-    kids = getattr(n, 'children', None)
+    kids = _get(n, 'children')
     if isinstance(kids, list):
         return {'v': str(_label(n)), 'kids': [_tree(c, seen, budget) for c in kids], 'binary': False}
-    return {'v': str(_label(n)), 'kids': [_tree(getattr(n, 'left', None), seen, budget), _tree(getattr(n, 'right', None), seen, budget)], 'binary': True}
+    return {'v': str(_label(n)), 'kids': [_tree(_get(n, 'left'), seen, budget), _tree(_get(n, 'right'), seen, budget)], 'binary': True}
 
 def _viz(x, label=None):
     if isinstance(x, (list, tuple)) and x and all(isinstance(n, (int, float)) and not isinstance(n, bool) for n in x):
@@ -425,7 +438,10 @@ self.onmessage = async (e) => {
     }
     liveId = id; liveBuf = []; liveT0 = performance.now(); liveLast = 0;
     const run = py.globals.get('_run');
-    const json = run(code, mode, extra ? JSON.stringify(extra) : '');
+    // called "promising" where the engine can switch stacks (Electron's can), so asyncio.run() and await asyncio.sleep()
+    // really wait, the way they do on a Mac, instead of failing with "Cannot stack switch"
+    const promising = typeof run.callPromising === 'function' && typeof WebAssembly.Suspending === 'function';
+    const json = promising ? await run.callPromising(code, mode, extra ? JSON.stringify(extra) : '') : run(code, mode, extra ? JSON.stringify(extra) : '');
     run.destroy?.();
     const result = JSON.parse(json);
     if (result.growth) result.growth.fit = fitGrowth(result.growth.pts);

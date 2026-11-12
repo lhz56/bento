@@ -65,7 +65,7 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { standard: t
 async function netProxy(req, u) {
   const target = u.searchParams.get('u') || '';
   const reply = (status, body, type = 'text/plain') => new Response(body, { status: 200, headers: { 'x-status': String(status), 'x-content-type': type, 'content-type': 'text/plain; charset=utf-8' } });
-  const headers = { 'user-agent': 'Bento (learning app; https://github.com/lhz56/bento)' };
+  const headers = { 'user-agent': 'Bento (learning app; https://github.com/lhz56/bento-releases)' };
   for (const [k, v] of req.headers) if (k.startsWith('x-h-') && !/^x-h-(host|cookie|authorization-proxy)$/.test(k)) headers[k.slice(4)] = v;
   try {
     const body = ['GET', 'HEAD'].includes(req.method) ? undefined : await req.text();
@@ -178,15 +178,25 @@ app.on('web-contents-created', (_e, wc) => {
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 
 // ---------------------------------------------------------------- providers
-// BENTO_PRETEND_MISSING=claude,codex,gh hides CLIs, to test what a brand-new user sees.
+// Each AI's adapter (finding it, checking it, running it as a writer only, reading its stream and its plan's limits)
+// is in providers.cjs; the names and commands people see are in ai-catalog.json.
+const P = require('./providers.cjs');
+const AI_FILES = () => (aiFiles ??= P.setupFiles(path.join(app.getPath('userData'), 'ai'))); let aiFiles = null;
+// BENTO_PRETEND_MISSING=claude,codex,gemini,copilot,gh hides CLIs, to test what a brand-new user sees.
 const HIDDEN = new Set(String(process.env.BENTO_PRETEND_MISSING || '').split(',').filter(Boolean));
-// BENTO_FAKE_AI=test/fixtures/fake-claude.mjs: tests stand in a pretend Claude that streams a canned lesson, so the whole
-// ask → stream → run path is checked without using anyone's plan. Only honoured in hidden test mode.
+// BENTO_FAKE_AI=test/fixtures/fake-ai.mjs: tests stand in pretend CLIs that stream a canned lesson in each AI's own
+// format, so the whole ask → stream → run path is checked without using anyone's plan. BENTO_FAKE_AS says which AIs
+// are pretend (Claude by default). Only honoured in hidden test mode.
 const FAKE_AI = OFFSCREEN && process.env.BENTO_FAKE_AI ? path.resolve(process.env.BENTO_FAKE_AI) : null;
-const viaFake = (cmd, args) => (FAKE_AI && cmd === 'claude' ? ['node', [FAKE_AI, ...args]] : [cmd, args]);
+const FAKE_AS = new Set(String(process.env.BENTO_FAKE_AS || 'claude').split(',').filter(Boolean));
+// an AI can be named by its id ("antigravity") or its program ("agy")
+const idOfBin = (cmd) => P.IDS.find((id) => P.BY[id].bin === cmd) || cmd;
+const isHidden = (cmd) => HIDDEN.has(cmd) || HIDDEN.has(idOfBin(cmd));
+const isFake = (cmd) => !!FAKE_AI && (FAKE_AS.has(cmd) || FAKE_AS.has(idOfBin(cmd)));
+const viaFake = (cmd, args) => (isFake(cmd) ? ['node', [FAKE_AI, '--as', cmd, ...args]] : [cmd, args]);
 async function which(cmd) {
-  if (HIDDEN.has(cmd)) return null;
-  if (FAKE_AI && cmd === 'claude') return FAKE_AI;
+  if (isHidden(cmd)) return null;
+  if (isFake(cmd)) return FAKE_AI;
   await envReady;
   return new Promise((res) => execFile(WIN ? 'where' : 'which', [cmd], { env: ENV, ...SH }, (e, out) => res(e ? null : String(out).split(/\r?\n/)[0].trim())));
 }
@@ -194,70 +204,98 @@ async function which(cmd) {
 async function runQuiet(cmd, args, timeout = 8000) {
   await envReady;
   const [c, a] = viaFake(cmd, args);
-  return new Promise((res) => execFile(c, a, { env: ENV, timeout, ...SH }, (e, out, err) => res({ ok: !e, out: String(out || ''), err: String(err || '') })));
+  return new Promise((res) => execFile(c, a, { env: ENV, timeout, maxBuffer: 4 << 20, ...SH }, (e, out, err) => res({ ok: !e, out: String(out || ''), err: String(err || ''), timedOut: !!e?.killed })));
 }
-// The options Bento passes each CLI (see buildCommand). If its --help lacks any, it's too old (or too new) for Bento,
-// and the welcome says to update it before a lesson fails on it.
-const CLAUDE_FLAGS = ['--output-format', '--include-partial-messages', '--tools', '--strict-mcp-config', '--setting-sources', '--no-session-persistence', '--system-prompt'];
-const CODEX_FLAGS = ['--json', '--skip-git-repo-check', '--ephemeral', '--sandbox'];
-const missingFlags = (help, flags) => { const t = `${help.out}${help.err}`; if (!help.ok || t.length < 200) return null; const gone = flags.filter((f) => !t.includes(f)); return gone.length ? gone : null; };
+// the GitHub CLI's sign-in, which Copilot accepts; read when needed, kept in memory for 10 minutes, never saved
+let ghTok = { v: null, at: 0 };
+async function ghToken() {
+  if (HIDDEN.has('gh') || process.env.BENTO_NO_GH) return null;
+  if (Date.now() - ghTok.at < 600000) return ghTok.v;
+  const r = await runQuiet('gh', ['auth', 'token'], 5000); const t = r.out.trim();
+  ghTok = { v: r.ok && /^(gh[opsu]_|github_pat_)[\w-]+$/.test(t) ? t : null, at: Date.now() }; return ghTok.v;
+}
+const ghApi = async (route) => { if (HIDDEN.has('gh') || process.env.BENTO_NO_GH) return null; const r = await runQuiet('gh', ['api', route], 8000); try { return r.ok ? JSON.parse(r.out) : null; } catch { return null; } };
+// a short JSON-RPC exchange with a CLI's own server mode (Codex's app server answers "how much of my plan is used"
+// without asking a model): send the messages, wait for the reply with the given id, then stop it
+async function spawnJson(cmd, args, messages, waitId, timeout = 12000) {
+  await envReady; if (isHidden(cmd)) return null;
+  const [c, a] = viaFake(cmd, args);
+  return new Promise((res) => {
+    let child; try { child = spawn(c, a, { cwd: WORKDIR, env: ENV, stdio: ['pipe', 'pipe', 'ignore'], ...SH }); } catch { return res(null); }
+    const done = (v) => { clearTimeout(t); try { child.kill(); } catch {} res(v); };
+    const t = setTimeout(() => done(null), timeout); let buf = '';
+    child.on('error', () => done(null));
+    child.stdout.on('data', (d) => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); try { const o = JSON.parse(line); if (o.id === waitId) done(o.result ?? null); } catch {} } });
+    for (const m of messages) child.stdin.write(JSON.stringify(m) + '\n');
+  });
+}
+// a tool that didn't answer in time (a busy Mac, a cold start, five tools starting at once) is asked once more with
+// more patience: no answer isn't "not signed in"
+const runPatient = async (bin, args, t = 8000) => { const r = await runQuiet(bin, args, t); return r.timedOut ? runQuiet(bin, args, t * 3) : r; };
+const aiCtx = (id) => ({ run: (args, t) => runPatient(P.BY[id].bin, args, t), env: ENV, ghToken, ghApi, spawnJson: (args, msgs, wait) => spawnJson(P.BY[id].bin, args, msgs, wait) });
+
+// what each AI tool says about itself: installed, a version Bento can talk to, signed in (and with which plan)
 ipcMain.handle('scan', async () => {
-  const [cp, xp, gp, np, bp] = await Promise.all([which('claude'), which('codex'), which('gh'), which('npm'), which('brew')]);
+  const bins = [...P.IDS.map((id) => P.BY[id].bin), 'gh', 'npm', 'brew'];
+  const at = Object.fromEntries(await Promise.all(bins.map(async (b) => [b, await which(b)])));
   // which installers this Mac already has, so the welcome only suggests commands that will work here
-  const r = { claude: { installed: !!cp }, codex: { installed: !!xp }, gh: { installed: !!gp }, tools: { npm: !!np, brew: !!bp } };
+  const r = { tools: { npm: !!at.npm, brew: !!at.brew }, gh: { installed: !!at.gh } };
   await Promise.all([
-    cp && (async () => {
-      const [v, h] = await Promise.all([runQuiet('claude', ['--version']), runQuiet('claude', ['--help'])]); r.claude.version = v.out.trim().split(' ')[0];
-      r.claude.outdated = missingFlags(h, CLAUDE_FLAGS);
-      const a = await runQuiet('claude', ['auth', 'status']);
-      try { const j = JSON.parse(a.out); r.claude.loggedIn = !!j.loggedIn; r.claude.plan = j.subscriptionType || null; r.claude.method = j.authMethod; } catch { r.claude.loggedIn = a.ok; }
-    })(),
-    xp && (async () => {
-      const [v, h] = await Promise.all([runQuiet('codex', ['--version']), runQuiet('codex', ['exec', '--help'])]); r.codex.version = v.out.trim().split(' ').pop();
-      r.codex.outdated = missingFlags(h, CODEX_FLAGS);
-      const a = await runQuiet('codex', ['login', 'status']); const t = (a.out + a.err).trim();
-      r.codex.loggedIn = a.ok && /logged in/i.test(t); r.codex.method = /chatgpt/i.test(t) ? 'ChatGPT' : /api key/i.test(t) ? 'API key' : null;
-    })(),
-    gp && (async () => {
-      const a = await runQuiet('gh', ['api', 'user', '--jq', '.login']); r.gh.loggedIn = a.ok && !!a.out.trim(); r.gh.user = a.out.trim() || null;
-    })(),
+    ...P.IDS.map(async (id) => {
+      const A = P.ADAPTERS[id], bin = P.BY[id].bin, x = (r[id] = { installed: !!at[bin] });
+      if (!at[bin]) return;
+      x.brew = /\/(Cellar|Caskroom)\//.test((() => { try { return fs.realpathSync(at[bin]); } catch { return at[bin]; } })()); // updates go the way it was installed
+      const [v, h] = await Promise.all([runPatient(bin, ['--version']), runPatient(bin, A.compat.help)]);
+      x.version = A.version(v.out || '') || null; x.outdated = P.missingFlags(h, A.compat.flags);
+      // a pretend CLI in tests only knows the commands real ones have; sign-in that's read from files is assumed
+      Object.assign(x, isFake(bin) && !['claude', 'codex', 'antigravity'].includes(id) ? { loggedIn: true, method: 'test' } : await A.auth(aiCtx(id)));
+      const L = limitsAll()[id]; if (L?.plan && !x.plan) x.plan = L.plan;
+    }),
+    at.gh && (async () => { const a = await runQuiet('gh', ['api', 'user', '--jq', '.login']); r.gh.loggedIn = a.ok && !!a.out.trim(); r.gh.user = a.out.trim() || null; })(),
   ].filter(Boolean));
+  refreshLimits().catch(() => {});
   return r;
 });
 ipcMain.handle('providers', async () => {
-  const [claude, codex, gh] = await Promise.all([which('claude'), which('codex'), which('gh')]);
-  return { claude: !!claude, codex: !!codex, gh: !!gh && !process.env.BENTO_NO_GH, dark: nativeTheme.shouldUseDarkColors };
+  const has = await Promise.all(P.IDS.map((id) => which(P.BY[id].bin)));
+  const gh = await which('gh');
+  return { ...Object.fromEntries(P.IDS.map((id, i) => [id, !!has[i]])), gh: !!gh && !process.env.BENTO_NO_GH, dark: nativeTheme.shouldUseDarkColors };
 });
 
-// model ids look like "claude:sonnet" / "claude:haiku" / "codex:default"
-function buildCommand(model, system, prompt) {
-  let [prov, name] = (model || 'claude:sonnet').split(':');
-  if (!/^(claude|codex)$/.test(prov)) prov = 'claude';
-  if (name && !/^[\w.-]{1,40}$/.test(name)) name = prov === 'codex' ? 'default' : 'sonnet'; // never let odd text reach the command line
-  if (prov === 'codex') {
-    const args = ['exec', '--json', '-s', 'read-only', '--skip-git-repo-check', '--ephemeral', '-c', 'model_reasoning_effort=low'];
-    if (name && name !== 'default') args.push('-m', name);
-    args.push(`${system}\n\n---\n\n${prompt}\n\n(Do not run any commands. Answer directly in the required format.)`);
-    return { cmd: 'codex', args, kind: 'codex' };
-  }
-  return {
-    cmd: 'claude', kind: 'claude',
-    args: ['-p', prompt, '--output-format', 'stream-json', '--verbose', '--include-partial-messages', '--model', name || 'sonnet', ...(name === 'haiku' ? ['--effort', 'low'] : []),
-      '--tools', '', '--strict-mcp-config', '--setting-sources', '', '--no-session-persistence', '--system-prompt', system],
-  };
-}
+// One click from the welcome: run the install, sign-in or update command for an AI in Terminal, where the person
+// sees exactly what runs. Only commands from ai-catalog.json can be run this way.
+ipcMain.handle('ai:terminal', async (_e, id, action, tools = {}) => {
+  if (!MAC) return false;
+  const p = id === 'gh' ? P.CAT.github : P.BY[id]; if (!p || !['install', 'signIn', 'update'].includes(action)) return false;
+  const cmd = action === 'install' ? (p.install.find((i) => !i.needs || tools[i.needs]) || {}).cmd : action === 'update' ? (tools.brewInstalled && p.updateBrew) || p.update : p.signIn;
+  if (!cmd) return false;
+  const esc = cmd.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return new Promise((res) => execFile('osascript', ['-e', 'tell application "Terminal" to activate', '-e', `tell application "Terminal" to do script "${esc}"`], (e) => res(!e)));
+});
 
-// Turn CLI errors into something a learner can act on.
-function humanize(cmd, msg) {
-  const who = cmd === 'codex' ? 'Codex (ChatGPT)' : 'Claude';
-  if (/usage limit|rate.?limit|quota|too many requests|429|limit reached|exceeded/i.test(msg)) return `${who} says you’ve hit your plan’s usage limit for now. Try again later, or switch to your other AI in the bottom-left.`;
-  if (/not logged in|please run \/login|login required|unauthori[sz]ed|401|invalid api key|authentication/i.test(msg)) return `${who} isn’t signed in on this Mac. Open Terminal and run \`${cmd === 'codex' ? 'codex login' : 'claude'}\` to sign in, then try again.`;
-  // a CLI update renamed or dropped an option Bento passes: say what to do, not the raw parser error
-  if (/unknown option|unexpected argument|unrecognized (option|argument)|invalid value for '--/i.test(msg)) return `${who} on this Mac is a version Bento can’t talk to yet. Update it in Terminal (${cmd === 'codex' ? '`brew upgrade --cask codex` or `npm install -g @openai/codex`' : '`claude update`'}), then try again.`;
-  if (/ENOENT|not found|command not found/i.test(msg)) return `${who} isn’t installed. Open Settings → Connections to see how to install it.`;
-  if (/network|ENOTFOUND|ECONNRESET|ETIMEDOUT|getaddrinfo/i.test(msg)) return `Couldn’t reach ${who}. Check your internet connection and try again.`;
-  return msg.length > 300 ? msg.slice(0, 300) + '…' : msg;
+// ---------------------------------------------------------------- how much of each plan is used
+// The last thing each AI said about its plan's limits, kept on disk so the meter has something to show at launch.
+// Claude says it with every reply; Codex and Copilot can be asked any time for free; Gemini doesn't say, so Bento
+// counts its own requests instead (usage:get).
+const LIMITS_FILE = path.join(app.getPath('userData'), 'plan-limits.json');
+let LIMITS = null, limitsTimer = null;
+const limitsAll = () => (LIMITS ??= (() => { try { return JSON.parse(fs.readFileSync(LIMITS_FILE, 'utf8')); } catch { return {}; } })());
+function saveLimits(id, L) {
+  if (!L) return;
+  const all = limitsAll(); all[id] = { ...all[id], ...L, plan: L.plan || all[id]?.plan || null, at: Date.now() };
+  clearTimeout(limitsTimer); limitsTimer = setTimeout(() => writeSafe(LIMITS_FILE, JSON.stringify(all)), 600);
+  if (win && !win.isDestroyed()) win.webContents.send('limits', all);
 }
+const limitsAsked = {};
+async function refreshLimits(only) {
+  await Promise.all(P.IDS.filter((id) => (!only || id === only) && P.ADAPTERS[id].limits && Date.now() - (limitsAsked[id] || 0) > 45000).map(async (id) => {
+    if (!(await which(P.BY[id].bin))) return;
+    limitsAsked[id] = Date.now();
+    try { saveLimits(id, await P.ADAPTERS[id].limits(aiCtx(id))); } catch {}
+  }));
+  return limitsAll();
+}
+ipcMain.handle('limits:get', async (_e, o = {}) => (o.refresh ? refreshLimits() : limitsAll()));
 
 // The learner's language for explanations (code stays in English so it runs everywhere).
 let VOICE = '';
@@ -289,64 +327,64 @@ function labelOf(prompt) {
   return (L.find(([r]) => r.test(p)) || [null, 'a quick answer'])[1];
 }
 
+// What a CLI printed when it failed, minus stack traces and dumped request details: the lines that say what went wrong
+const errorLines = (err) => { const ls = String(err).split('\n').map((l) => l.trim()).filter((l) => l && !/^at |^\{|^\}|^[\w$]+: [\[{'"\w]|^[\]}),]+$/.test(l)); const said = ls.filter((l) => /error|fail|denied|exhausted|quota|limit|not |unable|requires|invalid|unknown|eligib/i.test(l)); return (said.length ? said : ls).slice(-3).join(' '); };
+// Runs one request on the chosen AI and streams its text to onText. Returns { promise, kill }.
 function runModel(model, system, prompt, onText, onThink) {
   const purpose = system === QUICK_SYSTEM ? labelOf(prompt) : system === ATLAS_SYSTEM ? 'reading a project' : system === SITE_SYSTEM ? 'reading a website' : 'writing a lesson';
-  const t0 = Date.now(); let tokens = null;
-  let { cmd, args, kind } = buildCommand(model, withVoice(system), prompt);
-  // Windows starts these CLIs through cmd.exe, which can't take long or multi-line arguments:
-  // send the instructions and the request on standard input instead
-  let stdin = null;
-  if (WIN) {
-    if (kind === 'codex') { stdin = args.pop(); args.push('-'); }
-    else { const pi = args.indexOf('-p'); const si = args.indexOf('--system-prompt'); stdin = `${args[si + 1]}\n\n---\n\n${args[pi + 1]}`; args = args.filter((_, i) => i !== pi + 1 && i !== si && i !== si + 1); }
-  }
+  const { prov, name, id: modelId } = P.parseModel(model);
+  const A = P.ADAPTERS[prov], bin = P.BY[prov].bin;
   // a hidden CLI (tests, demos of a brand-new Mac) is never started: hiding it must not quietly spend your plan
-  if (HIDDEN.has(cmd)) return { promise: Promise.reject(new Error(humanize(cmd, 'ENOENT'))), kill: () => {} };
-  if (FAKE_LIMIT && kind === FAKE_LIMIT) return { promise: Promise.reject(new Error(humanize(cmd, 'Claude AI usage limit reached'))), kill: () => {} };
-  const [runCmd, runArgs] = viaFake(cmd, args);
-  const child = spawn(runCmd, runArgs, { cwd: WORKDIR, env: ENV, stdio: [stdin == null ? 'ignore' : 'pipe', 'pipe', 'pipe'], ...SH }); // no open stdin otherwise: codex waits on an open pipe
-  if (stdin != null) child.stdin.end(stdin);
-  let buf = '', full = '', err = '';
-  let last = Date.now(); let stalled = false;
-  const quietLimit = kind === 'codex' ? 360000 : 150000; // Codex says nothing until it's done; Claude streams constantly
-  const dog = setInterval(() => { if (Date.now() - last > quietLimit) { stalled = true; clearInterval(dog); try { child.kill('SIGTERM'); } catch {} } }, 5000);
-  const promise = new Promise((resolve, reject) => {
-    child.stdout.on('data', (d) => {
-      last = Date.now();
-      buf += d.toString();
-      let i;
-      while ((i = buf.indexOf('\n')) >= 0) {
-        const line = buf.slice(0, i); buf = buf.slice(i + 1);
-        if (!line.trim()) continue;
-        let o; try { o = JSON.parse(line); } catch { continue; }
-        if (kind === 'claude') {
-          if (o.type === 'stream_event' && o.event?.delta?.type === 'thinking_delta') onThink?.(o.event.delta.thinking || '', o.event.delta.estimated_tokens || 0);
-          if (o.type === 'stream_event' && o.event?.type === 'content_block_delta' && o.event.delta?.type === 'text_delta') {
-            full += o.event.delta.text; onText?.(o.event.delta.text);
-          } else if (o.type === 'result') {
-            if (o.usage) tokens = { in: (o.usage.input_tokens || 0) + (o.usage.cache_read_input_tokens || 0) + (o.usage.cache_creation_input_tokens || 0), out: o.usage.output_tokens || 0 };
-            if (o.is_error) err = String(o.result || 'model error');
-            else if (!full && o.result) { full = o.result; onText?.(o.result); }
-          }
-        } else {
-          if (o.type === 'item.completed' && o.item?.type === 'agent_message') { full += o.item.text; onText?.(o.item.text); }
-          if (o.type === 'item.completed' && o.item?.type === 'reasoning' && o.item.text) onThink?.(o.item.text + '\n');
-          if (o.type === 'turn.completed' && o.usage) tokens = { in: (o.usage.input_tokens || 0) + (o.usage.cached_input_tokens || 0), out: o.usage.output_tokens || 0 };
-          if (o.type === 'error' || o.type === 'turn.failed') err = JSON.stringify(o.error || o);
-        }
-      }
+  if (isHidden(bin)) return { promise: Promise.reject(new Error(P.humanize(prov, 'ENOENT'))), kill: () => {} };
+  if (FAKE_LIMIT && prov === FAKE_LIMIT) return { promise: Promise.reject(new Error(P.humanize(prov, 'usage limit reached'))), kill: () => {} };
+  const t0 = Date.now(); let child = null, killed = false, sysFile = null;
+  const promise = (async () => {
+    await envReady;
+    await A.prepare?.(aiCtx(prov));
+    // instructions go in a private temporary file and the request on standard input, never on the command line
+    const sys = withVoice(system);
+    sysFile = path.join(WORKDIR, `instructions-${crypto.randomBytes(6).toString('hex')}.md`);
+    fs.mkdirSync(WORKDIR, { recursive: true }); fs.writeFileSync(sysFile, sys, { mode: 0o600 });
+    const token = prov === 'copilot' && !(ENV.COPILOT_GITHUB_TOKEN || ENV.GH_TOKEN || ENV.GITHUB_TOKEN) ? await ghToken() : null;
+    const b = A.build({ name, system: sys, prompt, sysFile, files: AI_FILES(), token });
+    if (killed) throw new Error('Stopped.');
+    if (b.noModel) throw new Error(`${P.label(prov)} doesn’t offer ${modelId.split(':')[1]} on this account right now. Choose another model in the bottom-left.`);
+    const env = { ...ENV, ...b.env }; for (const [k, v] of Object.entries(b.env || {})) if (v === undefined) delete env[k];
+    const [runCmd, runArgs] = viaFake(bin, b.args);
+    return new Promise((resolve, reject) => {
+      child = spawn(runCmd, runArgs, { cwd: WORKDIR, env, stdio: [b.stdin == null ? 'ignore' : 'pipe', 'pipe', 'pipe'], ...SH }); // no open stdin otherwise: some CLIs wait on an open pipe
+      if (b.stdin != null) { child.stdin.on('error', () => {}); child.stdin.end(b.stdin); }
+      let buf = '', full = '', err = '', tokens = null, requests = null, limits = null, aborted = null;
+      const seen = new Set();
+      const sink = {
+        text: (t) => { full += t; onText?.(t); }, think: (t, n) => onThink?.(t, n), error: (m) => { err = m; },
+        tokens: (i, o) => { tokens = { in: i, out: o }; }, requests: (n) => { requests = n; }, limits: (L) => { limits = L; },
+        full: () => full, seen: (id, check) => { if (check) return seen.has(id); seen.add(id); return false; },
+        // the AI did something a writer never does (reached for a tool): stop it now, and say why
+        abort: (m) => { if (aborted) return; aborted = m; try { child.kill('SIGTERM'); } catch {} },
+      };
+      let last = Date.now(), stalled = false;
+      const quietLimit = P.BY[prov].slow ? 360000 : 150000; // Codex says nothing until it's done; the others stream constantly
+      const dog = setInterval(() => { if (Date.now() - last > quietLimit) { stalled = true; clearInterval(dog); try { child.kill('SIGTERM'); } catch {} } }, 5000);
+      child.stdout.on('data', (d) => {
+        last = Date.now(); buf += d.toString(); let i;
+        while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (!line.trim()) continue; let o; try { o = JSON.parse(line); } catch { continue; } A.parse(o, sink); }
+      });
+      child.stderr.on('data', (d) => { last = Date.now(); err += d.toString(); });
+      child.on('error', (e) => { clearInterval(dog); reject(new Error(P.humanize(prov, `Couldn't start ${bin}: ${e.message}`))); });
+      child.on('close', (code) => {
+        clearInterval(dog);
+        noteUsage({ at: t0, what: purpose, model: modelId, prov, ms: Date.now() - t0, ok: !!full, in: tokens?.in ?? Math.round((system.length + String(prompt).length) / 4), out: tokens?.out ?? Math.round(full.length / 4), est: !tokens, ...(requests != null ? { requests } : {}) });
+        if (limits) saveLimits(prov, limits);
+        if (full && A.limits) setTimeout(() => refreshLimits(prov).catch(() => {}), 1500); // the meter moves after each answer
+        if (aborted) return reject(new Error(aborted));
+        if (stalled && !full) return reject(new Error(`${P.label(prov)} went quiet for too long, so Bento stopped waiting. Try again, or switch model.`));
+        if (full) resolve(full);
+        else reject(new Error(P.humanize(prov, errorLines(err) || `${bin} exited with ${code}`)));
+      });
     });
-    child.stderr.on('data', (d) => { last = Date.now(); err += d.toString(); });
-    child.on('error', (e) => reject(new Error(humanize(cmd, `Couldn't start ${cmd}: ${e.message}`))));
-    child.on('close', (code) => {
-      clearInterval(dog);
-      noteUsage({ at: t0, what: purpose, model, ms: Date.now() - t0, ok: !!full, in: tokens?.in ?? Math.round((system.length + String(prompt).length) / 4), out: tokens?.out ?? Math.round(full.length / 4), est: !tokens });
-      if (stalled && !full) return reject(new Error(`${cmd === 'codex' ? 'Codex' : 'Claude'} went quiet for too long, so Bento stopped waiting. Try again, or switch model.`));
-      if (full) resolve(full);
-      else reject(new Error(humanize(cmd, err.trim().split('\n').slice(-3).join(' ') || `${cmd} exited with ${code}`)));
-    });
-  });
-  return { promise, kill: () => { try { child.kill('SIGTERM'); } catch {} } };
+  })().finally(() => { if (sysFile) fs.rm(sysFile, { force: true }, () => {}); });
+  return { promise, kill: () => { killed = true; try { child?.kill('SIGTERM'); } catch {} } };
 }
 
 const running = new Map();
@@ -371,30 +409,43 @@ ipcMain.on('ask:cancel', (_e, id) => { const r = running.get(id); if (r) { r.kil
 app.on('will-quit', () => { for (const r of running.values()) r.kill(); running.clear(); });
 
 // small one-shot calls (token cards, pseudocode refresh, translations)
+const ACCOUNT_TROUBLE = /usage limit|isn’t signed in|isn’t installed|can’t talk to yet|doesn’t have Copilot|no longer lets personal|isn’t set up with a key|doesn’t offer|can’t use Gemini/;
 ipcMain.handle('quick', async (_e, { model, prompt }) => {
   await envReady;
-  // quick calls use the fast model of the same provider
-  const fast = (model || '').startsWith('codex') ? model : 'claude:haiku';
+  // quick calls use the fast model of the same AI
+  const fast = P.fastOf(model);
   // the same question (same model, same language) within 14 days: answer from the saved copy
   const key = crypto.createHash('sha1').update(`${fast}\n${VOICE}\n${prompt}`).digest('hex');
   const hit = quickCache()[key];
-  if (hit && Date.now() - hit.at < 14 * 864e5) { noteUsage({ at: Date.now(), what: labelOf(prompt), model: fast, ms: 0, ok: true, in: 0, out: 0, saved: Math.round(String(prompt).length / 4) + Math.round(hit.a.length / 4) }); return hit.a; }
+  if (hit && Date.now() - hit.at < 14 * 864e5) { noteUsage({ at: Date.now(), what: labelOf(prompt), model: fast, prov: P.parseModel(fast).prov, ms: 0, ok: true, in: 0, out: 0, saved: Math.round(String(prompt).length / 4) + Math.round(hit.a.length / 4) }); return hit.a; }
   const keep = (a) => { quickCache()[key] = { a, at: Date.now() }; saveQuick(); return a; };
   try { return keep(await runModel(fast, QUICK_SYSTEM, prompt).promise); }
   catch (err) {
-    // this AI can't answer right now (limit, signed out, missing): quietly try your other one
-    if (!/usage limit|isn’t signed in|isn’t installed|can’t talk to yet/.test(err.message)) throw err;
-    const other = fast.startsWith('codex') ? 'claude:haiku' : 'codex:default';
-    try { return keep(await runModel(other, QUICK_SYSTEM, prompt).promise); } catch { throw err; }
+    // this AI can't answer right now (limit, signed out, missing): quietly try the next one you have, in order
+    if (!ACCOUNT_TROUBLE.test(err.message)) throw err;
+    const mine = P.parseModel(fast).prov;
+    for (const id of P.IDS.filter((x) => x !== mine)) {
+      if (!(await which(P.BY[id].bin))) continue;
+      try { return keep(await runModel(P.BY[id].fast, QUICK_SYSTEM, prompt).promise); } catch (e2) { if (!ACCOUNT_TROUBLE.test(e2.message)) throw err; }
+    }
+    throw err;
   }
 });
-// the last 7 days of AI use, for the sidebar meter and Settings
+// the last 7 days of AI use, for the sidebar meter and Settings, with each AI's share of today
 ipcMain.handle('usage:get', () => {
   const u = usage(); const day = (t) => new Date(t).toISOString().slice(0, 10); const today = day(Date.now());
   const days = Array.from({ length: 7 }, (_, i) => day(Date.now() - (6 - i) * 864e5)).map((d) => ({ d, lessons: 0, quick: 0, other: 0, saved: 0, tokens: 0 }));
-  for (const e of u) { const D = days.find((x) => x.d === day(e.at)); if (!D) continue; if (e.saved) { D.saved++; continue; } if (e.what === 'writing a lesson') D.lessons++; else if (/^reading/.test(e.what)) D.other++; else D.quick++; D.tokens += (e.in || 0) + (e.out || 0); }
+  const by = {}; // today, per AI: requests and tokens
+  for (const e of u) {
+    const D = days.find((x) => x.d === day(e.at)); if (!D) continue;
+    if (e.saved) { D.saved++; continue; }
+    if (e.ok === false) continue; // it never got an answer (signed out, not installed, stopped): none of the plan was used
+    if (e.what === 'writing a lesson') D.lessons++; else if (/^reading/.test(e.what)) D.other++; else D.quick++;
+    D.tokens += (e.in || 0) + (e.out || 0);
+    if (D.d === today) { const k = e.prov || String(e.model || '').split(':')[0] || 'claude'; const b = (by[k] ||= { n: 0, lessons: 0, tokens: 0 }); b.n++; if (e.what === 'writing a lesson') b.lessons++; b.tokens += (e.in || 0) + (e.out || 0); }
+  }
   const recent = u.slice(-14).reverse().map((e) => ({ at: e.at, what: e.what, model: e.model, saved: !!e.saved, tokens: (e.in || 0) + (e.out || 0), est: !!e.est, ms: e.ms, ok: e.ok }));
-  return { days, today: days.find((x) => x.d === today), recent, savedAnswers: Object.keys(quickCache()).length };
+  return { days, today: days.find((x) => x.d === today), by, recent, savedAnswers: Object.keys(quickCache()).length };
 });
 ipcMain.handle('usage:clearSaved', () => { qcache = {}; try { fs.rmSync(QCACHE, { force: true }); } catch {} return true; });
 

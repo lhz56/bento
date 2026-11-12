@@ -67,7 +67,7 @@ export async function run(lang, mode, code, extra, opts = {}) {
   const id = ++seq;
   const w = get(lang);
   // programs that wait on purpose (sleep, countdowns, typing answers) get longer before Bento calls it an infinite loop
-  const patient = /\bsleep\s*\(|setTimeout|setInterval/.test(code);
+  const patient = /\bsleep\s*\(|setTimeout|setInterval|\bfetch\s*\(/.test(code);
   const limit = (lang === 'python' ? (pyState.ready ? 12000 : 30000) : 6000) * (patient ? 5 : 1);
   return new Promise((resolve) => {
     const timer = setTimeout(() => {

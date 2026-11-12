@@ -33,7 +33,7 @@ let links = true; try { fs.symlinkSync(path.join(outside, 'key'), path.join(proj
 
 const profile = path.join(tmp, 'profile'); fs.mkdirSync(profile);
 fs.writeFileSync(path.join(profile, 'bento-store.json'), JSON.stringify({ 'bento.settings': { onboarded: true } }));
-const env = { ...process.env, BENTO_HIDDEN: '1', BENTO_USERDATA: profile, BENTO_PRETEND_MISSING: 'claude,codex,gh', BENTO_NO_GH: '1' };
+const env = { ...process.env, BENTO_HIDDEN: '1', BENTO_USERDATA: profile, BENTO_PRETEND_MISSING: 'claude,codex,antigravity,gemini,copilot,gh', BENTO_NO_GH: '1' };
 delete env.ELECTRON_RUN_AS_NODE; delete env.BENTO_DEV;
 const app = await electron.launch({ executablePath: exe, args: packaged ? [] : [root], env, timeout: 90000 });
 let p = await app.firstWindow(); await p.waitForSelector('.side', { timeout: 60000 });

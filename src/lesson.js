@@ -45,18 +45,48 @@ export function applyBlock(L, b) {
 }
 
 // Incremental NDJSON parser tolerant of code fences and pretty-printed objects.
+// One block per line, read as it streams. Models don't always write it cleanly, so the usual slips are forgiven: a
+// comma after a block (as if in a list), the list's own [ and ], code fences, and a block spread over several lines.
+// A line that is a whole block on its own always counts, so one broken block can't swallow the rest of the lesson.
+const tidy = (s) => s.replace(/^\[\s*(?=\{)/, '').replace(/\}\s*,?\s*\]?\s*,?$/, '}');
+// What a model writes by hand isn't always valid JSON: a Python backslash left as it is (r'\d+', it\'s), a tab, or code
+// spread over several lines with real line breaks inside its string. Mended only when a line won't parse as it is:
+// inside strings, raw breaks and tabs become escapes and a backslash that starts no JSON escape is doubled.
+function mendJSON(s) {
+  let out = '', str = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (!str) { if (ch === '"') str = true; out += ch; continue; }
+    if (ch === '\\') { const nx = s[i + 1]; if (nx && ('"\\/bfnrt'.includes(nx) || (nx === 'u' && /^[0-9a-fA-F]{4}$/.test(s.slice(i + 2, i + 6))))) { out += ch + nx; i++; } else out += '\\\\'; continue; }
+    if (ch === '"') { str = false; out += ch; continue; }
+    out += ch === '\n' ? '\\n' : ch === '\t' ? '\\t' : ch === '\r' ? '' : ch;
+  }
+  return out;
+}
+const asBlock = (t) => { try { const o = JSON.parse(t); return o && typeof o === 'object' && !Array.isArray(o) ? o : null; } catch { return null; } };
+const parseBlock = (s) => asBlock(tidy(s)) || asBlock(tidy(mendJSON(s)));
 export function ndjsonParser(onBlock) {
   let buf = '', pend = '';
   const tryLine = (line) => {
     const s = line.trim();
     if (!s || s.startsWith('```')) return;
-    const cand = pend ? pend + '\n' + line : s;
-    try { onBlock(JSON.parse(cand)); pend = ''; }
-    catch { if (cand.startsWith('{')) { pend = cand.length < 60000 ? cand : ''; } }
+    if (pend) {
+      const whole = s.startsWith('{') && parseBlock(s);
+      if (whole && typeof whole.t === 'string') { pend = ''; onBlock(whole); return; } // a block of its own (not a part of the one being collected)
+      // the block goes on over this line, kept exactly as written (its indentation is Python's): a break inside a string
+      // needs an escaped newline, one between parts doesn't
+      const r = line.replace(/\r$/, '');
+      const o = parseBlock(pend + '\n' + r) || parseBlock(pend + '\\n' + r);
+      if (o) { pend = ''; onBlock(o); } else pend = (pend + '\n' + r).length < 60000 ? pend + '\n' + r : '';
+      return;
+    }
+    if (s === '[' || s === ']' || s === '],') return; // the list a lesson was wrapped in
+    const o = parseBlock(s);
+    if (o) onBlock(o); else if (/^\[?\s*\{/.test(s)) pend = s;
   };
   return {
     push(t) { buf += t; let i; while ((i = buf.indexOf('\n')) >= 0) { tryLine(buf.slice(0, i)); buf = buf.slice(i + 1); } },
-    end() { if (buf) tryLine(buf); buf = ''; if (pend) { try { onBlock(JSON.parse(pend)); } catch {} pend = ''; } },
+    end() { if (buf) tryLine(buf); buf = ''; if (pend) { const o = parseBlock(pend); if (o) onBlock(o); pend = ''; } },
   };
 }
 
@@ -106,7 +136,8 @@ export const quickPrompts = {
   repair: ({ code, err, lang }) => `This ${lang} teaching example was just written for a lesson, but it fails when run inside Bento (where show(), print(), size(), background(), circle(), rect(), line() and text() always exist; no network, files or input()).\nERROR: ${err}\n\nCODE:\n${code}\n\nFix it with the SMALLEST change, keeping the same number of lines if at all possible and the same teaching idea.\nReply JSON: {"code":"the full fixed code","note":"what was wrong, max 14 words"}`,
   change: ({ before, after, lang, output }) => `A learner edited this ${lang} code. Explain what THEIR CHANGE does, warmly, to someone new to code. Mention the effect on the output if visible. If it introduces a bug, say so gently and hint the fix.\nReply JSON: {"said":"max 34 words, plain English, may use one technical term in **bold**","term":"that technical term or null","plain":"one-line definition of the term or null"}\n\nBEFORE:\n${before}\n\nAFTER:\n${after}\n${output ? `\nOUTPUT NOW:\n${output.slice(0, 600)}` : ''}`,
   token: ({ word, line, lang, kind }) => `In this ${lang} line:\n${line}\nexplain the ${kind || 'token'} "${word}" to a student.\nReply JSON: {"title":"${word}","what":"one friendly sentence, max 22 words","plain":"what it means here in plain English, max 10 words","example":"a tiny ${lang} example, max 2 lines"}`,
-  pseudo: ({ code, lang }) => `Write plain-English pseudocode for EACH line of this ${lang} code (one entry per line, same order, blank line or closing bracket → ""). Max 9 words each, friendly, no code syntax.\nReply JSON: {"lines":[...]} with exactly ${code.split('\n').length} entries.\n\nCODE:\n${code}`,
+  // by line number, so a skipped or merged line can't move the rest; only the lines still without English
+  pseudo: ({ code, lang, only, again }) => { const ls = code.split('\n'); const want = only?.length ? only : ls.map((l, i) => (l.trim() ? i + 1 : 0)).filter(Boolean); return `Write plain-English pseudocode for lines ${want.join(', ')} of this ${lang} code, one entry per line number. Max 9 words each, friendly, present tense, no code syntax. A closing bracket or a blank line → "".${again ? ' Some lines were missed last time: answer every line number listed.' : ''}\nReply JSON: {"lines":{"${want[0] || 1}":"...", ...}} with exactly these keys: ${want.join(', ')}.\n\nCODE (line number| code):\n${ls.map((l, i) => `${i + 1}| ${l}`).join('\n')}`; },
   twin: ({ code, from, to }) => `Translate this ${from} code into idiomatic ${to}, keeping the same structure and the same helper calls (show, print, size, circle... exist in both). Also map lines: pairs of [lineInOriginal, lineInTranslation] (1-based) for lines that correspond.\nReply JSON: {"code":"...","map":[[1,1],[2,2]]}\n\nCODE:\n${code}`,
   error: ({ code, err, lang }) => `(Context: this runs inside Bento, where show(), print(), size(), background(), circle(), rect(), line() and text() are built-in helpers that always exist.)\nA student's ${lang} code fails with:\n${err}\n\nCODE:\n${code}\n\nReply JSON: {"plain":"what went wrong in plain words, max 25 words","fix":"what to change, max 20 words","line":<1-based line number or null>}`,
 };

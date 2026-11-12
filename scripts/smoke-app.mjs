@@ -29,7 +29,7 @@ if (!exe || !fs.existsSync(exe)) { console.error(`✗ can't find the app${packag
 
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'bento-smoke-'));
 // off-screen unless you pass --show, so running it never covers what you're doing
-const env = { ...process.env, BENTO_USERDATA: profile, BENTO_NO_GH: '1', BENTO_PRETEND_MISSING: 'claude,codex,gh', ...(process.argv.includes('--show') ? {} : { BENTO_HIDDEN: '1' }) };
+const env = { ...process.env, BENTO_USERDATA: profile, BENTO_NO_GH: '1', BENTO_PRETEND_MISSING: 'claude,codex,antigravity,gemini,copilot,gh', ...(process.argv.includes('--show') ? {} : { BENTO_HIDDEN: '1' }) };
 delete env.ELECTRON_RUN_AS_NODE; delete env.BENTO_DEV;
 // Containers and CI machines often can't give Chromium its sandbox; a learner's desktop can.
 const args = [...(packaged ? [] : [root]), ...(process.platform === 'linux' && (process.env.CI || process.getuid?.() === 0) ? ['--no-sandbox'] : [])];
@@ -72,6 +72,12 @@ await step('a built-in lesson opens and draws its picture', async () => {
   await p.waitForSelector('.story-head h1', { timeout: 20000 }); await p.waitForSelector('.stage-body .viz, .stage-body svg, .stage-body .tree', { timeout: 120000 });
   return await p.locator('.story-head h1').innerText();
 });
+await step('a line that appears twice keeps its own plain English in each place', async () => {
+  await p.evaluate(() => window.__openLesson({ id: 'twice', q: 'twice', mode: 'explain', lang: 'python', level: 'student', status: 'done', title: 'Twice', kicker: '', concepts: [], story: [{ t: 'p', md: '.' }], code: 'x = 0\nshow(x)\nx = 1\nshow(x)', file: 'a.py', pseudo: ['Start at zero', 'Draw it at zero', 'Now make it one', 'Draw it at one'], notes: [], steps: [], chat: [], createdAt: Date.now(), builtin: true }));
+  await p.click('.lenses .lens:has-text("Plain")'); await p.waitForSelector('.il-en', { timeout: 10000 });
+  const en = await p.locator('.il-en').allInnerTexts(); await p.click('.lenses .lens:has-text("Code")');
+  if (en[1] !== 'Draw it at zero' || en[3] !== 'Draw it at one') throw new Error(en.join(' | ')); return `${en[1]} · ${en[3]}`;
+});
 await step('Python runs', async () => {
   await blankPage('Python'); await typeCode('print(sum(range(5)), "squares:", [n * n for n in range(4)])\n'); await run();
   await p.waitForFunction(() => /10 squares: \[0, 1, 4, 9\]/.test(document.querySelector('.stage-body')?.innerText || ''), null, { timeout: 120000 });
@@ -90,9 +96,20 @@ await step('lesson code can’t reach this computer', async () => {
   await p.waitForFunction(() => /blocked:|REACHED/.test(document.querySelector('.stage-body')?.innerText || ''), null, { timeout: 60000 });
   const t = await output(); if (!/public internet/.test(t)) throw new Error(t.slice(0, 160)); return 'refused';
 });
+await step('Python’s asyncio really waits, and a tree written as dicts is drawn as a tree', async () => {
+  await typeCode('import asyncio\n\nasync def cook(dish, s):\n    await asyncio.sleep(s)\n    print(dish, "ready")\n\nasync def main():\n    await asyncio.gather(cook("soup", 0.3), cook("tea", 0.1))\n    show({"value": 8, "left": {"value": 3, "left": None, "right": None}, "right": None})\n\nasyncio.run(main())\n'); await run();
+  await p.waitForFunction(() => /soup ready/.test(document.querySelector('.stage-body')?.innerText || '') || document.querySelector('.stage-body .err-card'), null, { timeout: 60000 });
+  const t = await output(); if (!/tea ready\s+soup ready/.test(t)) throw new Error(t.slice(0, 160));
+  const tree = await p.locator('.stage-body figure.viz-tree').count(); if (!tree) throw new Error('the dict tree was not drawn as a tree'); return 'tea, then soup; a tree';
+});
 await step('JavaScript runs', async () => {
   await blankPage('JavaScript'); await typeCode('const xs = [3, 1, 2].sort();\nconsole.log("sorted", xs.join(","));\n'); await run();
   await p.waitForFunction(() => /sorted 1,2,3/.test(document.querySelector('.stage-body')?.innerText || ''), null, { timeout: 30000 });
+});
+await step('JavaScript waits for its timers and promises', async () => {
+  await typeCode('const wait = (ms) => new Promise((r) => setTimeout(r, ms));\nasync function main() {\n  await wait(300);\n  console.log("soup ready");\n}\nmain().then(() => console.log("dinner served"));\nconsole.log("meanwhile");\n'); await run();
+  await p.waitForFunction(() => /dinner served/.test(document.querySelector('.stage-body')?.innerText || ''), null, { timeout: 30000 });
+  const t = await output(); if (!/meanwhile\s+soup ready\s+dinner served/.test(t)) throw new Error(t.slice(0, 160)); return 'meanwhile, soup ready, dinner served';
 });
 await step('TypeScript runs (types stripped, lines kept)', async () => {
   await blankPage('TypeScript'); await typeCode('const add = (a: number, b: number): number => a + b;\nconsole.log("total", add(2, 3));\n'); await run();

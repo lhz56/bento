@@ -3,7 +3,7 @@
 Bento is an Electron app. The **main process** (`electron/`) owns everything outside the window: your AI CLIs, git and GitHub, files, and websites. The **renderer** (`src/`) is a React app that never touches the shell. They talk over a small IPC bridge (`electron/preload.cjs` → `window.bento`).
 
 ```
- You ──▶ React UI (src/) ──IPC──▶ main process (electron/) ──▶ claude / codex CLI (your subscription)
+ You ──▶ React UI (src/) ──IPC──▶ main process (electron/) ──▶ claude / codex / gemini / copilot CLI (your plan)
                 │                         ├──▶ git clone + static analysis (atlas.cjs)
                 │                         ├──▶ gh (GitHub search, repos, forks)
                 │                         └──▶ net.fetch (websites)
@@ -14,10 +14,17 @@ Bento is an Electron app. The **main process** (`electron/`) owns everything out
 
 `runModel()` in `electron/main.cjs` spawns the CLI the user already signed into:
 
-- **Claude Code**: `claude -p … --output-format stream-json --include-partial-messages --tools ""`. Tools are off, so the model can only write text.
-- **Codex**: `codex exec --json -s read-only --ephemeral`.
+Each AI has one adapter in `electron/providers.cjs`; its name, models, plan and install, sign-in and update commands are in `electron/ai-catalog.json`, which the screens read too (`src/ai.js`). An adapter checks the CLI (`--help` must list every option Bento passes; the sign-in), builds its command, reads its stream and, where it can for free, reads the plan's limits. Instructions go in a private temporary file and the request on standard input, never on the command line (where other programs can read it, and Windows cuts it short). Every one runs as a writer only:
 
-Output streams back line by line (`ask:chunk`). Thinking progress arrives as `ask:think`. Errors are translated into plain advice by `humanize()` (usage limit, signed out, not installed). When the error is about the account (limit, signed out, missing), Bento retries once with the other provider: lessons in `askLesson` (`src/App.jsx`), Atlas readings in `narrate` (`src/hooks/useLibrary.js`) and quick calls in the `quick` handler. The learner's chosen language is appended to every system prompt by `withVoice()`.
+- **Claude Code**: `claude -p --output-format stream-json --include-partial-messages --tools "" --strict-mcp-config --setting-sources "" --no-session-persistence --system-prompt-file …`.
+- **Codex**: `codex exec --json --ephemeral --ignore-user-config --ignore-rules -s read-only`, with `--disable` for each tool feature Codex reports having (shell, plugins, apps, browser and computer use…; `codex features list` says which exist, since an unknown name is an error).
+- **Gemini CLI**: `gemini -o stream-json --admin-policy <deny every tool> --extensions none --allowed-mcp-server-names bento-none`, with Bento's instructions replacing Gemini's own (`GEMINI_SYSTEM_MD`). Denied tools are hidden from the model entirely.
+- **Antigravity** (`agy`, for Google AI Pro and students): Google's agent can't have its tools switched off for one run, so it gets two locks. Its own rules deny every kind of tool it lets you name (`command`, `read_file`, `write_file`, `mcp`, `read_url`, `execute_url`, `download_url`; an unknown kind would make it drop the whole list, so only these are used), with no access outside an empty work folder. And Bento stops the run the moment the stream shows the model reaching for any tool (web search and sub-agents included): a lesson never needs one. The request goes in as a stream-json message on standard input. `flash`, `flash-low`, `flash-high` and `claude` stand for the newest matching model `agy models` lists. Its sign-in lives in your Antigravity folder, so its runs appear in your Antigravity history.
+- **Copilot CLI**: `copilot -p … --output-format json --available-tools <none> --disable-builtin-mcps --no-custom-instructions --no-ask-user`, with `COPILOT_ALLOW_ALL` removed. When the GitHub CLI is signed in, Bento lends Copilot that sign-in (which Copilot accepts) and its own home folder, so lessons stay out of your Copilot history.
+
+`test/fixtures/fake-ai.mjs` has a pretend twin of each that refuses to run unless those options are there, so `test/features.test.mjs` and `scripts/smoke-ais.mjs` fail the moment one goes missing.
+
+Output streams back line by line (`ask:chunk`). Thinking progress arrives as `ask:think`. Errors are translated into plain advice by `humanize()` (usage limit, signed out, not installed). When the error is about the account (limit, signed out, missing), Bento retries with the next AI you have, in the catalog's order: lessons in `askLesson` (`src/App.jsx`), Atlas readings in `narrate` (`src/hooks/useLibrary.js`) and quick calls in the `quick` handler. The learner's chosen language is appended to every system prompt by `withVoice()`.
 
 ## 2. Lessons are streamed blocks
 
@@ -29,8 +36,8 @@ Modes change the prompt, not the format: `explain`, `code` (your code or a repo 
 
 | Language | Where | How stepping works |
 |---|---|---|
-| Python | `src/runtime/pyWorker.js` (Pyodide; the core ships with the app, packages like numpy load from Pyodide's CDN on first import) | `sys.settrace` records each line and its variables |
-| JavaScript | `src/runtime/jsWorker.js` | acorn rewrites the code to call `__s(line, vars)` before each statement |
+| Python | `src/runtime/pyWorker.js` (Pyodide; the core ships with the app, packages like numpy load from Pyodide's CDN on first import). Code is called with `callPromising` where the engine can switch stacks, so `asyncio.run()` really waits | `sys.settrace` records each line and its variables |
+| JavaScript | `src/runtime/jsWorker.js`. The program gets its own `setTimeout`/`setInterval` and a counted `fetch`, and the run waits for them (20 s at most; a timer that only repeats is stopped after 3 s, and says so). An error inside a timer, or an unhandled rejection, is the run's error | acorn rewrites the code to call `__s(line, vars)` before each statement |
 | TypeScript | stripped by Sucrase (line numbers kept), then run as JS | same as JS. `tsWorker.js` runs the real compiler for type errors |
 | HTML | served from `play://<id>/`, a separate origin | no stepping. The page's console is relayed with `postMessage` |
 
@@ -78,8 +85,9 @@ To add a path: add its stops and a `TRACKS` entry, run `npx vite build`, then `n
 
 ## Checking lessons and counting AI use
 
-- **`src/verify.js`** checks a fresh lesson once its code has run cleanly. `localChecks` fixes what can be proven for free (line links and notes past the end of the code, quizzes without a valid answer, plain-words lines that don't match the code). `checkPrompt` sends the numbered code, the real output, the paragraphs and the quizzes to the fast model; `applyCheck` applies only answers the model is sure of and only text fixes whose exact quote is in the lesson. Desk stores the result on the lesson as `check`, and Story shows it as the *✓ Checked* badge.
-- **Usage**: `runModel` in `electron/main.cjs` records every request (what it was for, the model, time, and token counts from Claude's `result.usage` or Codex's `turn.completed.usage`) in `usage.json`. Quick answers are saved in `quick-cache.json` for 14 days, keyed by model, voice and prompt. The sidebar meter and the Settings chart read `usage:get`.
+- **`src/verify.js`** tidies a lesson the moment it finishes writing (`tidyLesson`, called from `askLesson`): plain English that has slipped off its lines (`pseudoFits`: lengths, and blank code lines against blank English) is cleared so Desk writes it again by line number, line links and margin notes an AI counted wrong (`fixLinks`, `fixNotes`: pointing at blank lines, or a code-shaped label like `btn.textContent` that's on the next line) are moved back, and the free checks below run at once, web pages included (Bento never runs those). It also checks a fresh lesson once its code has run cleanly. `localChecks` fixes what can be proven for free (line links and notes past the end of the code, quizzes without a valid answer, plain-words lines that don't match the code). `checkPrompt` sends the numbered code, the real output, the paragraphs and the quizzes to the fast model; `applyCheck` applies only answers the model is sure of and only text fixes whose exact quote is in the lesson. Desk stores the result on the lesson as `check`, and Story shows it as the *✓ Checked* badge.
+- **Usage**: `runModel` in `electron/main.cjs` records every request that got an answer (what it was for, the AI and model, time, and token counts where the CLI reports them) in `usage.json`. Quick answers are saved in `quick-cache.json` for 14 days, keyed by model, voice and prompt. `usage:get` gives the week, and today per AI.
+- **Plan limits**: how full each plan is, as the plan counts it, kept in `plan-limits.json` and pushed to the screens (`limits`). Claude sends a `rate_limit_event` with each answer (5-hour and weekly windows); Codex answers `account/rateLimits/read` from its app server and Copilot's allowance comes from GitHub, both without asking a model, so they're read when you open the panel and after each answer. Gemini doesn't share its numbers. `src/ui/Plans.jsx` turns a reading into the sidebar ring, the "Your plans" rows and Home's warning, translating only fixed words (never the numbers).
 
 ## Questions about real projects
 
@@ -99,7 +107,7 @@ Shortcuts go through `src/platform.js`: `mod(e)` is ⌘ on a Mac and Ctrl elsewh
 ## Finding your CLIs, and updates
 
 - Apps opened from the Dock get a tiny `PATH`. `electron/shellenv.cjs` does what T3 Code does: it asks your login shell once (`$SHELL -ilc`, four-second limit, no stdin) for the `PATH` a new Terminal would have, falls back to `launchctl getenv PATH`, and keeps the usual install folders (Homebrew, npm, bun, pnpm, volta, asdf, `~/.local/bin`, `~/.claude/local`) as a last resort. Everything that starts a CLI waits for it (only in the first moments after launch).
-- The welcome's scan also reads each CLI's `--help` and compares it with the options `buildCommand()` uses (`CLAUDE_FLAGS`, `CODEX_FLAGS`). A missing option marks the CLI outdated: the welcome shows its update command, and requests route to the other AI.
+- The welcome's scan also reads each CLI's `--help` and compares it with the options its adapter passes (`compat.flags` in `electron/providers.cjs`). A missing option marks the CLI outdated: the welcome shows its update command, and requests route to the next AI. One click on Install, Sign in or Update runs that AI's command from `ai-catalog.json` in Terminal (`ai:terminal`; no other command can be run this way).
 - `electron/updater.cjs`: `electron-updater` against GitHub Releases. It runs only in a packaged, Developer ID–signed copy that has a release feed. It checks 15 s after launch and every 4 h, downloads quietly, and shows **Update ready · Restart** in the sidebar. See [RELEASING.md](RELEASING.md).
 
 - The menu bar is `electron/menu.cjs`. Bento's own commands are sent to the page (`menu` events), which already owns their shortcuts; a menu event that arrives right after the same shortcut was pressed is ignored, so nothing runs twice. Errors go to `electron/log.cjs`, and window size and place to `electron/winstate.cjs`.
@@ -123,7 +131,7 @@ Every day (at launch and every 4 hours), `electron/snapshots.cjs` writes `Backup
 
 ## Safety
 
-- **Your AI can only write text.** Claude Code runs with `--tools ""` and no MCP servers. Codex runs with a read-only sandbox. Neither can run commands or edit files through Bento.
+- **Your AI can only write text.** Every AI runs with its tools, plugins and tool servers off and none of your personal settings (see the adapters above). None can run commands, read files or edit anything through Bento.
 - **Repos are read, never run.** Cloned code is only parsed (regexes and file reads). Bento never installs dependencies or executes anything from a repo.
 - **Lesson code runs sandboxed.** Python and JavaScript run in Web Workers with step and time limits. Lesson web pages are served from `play://`, a separate origin in a sandboxed iframe, so they can't reach the app or its bridge.
 - **Websites are fetched like a browser would, without your cookies.** Private and local addresses (`localhost`, `10.*`, `192.168.*`, `*.local`) are refused.
@@ -133,8 +141,8 @@ Every day (at launch and every 4 hours), `electron/snapshots.cjs` writes `Backup
 - **Only real project folders open by themselves.** A folder dropped in or reopened after a restart can't be the whole disk, your home folder, a system folder or a place secrets live (`~/.ssh`, `~/.aws`, `~/Library`…); see `electron/roots.cjs`. Choosing a folder in the Open dialog is up to you.
 - **Files stay inside what you opened.** `folder:read` resolves real paths, so `../` and symlinks in a downloaded project ("notes → ~/.ssh") can't reach outside it. Repo names must be `owner/name`.
 - **Saves never leave half a file.** Bento's own files (`bento-store.json`, usage, the quick-answer and Atlas caches) are written as a new copy and then swapped in (`electron/safewrite.cjs`), so a full disk or a crash mid-save keeps the last good copy.
-- **Tests can use a pretend AI.** `BENTO_FAKE_AI=test/fixtures/fake-claude.mjs` (honoured only in hidden test mode) stands in for Claude Code: it answers `--version`, `--help` and `auth status` like the real one and streams a short lesson in the same `stream-json` format. `scripts/smoke-stream.mjs` uses it to check asking, streaming, the planning track, the lesson running itself and usage counting, on every CI run, for free.
-- **A hidden CLI is never started.** `BENTO_PRETEND_MISSING=claude,codex,gh` (used by tests) refuses to run those tools at all, so a test can never quietly spend your plan.
+- **Tests can use pretend AIs.** `BENTO_FAKE_AI=test/fixtures/fake-ai.mjs` with `BENTO_FAKE_AS=claude,codex,gemini,copilot` (honoured only in hidden test mode) stands in for each CLI: answering `--version`, `--help`, sign-in and limits like the real one, and streaming a short lesson in its own format. `scripts/smoke-stream.mjs` and `scripts/smoke-ais.mjs` use them to check asking, streaming, each AI in turn, the plan meters and falling back to the next AI, on every CI run, for free.
+- **A hidden CLI is never started.** `BENTO_PRETEND_MISSING=claude,codex,gemini,copilot,gh` (used by tests) refuses to run those tools at all, so a test can never quietly spend your plan.
 - **The shipped app is locked.** Signed with the hardened runtime, code in an integrity-checked asar, and Electron's `RunAsNode`, `NODE_OPTIONS` and `--inspect` switches off. See [RELEASING.md](RELEASING.md).
 - **The renderer has no Node access.** `contextIsolation` and `sandbox` are on, and everything privileged goes through a small, explicit IPC list in `electron/preload.cjs`.
 - **No telemetry.** Bento has no server. The only network traffic is your CLI talking to its provider, `gh` or `git` talking to GitHub, websites you ask it to read, and Pyodide's CDN when lesson code imports a package like numpy.

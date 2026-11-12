@@ -7,6 +7,7 @@ import BigPicture from './BigPicture.jsx';
 import { Visuals } from './Viz.jsx';
 import Editor from './Editor.jsx';
 import { modelLabel } from './Side.jsx';
+import { slowLabel } from '../ai.js';
 import { announce } from './a11y.js';
 import { K, keys, mod } from '../platform.js';
 const EMPTY = new Map();
@@ -165,8 +166,8 @@ export default function Story(p) {
             ))}
           </div>
         )}
-        {streaming && <div className="writing"><span className="dots"><i /><i /><i /></span>{L.story.length || L.code ? `${p.modelLabel} is writing` : `${p.modelLabel} is planning how to explain it`}{/codex/i.test(p.modelLabel) ? ' (Codex sends the whole lesson at once)' : ''}{p.onStop && <button className="stop-btn" onClick={p.onStop}>Stop</button>}</div>}
-        {streaming && !L.story.length && !L.code && <Thought text={L.thinking || ''} mode={L.mode} since={L.createdAt} slow={/codex/i.test(p.modelLabel || '')} />}
+        {streaming && <div className="writing"><span className="dots"><i /><i /><i /></span>{L.story.length || L.code ? `${p.modelLabel} is writing` : `${p.modelLabel} is planning how to explain it`}{slowLabel(p.modelLabel) ? ' (Codex sends the whole lesson at once)' : ''}{p.onStop && <button className="stop-btn" onClick={p.onStop}>Stop</button>}</div>}
+        {streaming && !L.story.length && !L.code && <Thought text={L.thinking || ''} mode={L.mode} since={L.createdAt} slow={slowLabel(p.modelLabel)} />}
         {streaming && !L.story.length && <div className="skel">{[92, 100, 74, 0, 96, 88, 60].map((w, i) => (w ? <div key={i} className="shimmer" style={{ width: `${w}%`, animationDelay: `${i * 80}ms` }} /> : <div key={i} style={{ height: 14 }} />))}</div>}
         {L.routed && <div className="routed">↪ {L.routed.from} {L.routed.why}, so <b>{L.routed.to}</b> wrote this lesson instead.</div>}
         {L.status === 'error' && <div className="story-err"><b>That didn't work.</b> {L.error}<div><button className="btn tiny" onClick={p.onRetry}>Try again</button>{p.altModel && <button className="btn tiny ghost" style={{ marginLeft: 6 }} onClick={p.onRetryWith}>Try with {p.altModel}</button>}</div></div>}

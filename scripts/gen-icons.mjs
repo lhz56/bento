@@ -4,7 +4,9 @@ import { writeFileSync } from 'node:fs';
 import { CATALOG, LANGS } from '../src/atlas/catalog.js';
 import { IDEAS } from '../src/ideas.js';
 import { SITE_SIGNS } from '../src/atlas/site.js';
-const slugs = new Set([...CATALOG.map((e) => e.slug), ...Object.values(LANGS).map((l) => l.slug), ...IDEAS.map((i) => i.slug), ...SITE_SIGNS.map((x) => x.slug), 'github', 'git', 'claude', 'markdown', 'json', 'html5', 'css']);
+import { createRequire } from 'node:module';
+const AI = createRequire(import.meta.url)('../electron/ai-catalog.json'); // the AIs Bento can teach with
+const slugs = new Set([...CATALOG.map((e) => e.slug), ...Object.values(LANGS).map((l) => l.slug), ...IDEAS.map((i) => i.slug), ...SITE_SIGNS.map((x) => x.slug), ...AI.providers.map((p) => p.slug), 'github', 'git', 'claude', 'markdown', 'json', 'html5', 'css']);
 const out = {}; const miss = [];
 const bySlug = Object.fromEntries(Object.values(si).filter((x) => x && x.slug).map((x) => [x.slug, x]));
 for (const s of slugs) { if (!s) continue; const i = bySlug[s]; if (i) out[s] = [i.hex, i.path]; else miss.push(s); }
