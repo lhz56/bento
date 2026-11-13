@@ -26,7 +26,7 @@ async function open(profile, { args = [], env: extra = {} } = {}) {
   delete env.ELECTRON_RUN_AS_NODE; delete env.BENTO_DEV;
   const app = await electron.launch({ executablePath: exe, args: [root, ...args, ...(process.platform === 'linux' && process.env.CI ? ['--no-sandbox'] : [])], env, timeout: 90000 });
   const p = await app.firstWindow();
-  const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+  const errors = []; p.on('pageerror', (e) => errors.push(e.message)); p.on('console', (m) => { if (/Content-Security-Policy/.test(m.text())) errors.push(`CSP: ${m.text().slice(0, 160)}`); });
   return { app, p, errors };
 }
 // what every case must leave behind: a drawn window, no page errors, nothing technical on screen, nothing uncaught

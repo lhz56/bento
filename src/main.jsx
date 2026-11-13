@@ -10,6 +10,12 @@ import { startStill } from './still.js';
 if (IS_MAC) document.body.classList.add('mac');
 
 if (!window.bento) document.body.classList.add('browser');
+// Anything the Content-Security-Policy (index.html) blocks is a feature that's broken: it's noted where the tests look
+// (a "bento:csp" mark, and the console), and they fail on it.
+addEventListener('securitypolicyviolation', (e) => {
+  const what = `${e.effectiveDirective} ${String(e.blockedURI || '').slice(0, 80)}`;
+  performance.mark(`bento:csp ${what}`); console.error(`Blocked by the Content-Security-Policy: ${what}`);
+});
 // pause decorative motion while you're not looking (battery); see still.js
 startStill();
 // hold ⌥ to reveal draggable numbers

@@ -43,7 +43,7 @@ const openTaxonomy = async () => {
 
 let fail = 0; const check = (ok, label, extra = '') => { if (!ok) fail++; console.log(`${ok ? '✓' : '✗'} ${label}${ok ? '' : ` → ${extra}`}`); };
 const active = () => p.evaluate(() => { const a = document.activeElement; return { cls: String(a?.className?.baseVal ?? a?.className ?? ''), tag: a?.tagName, text: (a?.innerText || a?.getAttribute?.('aria-label') || '').slice(0, 50) }; });
-const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => { if (/Content-Security-Policy/.test(m.text())) errs.push(`CSP: ${m.text().slice(0, 160)}`); });
 
 // a fresh page, like a person arriving: Home puts you straight in the ask box (inside the main area)
 await p.reload(); await p.waitForSelector('.side'); await p.waitForTimeout(500);
@@ -115,5 +115,7 @@ check(!(await p.evaluate(() => !!document.activeElement.closest('.cm-editor'))),
 console.log(errs.length ? `page errors:\n${errs.join('\n')}` : 'no page errors');
 await app.close();
 fs.rmSync(profile, { recursive: true, force: true });
+errs.push(...((await p.evaluate(() => performance.getEntriesByType('mark').filter((m) => m.name.startsWith('bento:csp')).map((m) => m.name)).catch(() => []))));
+if (errs.length) console.log(`✗ errors on the page: ${errs.slice(0, 3).join(' | ')}`);
 console.log(fail || errs.length ? `\n${fail} keyboard check${fail === 1 ? '' : 's'} failed.` : '\nEverything works from the keyboard.');
 process.exit(fail || errs.length ? 1 : 0);

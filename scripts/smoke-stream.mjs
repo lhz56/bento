@@ -31,7 +31,7 @@ const env = { ...process.env, BENTO_HIDDEN: '1', BENTO_USERDATA: profile, BENTO_
 delete env.ELECTRON_RUN_AS_NODE; delete env.BENTO_DEV;
 const app = await electron.launch({ executablePath: exe, args: packaged ? [] : [root], env, timeout: 90000 });
 const p = await app.firstWindow();
-const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+const errors = []; p.on('pageerror', (e) => errors.push(e.message)); p.on('console', (m) => { if (/Content-Security-Policy/.test(m.text())) errors.push(`CSP: ${m.text().slice(0, 160)}`); });
 let fail = 0;
 const step = async (label, fn) => { const t0 = Date.now(); try { const note = await fn(); console.log(`✓ ${label}${note ? ` · ${note}` : ''} (${((Date.now() - t0) / 1000).toFixed(1)}s)`); } catch (e) { fail++; console.log(`✗ ${label}: ${String(e.message).split('\n')[0]}`); } };
 

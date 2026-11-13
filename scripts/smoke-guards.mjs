@@ -78,6 +78,12 @@ await step('a lesson page is walled off from Bento', async () => {
   const r = await p.evaluate(() => new Promise((res) => { const f = document.createElement('iframe'); f.src = 'play://l-guard/'; f.onload = () => { let o; try { o = typeof f.contentWindow.bento; } catch { o = 'cross-origin'; } f.remove(); res(o); }; document.body.appendChild(f); }));
   must(id && (r === 'cross-origin' || r === 'undefined'), `the page saw ${r}`);
 });
+await step('Bento’s own files can’t be used to reach files beside them', async () => {
+  // app://bento serves only dist/: an escaped "../" (or a folder named like it, "dist-evil") must never get out
+  const r = await p.evaluate(() => Promise.all(['..%2f..%2fpackage.json', '%2e%2e/%2e%2e/package.json', '..%5c..%5cpackage.json', 'index.html'].map((u) => fetch(`app://bento/${u}`).then((x) => x.status, () => 'refused'))));
+  must(r.slice(0, 3).every((x) => x === 403 || x === 'refused' || x === 404) && r[3] === 200, r.join(' '));
+  return r.join(' ');
+});
 await step('the window can’t be sent to another page', async () => {
   const before = p.url(); await p.evaluate(() => { location.href = 'file:///etc/hosts'; }).catch(() => {}); await p.waitForTimeout(800);
   must(p.url() === before, p.url());

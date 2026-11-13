@@ -95,5 +95,6 @@ await step('atlas notes copy', async () => { await openProject(); await p.waitFo
 await step('atlas walk + file map', async () => { await openProject(); await p.waitForSelector('.flow'); if (await p.locator('.walk-btn').count()) { await p.click('.walk-btn'); await p.waitForSelector('.dive.open', { timeout: 5000 }); await p.click('.walk-btn'); } await p.click('.ab-nav button:has-text("Files")'); await p.waitForSelector('.fm-tile', { timeout: 5000 }); }); // walk me through
 await app.close();
 fs.rmSync(profile, { recursive: true, force: true });
+errs.push(...((await p.evaluate(() => performance.getEntriesByType('mark').filter((m) => m.name.startsWith('bento:csp')).map((m) => m.name)).catch(() => []))).map((m) => `CSP ${m}`));
 console.log(errs.length ? `\nFailed: ${errs.join(' | ')}` : '\nThe whole tour works.');
 process.exit(errs.length ? 1 : 0);

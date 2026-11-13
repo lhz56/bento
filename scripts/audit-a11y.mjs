@@ -40,6 +40,8 @@ await p.click('.cx textarea'); await p.keyboard.type('How does a hash map find t
 await p.waitForFunction(() => /red coat/.test(document.querySelector('.stage-body')?.innerText || ''), null, { timeout: 60000 });
 
 let bad = 0; const found = {};
+// every screen, light and dark, must also load with nothing blocked by the Content-Security-Policy
+const csp = []; p.on('console', (m) => { if (/Content-Security-Policy/.test(m.text())) csp.push(m.text().slice(0, 160)); });
 const audit = async (name, theme) => {
   await p.waitForTimeout(700);
   if (!(await p.evaluate(() => !!window.axe))) await p.evaluate(AXE + '\n;0');
@@ -78,5 +80,7 @@ await pass('dark');
 await app.close();
 fs.rmSync(profile, { recursive: true, force: true });
 if (bad) { console.log('\nWhat to fix:'); for (const [id, where] of Object.entries(found)) console.log(`  ${id}: ${where.slice(0, 4).join(' | ')}`); }
+csp.push(...(await p.evaluate(() => performance.getEntriesByType('mark').filter((m) => m.name.startsWith('bento:csp')).map((m) => m.name)).catch(() => [])));
+if (csp.length) { bad++; console.log(`✗ blocked by the Content-Security-Policy: ${[...new Set(csp)].slice(0, 4).join(' | ')}`); } else console.log('✓ nothing on any screen was blocked by the Content-Security-Policy');
 console.log(bad ? `\n${bad} screen${bad > 1 ? 's' : ''} need work.` : '\nEvery screen passes, light and dark.');
 process.exit(bad ? 1 : 0);

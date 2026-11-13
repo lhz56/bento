@@ -38,7 +38,7 @@ console.log(`${process.platform}/${process.arch} · ${packaged ? 'packaged app' 
 let fail = 0;
 const app = await electron.launch({ executablePath: exe, args, env, timeout: 90000 });
 const p = await app.firstWindow();
-const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+const errors = []; p.on('pageerror', (e) => errors.push(e.message)); p.on('console', (m) => { if (/Content-Security-Policy/.test(m.text())) errors.push(`CSP: ${m.text().slice(0, 160)}`); });
 const step = async (name, fn) => {
   const t0 = Date.now();
   try { const note = await fn(); console.log(`✓ ${name}${note ? ` · ${note}` : ''} (${((Date.now() - t0) / 1000).toFixed(1)}s)`); }
@@ -144,7 +144,7 @@ await step('a featured project stays on screen once it’s open', async () => {
   const back = await p.evaluate(() => new Promise((r) => { const t0 = Date.now(); const iv = setInterval(() => { const l = !!document.querySelector('.atlas-loading'); if (l || Date.now() - t0 > 5000) { clearInterval(iv); r(l); } }, 40); }));
   if (back) throw new Error('the loading steps came back after the project was on screen');
 });
-await step('no errors on the page', async () => { if (errors.length) throw new Error(errors.slice(0, 3).join(' | ')); });
+await step('no errors on the page, and nothing blocked by the Content-Security-Policy', async () => { errors.push(...((await p.evaluate(() => performance.getEntriesByType('mark').filter((m) => m.name.startsWith('bento:csp')).map((m) => m.name)).catch(() => [])))); if (errors.length) throw new Error(errors.slice(0, 3).join(' | ')); });
 
 await app.close().catch(() => {});
 fs.rmSync(profile, { recursive: true, force: true });

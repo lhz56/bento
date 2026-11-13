@@ -33,7 +33,7 @@ async function launch(settings, extra = {}) {
   const env = { ...process.env, BENTO_HIDDEN: '1', BENTO_USERDATA: profile, BENTO_FAKE_AI: path.join(root, 'test/fixtures/fake-ai.mjs'), BENTO_FAKE_AS: createRequire(import.meta.url)('../electron/ai-catalog.json').providers.map((x) => x.id).join(','), BENTO_PRETEND_MISSING: 'gh', BENTO_NO_GH: '1', FAKE_AI_THINK_MS: '600', FAKE_AI_STEP_MS: '25', ...extra };
   delete env.ELECTRON_RUN_AS_NODE; delete env.BENTO_DEV;
   const app = await electron.launch({ executablePath: exe, args: packaged ? [] : [root], env, timeout: 90000 });
-  const p = await app.firstWindow(); const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+  const p = await app.firstWindow(); const errors = []; p.on('pageerror', (e) => errors.push(e.message)); p.on('console', (m) => { if (/Content-Security-Policy/.test(m.text())) errors.push(`CSP: ${m.text().slice(0, 160)}`); });
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1440, 900));
   return { app, p, errors, close: async () => { await app.close(); fs.rmSync(profile, { recursive: true, force: true }); } };
 }
