@@ -286,6 +286,17 @@ if (process.platform !== 'win32') { const { createRequire } = await import('node
   check(!bestBuiltin('how does this code work', B) && !bestBuiltin('what is code', B), 'a vague question gets no suggestion', '');
   check(namesALesson('binary search tree', B) && !namesALesson('t3 code', B) && !namesALesson('react', B), '“binary search tree” is a topic; “T3 Code” and “React” are projects', ''); }
 
+// Test switches: pretend AIs only in test builds or from source, hidden; a release asked for them hides every AI
+{ const { createRequire } = await import('node:module'); const { testHooks } = createRequire(import.meta.url)('../electron/testhooks.cjs');
+  const env = { BENTO_FAKE_AI: '/x/fake-ai.mjs', BENTO_FAKE_LIMIT: 'claude', BENTO_DRY_PUBLISH: '1' };
+  const release = testHooks({ packaged: true, testBuild: false, offscreen: true, env });
+  check(!release.fakeAI && !release.fakeLimit && !release.dryPublish && release.hideAllAIs, 'a release ignores the test switches, and hides every AI rather than use the real ones', JSON.stringify(release));
+  const testBuild = testHooks({ packaged: true, testBuild: true, offscreen: true, env });
+  check(testBuild.fakeAI === '/x/fake-ai.mjs' && testBuild.fakeLimit === 'claude' && testBuild.dryPublish && !testBuild.hideAllAIs, 'a hidden test build uses the pretend AIs', JSON.stringify(testBuild));
+  const shown = testHooks({ packaged: false, testBuild: false, offscreen: false, env });
+  check(!shown.fakeAI && shown.hideAllAIs, 'a window on screen never uses pretend AIs, and still never falls back to real ones', JSON.stringify(shown));
+  check(!testHooks({ packaged: true, testBuild: false, offscreen: true, env: {} }).hideAllAIs, 'a normal launch hides nothing', ''); }
+
 // Folders a page could open as a project on its own: real projects yes, the whole disk, home, system or secrets no
 { const { createRequire } = await import('node:module'); const { projectRootOk } = createRequire(import.meta.url)('../electron/roots.cjs');
   const win = process.platform === 'win32', H = win ? 'C:\\Users\\ana' : '/Users/ana';

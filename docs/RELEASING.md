@@ -34,7 +34,9 @@ GitHub, and no password in the repo or the environment.
    - opens every `.dmg` and `.zip` and checks the app inside (architecture, version, update feed, `codesign`,
      Gatekeeper, the stapled ticket) and that `latest-mac.yml` matches the files byte for byte
      (`scripts/verify-mac-release.mjs`);
-   - starts the app once, hidden, with its own profile and no AI, and checks its page ran with no errors;
+   - starts the app once, hidden, with its own profile and no AI, and checks its page ran with no errors; then drives
+     that same signed app through a new learner's first session (`scripts/smoke-app.mjs --app`, over the DevTools
+     protocol since the release's debugger switch is off);
    - **only then** publishes `v0.3.0` (uploaded as a draft first, so nobody ever sees a half-uploaded release), checks
      that the live update feed says `0.3.0` and the download links work, tags the source and deletes the build.
 

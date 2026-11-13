@@ -4,7 +4,10 @@
 //   npx vite build && node scripts/smoke-app.mjs              the app from this folder
 //   npx electron-builder --dir && node scripts/smoke-app.mjs --packaged    the app electron-builder made
 //   On Linux without a screen: xvfb-run -a node scripts/smoke-app.mjs
-import { _electron as electron } from 'playwright-core';
+//   node scripts/smoke-app.mjs --app /path/Bento.app    a release build (signed, the debugger switch off): driven over the
+//                                                       DevTools protocol instead, exactly as people get it
+import { _electron as electron, chromium } from 'playwright-core';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -12,7 +15,8 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const packaged = process.argv.includes('--packaged');
+const RELEASE = process.argv.includes('--app') ? path.resolve(process.argv[process.argv.indexOf('--app') + 1]) : null;
+const packaged = process.argv.includes('--packaged') || !!RELEASE;
 const OUT = path.join(root, 'smoke-out'); fs.mkdirSync(OUT, { recursive: true });
 const MOD = process.platform === 'darwin' ? 'Meta' : 'Control';
 
@@ -24,7 +28,7 @@ function packagedApp() {
   const d = dirs.find((x) => x.startsWith('linux') && x.endsWith('unpacked'));
   return d && ['bento', 'Bento'].map((n) => path.join(rel, d, n)).find((f) => fs.existsSync(f));
 }
-const exe = packaged ? packagedApp() : createRequire(import.meta.url)('electron');
+const exe = RELEASE ? path.join(RELEASE, 'Contents/MacOS', path.basename(RELEASE, '.app')) : packaged ? packagedApp() : createRequire(import.meta.url)('electron');
 if (!exe || !fs.existsSync(exe)) { console.error(`✗ can't find the app${packaged ? ' in release/ (run electron-builder --dir first)' : ''}`); process.exit(1); }
 
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'bento-smoke-'));
@@ -36,7 +40,16 @@ const args = [...(packaged ? [] : [root]), ...(process.platform === 'linux' && (
 console.log(`${process.platform}/${process.arch} · ${packaged ? 'packaged app' : 'from source'} · ${exe}`);
 
 let fail = 0;
-const app = await electron.launch({ executablePath: exe, args, env, timeout: 90000 });
+// a release build can't be attached to the usual way (its --inspect switch is fused off): start it with a DevTools port
+async function launchRelease() {
+  const child = spawn(exe, ['--remote-debugging-port=0'], { env, stdio: 'ignore' });
+  const pf = path.join(profile, 'DevToolsActivePort');
+  for (let i = 0; !fs.existsSync(pf) || !fs.readFileSync(pf, 'utf8').trim(); i++) { if (i > 600) throw new Error('no DevTools port'); await new Promise((r) => setTimeout(r, 50)); }
+  const browser = await chromium.connectOverCDP(`http://127.0.0.1:${fs.readFileSync(pf, 'utf8').split('\n')[0]}`);
+  const page = async () => { for (let i = 0; ; i++) { const pg = browser.contexts().flatMap((c) => c.pages()).find((x) => x.url().startsWith('app://bento')); if (pg) return pg; if (i > 300) throw new Error('no Bento page'); await new Promise((r) => setTimeout(r, 50)); } };
+  return { firstWindow: page, evaluate: async () => {}, close: async () => { await browser.close().catch(() => {}); child.kill('SIGTERM'); await new Promise((r) => { const t = setTimeout(r, 4000); child.once('exit', () => { clearTimeout(t); r(); }); }); } };
+}
+const app = RELEASE ? await launchRelease() : await electron.launch({ executablePath: exe, args, env, timeout: 90000 });
 const p = await app.firstWindow();
 const errors = []; p.on('pageerror', (e) => errors.push(e.message)); p.on('console', (m) => { if (/Content-Security-Policy/.test(m.text())) errors.push(`CSP: ${m.text().slice(0, 160)}`); });
 const step = async (name, fn) => {

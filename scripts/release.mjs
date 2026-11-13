@@ -84,10 +84,15 @@ run('node', ['scripts/notarize-dmg.mjs', '--dir', OUT]);
 step('Checking what people will download');
 run('node', ['scripts/verify-mac-release.mjs', '--dir', OUT]);
 
-step('Starting it once');
+step('Starting it once, then using it the way a new learner would');
 const native = process.arch === 'arm64' ? 'arm64' : 'x64';
-if (ARCHS.includes(native)) await launchOnce(path.join(OUT, native === 'arm64' ? 'mac-arm64' : 'mac', `${PRODUCT}.app`));
-else console.log(`- skipped: this Mac is ${native}`);
+if (ARCHS.includes(native)) {
+  const built = path.join(OUT, native === 'arm64' ? 'mac-arm64' : 'mac', `${PRODUCT}.app`);
+  await launchOnce(built);
+  // the exact signed app that's about to ship, driven over the DevTools protocol: lessons, Python, JavaScript,
+  // TypeScript, SQL, the network guard, a project, with no AI and nothing blocked by the Content-Security-Policy
+  run('node', ['scripts/smoke-app.mjs', '--app', built]);
+} else console.log(`- skipped: this Mac is ${native}`);
 
 step('Checksums');
 const uploads = fs.readdirSync(OUT).filter((f) => /\.(dmg|zip)$/.test(f)).sort();

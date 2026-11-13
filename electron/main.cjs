@@ -251,11 +251,14 @@ const HIDDEN = new Set(String(process.env.BENTO_PRETEND_MISSING || '').split(','
 // format, so the whole ask → stream → run path is checked without using anyone's plan. BENTO_FAKE_AS says which AIs
 // are pretend (Claude by default). Only honoured in hidden test mode, and only by a test build or a copy run from source:
 // a release ignores it.
-const FAKE_AI = TEST_BUILD && OFFSCREEN && process.env.BENTO_FAKE_AI ? path.resolve(process.env.BENTO_FAKE_AI) : null;
-const FAKE_AS = new Set(String(process.env.BENTO_FAKE_AS || 'claude').split(',').filter(Boolean));
+// (testhooks.cjs decides; a release asked for them hides every AI rather than use your real ones)
+const HOOKS = require('./testhooks.cjs').testHooks({ packaged: app.isPackaged, testBuild: TEST_BUILD, offscreen: OFFSCREEN, env: process.env });
+const FAKE_AI = HOOKS.fakeAI ? path.resolve(HOOKS.fakeAI) : null;
+const FAKE_AS = new Set(HOOKS.fakeAs);
+if (HOOKS.hideAllAIs) logger.log('BENTO_FAKE_AI is set, but this build doesn’t use pretend AIs: every AI is hidden, so none of your real ones runs');
 // an AI can be named by its id ("antigravity") or its program ("agy")
 const idOfBin = (cmd) => P.IDS.find((id) => P.BY[id].bin === cmd) || cmd;
-const isHidden = (cmd) => HIDDEN.has(cmd) || HIDDEN.has(idOfBin(cmd));
+const isHidden = (cmd) => HIDDEN.has(cmd) || HIDDEN.has(idOfBin(cmd)) || (HOOKS.hideAllAIs && P.IDS.includes(idOfBin(cmd)));
 const isFake = (cmd) => !!FAKE_AI && (FAKE_AS.has(cmd) || FAKE_AS.has(idOfBin(cmd)));
 const viaFake = (cmd, args) => (isFake(cmd) ? ['node', [FAKE_AI, '--as', cmd, ...args]] : [cmd, args]);
 async function which(cmd) {
@@ -373,7 +376,7 @@ const withVoice = (system) => (VOICE && VOICE !== 'English' ? `${system}\n\nLANG
 
 // Streams text deltas to onText. Returns {promise, kill}.
 // BENTO_FAKE_LIMIT=claude makes that CLI answer "usage limit" (to test automatic routing to your other AI).
-const FAKE_LIMIT = TEST_BUILD ? String(process.env.BENTO_FAKE_LIMIT || '') : '';
+const FAKE_LIMIT = HOOKS.fakeLimit;
 // ---------------------------------------------------------------- what used your AI
 // Every request is noted (what for, which model, how long, tokens: real counts when the CLI reports them),
 // so Settings and the sidebar can show where your plan's usage goes. Quick answers are also kept for 14 days,
@@ -569,7 +572,7 @@ ipcMain.handle('folder:read', async (_e, root, rel) => {
 // Nothing is hosted by Bento. BENTO_DRY_PUBLISH=1 records the gh commands instead of running them (for tests).
 ipcMain.handle('web:publish', async (_e, html, title) => {
   html = str(html, 2_000_000); title = optStr(title, 300);
-  const dry = TEST_BUILD && process.env.BENTO_DRY_PUBLISH ? [] : null;
+  const dry = HOOKS.dryPublish ? [] : null;
   const call = async (args) => { if (dry) { dry.push(['gh', ...args.map((a) => (a.length > 80 ? a.slice(0, 40) + '…' : a))].join(' ')); return args.includes('user') ? 'learner' : ''; } return gh(args); };
   const slug = String(title || 'my page').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50) || 'my-page';
   const login = String(await call(['api', 'user', '--jq', '.login'])).trim();

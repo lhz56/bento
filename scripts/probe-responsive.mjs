@@ -13,6 +13,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import { chromium } from 'playwright-core';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -62,7 +63,11 @@ else {
 }
 
 // ---- 2. a lesson streaming in while you type
-{
+// only for builds that use the pretend AI (from source, a test build, or a release before 0.2.1): never a real AI
+const meta = SOURCE ? { bentoTestBuild: true } : (() => { try { return JSON.parse(createRequire(import.meta.url)('@electron/asar').extractFile(path.join(appPath, 'Contents/Resources/app.asar'), 'package.json').toString()); } catch { return {}; } })();
+const pretendOk = meta.bentoTestBuild === true || (meta.version && meta.version.split('.').map(Number).reduce((a, n) => a * 1000 + n, 0) < 2001);
+if (!pretendOk) console.log('\n2. skipped: this build doesn’t use the pretend AI (a release), and a real AI is never used for a test');
+else {
   const { p, close } = await launch({ BENTO_FAKE_AI: path.join(root, 'test/fixtures/fake-claude.mjs'), BENTO_PRETEND_MISSING: 'codex,antigravity,gemini,copilot,gh', FAKE_AI_THINK_MS: '300', FAKE_AI_STEP_MS: '160' }, { 'bento.settings': { onboarded: true, model: 'claude:sonnet', lang: 'python', level: 'student' } });
   try {
     // one record per keystroke (Chromium reports keydown, keypress, input and keyup separately): its slowest part, and
