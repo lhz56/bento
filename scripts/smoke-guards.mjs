@@ -116,9 +116,12 @@ await step('after an update, “What’s new” shows once', async () => {
 });
 await step('a crashed page comes back by itself, and the crash is logged', async () => {
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.forcefullyCrashRenderer());
-  await new Promise((r) => setTimeout(r, 3500));
-  const back = await app.evaluate(async ({ BrowserWindow }) => { const wc = BrowserWindow.getAllWindows()[0].webContents; return !wc.isCrashed() && await wc.executeJavaScript("!!document.querySelector('.side')"); });
-  must(back, 'still crashed');
+  // it reloads by itself; slower machines take a while, so keep asking (the old page may still be going away)
+  let back = false;
+  for (const t0 = Date.now(); !back && Date.now() - t0 < 20000; await new Promise((r) => setTimeout(r, 500))) {
+    back = await app.evaluate(async ({ BrowserWindow }) => { const wc = BrowserWindow.getAllWindows()[0].webContents; return !wc.isCrashed() && !wc.isLoading() && await wc.executeJavaScript("!!document.querySelector('.side')"); }).catch(() => false);
+  }
+  must(back, 'still crashed after 20 s');
   const log = path.join(profile, 'logs', 'main.log'); must(fs.existsSync(log) && /page gone/.test(fs.readFileSync(log, 'utf8')), 'not logged');
 });
 
