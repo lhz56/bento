@@ -25,6 +25,7 @@
     "dist:win": "vite build && electron-builder --win nsis",
     "dist:linux": "vite build && electron-builder --linux AppImage",
     "release": "node scripts/release.mjs",
+    "smoke:phone": "vite build && node scripts/smoke-phone.mjs && node scripts/smoke-phone.mjs --ipad",
     "verify-release": "node scripts/verify-mac-release.mjs",
     "preflight": "node scripts/check-release.mjs",
     "smoke": "vite build && node scripts/smoke-app.mjs && node scripts/smoke-tour.mjs && node scripts/smoke-stream.mjs && node scripts/smoke-ais.mjs && node scripts/smoke-guards.mjs && node scripts/smoke-failures.mjs",

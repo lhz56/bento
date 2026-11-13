@@ -73,6 +73,12 @@ jobs:
       - name: Everything with only a keyboard
         if: runner.os == 'macOS'
         run: node scripts/audit-keyboard.mjs --packaged
+      - name: Bento on an iPhone and an iPad (WebKit, paired with the app the way a person would; pretend AI)
+        if: runner.os == 'macOS'
+        run: |
+          npx playwright-core install webkit
+          node scripts/smoke-phone.mjs --packaged
+          node scripts/smoke-phone.mjs --packaged --ipad
       - uses: actions/upload-artifact@v4
         if: always()
         with:

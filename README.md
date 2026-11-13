@@ -115,11 +115,20 @@ Any one AI is enough. Bento teaches with the one you pick in the sidebar (quick 
 
 Bento never stores tokens. Every request is a call to your own CLI with every tool, plugin and tool server switched off, so the model can only write text.
 
+## On your phone and iPad
+
+Turn on **Settings → Your phone and iPad**, scan the QR code with your phone, and Bento opens there, already
+connected. Your Mac still does the work with your own AI; the phone gets tabs, Back, lessons as two pages (the story,
+then the code you can run on the phone), and the Atlas made for a thumb. Lessons and progress are the same on every
+device. Your devices reach the Mac over Tailscale (from anywhere) or your Wi-Fi; nothing is hosted. See
+[docs/PHONE.md](docs/PHONE.md).
+
 ## Privacy
 
 - Code runs on your Mac. Python is real CPython compiled to WebAssembly, running in a worker.
 - Repos are shallow-cloned into `~/Library/Application Support/bento/repos` and analysed locally.
 - What leaves your machine: prompts sent to your own model CLI, GitHub and website requests you ask for, and Pyodide package downloads when lesson code imports something like numpy. No telemetry.
+- Your phone and iPad (off unless you turn it on) talk only to your Mac, over Tailscale or your Wi-Fi, and only once paired. See [docs/PHONE.md](docs/PHONE.md#safety).
 - Repo code is only read, never run, and lesson web pages run on an isolated origin. Lesson code can reach the public internet, but never your Mac or your home network. See [Safety](docs/ARCHITECTURE.md#safety).
 
 ## Run it
@@ -134,6 +143,7 @@ npm test             # runtimes, stepping, the loop and network guards, repo ana
 npm run smoke        # open the real app hidden and use it: lessons and code, a learner's tour, a lesson streamed in
                      # from a pretend AI, and the guard rails (what a page can reach, the menu, crash recovery)
 npm run audit        # every screen in light and dark through axe-core, then everything with only a keyboard
+npm run smoke:phone  # pair an iPhone- and an iPad-sized WebKit with the app and use it (npx playwright-core install webkit once)
 
 # ship it (see docs/RELEASING.md)
 npm run preflight    # version, release notes, signing and notarization setup, then the tests
@@ -151,6 +161,8 @@ For how the pieces fit together (streaming lessons, the code runners, the Atlas 
 electron/main.cjs      window, model CLIs (streaming, thinking), subscription scan, GitHub, Atlas IPC
 electron/atlas.cjs     shallow clone + static analysis: layers, imports, manifests, entry points
 electron/prompts.cjs   lesson, case-study and atlas formats (NDJSON blocks)
+electron/host.cjs      your phone and iPad: pairing, the page, calls and the event stream (docs/PHONE.md)
+src/remote.js          the page's side of that: window.bento over the network
 src/lesson.js          lesson model, streaming parser, prompt builders, built-in lessons
 src/ideas.js           the clever-ideas library (facts each lesson must stay inside)
 src/atlas/             tool catalog (190+ tools, logos via simple-icons), stack detection, hot spots

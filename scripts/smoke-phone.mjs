@@ -6,6 +6,7 @@
 //
 //   npx vite build && node scripts/smoke-phone.mjs            an iPhone
 //   node scripts/smoke-phone.mjs --ipad                        an iPad (the same checks, the iPad's layout)
+//   node scripts/smoke-phone.mjs --packaged                    the test build electron-builder made (BENTO_RELEASE_DIR to point elsewhere)
 // WebKit comes from Playwright (npx playwright-core install webkit); WK=/path/to/pw_run.sh picks another build.
 import { _electron as electron, webkit, devices } from 'playwright-core';
 import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path';
@@ -13,6 +14,17 @@ import { fileURLToPath } from 'node:url'; import { createRequire } from 'node:mo
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const IPAD = process.argv.includes('--ipad');
+const packaged = process.argv.includes('--packaged');
+function packagedApp() {
+  const rel = process.env.BENTO_RELEASE_DIR || path.join(root, 'release');
+  const dirs = fs.existsSync(rel) ? fs.readdirSync(rel) : [];
+  if (process.platform === 'darwin') { const d = dirs.find((x) => x.startsWith('mac') && fs.existsSync(path.join(rel, x, 'Bento.app'))); return d && path.join(rel, d, 'Bento.app', 'Contents', 'MacOS', 'Bento'); }
+  if (process.platform === 'win32') { const d = dirs.find((x) => x.startsWith('win') && x.endsWith('unpacked')); return d && path.join(rel, d, 'Bento.exe'); }
+  const d = dirs.find((x) => x.startsWith('linux') && x.endsWith('unpacked'));
+  return d && ['bento', 'Bento'].map((n) => path.join(rel, d, n)).find((f) => fs.existsSync(f));
+}
+const exe = packaged ? packagedApp() : createRequire(import.meta.url)('electron');
+if (!exe || !fs.existsSync(exe)) { console.error('✗ can’t find the app'); process.exit(1); }
 const PORT = 4937 + (IPAD ? 10 : 0);
 const OUT = path.join(root, 'smoke-out'); fs.mkdirSync(OUT, { recursive: true });
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'bento-phone-'));
@@ -20,7 +32,7 @@ fs.writeFileSync(path.join(profile, 'bento-store.json'), JSON.stringify({ 'bento
 const env = { ...process.env, BENTO_HIDDEN: '1', BENTO_USERDATA: profile, BENTO_HOST: '1', BENTO_HOST_PORT: String(PORT), BENTO_FAKE_AI: path.join(root, 'test/fixtures/fake-claude.mjs'), BENTO_FAKE_AS: 'claude', BENTO_PRETEND_MISSING: 'codex,antigravity,gemini,copilot,gh', BENTO_NO_GH: '1' };
 delete env.ELECTRON_RUN_AS_NODE; delete env.BENTO_DEV;
 
-const app = await electron.launch({ executablePath: createRequire(import.meta.url)('electron'), args: [root], env, timeout: 90000 });
+const app = await electron.launch({ executablePath: exe, args: packaged ? [] : [root], env, timeout: 90000 });
 const mac = await app.firstWindow();
 const wk = process.env.WK || ['webkit-2388', 'webkit-2370', 'webkit-2336'].map((d) => path.join(os.homedir(), 'Library/Caches/ms-playwright', d, 'pw_run.sh')).find((f) => fs.existsSync(f));
 const browser = await webkit.launch(wk ? { executablePath: wk } : {});

@@ -12,7 +12,7 @@ export function QR({ text, size = 176 }) {
 }
 
 const ago = (t0) => { const s = (Date.now() - t0) / 1000; return s < 90 ? 'just now' : s < 3600 ? `${Math.round(s / 60)} min ago` : s < 86400 ? `${Math.round(s / 3600)} h ago` : `${Math.round(s / 86400)} days ago`; };
-const kindIcon = (name) => (/iPad/.test(name) ? '▭' : /iPhone|Android/.test(name) ? '▯' : '▢');
+const kindOf = (name) => (/iPad/.test(name) ? 'tablet' : /iPhone|Android/.test(name) ? 'phone' : 'computer');
 
 export default function DevicesRow() {
   const H = window.bento?.host;
@@ -61,7 +61,7 @@ export default function DevicesRow() {
             <ul className="dev-list" aria-label={t('Paired devices')}>
               {st.devices.map((d) => (
                 <li key={d.id}>
-                  <span className="dev-ico" aria-hidden="true">{kindIcon(d.name)}</span>
+                  <span className={`dev-ico ${kindOf(d.name)}`} aria-hidden="true"><i /></span>
                   <b>{d.name}</b>
                   <span className={`dev-seen ${d.online ? 'on' : ''}`}>{d.online ? t('connected') : `${t('last seen')} ${ago(d.seen || d.added)}`}</span>
                   <button className="link" disabled={busy} onClick={() => { if (confirm(`${t('Remove')} ${d.name}? ${t('It will need a new code to use Bento again.')}`)) act(() => H.forget(d.id)); }}>{t('Remove')}</button>

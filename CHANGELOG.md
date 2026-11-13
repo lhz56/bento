@@ -3,6 +3,15 @@
 Each version's section becomes its GitHub release notes, which is what "What's new" in the sidebar opens.
 Write for learners, not for developers.
 
+## Unreleased
+
+Bento on your iPhone and iPad.
+
+- Turn on **Settings → Your phone and iPad**, scan the QR code with your phone, and Bento opens there. Your Mac still does the work with your own AI, and nothing is hosted: your phone talks straight to your Mac, over Tailscale from anywhere, or your Wi-Fi at home.
+- Made for a phone: tabs at the bottom, Back at the top, your recent things a swipe away. Lessons are two pages, the story and the code (which runs right on the phone). A project's Atlas fits your thumb: tap a building in the code city to see what it is, tap again to open the file.
+- Your lessons and progress are the same on every device, and change everywhere at once.
+- Put it on your Home Screen and it opens like an app, already connected.
+
 ## 0.2.1
 
 Steadier and safer, especially when something goes wrong.
