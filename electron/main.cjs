@@ -833,7 +833,7 @@ const findproject = require('./findproject.cjs');
 const foundRoots = new Set();
 ipcMain.handle('project:find', async (_e, names) => {
   names = Array.isArray(names) ? strList(names.slice(0, 8), 8, 200) : [str(names, 200)];
-  const r = await findproject.find(names, { searchGitHub: (q) => searchRepos(q, { limit: 6 }), repoMeta, localClones: (n, f) => work('localClones', [n, f]) });
+  const r = await findproject.find(names, { searchGitHub: (q) => searchRepos(q, { limit: 6 }), repoMeta, localClones: (n, f) => work('localClones', [n, f]), installedApps: (n) => work('installedApps', [n]) });
   for (const l of r.local) foundRoots.add(l.root);
   return r;
 });

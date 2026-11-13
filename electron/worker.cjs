@@ -16,6 +16,7 @@ const OPS = {
   dirSize: (dir) => atlas.dirSize(dir),
   remove: (p) => fs.promises.rm(p, { recursive: true, force: true }).then(() => true),
   localClones: (names, fulls) => findproject.localClones(names, fulls),
+  installedApps: (names) => findproject.installedApps(names),
 };
 
 parentPort.on('message', async ({ id, op, args }) => {
