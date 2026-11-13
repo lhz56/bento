@@ -234,6 +234,11 @@ if (process.platform !== 'win32') { const { createRequire } = await import('node
   fs.mkdirSync(`${f}.tmp`); // the new copy can't be written (as on a full disk)
   const ok = writeSafe(f, '{"a":2}');
   check(!ok && fs.readFileSync(f, 'utf8') === '{"a":1}', 'a save that fails leaves the last good copy', fs.readFileSync(f, 'utf8'));
+  // the background save: same promise, and it says why it failed (a full disk shows up as ENOSPC)
+  const { writeSafeAsync } = createRequire(import.meta.url)('../electron/safewrite.cjs');
+  check((await writeSafeAsync(f, '{"a":3}')) === null && fs.readFileSync(f, 'utf8') === '{"a":3}', 'a background save writes the file', '');
+  const why = await writeSafeAsync(path.join(dir, 'missing', 'store.json'), '{}');
+  check(why === 'ENOENT' && fs.readFileSync(f, 'utf8') === '{"a":3}' && !fs.readdirSync(dir).some((x) => /\.\d+\.tmp$/.test(x)), 'a background save that fails says why and leaves nothing half-written', String(why));
   fs.rmSync(dir, { recursive: true, force: true }); }
 
 // Bento reopens where you left it, unless that screen is gone
@@ -261,11 +266,11 @@ if (process.platform !== 'win32') { const { createRequire } = await import('node
   const { daily } = req('../electron/snapshots.cjs'); const { writeSafe } = req('../electron/safewrite.cjs');
   const fs = await import('node:fs'); const os = await import('node:os'); const path = await import('node:path');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bento-snap-'));
-  check(daily(dir, { 'bento.settings': {} }, writeSafe) === null, 'nothing is copied before there is anything to keep', '');
+  check((await daily(dir, { 'bento.settings': {} }, writeSafe)) === null, 'nothing is copied before there is anything to keep', '');
   const store = { 'bento.lessons': [{ id: 'a', title: 'Loops' }], 'bento.progress': { words: {} }, 'bento.storyW': 0.5 };
-  for (let d = 1; d <= 9; d++) daily(dir, store, writeSafe, { now: new Date(2026, 10, d, 12) });
+  for (let d = 1; d <= 9; d++) await daily(dir, store, writeSafe, { now: new Date(2026, 10, d, 12) });
   fs.writeFileSync(path.join(dir, 'my notes.txt'), 'mine');
-  daily(dir, store, writeSafe, { now: new Date(2026, 10, 9, 18) }); // same day again: no second copy
+  await daily(dir, store, writeSafe, { now: new Date(2026, 10, 9, 18) }); // same day again: no second copy
   const left = fs.readdirSync(dir).sort();
   check(left.filter((f) => f.startsWith('Bento backup')).length === 7 && left.includes('Bento backup 2026-11-09.json') && !left.includes('Bento backup 2026-11-02.json'), 'a week of daily copies is kept, oldest dropped', left.join(', '));
   check(left.includes('my notes.txt'), 'files that aren’t Bento’s are left alone', '');

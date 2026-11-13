@@ -24,13 +24,13 @@ async function start(app, { onState, disabled, prefs, writeSafe }) {
   send = onState || send;
   // "Update automatically" (Settings): off means no checks in the background; Check now still works
   prefFile = prefs; save = writeSafe;
-  try { auto = JSON.parse(fs.readFileSync(prefFile, 'utf8')).auto !== false; } catch {}
+  auto = await fs.promises.readFile(prefFile, 'utf8').then((t) => JSON.parse(t).auto !== false, () => true);
   set({ auto });
   const feed = path.join(process.resourcesPath || '', 'app-update.yml');
   const why = !app.isPackaged ? 'development copy'
     : disabled ? 'turned off'
     : process.env.BENTO_DISABLE_UPDATES ? 'BENTO_DISABLE_UPDATES is set'
-    : !fs.existsSync(feed) ? 'no release feed in this build'
+    : !(await fs.promises.access(feed).then(() => true, () => false)) ? 'no release feed in this build'
     : !(await isDeveloperSigned(app)) ? 'this copy isn’t signed, so it can’t update itself'
     : null;
   if (why) return set({ status: 'off', reason: why });

@@ -106,12 +106,13 @@ function localClones(names, fulls) {
   return out.sort((a, b) => Number(b.byRemote) - Number(a.byRemote));
 }
 
-async function find(names, { searchGitHub, repoMeta } = {}) {
+async function find(names, { searchGitHub, repoMeta, localClones: findClones } = {}) {
   names = [...new Set((Array.isArray(names) ? names : [names]).map((n) => String(n || '').trim()).filter((n) => n && n.length <= 60))].slice(0, 4);
   if (!names.length) return { names, installed: [], local: [], github: [] };
   const installed = await installedApps(names).catch(() => []);
   const fromApps = installed.map((a) => a.source?.full).filter(Boolean);
-  const local = (() => { try { return localClones(names, fromApps); } catch { return []; } })();
+  // the folder scan runs wherever the caller says (Bento: its worker thread); here otherwise
+  const local = await (findClones ? findClones(names, fromApps) : Promise.resolve().then(() => localClones(names, fromApps))).catch(() => []);
   const fulls = [...new Set([...fromApps, ...local.map((l) => l.remote).filter(Boolean)])];
   // GitHub: the repos named by the app or the clone, plus a search by name
   const deadline = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(() => r(null), ms))]);

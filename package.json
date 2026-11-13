@@ -19,7 +19,7 @@
     "dev": "concurrently -k \"vite\" \"wait-on tcp:5199 && env -u ELECTRON_RUN_AS_NODE BENTO_DEV=1 electron .\"",
     "build": "vite build",
     "start": "vite build && env -u ELECTRON_RUN_AS_NODE electron .",
-    "app": "vite build && electron-builder --mac dir --publish never -c.mac.identity=null -c.electronFuses.enableNodeCliInspectArguments=true",
+    "app": "vite build && electron-builder --mac dir --publish never -c.mac.identity=null -c.electronFuses.enableNodeCliInspectArguments=true -c.extraMetadata.bentoTestBuild=true",
     "dist": "vite build && electron-builder --mac dmg zip --arm64 --x64 --publish never && node scripts/notarize-dmg.mjs",
     "test": "node test/runtime.test.mjs && node test/atlas.test.mjs && node test/features.test.mjs && node scripts/check-puzzles.mjs",
     "dist:win": "vite build && electron-builder --win nsis",
@@ -27,7 +27,7 @@
     "release": "node scripts/release.mjs",
     "verify-release": "node scripts/verify-mac-release.mjs",
     "preflight": "node scripts/check-release.mjs",
-    "smoke": "vite build && node scripts/smoke-app.mjs && node scripts/smoke-tour.mjs && node scripts/smoke-stream.mjs && node scripts/smoke-ais.mjs && node scripts/smoke-guards.mjs",
+    "smoke": "vite build && node scripts/smoke-app.mjs && node scripts/smoke-tour.mjs && node scripts/smoke-stream.mjs && node scripts/smoke-ais.mjs && node scripts/smoke-guards.mjs && node scripts/smoke-failures.mjs",
     "audit": "vite build && node scripts/audit-a11y.mjs && node scripts/audit-keyboard.mjs"
   },
   "build": {
@@ -83,6 +83,7 @@
       "runAsNode": false,
       "enableNodeOptionsEnvironmentVariable": false,
       "enableNodeCliInspectArguments": false,
+      "enableCookieEncryption": true,
       "enableEmbeddedAsarIntegrityValidation": true,
       "onlyLoadAppFromAsar": true,
       "grantFileProtocolExtraPrivileges": false,
@@ -174,7 +175,6 @@
     "acorn-walk": "^8.3.5",
     "axe-core": "^4.14.0",
     "concurrently": "^10.0.7",
-    "cross-env": "^10.1.0",
     "electron": "^45.2.3",
     "electron-builder": "^26.18.0",
     "playwright-core": "^1.65.0",

@@ -10,6 +10,10 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+const req = createRequire(import.meta.url);
+const { getCurrentFuseWire, FuseV1Options } = req('@electron/fuses');
+const asar = req('@electron/asar');
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
@@ -28,9 +32,16 @@ const ok = (cond, label, why = '') => {
 const sh = (cmd, a) => { const r = spawnSync(cmd, a, { encoding: 'utf8' }); return { ok: r.status === 0, out: `${r.stdout || ''}${r.stderr || ''}` || r.error?.message || '' }; };
 const archOf = (file) => (/-arm64[.-]/.test(file) ? 'arm64' : /-x64[.-]/.test(file) ? 'x86_64' : null);
 
-function checkApp(app, arch) {
+// Electron's switches, as burnt into the binary: what a downloaded copy will actually do
+const FUSES = { RunAsNode: 0, EnableNodeOptionsEnvironmentVariable: 0, EnableNodeCliInspectArguments: 0, EnableEmbeddedAsarIntegrityValidation: 1, OnlyLoadAppFromAsar: 1, EnableCookieEncryption: 1, GrantFileProtocolExtraPrivileges: 0 };
+async function checkApp(app, arch) {
   ok(fs.existsSync(app), `${product}.app is inside`);
   if (!fs.existsSync(app)) return;
+  const wire = await getCurrentFuseWire(app).catch(() => null);
+  const wrong = Object.entries(FUSES).filter(([k, want]) => !wire || String.fromCharCode(wire[FuseV1Options[k]]) !== String(want)).map(([k]) => k);
+  ok(!wrong.length, 'Electron fuses: no run-as-Node, NODE_OPTIONS or --inspect; code only from the checked archive; cookies encrypted', wrong.join(', '));
+  let meta = {}; try { meta = JSON.parse(asar.extractFile(path.join(app, 'Contents/Resources/app.asar'), 'package.json').toString()); } catch {}
+  ok(meta.version === pkg.version && meta.bentoTestBuild === undefined, 'a release build, not a test build (pretend AIs and other test switches are off)', meta.bentoTestBuild ? 'bentoTestBuild is set' : `package.json in the app: ${meta.version}`);
   const bin = path.join(app, 'Contents/MacOS', product);
   if (arch) { const l = sh('lipo', ['-archs', bin]); ok(l.ok && l.out.trim().split(/\s+/).includes(arch), `built for ${arch}`, l.out); }
   const v = sh('plutil', ['-extract', 'CFBundleShortVersionString', 'raw', path.join(app, 'Contents/Info.plist')]);
@@ -48,11 +59,6 @@ function checkApp(app, arch) {
   ok(gk.ok && /source=Notarized Developer ID/.test(gk.out), 'Gatekeeper accepts it as notarized', gk.out);
   const st = sh('xcrun', ['stapler', 'validate', app]);
   ok(st.ok, 'the notarization ticket is stapled (opens even offline)', st.out);
-}
-
-function withTemp(prefix, fn) {
-  const t = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
-  try { return fn(t); } finally { fs.rmSync(t, { recursive: true, force: true }); }
 }
 
 if (!fs.existsSync(dir)) { console.error(`No ${dir}. Build first (npm run dist).`); process.exit(1); }
@@ -80,7 +86,7 @@ for (const dmg of dmgs) {
     ok(path.basename(mnt || '') === (pkg.build?.dmg?.title || '').replace('${productName}', product).replace('${version}', pkg.version), `window title "${path.basename(mnt || '')}"`);
     ok(fs.existsSync(path.join(mnt, 'Applications')) && fs.readlinkSync(path.join(mnt, 'Applications')) === '/Applications', 'has the Applications shortcut to drag onto');
     ok(fs.existsSync(path.join(mnt, '.DS_Store')) && fs.readdirSync(mnt).some((f) => /^\.background/.test(f)), 'has the installer layout and background picture');
-    checkApp(path.join(mnt, `${product}.app`), archOf(dmg));
+    await checkApp(path.join(mnt, `${product}.app`), archOf(dmg));
   } finally {
     if (mnt && !sh('hdiutil', ['detach', mnt, '-quiet']).ok) sh('hdiutil', ['detach', mnt, '-force', '-quiet']);
   }
@@ -88,11 +94,12 @@ for (const dmg of dmgs) {
 
 for (const zip of zips) {
   console.log(`\n${zip} (what auto-update downloads)`);
-  withTemp('bento-verify-', (t) => {
+  const t = fs.mkdtempSync(path.join(os.tmpdir(), 'bento-verify-'));
+  try {
     const x = sh('ditto', ['-x', '-k', path.join(dir, zip), t]);
     ok(x.ok, 'unzips', x.out);
-    if (x.ok) checkApp(path.join(t, `${product}.app`), archOf(zip));
-  });
+    if (x.ok) await checkApp(path.join(t, `${product}.app`), archOf(zip));
+  } finally { fs.rmSync(t, { recursive: true, force: true }); }
 }
 
 console.log('\nlatest-mac.yml (how installed copies find this version)');

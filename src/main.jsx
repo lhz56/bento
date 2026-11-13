@@ -1,3 +1,5 @@
+// startup timings (scripts/measure-startup.mjs reads them): the page's code has loaded and starts running
+performance.mark('bento:js');
 import { Component } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';

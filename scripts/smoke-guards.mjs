@@ -42,23 +42,37 @@ const step = async (label, fn) => { try { const note = await fn(); console.log(`
 const must = (ok, why) => { if (!ok) throw new Error(why); };
 const call = (fn, arg) => p.evaluate(fn, arg).then((v) => ({ v }), (e) => ({ e: String(e.message || e) }));
 
+const REFUSED = /didn’t look right/; // what Bento says to a request that isn't allowed
 await step('a project folder opens and its own files read', async () => {
-  must((await call((x) => window.bento.dropOpen(x), proj)).v?.root === proj, 'didn’t open');
+  // "Open a folder…", with the dialog answered for it (a person would pick the folder)
+  await app.evaluate(({ dialog }, dir) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] }); }, proj);
+  must((await call(() => window.bento.openFolder())).v?.root === proj, 'didn’t open');
   must((await call((x) => window.bento.readFile(x, 'src/a.py'), proj)).v?.includes('print'), 'couldn’t read its file');
 });
 await step('nothing outside it can be read: ../, or links that lead out', async () => {
-  must(/bad path/.test((await call((x) => window.bento.readFile(x, '../outside/key'), proj)).e || ''), '../ was allowed');
+  must(REFUSED.test((await call((x) => window.bento.readFile(x, '../outside/key'), proj)).e || ''), '../ was allowed');
   if (links) {
-    must(/bad path/.test((await call((x) => window.bento.readFile(x, 'leak'), proj)).e || ''), 'a link to a file outside was followed');
-    must(/bad path/.test((await call((x) => window.bento.readFile(x, 'docs/key'), proj)).e || ''), 'a linked folder outside was followed');
+    must(REFUSED.test((await call((x) => window.bento.readFile(x, 'leak'), proj)).e || ''), 'a link to a file outside was followed');
+    must(REFUSED.test((await call((x) => window.bento.readFile(x, 'docs/key'), proj)).e || ''), 'a linked folder outside was followed');
   }
   return links ? 'links too' : 'links not testable here';
 });
+await step('a path the page writes itself can’t pass for a dropped file', async () => {
+  for (const x of [path.join(os.homedir(), '.ssh', 'id_rsa'), path.join(os.homedir(), '.config', 'gh', 'hosts.yml'), proj]) {
+    must(/Drop a file from Finder/.test((await call((f) => window.bento.dropOpen(f), x)).e || ''), `${x} was read`);
+  }
+});
 await step('the whole disk and the home folder can’t be opened as a project', async () => {
-  must(/not your whole disk/.test((await call((x) => window.bento.dropOpen(x), path.parse(proj).root)).e || ''), 'the disk opened');
+  must((await call((x) => window.bento.atlasReopen(x), path.parse(proj).root)).v === false, 'the disk reopened');
   must((await call((x) => window.bento.atlasReopen(x), os.homedir())).v === false, 'home reopened');
 });
-await step('repo names are owner/name, never ../..', async () => { must(/bad repo/.test((await call(() => window.bento.ghTree('../..'))).e || ''), '../.. accepted'); });
+await step('repo names are owner/name, never ../..', async () => { must(REFUSED.test((await call(() => window.bento.ghTree('../..'))).e || ''), '../.. accepted'); });
+await step('requests of the wrong shape are refused in plain words', async () => {
+  const r = await Promise.all([call(() => window.bento.readFile(42, {})), call(() => window.bento.storeSet('not-ours', 1)), call(() => window.bento.ghSearch('x'.repeat(5000))), call(() => window.bento.siteInspect('http://127.0.0.1:22/'))]);
+  must(r.slice(0, 3).every((x) => REFUSED.test(x.e || '')), r.map((x) => x.e || 'allowed').join(' | '));
+  must(/public websites/.test(r[3].e || ''), `a local address was fetched: ${r[3].e || 'allowed'}`);
+  must(r.every((x) => !/Error invoking remote method/.test(x.e || '')), 'technical wording reached the page');
+});
 await step('a lesson page is walled off from Bento', async () => {
   const id = (await call(() => window.bento.playPut('<html><head></head><body>x</body></html>', 'guard'))).v;
   const r = await p.evaluate(() => new Promise((res) => { const f = document.createElement('iframe'); f.src = 'play://l-guard/'; f.onload = () => { let o; try { o = typeof f.contentWindow.bento; } catch { o = 'cross-origin'; } f.remove(); res(o); }; document.body.appendChild(f); }));

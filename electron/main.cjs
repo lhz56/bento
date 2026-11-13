@@ -5,21 +5,27 @@ const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, nativeTheme }
 const path = require('node:path');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const fsp = fs.promises;
 const os = require('node:os');
 const { spawn, execFile } = require('node:child_process');
+const { Worker } = require('node:worker_threads');
 const { pathToFileURL } = require('node:url');
 const { SYSTEM, QUICK_SYSTEM, ATLAS_SYSTEM, SITE_SYSTEM } = require('./prompts.cjs');
 const atlas = require('./atlas.cjs');
-const { safeFetch } = require('./netfetch.cjs');
+const { safeFetch, follow, hostAllowed } = require('./netfetch.cjs');
 const updater = require('./updater.cjs');
 const menu = require('./menu.cjs');
 const winstate = require('./winstate.cjs');
 const logger = require('./log.cjs');
 const snapshots = require('./snapshots.cjs');
 const { projectRootOk } = require('./roots.cjs');
+const { writeSafe, writeSafeAsync, stopWrites } = require('./safewrite.cjs'); // a new copy, then swapped in: never half a file
 
 // development only: a shipped copy never loads its page from a local server, whatever the environment says
 const DEV = !!process.env.BENTO_DEV && !app.isPackaged;
+// Test builds (`npm run app`, CI) are packaged with "bentoTestBuild": true; releases never are (the release check
+// refuses one). Only they, or a copy run from source, listen to the switches that swap in pretend AIs or fake answers.
+const TEST_BUILD = !app.isPackaged || require('../package.json').bentoTestBuild === true;
 // Bento's own page: app://bento in the app, the Vite server in development. Nothing else may use Bento's powers.
 const isAppUrl = (url) => { try { const u = new URL(String(url)); return DEV ? u.origin === 'http://localhost:5199' : u.protocol === 'app:' && u.host === 'bento'; } catch { return false; } };
 // Lesson pages (play://) and any website can never reach the main process; check every call anyway, in case one tries.
@@ -31,16 +37,45 @@ for (const kind of ['handle', 'on']) {
     return Promise.reject(new Error('Not allowed.'));
   });
 }
-// Links leave Bento only for the web or email, never file:, smb:, javascript: or app-launching schemes.
+// Links leave Bento only for the web (https; an http link opens as https) or email, never file:, smb:, javascript: or
+// app-launching schemes. Anything else is dropped.
 function openOutside(url) {
-  try { const u = new URL(String(url)); if (['https:', 'http:', 'mailto:'].includes(u.protocol)) shell.openExternal(u.href); } catch {}
+  let u; try { u = new URL(String(url).slice(0, 4000)); } catch { return false; }
+  if (u.protocol === 'http:') u.protocol = 'https:';
+  if (!['https:', 'mailto:'].includes(u.protocol) || (u.protocol === 'https:' && !u.hostname)) return false;
+  shell.openExternal(u.href).catch(() => {});
+  return true;
 }
+// Every call from the page is checked: the right types, sensible sizes. Anything else is refused in plain words.
+class BadInput extends Error {}
+const refuse = () => { throw new BadInput('Bento couldn’t do that: the request didn’t look right.'); };
+const str = (v, max = 2000) => (typeof v === 'string' && v.length <= max ? v : refuse());
+const optStr = (v, max) => (v == null || v === '' ? '' : str(v, max));
+const strList = (v, n, max) => (Array.isArray(v) && v.length <= n ? v.map((x) => str(x, max)) : refuse());
+const sizeOf = (v) => { try { return JSON.stringify(v)?.length || 0; } catch { return Infinity; } };
 // A separate profile (fresh lessons, projects and settings), handy for demos, screenshots and tests.
 if (process.env.BENTO_USERDATA) app.setPath('userData', process.env.BENTO_USERDATA);
 const DIST = path.join(__dirname, '..', 'dist');
 // errors go to ~/Library/Logs/Bento/main.log (Help → Show Logs); test and demo profiles keep theirs inside the profile
 const LOGS = process.env.BENTO_USERDATA ? path.join(app.getPath('userData'), 'logs') : app.getPath('logs');
 logger.init(LOGS);
+
+// The heavy work (downloading, taking apart and searching projects, their history, folder sizes) runs in worker.cjs,
+// a thread of its own, so nothing here ever waits on it. Started on first use; if it ever dies, the next call starts it again.
+let worker = null; const jobs = new Map(); let jobSeq = 0;
+function work(op, args = [], onProgress) {
+  if (!worker) {
+    const w = (worker = new Worker(path.join(__dirname, 'worker.cjs')));
+    w.on('message', ({ id, ok, v, e, progress }) => {
+      const j = jobs.get(id); if (!j) return;
+      if (progress !== undefined) return j.onProgress?.(progress);
+      jobs.delete(id); ok ? j.res(v) : j.rej(new Error(e));
+    });
+    const lost = (why) => { if (worker !== w) return; worker = null; logger.log('worker stopped', why); for (const j of jobs.values()) j.rej(new Error('Bento’s project reader stopped unexpectedly. Try again.')); jobs.clear(); };
+    w.on('error', lost); w.on('exit', (code) => lost(`exit ${code}`));
+  }
+  return new Promise((res, rej) => { const id = ++jobSeq; jobs.set(id, { res, rej, onProgress }); worker.postMessage({ id, op, args }); });
+}
 process.on('uncaughtException', (e) => logger.log('uncaught', e));
 process.on('unhandledRejection', (e) => logger.log('unhandled rejection', e));
 
@@ -53,12 +88,21 @@ const EXTRA_PATH = WIN
 const ENV = { ...process.env, PATH: [...EXTRA_PATH, process.env.PATH || process.env.Path || ''].join(path.delimiter) };
 // That list is a guess: ask your own login shell for the real PATH once (see shellenv.cjs). Calls that start a CLI wait for it.
 const envReady = require('./shellenv.cjs').resolvePath(ENV.PATH).then((p) => { ENV.PATH = p; }, () => {});
-// On Windows, npm-installed CLIs are .cmd scripts, which only start through a shell
-const SH = WIN ? { shell: true, windowsHide: true } : {};
+// How to start a program with these arguments: always as an argument list, never through a shell, except on Windows
+// for npm-installed CLIs, which are .cmd scripts that only cmd.exe can start. Those get each argument quoted, and
+// characters cmd.exe would still act on inside quotes (" % ! ^ and line breaks) are refused rather than passed.
+const winArg = (a) => { const v = String(a); if (/["%!^\r\n]/.test(v)) throw new Error('That can’t be passed to a command safely on Windows.'); return !v || /[\s&|<>()]/.test(v) ? `"${v}"` : v; };
+async function launch(cmd, args) {
+  if (!WIN) return [cmd, args, {}];
+  const at = path.isAbsolute(cmd) ? cmd : (await which(cmd)) || cmd;
+  if (/\.(cmd|bat)$/i.test(at)) return [`"${at}"`, args.map(winArg), { shell: true, windowsHide: true }];
+  return [at, args, { windowsHide: true }];
+}
 const WORKDIR = path.join(app.getPath('temp'), 'bento-work');
-fs.mkdirSync(WORKDIR, { recursive: true });
+const workdirReady = fsp.mkdir(WORKDIR, { recursive: true }).catch(() => {});
 
-protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }, { scheme: 'play', privileges: { standard: true, secure: true } }]);
+// app:// keeps a compiled-code cache like a website would, so from the second launch on V8 skips compiling Bento's code
+protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true, codeCache: true } }, { scheme: 'play', privileges: { standard: true, secure: true } }]);
 
 // Lesson code (running in a worker) reaches the web through here, like a script on your Mac would:
 // no browser cross-site rules, http(s) only, small answers, a time limit.
@@ -78,20 +122,23 @@ let win;
 // Off-screen when asked (BENTO_HIDDEN=1), and whenever a test tool is driving the app (it adds a debugging port),
 // so automated checks never pop up over what you're doing. BENTO_SHOW=1 brings the window back for watching a test.
 const OFFSCREEN = !process.env.BENTO_SHOW && (!!process.env.BENTO_HIDDEN || process.argv.some((a) => a.startsWith('--remote-debugging-port')));
-function createWindow() {
+const WIN_FILE = path.join(app.getPath('userData'), 'window.json');
+// read while Electron starts up, so the window can open in its old place without waiting on the disk
+const savedPlace = OFFSCREEN ? Promise.resolve(null) : fsp.readFile(WIN_FILE, 'utf8').then(JSON.parse).catch(() => null);
+function createWindow(saved) {
   if (OFFSCREEN && process.platform === 'darwin') app.setActivationPolicy?.('accessory');
-  const WIN_FILE = path.join(app.getPath('userData'), 'window.json');
-  const place = OFFSCREEN ? { width: 1440, height: 900 } : winstate.load(WIN_FILE, require('electron').screen.getAllDisplays(), { width: 1440, height: 900, minWidth: 1080, minHeight: 680 });
+  const place = OFFSCREEN ? { width: 1440, height: 900 } : winstate.place(saved, require('electron').screen.getAllDisplays(), { width: 1440, height: 900, minWidth: 1080, minHeight: 680 });
   win = new BrowserWindow({
     width: place.width, height: place.height, ...(place.x != null ? { x: place.x, y: place.y } : {}), minWidth: 1080, minHeight: 680,
     ...(MAC ? { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 18, y: 18 }, vibrancy: 'sidebar', visualEffectState: 'active', backgroundColor: '#00000000' }
       : { titleBarStyle: 'hidden', titleBarOverlay: { color: '#f3eee6', symbolColor: '#4f4841', height: 40 }, backgroundColor: '#f3eee6' }),
     show: false,
-    webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
+    // the page gets Bento's narrow bridge (preload.cjs) and nothing else: no Node.js, its own isolated world, Chromium's sandbox
+    webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, nodeIntegrationInSubFrames: false, sandbox: true, webSecurity: true, allowRunningInsecureContent: false, webviewTag: false, navigateOnDragDrop: false, spellcheck: false },
   });
   // BENTO_HIDDEN=1: tests run the real app off-screen, without a Dock icon or taking focus from what you're doing
   if (OFFSCREEN) { win.setPosition(-20000, -20000); win.webContents.setBackgroundThrottling(false); }
-  else { win.once('ready-to-show', () => { if (place.maximized) win.maximize(); win.show(); setTimeout(offerMove, 1200); }); winstate.track(win, WIN_FILE, writeSafe); }
+  else { win.once('ready-to-show', () => { if (place.maximized) win.maximize(); win.show(); setTimeout(offerMove, 1200); }); winstate.track(win, WIN_FILE, writeSafeAsync, writeSafe); }
   // if the page ever crashes, bring it straight back (your lessons are on disk); give up after three crashes in a minute
   let crashes = [];
   win.webContents.on('render-process-gone', (_e, d) => {
@@ -103,11 +150,8 @@ function createWindow() {
   win.webContents.on('unresponsive', () => logger.log('page unresponsive'));
   if (DEV) win.loadURL('http://localhost:5199');
   else win.loadURL('app://bento/index.html');
-  win.webContents.setWindowOpenHandler(({ url }) => { openOutside(url); return { action: 'deny' }; });
-  // the window only ever shows Bento: a link that would load a website here (and hand it Bento's powers) opens in your browser
-  win.webContents.on('will-navigate', (e, url) => { if (!isAppUrl(url)) { e.preventDefault(); openOutside(url); } });
   // each time the page (re)loads, remember the disk copy as it is before the page writes anything (crash recovery compares against it)
-  win.webContents.on('did-start-loading', () => { try { bootStore = JSON.parse(JSON.stringify(readStore())); } catch {} });
+  win.webContents.on('did-start-loading', () => { storeReady.then(() => { bootStore = structuredClone(storeCache); }); });
 }
 
 // Opened straight from the downloaded disk image (or Downloads)? Offer to move into Applications, where it can update
@@ -115,17 +159,30 @@ function createWindow() {
 async function offerMove() {
   if (!MAC || !app.isPackaged || OFFSCREEN || process.env.BENTO_USERDATA || app.isInApplicationsFolder()) return;
   const file = path.join(app.getPath('userData'), 'install.json');
-  let pref = {}; try { pref = JSON.parse(fs.readFileSync(file, 'utf8')); } catch {}
+  const pref = await fsp.readFile(file, 'utf8').then(JSON.parse).catch(() => ({}));
   if (pref.dontAskMove || !(await updater.isDeveloperSigned(app))) return;
   const r = await dialog.showMessageBox(win, { type: 'question', message: 'Move Bento to your Applications folder?', detail: 'From Applications, Bento can update itself and is easy to find. Your lessons stay where they are.', buttons: ['Move to Applications', 'Not Now'], defaultId: 0, cancelId: 1, checkboxLabel: 'Don’t ask again' });
-  if (r.checkboxChecked) writeSafe(file, JSON.stringify({ ...pref, dontAskMove: true }));
+  if (r.checkboxChecked) writeSafeAsync(file, JSON.stringify({ ...pref, dontAskMove: true }));
   if (r.response !== 0) return;
   try { app.moveToApplicationsFolder({ conflictHandler: (kind) => kind !== 'existsAndRunning' }); }
   catch (e) { logger.log('move to Applications failed', e); dialog.showMessageBox(win, { type: 'warning', message: 'Couldn’t move Bento', detail: 'Drag Bento into the Applications folder in Finder instead.', buttons: ['OK'] }); }
 }
 
-// two copies on one profile fight over its storage lock (each launch then stalls ~4 s) and overwrite each other's saves
-if (!app.requestSingleInstanceLock()) app.quit();
+// two copies on one profile fight over its storage lock (each launch then stalls ~4 s) and overwrite each other's saves.
+// The lock is a file: on a full disk it can't be made, and that mustn't look like "already open" (Bento would quietly
+// never start). So Bento only steps aside when the lock is there and names a copy that's still running.
+function anotherCopyRunning() {
+  if (process.platform === 'win32') return true; // a named lock there, not a file: failing means another copy has it
+  try {
+    const pid = Number(String(fs.readlinkSync(path.join(app.getPath('userData'), 'SingletonLock'))).split('-').pop());
+    if (!pid || pid === process.pid) return false;
+    process.kill(pid, 0); return true;
+  } catch (e) { return e?.code === 'EPERM'; } // no lock file (it couldn't be made), or its copy is gone
+}
+if (!app.requestSingleInstanceLock()) {
+  if (anotherCopyRunning()) app.quit();
+  else logger.log('opening without the one-copy lock: it couldn’t be created (is the disk full?)');
+}
 // bento:// links ("Open in Bento" from a browser bookmark): macOS sends open-url, Windows and Linux start a second copy with the link
 let pendingLink = null;
 const deliverLink = (url) => { if (!/^bento:\/\//i.test(String(url || ''))) return; if (win && !win.isDestroyed() && !win.webContents.isLoading()) { win.webContents.send('deeplink', url); if (!OFFSCREEN) { if (win.isMinimized()) win.restore(); win.show(); win.focus(); } } else pendingLink = url; };
@@ -138,7 +195,7 @@ ipcMain.handle('update:check', async () => { await updater.check(); return { ...
 ipcMain.handle('update:auto', (_e, on) => updater.setAuto(on === true));
 ipcMain.handle('deeplink:pending', () => { const u = pendingLink || process.argv.find((a) => /^bento:\/\//i.test(a)) || null; pendingLink = null; return u; });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // hidden runs (tests, pre-writing lessons) never pop a notification on your screen
   const ALLOWED = new Set(['clipboard-sanitized-write', 'fullscreen', ...(OFFSCREEN ? [] : ['notifications'])]);
   const ses = require('electron').session.defaultSession;
@@ -163,17 +220,23 @@ app.whenReady().then(() => {
   });
   app.setAboutPanelOptions({ applicationName: 'Bento', applicationVersion: app.getVersion(), version: '', copyright: 'MIT License', credits: 'Learn how software is really built, with the AI subscription you already have.', website: menu.REPO });
   menu.build({ dev: DEV, logsDir: LOGS, send: (a) => { if (win && !win.isDestroyed()) win.webContents.send('menu', a); }, checkForUpdates: () => menu.explainUpdates(updater, win) });
-  createWindow();
+  createWindow(await savedPlace);
   // today's copy of your lessons and progress (a week is kept; Settings → Restore… opens them)
-  const copyToday = () => { try { snapshots.daily(SNAPS, readStore(), writeSafe); } catch (e) { logger.log('daily copy failed', e); } };
+  const copyToday = () => storeReady.then(() => snapshots.daily(SNAPS, storeCache, (f, d) => writeSafeAsync(f, d).then((e) => !e))).catch((e) => logger.log('daily copy failed', e));
   setTimeout(copyToday, 8000); setInterval(copyToday, 4 * 3600_000).unref?.(); // and for anyone who leaves Bento open for days
   // updates from GitHub releases (signed copies only; off in tests and development)
-  updater.start(app, { disabled: OFFSCREEN, prefs: path.join(app.getPath('userData'), 'updates.json'), writeSafe, onState: (st) => { if (win && !win.isDestroyed()) win.webContents.send('update:state', st); } });
-  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+  updater.start(app, { disabled: OFFSCREEN, prefs: path.join(app.getPath('userData'), 'updates.json'), writeSafe: writeSafeAsync, onState: (st) => { if (win && !win.isDestroyed()) win.webContents.send('update:state', st); } });
+  app.on('activate', async () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(await fsp.readFile(WIN_FILE, 'utf8').then(JSON.parse).catch(() => null)); });
 });
+// For every page Bento ever has (the window, lesson pages in their frames): no webviews, no new windows (a link opens in
+// your browser instead), and the window itself never navigates or redirects away from Bento, where a website would
+// otherwise get Bento's bridge.
 app.on('web-contents-created', (_e, wc) => {
   wc.on('will-attach-webview', (e) => e.preventDefault());
   wc.setWindowOpenHandler(({ url }) => { openOutside(url); return { action: 'deny' }; });
+  const stay = (e, url) => { if (!isAppUrl(url)) { e.preventDefault(); openOutside(url); } };
+  wc.on('will-navigate', stay);
+  wc.on('will-redirect', (e, url, _inPlace, isMainFrame) => { if (isMainFrame && !isAppUrl(url)) e.preventDefault(); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 
@@ -181,13 +244,14 @@ app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(
 // Each AI's adapter (finding it, checking it, running it as a writer only, reading its stream and its plan's limits)
 // is in providers.cjs; the names and commands people see are in ai-catalog.json.
 const P = require('./providers.cjs');
-const AI_FILES = () => (aiFiles ??= P.setupFiles(path.join(app.getPath('userData'), 'ai'))); let aiFiles = null;
+const AI_FILES = () => (aiFiles ??= P.setupFilesAsync(path.join(app.getPath('userData'), 'ai'))); let aiFiles = null;
 // BENTO_PRETEND_MISSING=claude,codex,gemini,copilot,gh hides CLIs, to test what a brand-new user sees.
 const HIDDEN = new Set(String(process.env.BENTO_PRETEND_MISSING || '').split(',').filter(Boolean));
 // BENTO_FAKE_AI=test/fixtures/fake-ai.mjs: tests stand in pretend CLIs that stream a canned lesson in each AI's own
 // format, so the whole ask → stream → run path is checked without using anyone's plan. BENTO_FAKE_AS says which AIs
-// are pretend (Claude by default). Only honoured in hidden test mode.
-const FAKE_AI = OFFSCREEN && process.env.BENTO_FAKE_AI ? path.resolve(process.env.BENTO_FAKE_AI) : null;
+// are pretend (Claude by default). Only honoured in hidden test mode, and only by a test build or a copy run from source:
+// a release ignores it.
+const FAKE_AI = TEST_BUILD && OFFSCREEN && process.env.BENTO_FAKE_AI ? path.resolve(process.env.BENTO_FAKE_AI) : null;
 const FAKE_AS = new Set(String(process.env.BENTO_FAKE_AS || 'claude').split(',').filter(Boolean));
 // an AI can be named by its id ("antigravity") or its program ("agy")
 const idOfBin = (cmd) => P.IDS.find((id) => P.BY[id].bin === cmd) || cmd;
@@ -198,13 +262,13 @@ async function which(cmd) {
   if (isHidden(cmd)) return null;
   if (isFake(cmd)) return FAKE_AI;
   await envReady;
-  return new Promise((res) => execFile(WIN ? 'where' : 'which', [cmd], { env: ENV, ...SH }, (e, out) => res(e ? null : String(out).split(/\r?\n/)[0].trim())));
+  return new Promise((res) => execFile(WIN ? 'where' : 'which', [cmd], { env: ENV, windowsHide: true }, (e, out) => res(e ? null : String(out).split(/\r?\n/)[0].trim() || null)));
 }
 // Onboarding: find what the person already has. Nothing is installed or signed in for them.
 async function runQuiet(cmd, args, timeout = 8000) {
   await envReady;
-  const [c, a] = viaFake(cmd, args);
-  return new Promise((res) => execFile(c, a, { env: ENV, timeout, maxBuffer: 4 << 20, ...SH }, (e, out, err) => res({ ok: !e, out: String(out || ''), err: String(err || ''), timedOut: !!e?.killed })));
+  let c, a, o; try { [c, a, o] = await launch(...viaFake(cmd, args)); } catch (e) { return { ok: false, out: '', err: e.message, timedOut: false }; }
+  return new Promise((res) => execFile(c, a, { env: ENV, timeout, maxBuffer: 4 << 20, ...o }, (e, out, err) => res({ ok: !e, out: String(out || ''), err: String(err || ''), timedOut: !!e?.killed })));
 }
 // the GitHub CLI's sign-in, which Copilot accepts; read when needed, kept in memory for 10 minutes, never saved
 let ghTok = { v: null, at: 0 };
@@ -218,10 +282,10 @@ const ghApi = async (route) => { if (HIDDEN.has('gh') || process.env.BENTO_NO_GH
 // a short JSON-RPC exchange with a CLI's own server mode (Codex's app server answers "how much of my plan is used"
 // without asking a model): send the messages, wait for the reply with the given id, then stop it
 async function spawnJson(cmd, args, messages, waitId, timeout = 12000) {
-  await envReady; if (isHidden(cmd)) return null;
-  const [c, a] = viaFake(cmd, args);
+  await envReady; await workdirReady; if (isHidden(cmd)) return null;
+  let c, a, o; try { [c, a, o] = await launch(...viaFake(cmd, args)); } catch { return null; }
   return new Promise((res) => {
-    let child; try { child = spawn(c, a, { cwd: WORKDIR, env: ENV, stdio: ['pipe', 'pipe', 'ignore'], ...SH }); } catch { return res(null); }
+    let child; try { child = spawn(c, a, { cwd: WORKDIR, env: ENV, stdio: ['pipe', 'pipe', 'ignore'], ...o }); } catch { return res(null); }
     const done = (v) => { clearTimeout(t); try { child.kill(); } catch {} res(v); };
     const t = setTimeout(() => done(null), timeout); let buf = '';
     child.on('error', () => done(null));
@@ -236,6 +300,7 @@ const aiCtx = (id) => ({ run: (args, t) => runPatient(P.BY[id].bin, args, t), en
 
 // what each AI tool says about itself: installed, a version Bento can talk to, signed in (and with which plan)
 ipcMain.handle('scan', async () => {
+  await limitsReady;
   const bins = [...P.IDS.map((id) => P.BY[id].bin), 'gh', 'npm', 'brew'];
   const at = Object.fromEntries(await Promise.all(bins.map(async (b) => [b, await which(b)])));
   // which installers this Mac already has, so the welcome only suggests commands that will work here
@@ -244,7 +309,7 @@ ipcMain.handle('scan', async () => {
     ...P.IDS.map(async (id) => {
       const A = P.ADAPTERS[id], bin = P.BY[id].bin, x = (r[id] = { installed: !!at[bin] });
       if (!at[bin]) return;
-      x.brew = /\/(Cellar|Caskroom)\//.test((() => { try { return fs.realpathSync(at[bin]); } catch { return at[bin]; } })()); // updates go the way it was installed
+      x.brew = /\/(Cellar|Caskroom)\//.test(await fsp.realpath(at[bin]).catch(() => at[bin])); // updates go the way it was installed
       const [v, h] = await Promise.all([runPatient(bin, ['--version']), runPatient(bin, A.compat.help)]);
       x.version = A.version(v.out || '') || null; x.outdated = P.missingFlags(h, A.compat.flags);
       // a pretend CLI in tests only knows the commands real ones have; sign-in that's read from files is assumed
@@ -278,16 +343,20 @@ ipcMain.handle('ai:terminal', async (_e, id, action, tools = {}) => {
 // Claude says it with every reply; Codex and Copilot can be asked any time for free; Gemini doesn't say, so Bento
 // counts its own requests instead (usage:get).
 const LIMITS_FILE = path.join(app.getPath('userData'), 'plan-limits.json');
-let LIMITS = null, limitsTimer = null;
-const limitsAll = () => (LIMITS ??= (() => { try { return JSON.parse(fs.readFileSync(LIMITS_FILE, 'utf8')); } catch { return {}; } })());
+let LIMITS = {}, limitsTimer = null;
+// Bento's small files are read in the background as it starts, and every handler that needs one waits for it
+const readJson = (f, d) => fsp.readFile(f, 'utf8').then(JSON.parse).catch(() => d);
+const limitsReady = readJson(LIMITS_FILE, {}).then((v) => { LIMITS = v && typeof v === 'object' ? v : {}; });
+const limitsAll = () => LIMITS;
 function saveLimits(id, L) {
   if (!L) return;
   const all = limitsAll(); all[id] = { ...all[id], ...L, plan: L.plan || all[id]?.plan || null, at: Date.now() };
-  clearTimeout(limitsTimer); limitsTimer = setTimeout(() => writeSafe(LIMITS_FILE, JSON.stringify(all)), 600);
+  clearTimeout(limitsTimer); limitsTimer = setTimeout(() => writeSafeAsync(LIMITS_FILE, JSON.stringify(all)), 600);
   if (win && !win.isDestroyed()) win.webContents.send('limits', all);
 }
 const limitsAsked = {};
 async function refreshLimits(only) {
+  await limitsReady;
   await Promise.all(P.IDS.filter((id) => (!only || id === only) && P.ADAPTERS[id].limits && Date.now() - (limitsAsked[id] || 0) > 45000).map(async (id) => {
     if (!(await which(P.BY[id].bin))) return;
     limitsAsked[id] = Date.now();
@@ -295,7 +364,7 @@ async function refreshLimits(only) {
   }));
   return limitsAll();
 }
-ipcMain.handle('limits:get', async (_e, o = {}) => (o.refresh ? refreshLimits() : limitsAll()));
+ipcMain.handle('limits:get', async (_e, o) => { await limitsReady; return o?.refresh === true ? refreshLimits() : limitsAll(); });
 
 // The learner's language for explanations (code stays in English so it runs everywhere).
 let VOICE = '';
@@ -304,22 +373,21 @@ const withVoice = (system) => (VOICE && VOICE !== 'English' ? `${system}\n\nLANG
 
 // Streams text deltas to onText. Returns {promise, kill}.
 // BENTO_FAKE_LIMIT=claude makes that CLI answer "usage limit" (to test automatic routing to your other AI).
-const FAKE_LIMIT = String(process.env.BENTO_FAKE_LIMIT || '');
+const FAKE_LIMIT = TEST_BUILD ? String(process.env.BENTO_FAKE_LIMIT || '') : '';
 // ---------------------------------------------------------------- what used your AI
 // Every request is noted (what for, which model, how long, tokens: real counts when the CLI reports them),
 // so Settings and the sidebar can show where your plan's usage goes. Quick answers are also kept for 14 days,
 // so asking the same thing again costs nothing.
 const USAGE = path.join(app.getPath('userData'), 'usage.json');
 const QCACHE = path.join(app.getPath('userData'), 'quick-cache.json');
-let usageLog = null, qcache = null;
-const { writeSafe } = require('./safewrite.cjs'); // a new copy, then swapped in: never half a file
-const readJson = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
-const usage = () => (usageLog ??= readJson(USAGE, []));
+let usageLog = [], qcache = {};
+const usageReady = Promise.all([readJson(USAGE, []).then((v) => { usageLog = Array.isArray(v) ? v : []; }), readJson(QCACHE, {}).then((v) => { qcache = v && typeof v === 'object' ? v : {}; })]);
+const usage = () => usageLog;
 let usageTimer = null;
-function noteUsage(e) { const u = usage(); u.push(e); if (u.length > 3000) u.splice(0, u.length - 3000); clearTimeout(usageTimer); usageTimer = setTimeout(() => { writeSafe(USAGE, JSON.stringify(u)); }, 800); }
-const quickCache = () => (qcache ??= readJson(QCACHE, {}));
+function noteUsage(e) { usageReady.then(() => { const u = usage(); u.push(e); if (u.length > 3000) u.splice(0, u.length - 3000); clearTimeout(usageTimer); usageTimer = setTimeout(() => { writeSafeAsync(USAGE, JSON.stringify(u)); }, 800); }); }
+const quickCache = () => qcache;
 let qcTimer = null;
-function saveQuick() { clearTimeout(qcTimer); qcTimer = setTimeout(() => { try { const c = quickCache(); const keys = Object.keys(c); if (keys.length > 800) keys.sort((a, b) => c[a].at - c[b].at).slice(0, keys.length - 800).forEach((k) => delete c[k]); writeSafe(QCACHE, JSON.stringify(c)); } catch {} }, 800); }
+function saveQuick() { clearTimeout(qcTimer); qcTimer = setTimeout(() => { try { const c = quickCache(); const keys = Object.keys(c); if (keys.length > 800) keys.sort((a, b) => c[a].at - c[b].at).slice(0, keys.length - 800).forEach((k) => delete c[k]); writeSafeAsync(QCACHE, JSON.stringify(c)); } catch {} }, 800); }
 // a short human label for a quick request, from what it asks
 function labelOf(prompt) {
   const p = String(prompt).slice(0, 400);
@@ -344,15 +412,16 @@ function runModel(model, system, prompt, onText, onThink) {
     // instructions go in a private temporary file and the request on standard input, never on the command line
     const sys = withVoice(system);
     sysFile = path.join(WORKDIR, `instructions-${crypto.randomBytes(6).toString('hex')}.md`);
-    fs.mkdirSync(WORKDIR, { recursive: true }); fs.writeFileSync(sysFile, sys, { mode: 0o600 });
+    await fsp.mkdir(WORKDIR, { recursive: true }); await fsp.writeFile(sysFile, sys, { mode: 0o600 });
     const token = prov === 'copilot' && !(ENV.COPILOT_GITHUB_TOKEN || ENV.GH_TOKEN || ENV.GITHUB_TOKEN) ? await ghToken() : null;
-    const b = A.build({ name, system: sys, prompt, sysFile, files: AI_FILES(), token });
+    const b = A.build({ name, system: sys, prompt, sysFile, files: await AI_FILES(), token });
     if (killed) throw new Error('Stopped.');
     if (b.noModel) throw new Error(`${P.label(prov)} doesn’t offer ${modelId.split(':')[1]} on this account right now. Choose another model in the bottom-left.`);
     const env = { ...ENV, ...b.env }; for (const [k, v] of Object.entries(b.env || {})) if (v === undefined) delete env[k];
-    const [runCmd, runArgs] = viaFake(bin, b.args);
+    const [runCmd, runArgs, runOpts] = await launch(...viaFake(bin, b.args));
+    if (killed) throw new Error('Stopped.');
     return new Promise((resolve, reject) => {
-      child = spawn(runCmd, runArgs, { cwd: WORKDIR, env, stdio: [b.stdin == null ? 'ignore' : 'pipe', 'pipe', 'pipe'], ...SH }); // no open stdin otherwise: some CLIs wait on an open pipe
+      child = spawn(runCmd, runArgs, { cwd: WORKDIR, env, stdio: [b.stdin == null ? 'ignore' : 'pipe', 'pipe', 'pipe'], ...runOpts }); // no open stdin otherwise: some CLIs wait on an open pipe
       if (b.stdin != null) { child.stdin.on('error', () => {}); child.stdin.end(b.stdin); }
       let buf = '', full = '', err = '', tokens = null, requests = null, limits = null, aborted = null;
       const seen = new Set();
@@ -389,8 +458,11 @@ function runModel(model, system, prompt, onText, onThink) {
 
 const running = new Map();
 const cancelled = new Set();
-ipcMain.on('ask:start', async (e, id, { model, prompt, system }) => {
+ipcMain.on('ask:start', async (e, id, req) => {
   const wc = e.sender;
+  let model, prompt, system;
+  try { id = str(id, 64); model = str(req?.model, 200); prompt = str(req?.prompt, 400_000); system = optStr(req?.system, 20); }
+  catch (err) { if (typeof id === 'string' && !wc.isDestroyed()) wc.send('ask:error', id.slice(0, 64), err.message); return; }
   await envReady; // only waits in the first seconds after launch, while your shell's PATH is read
   if (cancelled.delete(id)) return;
   // thinking: some CLIs share the text, others only that it's happening (plus a rough token count)
@@ -404,14 +476,15 @@ ipcMain.on('ask:start', async (e, id, { model, prompt, system }) => {
     .catch((err) => !wc.isDestroyed() && wc.send('ask:error', id, err.message))
     .finally(() => running.delete(id));
 });
-ipcMain.on('ask:cancel', (_e, id) => { const r = running.get(id); if (r) { r.kill(); running.delete(id); } else { cancelled.add(id); setTimeout(() => cancelled.delete(id), 10000); } });
+ipcMain.on('ask:cancel', (_e, id) => { if (typeof id !== 'string' || id.length > 64) return; const r = running.get(id); if (r) { r.kill(); running.delete(id); } else { cancelled.add(id); setTimeout(() => cancelled.delete(id), 10000); } });
 // quitting mid-lesson shouldn't leave AI processes running in the background
 app.on('will-quit', () => { for (const r of running.values()) r.kill(); running.clear(); });
 
 // small one-shot calls (token cards, pseudocode refresh, translations)
 const ACCOUNT_TROUBLE = /usage limit|isn’t signed in|isn’t installed|can’t talk to yet|doesn’t have Copilot|no longer lets personal|isn’t set up with a key|doesn’t offer|can’t use Gemini/;
-ipcMain.handle('quick', async (_e, { model, prompt }) => {
-  await envReady;
+ipcMain.handle('quick', async (_e, req) => {
+  const model = str(req?.model, 200), prompt = str(req?.prompt, 400_000);
+  await envReady; await usageReady;
   // quick calls use the fast model of the same AI
   const fast = P.fastOf(model);
   // the same question (same model, same language) within 14 days: answer from the saved copy
@@ -432,7 +505,8 @@ ipcMain.handle('quick', async (_e, { model, prompt }) => {
   }
 });
 // the last 7 days of AI use, for the sidebar meter and Settings, with each AI's share of today
-ipcMain.handle('usage:get', () => {
+ipcMain.handle('usage:get', async () => {
+  await usageReady;
   const u = usage(); const day = (t) => new Date(t).toISOString().slice(0, 10); const today = day(Date.now());
   const days = Array.from({ length: 7 }, (_, i) => day(Date.now() - (6 - i) * 864e5)).map((d) => ({ d, lessons: 0, quick: 0, other: 0, saved: 0, tokens: 0 }));
   const by = {}; // today, per AI: requests and tokens
@@ -447,63 +521,55 @@ ipcMain.handle('usage:get', () => {
   const recent = u.slice(-14).reverse().map((e) => ({ at: e.at, what: e.what, model: e.model, saved: !!e.saved, tokens: (e.in || 0) + (e.out || 0), est: !!e.est, ms: e.ms, ok: e.ok }));
   return { days, today: days.find((x) => x.d === today), by, recent, savedAnswers: Object.keys(quickCache()).length };
 });
-ipcMain.handle('usage:clearSaved', () => { qcache = {}; try { fs.rmSync(QCACHE, { force: true }); } catch {} return true; });
+ipcMain.handle('usage:clearSaved', async () => { await usageReady; qcache = {}; await fsp.rm(QCACHE, { force: true }).catch(() => {}); return true; });
 
 // ---------------------------------------------------------------- local folders
-const SKIP = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.venv', 'venv', '__pycache__', '.DS_Store', 'Pods', '.turbo', 'coverage', 'target']);
-const CODE_EXT = /\.(js|jsx|ts|tsx|mjs|cjs|py|rb|go|rs|java|kt|swift|c|cc|cpp|h|hpp|cs|php|html|css|scss|json|md|sql|sh|vue|svelte|toml|yaml|yml)$/i;
-function walk(root, rel = '', out = [], depth = 0) {
-  if (out.length > 600 || depth > 6) return out;
-  let ents = []; try { ents = fs.readdirSync(path.join(root, rel), { withFileTypes: true }); } catch { return out; }
-  for (const d of ents) {
-    if (SKIP.has(d.name) || d.name.startsWith('.')) continue;
-    const r = rel ? `${rel}/${d.name}` : d.name;
-    if (d.isDirectory()) walk(root, r, out, depth + 1);
-    else if (CODE_EXT.test(d.name)) out.push(r);
-  }
-  return out;
-}
+const { SKIP_DIRS: SKIP, CODE_EXT } = atlas;
 const roots = new Set();
 ipcMain.handle('folder:open', async () => {
   const r = await dialog.showOpenDialog(win, { properties: ['openDirectory'] });
   if (r.canceled || !r.filePaths[0]) return null;
   const root = r.filePaths[0]; roots.add(root);
-  return { kind: 'local', root, name: path.basename(root), files: walk(root) };
+  return { kind: 'local', root, name: path.basename(root), files: await work('codeFiles', [root]) };
 });
-// Something dragged onto the window: a folder becomes a project, a code file becomes a lesson.
+// Something dragged onto the window: a folder becomes a project, a code file becomes a lesson. The path comes from the
+// dropped file itself (preload.cjs asks Electron for it), so the page can't name a file you didn't drop.
 ipcMain.handle('drop:open', async (_e, p) => {
-  if (typeof p !== 'string' || !path.isAbsolute(p) || !fs.existsSync(p)) throw new Error('Couldn’t read that.');
-  const st = fs.statSync(p);
+  p = str(p, 4096);
+  const st = path.isAbsolute(p) ? await fsp.stat(p).catch(() => null) : null;
+  if (!st) throw new Error('Couldn’t read that.');
   if (st.isDirectory()) { if (!projectRootOk(p, undefined, REPOS)) throw new Error('Bento opens project folders, not your whole disk, home folder or system folders.'); roots.add(p); return { kind: 'local', root: p, name: path.basename(p) }; }
   if (/\.bento$/i.test(p)) {
     if (st.size > 2_000_000) throw new Error('That lesson file is too big.');
-    let j; try { j = JSON.parse(fs.readFileSync(p, 'utf8')); } catch { throw new Error('That .bento file is damaged.'); }
+    let j; try { j = JSON.parse(await fsp.readFile(p, 'utf8')); } catch { throw new Error('That .bento file is damaged.'); }
     if (j?.bento !== 1 || !j.lesson?.title) throw new Error('That isn’t a Bento lesson.');
     return { kind: 'lesson', lesson: j.lesson };
   }
   if (st.size > 200_000) throw new Error('That file is too big to explain in one go.');
   if (!CODE_EXT.test(p)) throw new Error('Drop a code file (like .py or .js) or a project folder.');
-  return { kind: 'file', name: path.basename(p), text: fs.readFileSync(p, 'utf8') };
+  return { kind: 'file', name: path.basename(p), text: await fsp.readFile(p, 'utf8') };
 });
+const insideOf = (root, f) => { const r = path.relative(root, f); return !!r && !r.startsWith('..') && !path.isAbsolute(r); };
 ipcMain.handle('folder:read', async (_e, root, rel) => {
-  if (!roots.has(root)) throw new Error('folder not opened');
-  const f = path.resolve(root, String(rel || ''));
+  root = str(root, 4096); rel = optStr(rel, 4096);
+  if (!roots.has(root)) throw new Error('That folder isn’t open in Bento any more. Open it again.');
+  const f = path.resolve(root, rel);
   // inside the opened folder only: "../bento-secrets" must not pass just because it starts with the same letters
-  const inside = path.relative(root, f);
-  if (!inside || inside.startsWith('..') || path.isAbsolute(inside)) throw new Error('bad path');
+  if (!insideOf(root, f)) refuse();
   // ...for real: a link inside a downloaded project ("notes -> ~/.ssh") must not lead out of it
-  let real; try { real = fs.realpathSync(f); } catch { throw new Error('bad path'); }
-  const realInside = path.relative(fs.realpathSync(root), real);
-  if (!realInside || realInside.startsWith('..') || path.isAbsolute(realInside)) throw new Error('bad path');
-  const st = fs.statSync(real); if (!st.isFile()) throw new Error('bad path'); if (st.size > 3_000_000) return '// (file too large to show)';
-  return fs.readFileSync(real, 'utf8');
+  const [real, realRoot] = await Promise.all([fsp.realpath(f), fsp.realpath(root)]).catch(() => [null, null]);
+  if (!real) throw new Error('That file isn’t there any more.');
+  if (!insideOf(realRoot, real)) refuse();
+  const st = await fsp.stat(real); if (!st.isFile()) refuse(); if (st.size > 3_000_000) return '// (file too large to show)';
+  return fsp.readFile(real, 'utf8').catch((e) => { throw new Error(e.code === 'EACCES' || e.code === 'EPERM' ? 'Bento isn’t allowed to read that file.' : 'Couldn’t read that file.'); });
 });
 
 // ---------------------------------------------------------------- GitHub via gh
 // Publish a page with your own GitHub account: one public repo, "bento-pages", served by GitHub Pages.
 // Nothing is hosted by Bento. BENTO_DRY_PUBLISH=1 records the gh commands instead of running them (for tests).
 ipcMain.handle('web:publish', async (_e, html, title) => {
-  const dry = process.env.BENTO_DRY_PUBLISH ? [] : null;
+  html = str(html, 2_000_000); title = optStr(title, 300);
+  const dry = TEST_BUILD && process.env.BENTO_DRY_PUBLISH ? [] : null;
   const call = async (args) => { if (dry) { dry.push(['gh', ...args.map((a) => (a.length > 80 ? a.slice(0, 40) + '…' : a))].join(' ')); return args.includes('user') ? 'learner' : ''; } return gh(args); };
   const slug = String(title || 'my page').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50) || 'my-page';
   const login = String(await call(['api', 'user', '--jq', '.login'])).trim();
@@ -520,21 +586,23 @@ ipcMain.handle('web:publish', async (_e, html, title) => {
 async function gh(args) {
   if (HIDDEN.has('gh') || process.env.BENTO_NO_GH) throw new Error('GitHub CLI isn’t available.');
   await envReady;
-  return new Promise((res, rej) => execFile('gh', args, { env: ENV, maxBuffer: 20 * 1024 * 1024, ...SH }, (e, out, se) => e ? rej(new Error((se || e.message).trim())) : res(out)));
+  const [c, a, o] = await launch('gh', args);
+  return new Promise((res, rej) => execFile(c, a, { env: ENV, maxBuffer: 20 * 1024 * 1024, ...o }, (e, out, se) => e ? rej(new Error((se || e.message).trim())) : res(out)));
 }
 ipcMain.handle('gh:me', async () => {
   try { const u = JSON.parse(await gh(['api', 'user'])); return { login: u.login, name: u.name, avatar: u.avatar_url }; } catch { return null; }
 });
 ipcMain.handle('gh:repos', async () => JSON.parse(await gh(['repo', 'list', '--limit', '40', '--json', 'name,nameWithOwner,primaryLanguage,description,updatedAt,isPrivate'])));
 ipcMain.handle('gh:tree', async (_e, full) => {
-  if (!REPO_RX.test(String(full))) throw new Error('bad repo');
+  if (!REPO_RX.test(str(full, 200))) refuse();
   const t = JSON.parse(await gh(['api', `repos/${full}/git/trees/HEAD?recursive=1`]));
   const files = (t.tree || []).filter((x) => x.type === 'blob' && CODE_EXT.test(x.path) && !x.path.split('/').some((s) => SKIP.has(s))).map((x) => x.path).slice(0, 600);
   return { kind: 'github', root: full, name: full, files };
 });
 ipcMain.handle('gh:file', async (_e, full, p) => {
-  if (!REPO_RX.test(String(full)) || String(p).split('/').some((x) => x === '..' || x === '.')) throw new Error('bad path');
-  const o = JSON.parse(await gh(['api', `repos/${full}/contents/${encodeURI(p)}`]));
+  p = str(p, 1000);
+  if (!REPO_RX.test(str(full, 200)) || !p || p.split('/').some((x) => !x || x === '..' || x === '.')) refuse();
+  const o = JSON.parse(await gh(['api', `repos/${full}/contents/${p.split('/').map(encodeURIComponent).join('/')}`]));
   if (o.size > 300_000) return '// (file too large to show)';
   return Buffer.from(o.content || '', 'base64').toString('utf8');
 });
@@ -542,57 +610,61 @@ ipcMain.handle('gh:file', async (_e, full, p) => {
 const PLAY = new Map();
 const PLAY_SHIM = `<script>(function(){var send=function(k,a){try{parent.postMessage({bentoPlay:1,k:k,s:Array.prototype.map.call(a,function(x){try{return typeof x==='string'?x:JSON.stringify(x)}catch(e){return String(x)}}).join(' ')},'*')}catch(e){}};['log','info','warn','error'].forEach(function(k){var o=console[k];console[k]=function(){send(k,arguments);o.apply(console,arguments)}});window.addEventListener('error',function(e){send('error',[e.message+(e.lineno?' (line '+e.lineno+')':'')])});var last=null;document.addEventListener('mouseover',function(e){var el=e.target.closest&&e.target.closest('[data-bl]');if(el===last)return;if(last)last.style.outline=last.__o||'';last=el;if(el){el.__o=el.style.outline;el.style.outline='2px solid rgba(124,92,255,.7)';try{parent.postMessage({bentoPlay:1,k:'hover',line:+el.getAttribute('data-bl')},'*')}catch(x){}}},true);document.addEventListener('mouseleave',function(){if(last){last.style.outline=last.__o||'';last=null}try{parent.postMessage({bentoPlay:1,k:'hover',line:0},'*')}catch(x){}});})();<\/script>`;
 ipcMain.handle('play:put', (_e, html, key) => {
+  html = str(html, 2_000_000); key = typeof key === 'string' ? key : '';
   // one stable origin per lesson, so the page's localStorage survives re-runs ("remember my tasks")
-  const id = key && /^[a-z0-9-]{3,40}$/i.test(key) ? `l-${key.toLowerCase()}` : `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-  const doc = String(html || '').slice(0, 400000);
+  const id = /^[a-z0-9-]{3,40}$/i.test(key) ? `l-${key.toLowerCase()}` : `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const doc = html.slice(0, 400000);
   PLAY.set(id, /<head[^>]*>/i.test(doc) ? doc.replace(/<head[^>]*>/i, (m) => m + PLAY_SHIM) : PLAY_SHIM + doc);
   while (PLAY.size > 20) PLAY.delete(PLAY.keys().next().value);
   return id;
 });
 ipcMain.handle('lesson:export', async (_e, lesson) => {
+  if (!lesson || typeof lesson !== 'object' || sizeOf(lesson) > 5_000_000) refuse();
   const safe = String(lesson?.title || 'lesson').replace(/[^\w\- ]+/g, '').trim().slice(0, 60) || 'lesson';
   const r = await dialog.showSaveDialog(win, { defaultPath: path.join(app.getPath('desktop'), `${safe}.bento`), filters: [{ name: 'Bento lesson', extensions: ['bento'] }] });
   if (r.canceled || !r.filePath) return null;
-  fs.writeFileSync(r.filePath, JSON.stringify({ bento: 1, exported: new Date().toISOString(), lesson }, null, 1));
+  await fsp.writeFile(r.filePath, JSON.stringify({ bento: 1, exported: new Date().toISOString(), lesson }, null, 1)).catch(saveError);
   return r.filePath;
 });
+// what went wrong writing a file you asked for, in plain words
+function saveError(e) { throw new Error(e?.code === 'ENOSPC' ? 'Your disk is full. Free up some space and try again.' : e?.code === 'EACCES' || e?.code === 'EPERM' || e?.code === 'EROFS' ? 'Bento isn’t allowed to save there. Choose another place.' : 'Couldn’t save the file.'); }
 // Save a lesson's web page as a real file you can open in any browser (or send to a friend).
 ipcMain.handle('web:save', async (_e, html, title) => {
-  const dir = path.join(app.getPath('desktop'), 'Bento pages'); fs.mkdirSync(dir, { recursive: true });
-  const base = String(title || 'my page').replace(/[^\w\- ]+/g, '').trim().slice(0, 50) || 'my page';
+  html = str(html, 5_000_000); title = optStr(title, 300);
+  const dir = path.join(app.getPath('desktop'), 'Bento pages'); await fsp.mkdir(dir, { recursive: true }).catch(saveError);
+  const base = (title || 'my page').replace(/[^\w\- ]+/g, '').trim().slice(0, 50) || 'my page';
   let file = path.join(dir, `${base}.html`); let n = 2;
-  while (fs.existsSync(file)) file = path.join(dir, `${base} ${n++}.html`);
-  fs.writeFileSync(file, String(html || ''));
+  while (await fsp.access(file).then(() => true, () => false)) file = path.join(dir, `${base} ${n++}.html`);
+  await fsp.writeFile(file, html, { flag: 'wx' }).catch(saveError);
   shell.showItemInFolder(file);
   return file;
 });
 // How much space downloaded repos take, and a way to clear them (the Atlas notes stay cached).
-const dirSize = (d) => { let n = 0; const walk = (p) => { let es = []; try { es = fs.readdirSync(p, { withFileTypes: true }); } catch { return; } for (const e of es) { const q = path.join(p, e.name); if (e.isDirectory()) walk(q); else { try { n += fs.lstatSync(q).size; } catch {} } } }; walk(d); return n; };
-ipcMain.handle('repos:usage', () => { let n = 0, count = 0; try { for (const e of fs.readdirSync(REPOS)) { n += dirSize(path.join(REPOS, e)); count++; } } catch {} return { bytes: n, count }; });
-ipcMain.handle('repos:clear', () => { try { fs.rmSync(REPOS, { recursive: true, force: true }); fs.mkdirSync(REPOS, { recursive: true }); } catch {} return true; });
+ipcMain.handle('repos:usage', async () => { const es = await fsp.readdir(REPOS).catch(() => []); const sizes = await Promise.all(es.map((e) => work('dirSize', [path.join(REPOS, e)]))); return { bytes: sizes.reduce((a, b) => a + b, 0), count: es.length }; });
+ipcMain.handle('repos:clear', async () => { await work('remove', [REPOS]).catch(() => {}); await fsp.mkdir(REPOS, { recursive: true }).catch(() => {}); return true; });
 ipcMain.handle('open:data', () => shell.openPath(app.getPath('userData')));
 // the welcome's "Open Terminal": to paste an install command (Bento never runs installers itself)
 ipcMain.handle('open:terminal', () => (MAC ? shell.openPath('/System/Applications/Utilities/Terminal.app') : false));
-ipcMain.handle('open:external', (_e, url) => { if (/^https:\/\//.test(String(url))) openOutside(url); return true; });
+ipcMain.handle('open:external', (_e, url) => openOutside(str(url, 4000)));
 
 // ---------------------------------------------------------------- Atlas: bring a repo in and take it apart
 const REPOS = path.join(app.getPath('userData'), 'repos');
 const CACHE = path.join(app.getPath('userData'), 'atlas');
-fs.mkdirSync(CACHE, { recursive: true });
+const cacheReady = fsp.mkdir(CACHE, { recursive: true }).catch(() => {});
 const ghOk = (() => { let v = null; return async () => (v ??= !process.env.BENTO_NO_GH && !!(await which('gh')) && await gh(['auth', 'status']).then(() => true, () => false)); })();
 const REPO_RX = /^(?!\.+\/)[\w.-]+\/(?!\.+$)[\w.-]+$/; // owner/name, never ../..
 
 ipcMain.handle('atlas:fetch', async (e, full) => {
-  if (!REPO_RX.test(full)) throw new Error('That doesn’t look like owner/name.');
+  if (!REPO_RX.test(str(full, 200))) throw new Error('That doesn’t look like owner/name.');
   await envReady; // git, found the way a new Terminal finds it
   const wc = e.sender;
-  const dir = await atlas.fetchRepo({ full, base: REPOS, env: ENV, hasGh: await ghOk(), onProgress: (p) => !wc.isDestroyed() && wc.send('atlas:progress', full, p) });
+  const dir = await work('fetchRepo', [{ full, base: REPOS, env: ENV, hasGh: await ghOk() }], (p) => !wc.isDestroyed() && wc.send('atlas:progress', full, p));
   roots.add(dir);
   return { kind: 'github', root: dir, name: full, full };
 });
 // Beginner-friendly open issues in a project ("good first issue" and friends), newest first
 ipcMain.handle('gh:issues', async (_e, full) => {
-  if (!REPO_RX.test(full)) throw new Error('bad repo');
+  if (!REPO_RX.test(str(full, 200))) refuse();
   const labels = ['good first issue', 'good-first-issue', 'help wanted', 'beginner', 'easy', 'first-timers-only'];
   const seen = new Map();
   for (const label of labels) {
@@ -605,20 +677,21 @@ ipcMain.handle('gh:issues', async (_e, full) => {
   return [...seen.values()].sort((a, b) => (a.assigned - b.assigned) || (b.at > a.at ? 1 : -1)).slice(0, 12);
 });
 ipcMain.handle('atlas:history', async (e, full) => {
-  if (!REPO_RX.test(full)) throw new Error('That doesn’t look like owner/name.');
+  if (!REPO_RX.test(str(full, 200))) throw new Error('That doesn’t look like owner/name.');
   await envReady; // git, found the way a new Terminal finds it
   const wc = e.sender;
-  return atlas.history({ full, base: REPOS, env: ENV, onProgress: (p) => !wc.isDestroyed() && wc.send('atlas:progress', `history:${full}`, p) });
+  return work('history', [{ full, base: REPOS, env: ENV }], (p) => !wc.isDestroyed() && wc.send('atlas:progress', `history:${full}`, p));
 });
 ipcMain.handle('atlas:refresh', async (e, full) => {
-  if (!REPO_RX.test(full)) throw new Error('bad repo');
-  fs.rmSync(path.join(REPOS, full.replace('/', '__')), { recursive: true, force: true });
-  fs.rmSync(path.join(CACHE, `${full.replace('/', '__')}.json`), { force: true });
+  if (!REPO_RX.test(str(full, 200))) refuse();
+  await work('remove', [path.join(REPOS, full.replace('/', '__'))]);
+  await fsp.rm(path.join(CACHE, `${full.replace('/', '__')}.json`), { force: true }).catch(() => {});
   return true;
 });
 ipcMain.handle('atlas:analyze', async (_e, root, name) => {
-  if (!roots.has(root)) throw new Error('not opened');
-  return atlas.analyze(root, { name });
+  root = str(root, 4096); name = optStr(name, 300);
+  if (!roots.has(root)) throw new Error('That project isn’t open in Bento any more. Open it again.');
+  return work('analyze', [root, { name }]);
 });
 async function repoMeta(full) {
   if (!REPO_RX.test(full)) return null;
@@ -627,40 +700,26 @@ async function repoMeta(full) {
   try { const r = await net.fetch(`https://api.github.com/repos/${full}`, { headers: { 'User-Agent': 'bento-app' } }); if (r.ok) return pick(await r.json()); } catch {}
   return null;
 }
-ipcMain.handle('atlas:meta', (_e, full) => repoMeta(full));
+ipcMain.handle('atlas:meta', (_e, full) => repoMeta(str(full, 200)));
 // Which files actually talk about this? A plain word search through the project's files (no AI), so a question like
 // "where does it copy the last answer" finds the message components even when no file is called "copy".
-ipcMain.handle('atlas:search', async (_e, root, words, paths) => {
-  if (!roots.has(root)) throw new Error('not opened');
-  const ws = [...new Set((words || []).map((w) => String(w).toLowerCase()).filter((w) => w.length >= 3))].slice(0, 10);
+// Which files actually talk about this? A plain word search (no AI), in the worker.
+ipcMain.handle('atlas:search', async (_e, root, words) => {
+  root = str(root, 4096);
+  if (!roots.has(root)) throw new Error('That project isn’t open in Bento any more. Open it again.');
+  const ws = [...new Set(strList(words || [], 50, 200).map((w) => w.toLowerCase()).filter((w) => w.length >= 3))].slice(0, 10);
   if (!ws.length) return [];
-  // every code file in the project, not just the ones Bento analysed (big projects have more than it reads)
-  const CODE = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|rb|java|kt|swift|c|cc|cpp|h|hpp|cs|php|vue|svelte|astro|scala|ex|exs|dart|lua|sql|sh)$/i;
-  const NOISE = /(^|\/)(__tests__|tests?|spec|specs|e2e|evals?|fixtures?|__mocks__|mocks?|testing|examples?|docs?|stories|benchmarks?|dist|build|vendor)(\/|$)|\.(test|spec|stories|d)\.[a-z]+$/i;
-  const all = atlas.walkAll(root).filter((p) => CODE.test(p) && !NOISE.test(p)).slice(0, 12000);
-  const out = [];
-  for (const p of all) {
-    let t; try { const f = path.join(root, p); if (fs.statSync(f).size > 2000000) continue; t = fs.readFileSync(f, 'utf8').toLowerCase(); } catch { continue; }
-    const name = p.toLowerCase().split('/').pop();
-    let score = 0, kinds = 0, first = -1; const words = [];
-    for (const w of ws) {
-      let i = t.indexOf(w), n = 0;
-      while (i >= 0 && n < 25) { if (first < 0 || i < first) first = i; n++; i = t.indexOf(w, i + w.length); }
-      if (n) { kinds++; score += 1 + Math.log2(1 + n); words.push(w); }
-      if (name.includes(w)) score += 10; // a file named after the thing is usually the place
-    }
-    if (kinds) out.push({ p, score: score * (1 + 0.35 * (kinds - 1)), at: first, words });
-  }
-  return out.sort((a, b) => b.score - a.score).slice(0, 30);
+  return work('search', [root, ws]);
 });
-const cacheFile = (key) => path.join(CACHE, `${String(key).replace(/[^\w.-]+/g, '__')}.json`);
-ipcMain.handle('atlas:cache:get', async (_e, key) => { try { return JSON.parse(fs.readFileSync(cacheFile(key), 'utf8')); } catch { return null; } });
-ipcMain.handle('atlas:cache:put', async (_e, key, v) => { try { return writeSafe(cacheFile(key), JSON.stringify(v)); } catch { return false; } });
+const cacheFile = (key) => path.join(CACHE, `${str(key, 600).replace(/[^\w.-]+/g, '__').slice(0, 200)}.json`);
+ipcMain.handle('atlas:cache:get', async (_e, key) => { const f = cacheFile(key); return fsp.readFile(f, 'utf8').then(JSON.parse).catch(() => null); });
+ipcMain.handle('atlas:cache:put', async (_e, key, v) => { const f = cacheFile(key); const t = JSON.stringify(v); if (!t || t.length > 50_000_000) refuse(); await cacheReady; return !(await writeSafeAsync(f, t)); });
 ipcMain.handle('atlas:list', async () => {
+  await cacheReady;
   const out = [];
-  for (const f of fs.readdirSync(CACHE).filter((x) => x.endsWith('.json'))) {
+  for (const f of (await fsp.readdir(CACHE).catch(() => [])).filter((x) => x.endsWith('.json'))) {
     try {
-      const st = fs.statSync(path.join(CACHE, f)); const j = JSON.parse(fs.readFileSync(path.join(CACHE, f), 'utf8'));
+      const [st, j] = await Promise.all([fsp.stat(path.join(CACHE, f)), fsp.readFile(path.join(CACHE, f), 'utf8').then(JSON.parse)]);
       if (!j?.src) continue;
       const lang = Object.entries(j.facts?.langs || {}).sort((a, b) => b[1] - a[1]).find(([l]) => !['HTML', 'CSS', 'Shell'].includes(l))?.[0];
       out.push({ key: j.src.kind === 'github' ? j.src.full : `local:${j.src.root}`, name: j.name, kind: j.src.kind, full: j.src.full, root: j.src.root, lang, at: j.at || st.mtimeMs });
@@ -668,38 +727,65 @@ ipcMain.handle('atlas:list', async () => {
   }
   return out.sort((a, b) => b.at - a.at);
 });
-ipcMain.handle('atlas:reopen', async (_e, root) => { if (typeof root === 'string' && projectRootOk(root, undefined, REPOS) && fs.existsSync(root)) { roots.add(root); return true; } return false; });
+ipcMain.handle('atlas:reopen', async (_e, root) => { if (typeof root === 'string' && root.length <= 4096 && projectRootOk(root, undefined, REPOS) && (await fsp.stat(root).then((st) => st.isDirectory(), () => false))) { roots.add(root); return true; } return false; });
 
 // A plain JSON mirror of what the renderer keeps in localStorage, so a crash never loses lessons.
 const STORE = path.join(app.getPath('userData'), 'bento-store.json');
 const SNAPS = path.join(app.getPath('userData'), 'Backups');
-let storeCache = null; let storeTimer = null;
-let bootStore = null; // the disk copy as it was at launch, before this session wrote anything
-const readStore = () => { if (storeCache) return storeCache; try { const raw = fs.readFileSync(STORE, 'utf8'); storeCache = JSON.parse(raw); bootStore = JSON.parse(raw); } catch { storeCache = {}; bootStore = {}; } return storeCache; };
-ipcMain.handle('store:get', () => { readStore(); return bootStore; });
+let storeCache = {}; let storeTimer = null;
+let bootStore = {}; // the disk copy as it was at launch, before this session wrote anything
+// Read once, in the background, as Bento starts. A damaged file is set aside under a new name, never overwritten, so it
+// (and the daily copies in Backups) can still bring things back.
+const storeReady = fsp.readFile(STORE, 'utf8').then(async (raw) => {
+  try { storeCache = JSON.parse(raw); } catch {
+    const aside = path.join(path.dirname(STORE), `bento-store damaged ${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`);
+    logger.log('the saved lessons file was damaged; kept as', path.basename(aside));
+    await fsp.rename(STORE, aside).catch(() => {});
+  }
+}, () => {}).then(() => { if (!storeCache || typeof storeCache !== 'object' || Array.isArray(storeCache)) storeCache = {}; bootStore = structuredClone(storeCache); });
+ipcMain.handle('store:get', async () => { await storeReady; return bootStore; });
 // Back up everything to one file (to move to another Mac, or just to be safe), and bring it back
 ipcMain.handle('backup:save', async () => {
   const day = new Date().toISOString().slice(0, 10);
   const r = await dialog.showSaveDialog(win, { defaultPath: path.join(app.getPath('documents'), `Bento backup ${day}.json`), filters: [{ name: 'Bento backup', extensions: ['json'] }] });
   if (r.canceled || !r.filePath) return null;
-  const s = readStore(); const keep = Object.fromEntries(Object.entries(s).filter(([k]) => /^bento\.(lessons|progress|settings|projects)$/.test(k)));
-  fs.writeFileSync(r.filePath, JSON.stringify({ bento: 'backup', v: 1, at: new Date().toISOString(), data: keep }));
+  await storeReady;
+  const keep = Object.fromEntries(Object.entries(storeCache).filter(([k]) => /^bento\.(lessons|progress|settings|projects)$/.test(k)));
+  await fsp.writeFile(r.filePath, JSON.stringify({ bento: 'backup', v: 1, at: new Date().toISOString(), data: keep })).catch(saveError);
   return r.filePath;
 });
 ipcMain.handle('backup:load', async () => {
-  const r = await dialog.showOpenDialog(win, { properties: ['openFile'], defaultPath: fs.existsSync(SNAPS) ? SNAPS : undefined, filters: [{ name: 'Bento backup', extensions: ['json'] }] });
+  const snaps = await fsp.access(SNAPS).then(() => SNAPS, () => undefined);
+  const r = await dialog.showOpenDialog(win, { properties: ['openFile'], defaultPath: snaps, filters: [{ name: 'Bento backup', extensions: ['json'] }] });
   if (r.canceled || !r.filePaths?.[0]) return null;
-  const j = JSON.parse(fs.readFileSync(r.filePaths[0], 'utf8'));
+  const st = await fsp.stat(r.filePaths[0]).catch(() => null);
+  if (!st || st.size > 100_000_000) throw new Error('That file is too big to be a Bento backup.');
+  let j; try { j = JSON.parse(await fsp.readFile(r.filePaths[0], 'utf8')); } catch { throw new Error('That file is damaged, or isn’t a Bento backup.'); }
   if (j?.bento !== 'backup' || !j.data) throw new Error('That file isn’t a Bento backup.');
   return j.data;
 });
-ipcMain.handle('store:set', (_e, key, value) => {
-  readStore()[key] = value;
+ipcMain.handle('store:set', async (_e, key, value) => {
+  if (!/^bento\.[\w.-]{1,80}$/.test(str(key, 90))) refuse();
+  await storeReady;
+  if (value === undefined) delete storeCache[key]; else storeCache[key] = value;
   clearTimeout(storeTimer);
   storeTimer = setTimeout(saveStore, 500);
   return true;
 });
-function saveStore() { storeTimer = null; try { writeSafe(STORE, JSON.stringify(storeCache)); } catch {} }
+// Saved in the background. If saving starts failing (a full disk, a folder Bento may no longer write to), the page is
+// told once, in plain words, and again when it works: nothing is lost while Bento stays open.
+let storeTrouble = null;
+async function saveStore() {
+  storeTimer = null;
+  let text; try { text = JSON.stringify(storeCache); } catch (e) { logger.log('save skipped', e); return; }
+  const why = await writeSafeAsync(STORE, text);
+  if (why === 'ECANCELED') return;
+  if (why && !storeTimer) storeTimer = setTimeout(saveStore, 30_000); // keep trying: freeing some space is enough
+  if (why === storeTrouble) return;
+  storeTrouble = why;
+  if (why) logger.log('saving lessons failed', why);
+  if (win && !win.isDestroyed()) win.webContents.send('store:health', why ? { error: why } : { ok: true });
+}
 // Quitting (or restarting for an update) while Bento is still writing a lesson or reading a project throws that away,
 // along with the part of your plan it used. Ask first. Tests, and quits you already confirmed, go straight through.
 let leaveOk = false;
@@ -712,20 +798,30 @@ async function okToLeave(verb) {
 }
 app.on('before-quit', (e) => {
   if (!leaveOk && !OFFSCREEN && running.size) { e.preventDefault(); okToLeave('quit').then((ok) => { if (ok) { leaveOk = true; app.quit(); } }); return; }
-  if (storeTimer) { clearTimeout(storeTimer); saveStore(); }
+  // the last save is written right here (a background save still on its way stands down, so it can't land after it)
+  if (storeTimer) { clearTimeout(storeTimer); storeTimer = null; stopWrites(); writeSafe(STORE, JSON.stringify(storeCache)); }
 });
 
+// a search's options, checked: anything unexpected is dropped rather than passed on to gh
+const searchOpts = (o) => {
+  o = o && typeof o === 'object' ? o : {};
+  const ok = (v, rx) => (typeof v === 'string' && rx.test(v) ? v : undefined);
+  return { limit: Number.isInteger(o.limit) ? Math.min(50, Math.max(1, o.limit)) : 24, sort: ['stars', 'updated', 'forks', 'help-wanted-issues', 'best-match'].includes(o.sort) ? o.sort : 'stars',
+    language: ok(o.language, /^[\w#+. -]{1,40}$/), stars: ok(o.stars, /^[<>=]{0,2}\d+(\.\.\d+)?$/), size: ok(o.size, /^[<>=]{0,2}\d+(\.\.\d+)?$/) };
+};
 async function searchRepos(q, opts = {}) {
+  q = str(q, 300); opts = searchOpts(opts);
   const fields = 'fullName,description,stargazersCount,language,size,owner,updatedAt';
   if (await ghOk()) {
-    const args = ['search', 'repos', ...String(q).split(/\s+/).filter(Boolean), '--limit', String(opts.limit || 24), '--json', fields, '--sort', opts.sort || 'stars'];
+    const args = ['search', 'repos', '--limit', String(opts.limit), '--json', fields, '--sort', opts.sort];
     if (opts.language) args.push('--language', opts.language);
     if (opts.stars) args.push('--stars', opts.stars);
     if (opts.size) args.push('--size', opts.size);
+    args.push('--', ...q.split(/\s+/).filter(Boolean)); // the words are only ever words to search for, even "-x" or "--web"
     const rows = JSON.parse(await gh(args));
     return rows.map((r) => ({ full: r.fullName, description: r.description, stars: r.stargazersCount, language: r.language, size: r.size, owner: r.owner?.login, updated: r.updatedAt }));
   }
-  const r = await net.fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(q + (opts.language ? ` language:${opts.language}` : ''))}&sort=stars&per_page=${opts.limit || 24}`, { headers: { 'User-Agent': 'bento-app' } });
+  const r = await net.fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(q + (opts.language ? ` language:${opts.language}` : ''))}&sort=stars&per_page=${opts.limit}`, { headers: { 'User-Agent': 'bento-app' } });
   if (!r.ok) throw new Error(r.status === 403 ? 'GitHub search limit reached. Sign in with gh auth login for more.' : `GitHub search failed (${r.status})`);
   const j = await r.json();
   return (j.items || []).map((x) => ({ full: x.full_name, description: x.description, stars: x.stargazers_count, language: x.language, size: x.size, owner: x.owner?.login, updated: x.updated_at }));
@@ -736,17 +832,21 @@ ipcMain.handle('gh:search', (_e, q, opts = {}) => searchRepos(q, opts));
 const findproject = require('./findproject.cjs');
 const foundRoots = new Set();
 ipcMain.handle('project:find', async (_e, names) => {
-  const r = await findproject.find(names, { searchGitHub: (q) => searchRepos(q, { limit: 6 }), repoMeta });
+  names = Array.isArray(names) ? strList(names.slice(0, 8), 8, 200) : [str(names, 200)];
+  const r = await findproject.find(names, { searchGitHub: (q) => searchRepos(q, { limit: 6 }), repoMeta, localClones: (n, f) => work('localClones', [n, f]) });
   for (const l of r.local) foundRoots.add(l.root);
   return r;
 });
 // a clone that project:find found may be opened in the Atlas (read-only, like a folder you picked)
-ipcMain.handle('project:openLocal', (_e, root) => { if (!foundRoots.has(root) || !fs.existsSync(root)) return null; roots.add(root); return { root, name: path.basename(root) }; });
+ipcMain.handle('project:openLocal', async (_e, root) => { if (typeof root !== 'string' || !foundRoots.has(root) || !(await fsp.access(root).then(() => true, () => false))) return null; roots.add(root); return { root, name: path.basename(root) }; });
 // Real code in the wild: GitHub code search (needs gh signed in). One result per repo, short snippets.
 ipcMain.handle('gh:code', async (_e, q, language) => {
+  q = str(q, 300); language = optStr(language, 40);
+  if (language && !/^[\w#+. -]{1,40}$/.test(language)) refuse();
   if (!(await ghOk())) throw new Error('Sign in to GitHub (gh auth login) to search real code.');
-  const args = ['search', 'code', q, '--limit', '30', '--json', 'repository,path,textMatches,url'];
+  const args = ['search', 'code', '--limit', '30', '--json', 'repository,path,textMatches,url'];
   if (language) args.push('--language', language);
+  args.push('--', q);
   const rows = JSON.parse(await gh(args));
   const seen = new Set(); const out = [];
   for (const r of rows) {
@@ -759,15 +859,18 @@ ipcMain.handle('gh:code', async (_e, q, language) => {
   return out;
 });
 // Take apart a website: fetch it like a browser would and keep the clues (headers, scripts, meta tags).
+// Fetched the way lesson code fetches (netfetch.cjs): public internet only, checked again at every redirect and at the
+// moment of connecting, so a website can't send Bento into your own Mac or home network.
 ipcMain.handle('site:inspect', async (_e, url) => {
-  let u; try { u = new URL(/^https?:\/\//.test(url) ? url : `https://${url}`); } catch { throw new Error('That doesn’t look like a web address.'); }
-  if (!/^https?:$/.test(u.protocol) || /^(localhost|127\.|10\.|192\.168\.|0\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|\[|::|.*\.local$|.*\.internal$)/i.test(u.hostname)) throw new Error('Only public websites, please.');
+  url = str(url, 2000).trim();
+  let u; try { u = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`); } catch { throw new Error('That doesn’t look like a web address.'); }
+  if (!/^https?:$/.test(u.protocol) || !hostAllowed(u.hostname)) throw new Error('Only public websites, please.');
   const t0 = Date.now();
-  const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 12000);
-  let r; try { r = await net.fetch(u.toString(), { redirect: 'follow', signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15', Accept: 'text/html' } }); }
-  catch (e) { throw new Error(`Couldn’t reach ${u.hostname}: ${e.message}`); } finally { clearTimeout(timer); }
+  let r; try { r = await follow(u.toString(), { headers: { 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15', accept: 'text/html' } }); }
+  catch (e) { throw new Error(e.code === 'EBLOCKED' ? 'Only public websites, please.' : `Couldn’t reach ${u.hostname}: ${e.message}`); }
   const ms = Date.now() - t0;
-  const html = (await r.text()).slice(0, 600000);
+  const html = r.text.slice(0, 600000);
+  r.headers = { get: (k) => { const v = r.rawHeaders?.[k]; return v == null ? null : String(v); } };
   const H = {}; for (const k of ['server', 'x-powered-by', 'cf-ray', 'x-vercel-id', 'x-nf-request-id', 'x-served-by', 'x-cache', 'via', 'x-amz-cf-id', 'x-github-request-id', 'x-shopify-stage', 'x-wix-request-id', 'x-generator', 'content-type', 'strict-transport-security', 'x-fastly-request-id', 'fly-request-id', 'x-render-origin-server', 'x-railway-request-id', 'x-cache-status', 'alt-svc']) { const v = r.headers.get(k); if (v) H[k] = v.slice(0, 120); }
   const scripts = [...html.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map((m) => m[1]).slice(0, 80);
   const styles = [...html.matchAll(/<link[^>]+href=["']([^"']+\.css[^"']*)["']/gi)].map((m) => m[1]).slice(0, 30);
@@ -780,7 +883,7 @@ ipcMain.handle('site:inspect', async (_e, url) => {
   return { url: u.toString(), final: finalUrl, host: new URL(finalUrl).hostname, status: r.status, ms, bytes: html.length, headers: H, scripts, styles, repos, title, description: meta('description') || meta('og:description'), generator: meta('generator'), counts, text, html: html.slice(0, 120000) };
 });
 ipcMain.handle('gh:fork', async (_e, full) => {
-  if (!REPO_RX.test(full)) throw new Error('bad repo');
+  if (!REPO_RX.test(str(full, 200))) refuse();
   if (!(await ghOk())) throw new Error('Sign in to GitHub first: run gh auth login in Terminal.');
   const out = await gh(['repo', 'fork', full, '--clone=false']).catch((e) => e.message);
   const me = JSON.parse(await gh(['api', 'user'])).login;

@@ -29,16 +29,10 @@ import { loadPacks, savePacks, validatePack, applyPacks } from './packs.js';
 import { PUZZLES } from './puzzles.js';
 import { RACES } from './races.js';
 import { ideaById, IDEAS } from './ideas.js';
-import PREBUILT_RAW from './ideas-prebuilt.json';
-import PATH_RAW from './path-prebuilt.json';
-import SIM_RAW from './sims-prebuilt.json';
-import BUGS_RAW from './bugs-prebuilt.json'; // one pre-written Python daily bug per topic, so the daily bug opens instantly
+import { PRE, loadPrebuilt } from './prebuilt.js'; // lessons that ship already written, loaded just after the first screen
 import { useDialog } from './ui/a11y.js';
-const SIM_PRE = Object.fromEntries(Object.entries(SIM_RAW).map(([k, l], i) => [k, { ...l, id: `sim-${i}`, builtin: true, status: 'done', thinking: null, chat: [], work: null, createdAt: 0 }]));
 import { ALL_STOPS, tracksWith, stopSkills } from './paths.js';
 import { noAI, altOf, usableModel } from './ai.js';
-const PATH_PRE = Object.fromEntries(Object.entries(PATH_RAW).map(([k, l]) => [k, { ...l, id: `path-${k}`, builtin: true, status: 'done', thinking: null, chat: [], work: null, createdAt: 0 }]));
-const PREBUILT = Object.fromEntries(Object.entries(PREBUILT_RAW).map(([k, l]) => [k, { ...l, id: `idea-${k}`, builtin: true, status: 'done', thinking: null, chat: [], work: null, createdAt: 0 }]));
 import { Sidebar, modelLabel, groupOf, rememberTab } from './ui/Side.jsx';
 import Icon from './ui/Icons.jsx';
 import { filesForQuestion, guessRole, projectParts, isOverviewQuestion, searchWords } from './atlas/analyze.js';
@@ -108,6 +102,15 @@ export default function App() {
   const { atlases, setAtlases, atlasKey, setAtlasKey, atlasRef, projects, setProjects, sites, setSites, siteKey, setSiteKey,
     stopReading, patchAtlas, asProject, narrate, openAtlas, openRepo, openRepoAt, openSite, openFolderAtlas, openProject, showAtlas, setProject, ensureProject,
     pendingFile, setPendingFile, findWild } = lib;
+  const [preReady, setPreReady] = useState(PRE.ready);
+  useEffect(() => { loadPrebuilt().then(() => setPreReady(true), () => {}); }, []);
+  // Startup timing: the first screen is drawn and what was saved on disk has been read, so it's ready for input.
+  // scripts/measure-startup.mjs reads "bento:interactive" (on the frame after both).
+  useEffect(() => {
+    performance.mark('bento:rendered');
+    const disk = api.storeGet ? api.storeGet().catch(() => null) : Promise.resolve(null);
+    disk.then(() => requestAnimationFrame(() => setTimeout(() => performance.mark('bento:interactive'), 0)));
+  }, []);
   // restore from the disk mirror when browser storage was lost (crash, forced quit)
   useEffect(() => { api.storeGet?.().then((d) => {
     if (!d || typeof d !== 'object') return;
@@ -177,7 +180,7 @@ export default function App() {
       + (st.make ? ` This stop adds: ${st.make}.` : '') + (last && T.end ? ` This is the final stop: finish with ${T.end}` : '') + ' Don’t re-teach ideas from earlier stops; name them briefly and move on.';
     return { path, ...(prevL ? { prev: prevL } : {}) };
   };
-  const startStop = (st) => { const id = progress.path?.[st.id]; const l = id && lessons.find((x) => x.id === id); if (l) return openLesson(l); const pre = PATH_PRE[st.id]; if (pre && (!settings.voice || settings.voice === 'English') && settings.level !== 'engineer') { openLesson({ ...pre, createdAt: Date.now() }); setProgress((p) => ({ ...p, path: { ...(p.path || {}), [st.id]: pre.id } })); return; } const nid = askLesson(st.q, { ...(st.lang ? { lang: st.lang } : {}), ...(st.mode ? { mode: st.mode } : {}), ...pathContext(st) }); setProgress((p) => ({ ...p, path: { ...(p.path || {}), [st.id]: nid } })); };
+  const startStop = (st) => { if (!PRE.ready) return void loadPrebuilt().then(() => startStop(st)); const id = progress.path?.[st.id]; const l = id && lessons.find((x) => x.id === id); if (l) return openLesson(l); const pre = PRE.path[st.id]; if (pre && (!settings.voice || settings.voice === 'English') && settings.level !== 'engineer') { openLesson({ ...pre, createdAt: Date.now() }); setProgress((p) => ({ ...p, path: { ...(p.path || {}), [st.id]: pre.id } })); return; } const nid = askLesson(st.q, { ...(st.lang ? { lang: st.lang } : {}), ...(st.mode ? { mode: st.mode } : {}), ...pathContext(st) }); setProgress((p) => ({ ...p, path: { ...(p.path || {}), [st.id]: nid } })); };
   // a stop that opens another part of Bento counts as done once it's opened
   const markStop = (st) => setProgress((p) => ({ ...p, path: { ...(p.path || {}), [st.id]: 'x' } }));
   // (a playground or Explore shows where you are on the path, so you can go on to the next stop)
@@ -185,7 +188,7 @@ export default function App() {
   useEffect(() => { if (trail && view !== trail.view) setTrail(null); }, [view]); // eslint-disable-line react-hooks/exhaustive-deps
   // a stop on a path that teaches this map skill and opens instantly (the next one you haven't done, or the first)
   const readyFor = (sid) => {
-    const all = tracksWith().flatMap((T) => T.stops.filter((x) => (PATH_PRE[x.id] || x.idea || x.play) && stopSkills(x, skillsFor).includes(sid)).map((st) => ({ T, st })));
+    const all = tracksWith().flatMap((T) => T.stops.filter((x) => (PRE.path[x.id] || x.idea || x.play) && stopSkills(x, skillsFor).includes(sid)).map((st) => ({ T, st })));
     const c = all.find((x) => !progress.path?.[x.st.id]) || all[0];
     return c ? { icon: c.T.icon, label: c.st.t, path: c.T.title, go: () => goStop(c.st) } : null;
   };
@@ -206,6 +209,9 @@ export default function App() {
   const pathOf = (L) => (L ? pathFind((x) => progress.path?.[x.id] === L.id) : null);
   const lessonsRef = useRef(lessons); lessonsRef.current = lessons;
   useEffect(() => { const t = setTimeout(() => saveLessons(lessons), 400); return () => clearTimeout(t); }, [lessons]);
+  // saving to disk starts or stops failing (a full disk, say): tell the person, once, in plain words
+  const [saveTrouble, setSaveTrouble] = useState(null);
+  useEffect(() => api.onStoreHealth?.((h) => setSaveTrouble(h?.error || null)), []);
   useEffect(() => { const flush = () => saveLessons(lessonsRef.current); addEventListener('beforeunload', flush); return () => removeEventListener('beforeunload', flush); }, []); // never lose the last edit on quit
   useEffect(() => save('bento.progress', progress), [progress]);
   useEffect(() => save('bento.storyW', storyW), [storyW]);
@@ -221,7 +227,7 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const current = useMemo(() => lessons.find((l) => l.id === currentId) || [...SAMPLES, CHALLENGE, ...RACE_LESSONS, ...Object.values(PREBUILT), ...Object.values(PATH_PRE), ...Object.values(SIM_PRE)].find((l) => l.id === currentId) || null, [lessons, currentId]);
+  const current = useMemo(() => lessons.find((l) => l.id === currentId) || [...SAMPLES, CHALLENGE, ...RACE_LESSONS, ...Object.values(PRE.ideas), ...Object.values(PRE.path), ...Object.values(PRE.sims)].find((l) => l.id === currentId) || null, [lessons, currentId, preReady]);
   const patch = useCallback((id, p) => setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, ...p } : l))), []);
 
   useEffect(() => { rememberTab(view); }, [view]);
@@ -236,7 +242,7 @@ export default function App() {
     award(l, 'open');
   };
 
-  const openSim = (q) => { const pre = SIM_PRE[q]; const have = lessons.find((l) => l.id === pre?.id); if (have) return openLesson(have); if (pre && (!settings.voice || settings.voice === 'English')) return openLesson({ ...pre, createdAt: Date.now() }); askLesson(`${q} Teach it by simulating it with a small program and a picture.`, { mode: 'explain' }); };
+  const openSim = (q) => { if (!PRE.ready) return void loadPrebuilt().then(() => openSim(q)); const pre = PRE.sims[q]; const have = lessons.find((l) => l.id === pre?.id); if (have) return openLesson(have); if (pre && (!settings.voice || settings.voice === 'English')) return openLesson({ ...pre, createdAt: Date.now() }); askLesson(`${q} Teach it by simulating it with a small program and a picture.`, { mode: 'explain' }); };
   const openPuzzle = (pz) => { const have = lessons.find((l) => l.id === `pz-${pz.id}`); openLesson(have || puzzleLesson(pz)); };
   const setPuzzleCode = (pz, which) => { const parts = codeParts(pz, which); const id = currentId; desk.current?.setCode(codeOf(parts)); setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, pmap: { ...(l.pmap || {}), ...englishMap(parts) } } : l))); };
   const onPuzzleResult = (pid, r) => {
@@ -394,9 +400,9 @@ export default function App() {
     const leave = () => { n = Math.max(0, n - 1); if (!n) setDropping(false); };
     const drop = async (e) => {
       e.preventDefault(); n = 0; setDropping(false);
-      const f = e.dataTransfer?.files?.[0]; const pth = f && api.pathForFile?.(f); if (!pth) return;
+      const f = e.dataTransfer?.files?.[0]; if (!f) return;
       try {
-        const r = await api.dropOpen(pth);
+        const r = await api.dropOpen(f);
         if (r.kind === 'local') openAtlas({ kind: 'local', root: r.root, name: r.name });
         else if (r.kind === 'lesson') { const L = { ...emptyLesson(r.lesson.q || '', r.lesson), ...r.lesson, id: Math.random().toString(36).slice(2, 10), status: 'done', builtin: false, shared: true, createdAt: Date.now() }; setLessons((ls) => [L, ...ls]); setCurrentId(L.id); setViewRaw('lesson'); setStepSel(L.steps?.length ? L.steps.length - 1 : null); }
         else askLesson(`Explain ${r.name}`, { mode: 'code', context: { code: r.text, path: r.name }, lang: /\.py$/.test(r.name) ? 'python' : 'javascript' });
@@ -489,7 +495,8 @@ export default function App() {
   const [pair, setPair] = useState([null, null]);
   const [onb, setOnb] = useState(() => (load('bento.settings', {}).onboarded ? null : 0));
   const readIdea = (I) => {
-    const pre = PREBUILT[I.id];
+    if (!PRE.ready) { loadPrebuilt().then(() => readIdea(I)); return null; }
+    const pre = PRE.ideas[I.id];
     const english = !settings.voice || settings.voice === 'English';
     if (pre && english && !lessons.some((l) => l.context?.ideaId === I.id)) { openLesson({ ...pre, createdAt: Date.now() }); return pre.id; } // shipped with the app: opens instantly
     const have = lessons.find((l) => l.context?.ideaId === I.id && (l.status === 'done' || (l.status === 'streaming' && cancels.current.has(l.id))));
@@ -521,12 +528,13 @@ export default function App() {
   const altModel = altFor(settings.model);
   // a new bug every day (generated once, then kept), the built-in one when no AI is connected
   const openDaily = () => {
+    if (!PRE.ready) return void loadPrebuilt().then(() => openDaily());
     const day = new Date().toISOString().slice(0, 10);
     const id = progress.daily?.[day]; const have = id && lessons.find((l) => l.id === id && l.status !== 'error');
     if (have) return openLesson(have);
     const topics = ['arrays', 'strings', 'loops', 'recursion', 'dictionaries', 'off-by-one errors', 'sorting', 'string formatting', 'conditionals', 'functions and return values', 'nested lists', 'counting things'];
     const topic = topics[Math.floor(Date.now() / 86400000) % topics.length];
-    const pre = BUGS_RAW[topic]; const english = !settings.voice || settings.voice === 'English';
+    const pre = PRE.bugs[topic]; const english = !settings.voice || settings.voice === 'English';
     if (pre && settings.lang === 'python' && english && settings.level !== 'engineer') {
       const L = { ...pre, id: `bug-${day}`, status: 'done', thinking: null, chat: [], work: null, createdAt: Date.now() };
       setProgress((p) => ({ ...p, daily: { ...(p.daily || {}), [day]: L.id } }));
@@ -537,7 +545,7 @@ export default function App() {
     setProgress((p) => ({ ...p, daily: { ...(p.daily || {}), [day]: nid } }));
   };
   // hooks for scripts/pregen-*.mjs, which drive the real app to pre-write shipped lessons
-  useEffect(() => { window.__openIdea = (id) => readIdea(ideaById[id]); window.__ask = (q, o) => askLesson(q, o || {}); window.__openLesson = (l) => openLesson(l); window.__missingStops = () => ALL_STOPS.filter((x) => x.q && !PATH_PRE[x.id]).map((x) => x.id); window.__genStop = (id) => { const st = ALL_STOPS.find((x) => x.id === id); return askLesson(st.q, { ...(st.lang ? { lang: st.lang } : {}), ...(st.mode ? { mode: st.mode } : {}) }); }; });
+  useEffect(() => { window.__openIdea = (id) => readIdea(ideaById[id]); window.__ask = (q, o) => askLesson(q, o || {}); window.__openLesson = (l) => openLesson(l); window.__missingStops = () => ALL_STOPS.filter((x) => x.q && !PRE.path[x.id]).map((x) => x.id); window.__genStop = (id) => { const st = ALL_STOPS.find((x) => x.id === id); return askLesson(st.q, { ...(st.lang ? { lang: st.lang } : {}), ...(st.mode ? { mode: st.mode } : {}) }); }; });
   const readIdsAll = () => Object.fromEntries(lessons.filter((l) => l.context?.ideaId && l.status === 'done' && (!l.builtin || l.touched)).map((l) => [l.context.ideaId, true]));
   const mastery = useMemo(() => masteryOf({ progress, lessons, puzzles: PUZZLES, stops: ALL_STOPS, ideas: IDEAS, readIds: readIdsAll() }), [progress, lessons]);
   // Home's "Today": one next step from each part of Bento
@@ -578,7 +586,7 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessons, projects, progress.path]);
   // lessons that ship with Bento, findable from ⌘K and the Home ask box (they open instantly, without your AI)
-  const builtins = [...SAMPLES.map((l) => ({ label: l.title, alt: l.q, find: `${l.title} ${l.q} ${(l.concepts || []).join(' ')}`, hint: l.kicker, run: () => openLesson(lessons.find((x) => x.id === l.id) || l) })), ...Object.entries(SIM_PRE).map(([k, l]) => ({ label: l.title, alt: k, find: `${l.title} ${k}`, hint: 'simulation', run: () => openSim(k) })), ...RACE_LESSONS.map((l) => ({ label: l.title, find: `${l.title} ${l.q} race`, hint: 'algorithm race', run: () => openLesson(l) })), ...tracksWith().flatMap((T) => T.stops.filter((st) => PATH_PRE[st.id]).map((st) => ({ label: st.t, alt: PATH_PRE[st.id].title, find: `${st.t} ${PATH_PRE[st.id].title} ${st.q} ${st.d}`, hint: T.title, run: () => startStop(st) })))];
+  const builtins = [...SAMPLES.map((l) => ({ label: l.title, alt: l.q, find: `${l.title} ${l.q} ${(l.concepts || []).join(' ')}`, hint: l.kicker, run: () => openLesson(lessons.find((x) => x.id === l.id) || l) })), ...Object.entries(PRE.sims).map(([k, l]) => ({ label: l.title, alt: k, find: `${l.title} ${k}`, hint: 'simulation', run: () => openSim(k) })), ...RACE_LESSONS.map((l) => ({ label: l.title, find: `${l.title} ${l.q} race`, hint: 'algorithm race', run: () => openLesson(l) })), ...tracksWith().flatMap((T) => T.stops.filter((st) => PRE.path[st.id]).map((st) => ({ label: st.t, alt: PRE.path[st.id].title, find: `${st.t} ${PRE.path[st.id].title} ${st.q} ${st.d}`, hint: T.title, run: () => startStop(st) })))];
   const skyDots = useMemo(() => SKILLS.map(([id, region, name]) => ({ id, r: region, name, lv: mastery[id]?.level || 0, c: (REGIONS.find((r) => r.id === region) || {}).color })), [mastery]);
   const readIds = Object.fromEntries(lessons.filter((l) => l.context?.ideaId && l.status === 'done' && (!l.builtin || l.touched)).map((l) => [l.context.ideaId, true]));
 
@@ -615,6 +623,13 @@ export default function App() {
   const streaming = current?.status === 'streaming';
   return (
     <div className={`app ${sideOpen ? '' : 'side-closed'}`}>
+      {saveTrouble && (
+        <div className="save-trouble" role="alert">
+          <b>{saveTrouble === 'ENOSPC' ? 'Your disk is full, so Bento can’t save.' : 'Bento can’t save your work right now.'}</b>
+          <span>{saveTrouble === 'ENOSPC' ? 'Free up some space. Nothing is lost while Bento stays open, and it saves again by itself.' : 'Nothing is lost while Bento stays open. It keeps trying, and Settings → Back up… saves a copy anywhere you like.'}</span>
+          <button className="ib" aria-label="Dismiss" onClick={() => setSaveTrouble(null)}>✕</button>
+        </div>
+      )}
       <a className="skip" href="#content" onClick={(e) => { e.preventDefault(); document.getElementById('content')?.focus(); }}>Skip to the main area</a>
       <Sidebar onClose={() => setSideOpen(false)} closed={!sideOpen} view={view} setView={setView} lessons={lessons} current={currentId} onOpen={openLesson} onNew={() => setViewRaw('home')}
         projects={projects} atlasKey={view === 'atlas' ? atlasKey : null} atlases={atlases} onOpenProject={(p) => showAtlas(p.key)} onForgetProject={(k) => setProjects((ps) => ps.filter((p) => p.key !== k))}
@@ -654,7 +669,7 @@ export default function App() {
         {view === 'site' && sites[siteKey] && <Site key={siteKey} site={sites[siteKey]} onOpenRepo={openRepo} modelLabel={modelLabel(settings.model)} onOpenUrl={(u) => api.openExternal(u)}
           onRetry={() => { const x = sites[siteKey]; setSites((m) => { const n = { ...m }; delete n[siteKey]; return n; }); setTimeout(() => openSite(x.url), 0); }}
           onAsk={(q) => askLesson(`${q} (I'm studying the website ${siteKey}${sites[siteKey]?.narr?.gist?.one ? `: ${sites[siteKey].narr.gist.one}` : ''})`, {})} />}
-        {view === 'ideas' && <Ideas instant={!settings.voice || settings.voice === 'English' ? PREBUILT : {}} races={[]} onRace={openLesson} onPuzzles={() => setViewRaw('puzzles')} extra={packStuff.ideas} onRead={readIdea} readIds={readIds} interests={settings.interests} />}
+        {view === 'ideas' && <Ideas instant={!settings.voice || settings.voice === 'English' ? PRE.ideas : {}} races={[]} onRace={openLesson} onPuzzles={() => setViewRaw('puzzles')} extra={packStuff.ideas} onRead={readIdea} readIds={readIds} interests={settings.interests} />}
         {view === 'play' && <Playgrounds top={trailBar()} tab={playTab} setTab={setPlayTab} progress={progress} onProgress={(kind, id) => setProgress((p) => (p[kind]?.[id] ? p : { ...p, [kind]: { ...(p[kind] || {}), [id]: Date.now() } }))} quick={noAI(providers) ? null : (m, q) => api.quick(m, q)} model={settings.model} pyReady={pyReady} onAsk={(q) => askLesson(q, {})} />}
         {view === 'map' && <SkillMap readyFor={readyFor} mastery={mastery} lessons={lessons} onAsk={(q) => askLesson(q, {})} onPuzzle={openPuzzle} onOpenLesson={(id) => { const l = lessons.find((x) => x.id === id); if (l) openLesson(l); }} quick={noAI(providers) ? null : (m, q) => api.quick(m, q)} model={settings.model} onReviewed={(ids, score = 0, total = 0) => setProgress((p) => ({ ...p, reviewed: { ...(p.reviewed || {}), ...Object.fromEntries(ids.map((id) => [id, Date.now()])) }, reviewScores: { ...(p.reviewScores || {}), ...Object.fromEntries(ids.map((id) => { const old = p.reviewScores?.[id] || { right: 0, total: 0 }; return [id, { right: old.right + (ids.length === 1 ? score : Math.min(score, 1)), total: old.total + total, at: Date.now() }]; })) } }))} />}
         {view === 'puzzles' && <Puzzles races={RACE_LESSONS} onRace={openLesson} progress={progress} onOpen={openPuzzle} onIdeas={() => setViewRaw('ideas')} onIdea={readIdea} />}

@@ -26,8 +26,8 @@ jobs:
       - name: Logic tests
         run: npm test
       - run: npx vite build
-      - name: Package the app (unpacked, unsigned; the debugger switch stays on so the test can drive it)
-        run: npx electron-builder --dir --publish never -c.electronFuses.enableNodeCliInspectArguments=true
+      - name: Package a test build (unpacked, unsigned; the debugger switch stays on so the tests can drive it, and the pretend AIs are allowed)
+        run: npx electron-builder --dir --publish never -c.electronFuses.enableNodeCliInspectArguments=true -c.extraMetadata.bentoTestBuild=true
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - name: Open the app and use it (virtual screen)
@@ -60,6 +60,12 @@ jobs:
       - name: Guard rails (what pages can reach, menu, crash recovery, updates note, idle motion)
         if: runner.os != 'Linux'
         run: node scripts/smoke-guards.mjs --packaged
+      - name: When things go wrong (offline, a damaged save, a full disk, files it may not read; virtual screen)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a node scripts/smoke-failures.mjs
+      - name: When things go wrong (offline, a damaged save, a full disk, files it may not read)
+        if: runner.os != 'Linux'
+        run: node scripts/smoke-failures.mjs
       - name: Accessibility, every screen, light and dark (axe-core)
         if: runner.os == 'macOS'
         run: node scripts/audit-a11y.mjs --packaged

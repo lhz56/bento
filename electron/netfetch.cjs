@@ -64,7 +64,7 @@ async function follow(url, opts = {}, request = once) {
       if (r.status === 303 || ((r.status === 301 || r.status === 302) && o.method && o.method !== 'GET')) o = { ...o, method: 'GET', body: undefined };
       continue;
     }
-    return { status: r.status, type: String(r.headers['content-type'] || ''), text: r.text };
+    return { status: r.status, type: String(r.headers['content-type'] || ''), text: r.text, rawHeaders: r.headers, url: cur };
   }
   throw new Error('Too many redirects.');
 }

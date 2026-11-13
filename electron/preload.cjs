@@ -1,5 +1,9 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
+// Every call to the main process. Its errors arrive as "Error invoking remote method 'x': Error: what happened": the page
+// only ever gets the plain part, the sentence written for people.
+const call = (channel, ...args) => ipcRenderer.invoke(channel, ...args).catch((e) => { throw new Error(String(e?.message || e).replace(/^Error invoking remote method '[^']+': (\w*Error: )?/, '')); });
+
 const listeners = new Map();
 ipcRenderer.on('ask:chunk', (_e, id, t) => listeners.get(id)?.chunk?.(t));
 ipcRenderer.on('ask:think', (_e, id, t) => listeners.get(id)?.think?.(t));
@@ -7,63 +11,65 @@ ipcRenderer.on('ask:done', (_e, id) => { listeners.get(id)?.done?.(); listeners.
 ipcRenderer.on('ask:error', (_e, id, m) => { listeners.get(id)?.error?.(m); listeners.delete(id); });
 
 contextBridge.exposeInMainWorld('bento', {
-  providers: () => ipcRenderer.invoke('providers'),
-  scan: () => ipcRenderer.invoke('scan'),
-  openTerminal: () => ipcRenderer.invoke('open:terminal'),
+  providers: () => call('providers'),
+  scan: () => call('scan'),
+  openTerminal: () => call('open:terminal'),
   // install, sign in to or update an AI in Terminal, where the person sees what runs (only commands Bento knows)
-  aiTerminal: (id, action, tools) => ipcRenderer.invoke('ai:terminal', String(id), String(action), { brew: !!tools?.brew, npm: !!tools?.npm, brewInstalled: !!tools?.brewInstalled }),
-  exportLesson: (l) => ipcRenderer.invoke('lesson:export', l),
-  saveWeb: (html, title) => ipcRenderer.invoke('web:save', html, title),
-  publishWeb: (html, title) => ipcRenderer.invoke('web:publish', html, title),
-  playPut: (html, key) => ipcRenderer.invoke('play:put', html, key),
+  aiTerminal: (id, action, tools) => call('ai:terminal', String(id), String(action), { brew: !!tools?.brew, npm: !!tools?.npm, brewInstalled: !!tools?.brewInstalled }),
+  exportLesson: (l) => call('lesson:export', l),
+  saveWeb: (html, title) => call('web:save', html, title),
+  publishWeb: (html, title) => call('web:publish', html, title),
+  playPut: (html, key) => call('play:put', html, key),
   setPrefs: (p) => ipcRenderer.send('prefs', p),
-  pathForFile: (f) => { try { return webUtils.getPathForFile(f); } catch { return ''; } },
-  dropOpen: (p) => ipcRenderer.invoke('drop:open', p),
-  storeGet: () => ipcRenderer.invoke('store:get'),
-  backupSave: () => ipcRenderer.invoke('backup:save'),
-  usage: () => ipcRenderer.invoke('usage:get'),
+  // a file or folder dropped on the window: its path comes from the dropped file itself, never from the page
+  dropOpen: (file) => { let p = ''; try { p = webUtils.getPathForFile(file); } catch {} return p ? call('drop:open', p) : Promise.reject(new Error('Couldn’t read that. Drop a file from Finder.')); },
+  // saving starts or stops failing (a full disk, a folder Bento may no longer write to)
+  onStoreHealth(fn) { const h = (_e, x) => fn(x); ipcRenderer.on('store:health', h); return () => ipcRenderer.removeListener('store:health', h); },
+  storeGet: () => call('store:get'),
+  backupSave: () => call('backup:save'),
+  usage: () => call('usage:get'),
   // how much of each plan is used: the last reading, or a fresh one (free) with { refresh: true }
-  limits: { get: (o) => ipcRenderer.invoke('limits:get', { refresh: !!o?.refresh }), on(fn) { const h = (_e, x) => fn(x); ipcRenderer.on('limits', h); return () => ipcRenderer.removeListener('limits', h); } },
-  clearSavedAnswers: () => ipcRenderer.invoke('usage:clearSaved'),
-  pendingLink: () => ipcRenderer.invoke('deeplink:pending'),
-  update: { get: () => ipcRenderer.invoke('update:get'), install: () => ipcRenderer.invoke('update:install'), check: () => ipcRenderer.invoke('update:check'), setAuto: (on) => ipcRenderer.invoke('update:auto', on), on(fn) { const h = (_e, st) => fn(st); ipcRenderer.on('update:state', h); return () => ipcRenderer.removeListener('update:state', h); } },
+  limits: { get: (o) => call('limits:get', { refresh: !!o?.refresh }), on(fn) { const h = (_e, x) => fn(x); ipcRenderer.on('limits', h); return () => ipcRenderer.removeListener('limits', h); } },
+  clearSavedAnswers: () => call('usage:clearSaved'),
+  pendingLink: () => call('deeplink:pending'),
+  update: { get: () => call('update:get'), install: () => call('update:install'), check: () => call('update:check'), setAuto: (on) => call('update:auto', on), on(fn) { const h = (_e, st) => fn(st); ipcRenderer.on('update:state', h); return () => ipcRenderer.removeListener('update:state', h); } },
   onMenu(fn) { const h = (_e, a) => fn(a); ipcRenderer.on('menu', h); return () => ipcRenderer.removeListener('menu', h); },
   onDeepLink(fn) { const h = (_e, u) => fn(u); ipcRenderer.on('deeplink', h); return () => ipcRenderer.removeListener('deeplink', h); },
-  backupLoad: () => ipcRenderer.invoke('backup:load'),
-  storeSet: (k, v) => ipcRenderer.invoke('store:set', k, v),
+  backupLoad: () => call('backup:load'),
+  storeSet: (k, v) => call('store:set', k, v),
   ask(model, prompt, { chunk, done, error, think }, system) {
     const id = Math.random().toString(36).slice(2);
     listeners.set(id, { chunk, done, error, think });
     ipcRenderer.send('ask:start', id, { model, prompt, system });
     return () => { listeners.delete(id); ipcRenderer.send('ask:cancel', id); };
   },
-  quick: (model, prompt) => ipcRenderer.invoke('quick', { model, prompt }),
-  openFolder: () => ipcRenderer.invoke('folder:open'),
-  readFile: (root, rel) => ipcRenderer.invoke('folder:read', root, rel),
-  ghMe: () => ipcRenderer.invoke('gh:me'),
-  ghRepos: () => ipcRenderer.invoke('gh:repos'),
-  ghTree: (full) => ipcRenderer.invoke('gh:tree', full),
-  ghFile: (full, p) => ipcRenderer.invoke('gh:file', full, p),
-  openData: () => ipcRenderer.invoke('open:data'),
-  reposUsage: () => ipcRenderer.invoke('repos:usage'),
-  reposClear: () => ipcRenderer.invoke('repos:clear'),
-  openExternal: (url) => ipcRenderer.invoke('open:external', url),
-  atlasFetch: (full) => ipcRenderer.invoke('atlas:fetch', full),
-  atlasHistory: (full) => ipcRenderer.invoke('atlas:history', full),
-  ghIssues: (full) => ipcRenderer.invoke('gh:issues', full),
-  atlasRefresh: (full) => ipcRenderer.invoke('atlas:refresh', full),
-  atlasAnalyze: (root, name) => ipcRenderer.invoke('atlas:analyze', root, name),
-  atlasMeta: (full) => ipcRenderer.invoke('atlas:meta', full),
-  atlasList: () => ipcRenderer.invoke('atlas:list'),
-  atlasReopen: (root) => ipcRenderer.invoke('atlas:reopen', root),
-  cacheGet: (k) => ipcRenderer.invoke('atlas:cache:get', k),
-  cachePut: (k, v) => ipcRenderer.invoke('atlas:cache:put', k, v),
+  quick: (model, prompt) => call('quick', { model, prompt }),
+  openFolder: () => call('folder:open'),
+  readFile: (root, rel) => call('folder:read', root, rel),
+  ghMe: () => call('gh:me'),
+  ghRepos: () => call('gh:repos'),
+  ghTree: (full) => call('gh:tree', full),
+  ghFile: (full, p) => call('gh:file', full, p),
+  openData: () => call('open:data'),
+  reposUsage: () => call('repos:usage'),
+  reposClear: () => call('repos:clear'),
+  openExternal: (url) => call('open:external', url),
+  atlasFetch: (full) => call('atlas:fetch', full),
+  atlasHistory: (full) => call('atlas:history', full),
+  ghIssues: (full) => call('gh:issues', full),
+  atlasRefresh: (full) => call('atlas:refresh', full),
+  atlasAnalyze: (root, name) => call('atlas:analyze', root, name),
+  atlasMeta: (full) => call('atlas:meta', full),
+  atlasList: () => call('atlas:list'),
+  atlasReopen: (root) => call('atlas:reopen', root),
+  cacheGet: (k) => call('atlas:cache:get', k),
+  cachePut: (k, v) => call('atlas:cache:put', k, v),
   onAtlasProgress(fn) { const h = (_e, full, p) => fn(full, p); ipcRenderer.on('atlas:progress', h); return () => ipcRenderer.removeListener('atlas:progress', h); },
-  ghSearch: (q, opts) => ipcRenderer.invoke('gh:search', q, opts),
-  findProject: (names) => ipcRenderer.invoke('project:find', names),
-  atlasSearch: (root, words, paths) => ipcRenderer.invoke('atlas:search', root, words, paths),
-  openLocalProject: (root) => ipcRenderer.invoke('project:openLocal', root),
-  ghCode: (q, lang) => ipcRenderer.invoke('gh:code', q, lang),
-  siteInspect: (url) => ipcRenderer.invoke('site:inspect', url),
-  ghFork: (full) => ipcRenderer.invoke('gh:fork', full),
+  ghSearch: (q, opts) => call('gh:search', q, opts),
+  findProject: (names) => call('project:find', names),
+  atlasSearch: (root, words, paths) => call('atlas:search', root, words, paths),
+  openLocalProject: (root) => call('project:openLocal', root),
+  ghCode: (q, lang) => call('gh:code', q, lang),
+  siteInspect: (url) => call('site:inspect', url),
+  ghFork: (full) => call('gh:fork', full),
 });

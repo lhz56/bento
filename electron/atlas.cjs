@@ -16,7 +16,8 @@ const LOCK = /(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb?|p
 // --------------------------------------------------------------------------- fetch
 function run(cmd, args, opts = {}, onErrLine) {
   return new Promise((resolve, reject) => {
-    const c = spawn(cmd, args, { ...opts, stdio: ['ignore', 'pipe', 'pipe'], ...(process.platform === 'win32' ? { shell: true, windowsHide: true } : {}) });
+    // git and gh are real programs on every system (git.exe, gh.exe on Windows): started directly, never through a shell
+    const c = spawn(cmd, args, { ...opts, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
     let out = '', err = '';
     c.stdout.on('data', (d) => { out += d; if (opts.maxOut && out.length > opts.maxOut) { c.kill(); reject(new Error('too much history')); } });
     c.stderr.on('data', (d) => { const s = d.toString(); err += s; if (onErrLine) s.split(/[\r\n]+/).forEach((l) => l && onErrLine(l)); });
@@ -41,11 +42,21 @@ async function fetchRepo({ full, base, env, hasGh, onProgress }) {
     else await run('git', ['clone', ...gitArgs, `https://github.com/${full}.git`, tmp], { env }, prog);
   } catch (e) {
     fs.rmSync(tmp, { recursive: true, force: true });
-    if (/not found|could not resolve|Repository not found/i.test(e.message)) throw new Error(`Couldn't find ${full} on GitHub. Is the name right, and is it public (or yours)?`);
-    throw e;
+    throw new Error(downloadTrouble(full, e.message));
   }
   fs.renameSync(tmp, dir);
   return dir;
+}
+
+// what git or gh said when a download failed, as a sentence for people (never its raw output, with its temp paths)
+function downloadTrouble(full, said) {
+  const m = String(said || '');
+  if (/Repository not found|not found|does not exist|Could not read from remote/i.test(m) && !/resolve host/i.test(m)) return `Couldn’t find ${full} on GitHub. Is the name right, and is it public (or yours)?`;
+  if (/resolve host|Failed to connect|unable to access|Could not connect|timed out|Network is unreachable|Connection refused|Connection reset|proxy|SSL|TLS|early EOF|RPC failed|ENOTFOUND|ECONNREFUSED|ETIMEDOUT/i.test(m)) return `Couldn’t reach GitHub to download ${full}. Check your internet connection, then try again.`;
+  if (/No space left|ENOSPC/i.test(m)) return `Your disk is full, so ${full} couldn’t be downloaded. Free up some space, then try again.`;
+  if (/ENOENT|command not found|spawn git/i.test(m)) return 'Downloading projects needs git, which isn’t on this Mac yet. Install it with: xcode-select --install';
+  if (/Authentication|could not read Username|terminal prompts disabled|403/i.test(m)) return `GitHub wouldn’t let Bento download ${full}. If it’s private, sign in with gh auth login in Terminal.`;
+  return `Couldn’t download ${full}. Try again in a moment.`;
 }
 
 // --------------------------------------------------------------------------- walk + classify
@@ -333,7 +344,7 @@ async function history({ full, base, env, onProgress }) {
     fs.mkdirSync(path.dirname(dir), { recursive: true });
     const tmp = `${dir}.part`; fs.rmSync(tmp, { recursive: true, force: true });
     try { await run('git', ['clone', '--bare', '--filter=blob:none', '--single-branch', '--progress', `https://github.com/${full}.git`, tmp], { env }, (l) => { const m = /(Receiving objects|Resolving deltas):\s+(\d+)%/.exec(l); if (m) onProgress?.({ phase: m[1].split(' ')[0].toLowerCase(), pct: +m[2] }); }); }
-    catch (e) { fs.rmSync(tmp, { recursive: true, force: true }); throw e; }
+    catch (e) { fs.rmSync(tmp, { recursive: true, force: true }); throw new Error(downloadTrouble(full, e.message)); }
     fs.renameSync(tmp, dir);
   }
   const count = +(await run('git', ['-C', dir, 'rev-list', '--count', '--first-parent', 'HEAD'], { env })).trim();
@@ -361,4 +372,50 @@ async function history({ full, base, env, onProgress }) {
   return { full, commits: commits.length, people: people.size, from: commits[0]?.at, to: commits[commits.length - 1]?.at, frames, moments };
 }
 
-module.exports = { fetchRepo, analyze, walkAll, history };
+// --------------------------------------------------------------------------- search, file lists, sizes
+// Which files actually talk about this? A plain word search through the project's files (no AI), so a question like
+// "where does it copy the last answer" finds the message components even when no file is called "copy".
+const SEARCH_CODE = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|rb|java|kt|swift|c|cc|cpp|h|hpp|cs|php|vue|svelte|astro|scala|ex|exs|dart|lua|sql|sh)$/i;
+const SEARCH_NOISE = /(^|\/)(__tests__|tests?|spec|specs|e2e|evals?|fixtures?|__mocks__|mocks?|testing|examples?|docs?|stories|benchmarks?|dist|build|vendor)(\/|$)|\.(test|spec|stories|d)\.[a-z]+$/i;
+function search(root, ws) {
+  // every code file in the project, not just the ones Bento analysed (big projects have more than it reads)
+  const all = walkAll(root).filter((p) => SEARCH_CODE.test(p) && !SEARCH_NOISE.test(p)).slice(0, 12000);
+  const out = [];
+  for (const p of all) {
+    let t; try { const f = path.join(root, p); if (fs.statSync(f).size > 2000000) continue; t = fs.readFileSync(f, 'utf8').toLowerCase(); } catch { continue; }
+    const name = p.toLowerCase().split('/').pop();
+    let score = 0, kinds = 0, first = -1; const words = [];
+    for (const w of ws) {
+      let i = t.indexOf(w), n = 0;
+      while (i >= 0 && n < 25) { if (first < 0 || i < first) first = i; n++; i = t.indexOf(w, i + w.length); }
+      if (n) { kinds++; score += 1 + Math.log2(1 + n); words.push(w); }
+      if (name.includes(w)) score += 10; // a file named after the thing is usually the place
+    }
+    if (kinds) out.push({ p, score: score * (1 + 0.35 * (kinds - 1)), at: first, words });
+  }
+  return out.sort((a, b) => b.score - a.score).slice(0, 30);
+}
+
+// a folder you opened: its code files (up to 600, six folders deep), for the file list
+const FOLDER_SKIP = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.venv', 'venv', '__pycache__', '.DS_Store', 'Pods', '.turbo', 'coverage', 'target']);
+const FOLDER_CODE = /\.(js|jsx|ts|tsx|mjs|cjs|py|rb|go|rs|java|kt|swift|c|cc|cpp|h|hpp|cs|php|html|css|scss|json|md|sql|sh|vue|svelte|toml|yaml|yml)$/i;
+function codeFiles(root, rel = '', out = [], depth = 0) {
+  if (out.length > 600 || depth > 6) return out;
+  let ents = []; try { ents = fs.readdirSync(path.join(root, rel), { withFileTypes: true }); } catch { return out; }
+  for (const d of ents) {
+    if (FOLDER_SKIP.has(d.name) || d.name.startsWith('.')) continue;
+    const r = rel ? `${rel}/${d.name}` : d.name;
+    if (d.isDirectory()) codeFiles(root, r, out, depth + 1);
+    else if (FOLDER_CODE.test(d.name)) out.push(r);
+  }
+  return out;
+}
+
+// bytes on disk under a folder (links counted as links, never followed)
+function dirSize(d) {
+  let n = 0;
+  const go = (p) => { let es = []; try { es = fs.readdirSync(p, { withFileTypes: true }); } catch { return; } for (const e of es) { const q = path.join(p, e.name); if (e.isDirectory()) go(q); else { try { n += fs.lstatSync(q).size; } catch {} } } };
+  go(d); return n;
+}
+
+module.exports = { fetchRepo, analyze, walkAll, history, search, codeFiles, dirSize, downloadTrouble, CODE_EXT: FOLDER_CODE, SKIP_DIRS: FOLDER_SKIP };

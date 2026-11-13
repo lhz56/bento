@@ -37,7 +37,7 @@ await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setCo
 const openProject = async () => {
   const recent = p.locator('.side .recent .rl-main:has-text("taxonomy")');
   if (await recent.count()) await recent.first().click();
-  else { await p.click('.side nav button:has-text("Explore")'); await p.click('.gtabs button:has-text("Code")'); await p.click('.ready-box button:has-text("taxonomy"), .spec:has-text("taxonomy")').catch(async () => { await p.click('text=taxonomy'); }); }
+  else { await p.click('.side nav button:has-text("Explore")'); await p.click('.gtabs button:has-text("Code")'); await p.click('.feat-i:has-text("taxonomy")'); }
   await p.waitForSelector('.ab-nav', { timeout: 30000 });
 };
 

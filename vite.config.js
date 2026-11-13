@@ -20,8 +20,19 @@ const devNet = {
   },
 };
 
+// The page's Content-Security-Policy (index.html) is the release one. In development the page comes from Vite, which
+// needs its inline React-refresh script and its live-reload socket: added here, and only here.
+const devCsp = {
+  name: 'bento-dev-csp',
+  apply: 'serve',
+  transformIndexHtml: (html) => html
+    .replace("script-src 'self'", "script-src 'self' 'unsafe-inline' 'unsafe-eval'")
+    .replace("connect-src 'self'", "connect-src 'self' ws://localhost:5199")
+    .replace("worker-src 'self'", "worker-src 'self' blob:"),
+};
+
 export default defineConfig({
-  plugins: [react(), devNet],
+  plugins: [react(), devNet, devCsp],
   base: './',
   server: { port: 5199, strictPort: true },
   worker: { format: 'es' },

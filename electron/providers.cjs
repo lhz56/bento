@@ -125,8 +125,8 @@ const gemini = {
   async auth({ env }) {
     if (env.GEMINI_API_KEY || env.GOOGLE_API_KEY) return { loggedIn: true, method: 'API key' };
     if (/^(1|true)$/i.test(env.GOOGLE_GENAI_USE_VERTEXAI || '')) return { loggedIn: true, method: 'Google Cloud' };
-    let sel = null; try { const j = JSON.parse(fs.readFileSync(path.join(geminiHome(), 'settings.json'), 'utf8')); sel = j?.security?.auth?.selectedType || j?.selectedAuthType || null; } catch {}
-    const creds = fs.existsSync(path.join(geminiHome(), 'oauth_creds.json'));
+    let sel = null; try { const j = JSON.parse(await fs.promises.readFile(path.join(geminiHome(), 'settings.json'), 'utf8')); sel = j?.security?.auth?.selectedType || j?.selectedAuthType || null; } catch {}
+    const creds = await fs.promises.access(path.join(geminiHome(), 'oauth_creds.json')).then(() => true, () => false);
     // a personal Google sign-in only works with a Google Cloud project now (Google moved personal accounts to
     // Antigravity): without one, every request is refused, so it isn't ready, and the welcome says what to do instead
     const project = env.GOOGLE_CLOUD_PROJECT || env.GOOGLE_CLOUD_PROJECT_ID;
@@ -161,7 +161,7 @@ const copilot = {
     if (env.COPILOT_GITHUB_TOKEN || env.GH_TOKEN || env.GITHUB_TOKEN) return { loggedIn: true, method: 'GitHub token' };
     if (await ghToken()) return { loggedIn: true, method: 'GitHub' };
     // its own sign-in (copilot login) is in the Keychain; the config only says who
-    try { const t = fs.readFileSync(path.join(env.COPILOT_HOME || path.join(os.homedir(), '.copilot'), 'config.json'), 'utf8').replace(/^\s*\/\/.*$/gm, ''); const j = JSON.parse(t); if ((j.logged_in_users || j.loggedInUsers || []).length || j.last_logged_in_user) return { loggedIn: true, method: 'Copilot' }; } catch {}
+    try { const t = (await fs.promises.readFile(path.join(env.COPILOT_HOME || path.join(os.homedir(), '.copilot'), 'config.json'), 'utf8')).replace(/^\s*\/\/.*$/gm, ''); const j = JSON.parse(t); if ((j.logged_in_users || j.loggedInUsers || []).length || j.last_logged_in_user) return { loggedIn: true, method: 'Copilot' }; } catch {}
     return { loggedIn: false };
   },
   build({ name, system, prompt, files, token }) {
@@ -280,5 +280,15 @@ function setupFiles(dir) {
   try { fs.mkdirSync(copilotHome, { recursive: true }); } catch {}
   return { geminiPolicy, copilotHome };
 }
+// the same, without blocking (what the app uses)
+async function setupFilesAsync(dir) {
+  const fsp = fs.promises;
+  await fsp.mkdir(dir, { recursive: true });
+  const geminiPolicy = path.join(dir, 'gemini-text-only.toml');
+  if ((await fsp.readFile(geminiPolicy, 'utf8').catch(() => null)) !== GEMINI_POLICY) await fsp.writeFile(geminiPolicy, GEMINI_POLICY).catch(() => {});
+  const copilotHome = path.join(dir, 'copilot-home');
+  await fsp.mkdir(copilotHome, { recursive: true }).catch(() => {});
+  return { geminiPolicy, copilotHome };
+}
 
-module.exports = { CAT, BY, IDS, ADAPTERS, label, parseModel, fastOf, missingFlags, humanize, setupFiles, claudeLimits, GEMINI_POLICY, CODEX_OFF, AGY_DENY, AGY_SETTINGS, agyModel, _resetCodexFeatures: (s) => { codexFeatures = s ? new Set(s) : null; }, _setAgyModels: (m) => { agyModels = m; agyAt = Date.now(); } };
+module.exports = { CAT, BY, IDS, ADAPTERS, label, parseModel, fastOf, missingFlags, humanize, setupFiles, setupFilesAsync, claudeLimits, GEMINI_POLICY, CODEX_OFF, AGY_DENY, AGY_SETTINGS, agyModel, _resetCodexFeatures: (s) => { codexFeatures = s ? new Set(s) : null; }, _setAgyModels: (m) => { agyModels = m; agyAt = Date.now(); } };
