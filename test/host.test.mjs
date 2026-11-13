@@ -27,7 +27,7 @@ const host = createHost({
   netProxy: async (req, u) => new Response(`proxied ${u.searchParams.get('u')} ${req.headers.get('x-h-accept') || ''}`, { headers: { 'x-status': '200' } }),
   playGet: (id) => (id === 'l-demo' ? '<p>my page</p>' : undefined),
   dnsNames: async () => ['test-mac.tail123.ts.net', 'test-mac'],
-  writeFile: (f, t) => fs.promises.writeFile(f, t), log: () => {},
+  writeFile: async (f, t) => { const tmp = `${f}.${process.pid}.${Math.random().toString(36).slice(2)}`; await fs.promises.writeFile(tmp, t); await fs.promises.rename(tmp, f); }, log: () => {},
 });
 await host.start({ wifi: false });
 
@@ -77,7 +77,7 @@ let key;
   check(ok.status === 200 && key && ok.json.device.name === 'iPhonescript', 'the right code pairs once, and the device gets its own key', ok.text);
   const twice = await post('/api/pair', { code, name: 'iPad' });
   check(twice.status === 403, 'the same code can’t pair a second device', twice.status);
-  const saved = JSON.parse(fs.readFileSync(path.join(dir, 'devices.json'), 'utf8'));
+  let saved = null; for (let i = 0; i < 40 && !saved; i++) { try { saved = JSON.parse(fs.readFileSync(path.join(dir, 'devices.json'), 'utf8')); } catch { await new Promise((r) => setTimeout(r, 50)); } }
   check(saved.length === 1 && !JSON.stringify(saved).includes(key) && saved[0].hash.length === 64, 'the Mac keeps only a hash of the key', JSON.stringify(saved));
   host.newPairing(); for (let i = 0; i < 10; i++) await post('/api/pair', { code: 'ZZZZZZZZ' });
   check(host.state().pairing === null, 'ten wrong guesses and the code is gone', JSON.stringify(host.state().pairing)); }
