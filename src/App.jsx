@@ -33,13 +33,15 @@ import { PRE, loadPrebuilt } from './prebuilt.js'; // lessons that ship already 
 import { useDialog } from './ui/a11y.js';
 import { ALL_STOPS, tracksWith, stopSkills } from './paths.js';
 import { noAI, altOf, usableModel } from './ai.js';
-import { Sidebar, modelLabel, groupOf, rememberTab } from './ui/Side.jsx';
+import { Sidebar, modelLabel, groupOf, rememberTab, lastTab, GROUPS } from './ui/Side.jsx';
 import Icon from './ui/Icons.jsx';
 import { filesForQuestion, guessRole, projectParts, isOverviewQuestion, searchWords } from './atlas/analyze.js';
 import { mockBridge } from './mock.js';
 import useLibrary, { FEATURED } from './hooks/useLibrary.js';
 import { load, save, saveLessons, cleanErr } from './store.js';
-import { mod, keys } from './platform.js';
+import { mergeLessons } from './sync.js';
+import { useNarrow, TopBar, TabBar, isRoot } from './ui/Phone.jsx';
+import { mod, keys, TOUCH } from './platform.js';
 
 const api = window.bento || mockBridge;
 
@@ -214,6 +216,13 @@ export default function App() {
   useEffect(() => api.onStoreHealth?.((h) => setSaveTrouble(h?.error || null)), []);
   useEffect(() => { const flush = () => saveLessons(lessonsRef.current); addEventListener('beforeunload', flush); return () => removeEventListener('beforeunload', flush); }, []); // never lose the last edit on quit
   useEffect(() => save('bento.progress', progress), [progress]);
+  // a change made on another of your devices (your phone, iPad, or the Mac): show the same here
+  useEffect(() => api.onStoreChanged?.((k, v) => {
+    if (k === 'bento.lessons' && Array.isArray(v)) setLessons((mine) => mergeLessons(mine, v, cancels.current));
+    else if (k === 'bento.progress' && v && typeof v === 'object' && !Array.isArray(v)) setProgress(v);
+    else if (k === 'bento.settings' && v && typeof v === 'object' && !Array.isArray(v)) setSettingsRaw((s0) => { const n = { ...s0, ...v }; save('bento.settings', n); return n; });
+    else if (k === 'bento.projects' && Array.isArray(v)) setProjects(v.filter((x) => x?.key));
+  }), []);
   useEffect(() => save('bento.storyW', storyW), [storyW]);
 
   useEffect(() => {
@@ -488,12 +497,34 @@ export default function App() {
   const loadRepos = () => { if (repos === null && providers?.gh) api.ghRepos().then(setRepos).catch(() => setRepos([])); else if (!providers?.gh) setRepos([]); };
 
   const [pal, setPal] = useState(false);
+  // a phone: tabs at the bottom, Back at the top, and the sidebar slides over from the left (Phone.jsx)
+  const phone = useNarrow();
+  const [drawer, setDrawer] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [pane, setPane] = useState('story'); // a lesson on a phone: its story, or its code and what it does
+  useEffect(() => { setPane('story'); }, [currentId]);
+  useEffect(() => { setDrawer(false); setScrolled(false); }, [view, currentId, atlasKey, siteKey]);
+  // on a phone or iPad, each screen is a step in the browser's history: Back (and Safari's swipe back) returns to the last one
+  useEffect(() => {
+    if (!api.remote) return;
+    const st = { bento: 1, view, currentId, atlasKey, siteKey }; const cur = history.state;
+    if (cur?.bento && cur.view === view && cur.currentId === currentId && cur.atlasKey === atlasKey && cur.siteKey === siteKey) return;
+    if (!cur?.bento) history.replaceState({ ...st, depth: 0 }, ''); else history.pushState({ ...st, depth: (cur.depth || 0) + 1 }, '');
+  }, [view, currentId, atlasKey, siteKey]);
+  useEffect(() => {
+    if (!api.remote) return undefined;
+    const back = (e) => { const s = e.state; if (!s?.bento) return; setCurrentId(s.currentId ?? null); setAtlasKey(s.atlasKey ?? null); setSiteKey(s.siteKey ?? null); setViewRaw(s.view || 'home'); };
+    addEventListener('popstate', back); return () => removeEventListener('popstate', back);
+  }, []);
+  const goBack = () => { if (api.remote && history.state?.depth > 0) history.back(); else setView(lastTab(groupOf(view) || GROUPS[0])); };
+  const phoneTitle = view === 'lesson' ? (current?.title || current?.q || '') : view === 'atlas' ? (atlases[atlasKey]?.name || '').split('/').pop() : view === 'site' ? siteKey : view === 'compare' ? t('Compare') : t(groupOf(view)?.label || '');
   const [article, setArticle] = useState(() => !!localStorage.getItem('bento.article'));
   const [runs, setRuns] = useState({});
   const [showSettings, setShowSettings] = useState(false);
   const [showKeys, setShowKeys] = useState(false);
   const [pair, setPair] = useState([null, null]);
-  const [onb, setOnb] = useState(() => (load('bento.settings', {}).onboarded ? null : 0));
+  // a phone or iPad uses the Mac's AIs, which the Mac already set up: no welcome there
+  const [onb, setOnb] = useState(() => (api.remote || load('bento.settings', {}).onboarded ? null : 0));
   const readIdea = (I) => {
     if (!PRE.ready) { loadPrebuilt().then(() => readIdea(I)); return null; }
     const pre = PRE.ideas[I.id];
@@ -622,7 +653,10 @@ export default function App() {
 
   const streaming = current?.status === 'streaming';
   return (
-    <div className={`app ${sideOpen ? '' : 'side-closed'}`}>
+    <div className={`app ${phone ? `phone ${drawer ? 'drawer-open' : ''} ${isRoot(view) ? 'at-root' : 'at-detail'}` : sideOpen ? '' : 'side-closed'}`}>
+      {phone && <TopBar view={view} title={phoneTitle} onBack={goBack} onMenu={() => setDrawer(true)} onSearch={() => setPal(true)} setView={setView} scrolled={scrolled}
+        seg={view === 'lesson' && current && !(article && current.code && current.lang !== 'html' && !current.steps?.length) ? { value: pane, options: [['story', t('Lesson')], ['code', current.lang === 'html' ? t('Page') : t('Code')]], onChange: setPane } : null} />}
+      {phone && drawer && <div className="pveil" onClick={() => setDrawer(false)} aria-hidden="true" />}
       {saveTrouble && (
         <div className="save-trouble" role="alert">
           <b>{saveTrouble === 'ENOSPC' ? 'Your disk is full, so Bento can’t save.' : 'Bento can’t save your work right now.'}</b>
@@ -631,7 +665,7 @@ export default function App() {
         </div>
       )}
       <a className="skip" href="#content" onClick={(e) => { e.preventDefault(); document.getElementById('content')?.focus(); }}>Skip to the main area</a>
-      <Sidebar onClose={() => setSideOpen(false)} closed={!sideOpen} view={view} setView={setView} lessons={lessons} current={currentId} onOpen={openLesson} onNew={() => setViewRaw('home')}
+      <Sidebar onClose={() => (phone ? setDrawer(false) : setSideOpen(false))} closed={phone ? !drawer : !sideOpen} view={view} setView={setView} lessons={lessons} current={currentId} onOpen={openLesson} onNew={() => setViewRaw('home')}
         projects={projects} atlasKey={view === 'atlas' ? atlasKey : null} atlases={atlases} onOpenProject={(p) => showAtlas(p.key)} onForgetProject={(k) => setProjects((ps) => ps.filter((p) => p.key !== k))}
         onDelete={(id) => { cancels.current.get(id)?.(); setLessons((ls) => ls.filter((l) => l.id !== id)); if (id === currentId) setViewRaw('home'); }}
         settings={settings} setSettings={setSettings} providers={providers} user={user} progress={progress} onSetup={() => setOnb(1)} onSettings={() => setShowSettings(true)} siteKey={siteKey} />
@@ -645,7 +679,8 @@ export default function App() {
         onAsk={(q) => onAsk(q, {})} onOpenRepo={openRepo} onLesson={openLesson} onProject={(p) => showAtlas(p.key)} onIdea={readIdea} onWord={() => setViewRaw('words')}
         builtins={builtins} />}
       {onb != null && <Onboarding api={api} settings={settings} setSettings={setSettings} startAt={onb} onDone={(go) => { setOnb(null); if (['explore', 'ideas', 'path', 'puzzles'].includes(go)) setViewRaw(go); else setViewRaw('home'); api.providers().then(setProviders); }} />}
-      <main className={`sheet ${groupOf(view)?.views.length > 1 && groupOf(view).views.some(([v]) => v === view) ? 'has-tabs' : ''}`} id="content" tabIndex={-1}>
+      <main className={`sheet ${groupOf(view)?.views.length > 1 && groupOf(view).views.some(([v]) => v === view) ? 'has-tabs' : ''}`} id="content" tabIndex={-1}
+        onScrollCapture={phone ? (e) => { const y = e.target?.scrollTop || 0; if ((y > 8) !== scrolled) setScrolled(y > 8); } : undefined}>
         <div className="titlebar-drag" />
         {!sideOpen && <button className="side-open" onClick={() => setSideOpen(true)} aria-label={`${t('Show the sidebar')} (${keys('⌘\\')})`} title={`${t('Show the sidebar')}  ${keys('⌘\\')}`}><Icon name="sidebar" size={17} /></button>}
         {(() => { const g = groupOf(view); if (!g || g.views.length < 2 || !g.views.some(([v]) => v === view)) return null; return (
@@ -733,7 +768,7 @@ export default function App() {
                 : `${projectParts(A.facts, 14).map((x) => `${x.area}/ — ${x.files} code files`).join('\n')}\n…\n${files.filter((f) => near.has(f.p.split('/').slice(0, -1).join('/'))).slice(0, 60).map((f) => `${f.p} — ${A.narr?.roles?.[f.p] || guessRole(f)}`).join('\n')}`;
               const big = overview ? `\nREADME (start):\n${String(A.facts.readme || '').slice(0, 2500)}\n\nMAIN PARTS (folder — code files, lines, its most-used file):\n${mainParts.map((x) => `${x.area} — ${x.files} files, ${x.lines} lines, ${x.top.p}`).join('\n')}\n` : '';
               const j = parseJSONLoose(await api.quick(settings.model, `A ${settings.level} learner is studying the repository ${A.name}${A.narr?.gist?.one ? ` (${A.narr.gist.one})` : ''} and asks: ${q}${big}\n${history.length ? `\nEARLIER IN THIS CONVERSATION (answer the new question in that light):\n${history.slice(-3).map((h) => `Q: ${h.q}\nA: ${String(h.a || '').slice(0, 600)}`).join('\n')}\n` : ''}\nFILES (path — role):\n${tree}\n\nMOST RELEVANT FILES:\n${parts.join('\n\n')}\n\nAnswer in at most ${overview ? 150 : 110} words, plainly, naming real files in backticks. Only say what the code supports.${overview ? ' This is a general question: start with one sentence on what the project is, then how its main parts fit together.' : ' Answer just this question; do not introduce the project again.'}\nReply JSON: {"answer":"...","files":["exact paths you referred to, max 4"]}`));
-              return { a: j?.answer || `No answer this time. Try a full lesson (${keys('⌘↵')}).`, files: j?.files || paths };
+              return { a: j?.answer || (phone || TOUCH ? 'No answer this time. Turn it into a full lesson below.' : `No answer this time. Try a full lesson (${keys('⌘↵')}).`), files: j?.files || paths };
             }}
             onExplainFile={(p, text) => askLesson(`Explain ${p}`, { mode: 'code', context: { code: text, path: p, repo: A.name, repoKey: A.key }, lang: /\.py$/.test(p) ? 'python' : 'javascript' })}
             onFeature={async (q) => askLesson(q, { mode: 'feature', context: await buildContext(asProject(A), q), lang: Object.keys(A.facts.langs).includes('Python') && !Object.keys(A.facts.langs).some((l) => /Script/.test(l)) ? 'python' : 'javascript' })}
@@ -742,9 +777,9 @@ export default function App() {
             onRetry={() => (A.facts ? narrate(A.key) : (setAtlases((m) => { const n = { ...m }; delete n[A.key]; atlasRef.current = n; return n; }), setTimeout(() => openAtlas(A.src), 0)))} />
         ); })()}
         {view === 'lesson' && current && (
-          <div className={`lesson ${article && current.code && current.lang !== 'html' && !current.steps?.length ? 'article' : ''}`} style={{ '--story-w': `${storyW * 100}%` }}>
+          <div className={`lesson ${article && current.code && current.lang !== 'html' && !current.steps?.length ? 'article' : ''} ${phone ? `pane-${pane}` : ''}`} style={{ '--story-w': `${storyW * 100}%` }}>
             <Story pathInfo={pathOf(current)} onPathStop={goStop} onPathPage={() => setViewRaw('path')} lesson={current} streaming={streaming} modelLabel={modelLabel(current.model || settings.model)}
-              onLink={setLinkRange} onLinkClick={(r) => setLinkRange(r)} onTerm={onTerm} onTry={onTry}
+              onLink={setLinkRange} onLinkClick={(r) => { setLinkRange(r); if (phone) setPane('code'); }} onTerm={onTerm} onTry={onTry}
               onNext={(q) => current.mode === 'challenge' ? askLesson(/another/i.test(q) ? (current.concepts?.[0] || 'arrays') : q, { mode: /another/i.test(q) ? 'challenge' : 'explain', lang: current.lang }) : askLesson(q, { prev: current, lang: current.lang })}
               onFollowUp={(q) => askLesson(q, { prev: current, lang: current.lang })}
               onSecondOpinion={async (i) => {
@@ -815,6 +850,7 @@ export default function App() {
           </div>
         )}
       </main>
+      {phone && isRoot(view) && <TabBar view={view} setView={setView} onTop={() => document.querySelectorAll('#content *').forEach((el) => { if (el.scrollTop > 0) el.scrollTo({ top: 0, behavior: 'smooth' }); })} />}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
-import { keys } from '../platform.js';
+import { keys, tap } from '../platform.js';
 
 // First-time hints: a small bubble pointing at one control at a time. Shown once per screen, ever.
 export const TIPS = {
@@ -38,7 +38,7 @@ export default function Coach({ screen, ready }) {
     <>
       <div className="coach-ring" aria-hidden="true" style={{ left: box.x - 6, top: box.y - 6, width: box.w + 12, height: box.h + 12 }} />
       <div className={`coach-tip ${below ? 'below' : 'above'}`} role="dialog" aria-label={`Tip ${i + 1} of ${steps.length}`} style={{ left, top: below ? box.y + box.h + 14 : undefined, bottom: below ? undefined : innerHeight - box.y + 14 }}>
-        <div className="ct-text">{keys(step[1])}</div>
+        <div className="ct-text">{tap(keys(step[1]))}</div>
         <div className="ct-foot">
           <span className="ct-dots">{steps.map((_, k) => <i key={k} className={k === i ? 'on' : ''} />)}</span>
           <button className="link" style={{ marginLeft: 'auto' }} onClick={done}>Skip</button>

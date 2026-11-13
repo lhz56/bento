@@ -1,3 +1,4 @@
+import { tap } from '../platform.js';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { BY_ID } from '../atlas/catalog.js';
 import { LAYER } from '../atlas/analyze.js';
@@ -88,7 +89,7 @@ export default function BigPicture({ appName, onMakePath, build, onBuild, flow, 
     <section className="bigpic">
       <div className="bp-head">
         <span className="mini-h">the big picture</span>
-        <span className="bp-hint">{flow.fallback && narrating ? <><span className="lens-spin" />drawing the real picture…</> : <>click any part to go deeper{!flow.fallback && <button className={`walk-btn ${walk != null ? 'on' : ''}`} onClick={() => (walk != null ? stopWalk() : setWalk(0))}>{walk != null ? `■ Stop (${walk + 1}/${L.nodes.length})` : '▶ Walk me through it'}</button>}</>}</span>
+        <span className="bp-hint">{flow.fallback && narrating ? <><span className="lens-spin" />drawing the real picture…</> : <>{tap('click any part to go deeper')}{!flow.fallback && <button className={`walk-btn ${walk != null ? 'on' : ''}`} onClick={() => (walk != null ? stopWalk() : setWalk(0))}>{walk != null ? `■ Stop (${walk + 1}/${L.nodes.length})` : '▶ Walk me through it'}</button>}</>}</span>
       </div>
       {narrow ? (
         <div className={`vflow ${flow.fallback ? 'is-fallback' : ''}`} ref={box}>

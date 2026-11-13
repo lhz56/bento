@@ -1,15 +1,22 @@
 // startup timings (scripts/measure-startup.mjs reads them): the page's code has loaded and starts running
 performance.mark('bento:js');
+// first of all: on a phone or iPad, window.bento is Bento on your Mac, reached over the network (remote.js)
+import './remote.js';
 import { Component } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import './styles.css';
+import './mobile.css';
 import { IS_MAC } from './platform.js';
 import { startStill } from './still.js';
+import Hosted from './ui/Hosted.jsx';
 // macOS draws its window buttons over the top-left corner: pages leave room for them when the sidebar is closed
 if (IS_MAC) document.body.classList.add('mac');
 
 if (!window.bento) document.body.classList.add('browser');
+// a phone or iPad using Bento on a Mac; and anything driven by touch gets bigger targets and no hover-only details
+if (window.bentoRemote) document.body.classList.add('remote');
+const coarse = matchMedia('(pointer: coarse)'); const touch = () => document.body.classList.toggle('touch', coarse.matches); touch(); coarse.addEventListener?.('change', touch);
 // Anything the Content-Security-Policy (index.html) blocks is a feature that's broken: it's noted where the tests look
 // (a "bento:csp" mark, and the console), and they fail on it.
 addEventListener('securitypolicyviolation', (e) => {
@@ -45,4 +52,4 @@ class Safety extends Component {
   }
 }
 
-createRoot(document.getElementById('root')).render(<Safety><App /></Safety>);
+createRoot(document.getElementById('root')).render(<Safety>{window.bentoRemote ? <Hosted><App /></Hosted> : <App />}</Safety>);

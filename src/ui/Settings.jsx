@@ -4,8 +4,11 @@ import { Seg } from './Home.jsx';
 import { MODELS } from './Side.jsx';
 import { PlanList, usePlans, AIMark } from './Plans.jsx';
 import { useDialog } from './a11y.js';
+import DevicesRow, { ThisDeviceRow } from './Devices.jsx';
 
 // ⌘, : everything you can change, in one calm sheet.
+// (on a phone or iPad, what only the Mac can do stays in the Mac's own Settings)
+const REMOTE = !!window.bentoRemote;
 const VOICES = ['English', 'Español', 'Português', 'Français', 'Deutsch', 'Italiano', 'Nederlands', 'Polski', 'Türkçe', 'Русский', 'Українська', 'العربية', 'हिन्दी', 'বাংলা', 'Bahasa Indonesia', 'Tiếng Việt', 'ไทย', 'Filipino', '中文', '日本語', '한국어', 'Kiswahili'];
 const INTERESTS = [['games', 'Games'], ['web', 'Websites'], ['ai', 'AI'], ['data', 'Data'], ['bots', 'Bots'], ['apps', 'Phone apps'], ['art', 'Art & visuals'], ['systems', 'How big apps scale']];
 
@@ -30,16 +33,18 @@ export default function Settings({ packs = [], onAddPack, onRemovePack, onBackup
         <div className="set-row col"><div><b>{t('Curious about')}</b><span>Picks the idea of the day and suggestions.</span></div>
           <div className="interests">{INTERESTS.map(([k, l]) => <button key={k} className={`int ${ints.includes(k) ? 'on' : ''}`} onClick={() => setSettings({ interests: ints.includes(k) ? ints.filter((x) => x !== k) : [...ints, k] })}>{l}</button>)}</div>
         </div>
-        <div className="set-row"><div><b>{t('Connections')}</b><span>{t('Claude, ChatGPT, Gemini, Copilot and GitHub on this Mac.')}</span></div><button className="btn ghost" onClick={onSetup}>{t('Check again')}</button></div>
-        <div className="set-row"><div><b>{t('Your data')}</b><span>{lessonsCount} {lessonsCount === 1 ? 'lesson' : 'lessons'} and {wordsCount} {wordsCount === 1 ? 'word' : 'words'}, stored only on this Mac. A copy is kept every day for a week: Restore… opens them.</span></div><div className="set-btns"><button className="btn ghost" onClick={onOpenData}>{t('Show in Finder')}</button>{onBackup && <button className="btn ghost" onClick={async () => { const f = await onBackup(); if (f) setNote(`${t('Saved')} ${f.split('/').pop()}`); }}>{t('Back up…')}</button>}{onRestore && <button className="btn ghost" onClick={async () => { try { const n = await onRestore(); if (n != null) setNote(t('Restored. Everything from the backup is merged in.')); } catch (e) { setNote(String(e.message).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')); } }}>{t('Restore…')}</button>}</div></div>
+        <DevicesRow />
+        {REMOTE && <ThisDeviceRow />}
+        {!REMOTE && <div className="set-row"><div><b>{t('Connections')}</b><span>{t('Claude, ChatGPT, Gemini, Copilot and GitHub on this Mac.')}</span></div><button className="btn ghost" onClick={onSetup}>{t('Check again')}</button></div>}
+        {REMOTE ? <div className="set-row"><div><b>{t('Your data')}</b><span>{lessonsCount} {lessonsCount === 1 ? 'lesson' : 'lessons'} and {wordsCount} {wordsCount === 1 ? 'word' : 'words'}, saved on your Mac (with a copy every day for a week). Every device you pair sees the same ones.</span></div></div> : <><div className="set-row"><div><b>{t('Your data')}</b><span>{lessonsCount} {lessonsCount === 1 ? 'lesson' : 'lessons'} and {wordsCount} {wordsCount === 1 ? 'word' : 'words'}, stored only on this Mac. A copy is kept every day for a week: Restore… opens them.</span></div><div className="set-btns"><button className="btn ghost" onClick={onOpenData}>{t('Show in Finder')}</button>{onBackup && <button className="btn ghost" onClick={async () => { const f = await onBackup(); if (f) setNote(`${t('Saved')} ${f.split('/').pop()}`); }}>{t('Back up…')}</button>}{onRestore && <button className="btn ghost" onClick={async () => { try { const n = await onRestore(); if (n != null) setNote(t('Restored. Everything from the backup is merged in.')); } catch (e) { setNote(String(e.message).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')); } }}>{t('Restore…')}</button>}</div></div></>}
         {note && <div className="set-note">{note}</div>}
         {window.bento?.usage && <UsageRow providers={providers} />}
         <CheckRow />
         {onAddPack && <PackRow packs={packs} onAddPack={onAddPack} onRemovePack={onRemovePack} />}
-        <div className="set-row"><div><b>{t('Open in Bento from your browser')}</b><span>{t('Drag this button to your bookmarks bar. On any GitHub page or website, click it to take it apart in Bento.')}</span></div><a className="btn ghost bookmarklet" href={"javascript:location.href='bento://open?u='+encodeURIComponent(location.href)"} onClick={(e) => e.preventDefault()} draggable title={t('Drag me to your bookmarks bar')}>⤓ {t('Open in Bento')}</a></div>
-        {usage?.count > 0 && <div className="set-row"><div><b>Downloaded code</b><span>{usage.count} project{usage.count > 1 ? 's' : ''} · {(usage.bytes / 1048576).toFixed(0)} MB. Bento downloads them again if you reopen one.</span></div><button className="btn ghost" onClick={async () => { if (confirm('Delete the downloaded code for all projects? Your notes and lessons stay.')) { await window.bento.reposClear(); setUsage({ bytes: 0, count: 0 }); } }}>Free up space</button></div>}
-        {window.bento?.update && <UpdatesRow />}
-        <div className="set-foot"><button className="link" style={{ marginLeft: 0 }} onClick={onReplayOnboarding}>{t('Replay the welcome')}</button><span className="muted small">Bento · open source · MIT</span></div>
+        {!REMOTE && <div className="set-row"><div><b>{t('Open in Bento from your browser')}</b><span>{t('Drag this button to your bookmarks bar. On any GitHub page or website, click it to take it apart in Bento.')}</span></div><a className="btn ghost bookmarklet" href={"javascript:location.href='bento://open?u='+encodeURIComponent(location.href)"} onClick={(e) => e.preventDefault()} draggable title={t('Drag me to your bookmarks bar')}>⤓ {t('Open in Bento')}</a></div>}
+        {!REMOTE && usage?.count > 0 && <div className="set-row"><div><b>Downloaded code</b><span>{usage.count} project{usage.count > 1 ? 's' : ''} · {(usage.bytes / 1048576).toFixed(0)} MB. Bento downloads them again if you reopen one.</span></div><button className="btn ghost" onClick={async () => { if (confirm('Delete the downloaded code for all projects? Your notes and lessons stay.')) { await window.bento.reposClear(); setUsage({ bytes: 0, count: 0 }); } }}>Free up space</button></div>}
+        {!REMOTE && window.bento?.update && <UpdatesRow />}
+        <div className="set-foot">{!REMOTE && <button className="link" style={{ marginLeft: 0 }} onClick={onReplayOnboarding}>{t('Replay the welcome')}</button>}<span className="muted small">Bento · open source · MIT</span></div>
       </div>
     </div>
   );

@@ -72,7 +72,7 @@ export const GROUPS = [
   { id: 'you', label: 'You', icon: 'you', views: [['map', 'Your map'], ['words', 'Your words']] },
 ];
 export const groupOf = (view) => GROUPS.find((g) => g.views.some(([v]) => v === view)) || (['atlas', 'site', 'compare'].includes(view) ? GROUPS[1] : null);
-const lastTab = (g) => { try { const v = JSON.parse(localStorage.getItem('bento.lastTab') || '{}')[g.id]; return g.views.some(([x]) => x === v) ? v : g.views[0][0]; } catch { return g.views[0][0]; } };
+export const lastTab = (g) => { try { const v = JSON.parse(localStorage.getItem('bento.lastTab') || '{}')[g.id]; return g.views.some(([x]) => x === v) ? v : g.views[0][0]; } catch { return g.views[0][0]; } };
 export const rememberTab = (view) => { const g = GROUPS.find((x) => x.views.some(([v]) => v === view)); if (!g || g.views.length < 2) return; try { const m = JSON.parse(localStorage.getItem('bento.lastTab') || '{}'); m[g.id] = view; localStorage.setItem('bento.lastTab', JSON.stringify(m)); } catch {} };
 
 export function Sidebar({ progress = {}, onClose, closed, view, setView, lessons, current, onOpen, onNew, onDelete, settings, setSettings, providers, user, projects = [], atlasKey, atlases = {}, onOpenProject, onForgetProject, onSetup, onSettings, siteKey }) {

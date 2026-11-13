@@ -29,13 +29,16 @@ const TEST_BUILD = !app.isPackaged || require('../package.json').bentoTestBuild 
 // Bento's own page: app://bento in the app, the Vite server in development. Nothing else may use Bento's powers.
 const isAppUrl = (url) => { try { const u = new URL(String(url)); return DEV ? u.origin === 'http://localhost:5199' : u.protocol === 'app:' && u.host === 'bento'; } catch { return false; } };
 // Lesson pages (play://) and any website can never reach the main process; check every call anyway, in case one tries.
+// Each handler is also noted by name: a paired phone or iPad (host.cjs) calls the same ones, from a short list.
+const RAW = { handle: new Map(), on: new Map() };
+let host = null; // Bento for your phone and iPad, when it's on (see the end of this file)
 for (const kind of ['handle', 'on']) {
   const add = ipcMain[kind].bind(ipcMain);
-  ipcMain[kind] = (channel, fn) => add(channel, (e, ...args) => {
+  ipcMain[kind] = (channel, fn) => { RAW[kind].set(channel, fn); return add(channel, (e, ...args) => {
     if (isAppUrl(e.senderFrame?.url)) return fn(e, ...args);
     if (kind === 'on') { e.returnValue = null; return undefined; }
     return Promise.reject(new Error('Not allowed.'));
-  });
+  }); };
 }
 // Links leave Bento only for the web (https; an http link opens as https) or email, never file:, smb:, javascript: or
 // app-launching schemes. Anything else is dropped.
@@ -356,6 +359,7 @@ function saveLimits(id, L) {
   const all = limitsAll(); all[id] = { ...all[id], ...L, plan: L.plan || all[id]?.plan || null, at: Date.now() };
   clearTimeout(limitsTimer); limitsTimer = setTimeout(() => writeSafeAsync(LIMITS_FILE, JSON.stringify(all)), 600);
   if (win && !win.isDestroyed()) win.webContents.send('limits', all);
+  host?.broadcast('limits', [all]);
 }
 const limitsAsked = {};
 async function refreshLimits(only) {
@@ -746,7 +750,7 @@ const storeReady = fsp.readFile(STORE, 'utf8').then(async (raw) => {
     await fsp.rename(STORE, aside).catch(() => {});
   }
 }, () => {}).then(() => { if (!storeCache || typeof storeCache !== 'object' || Array.isArray(storeCache)) storeCache = {}; bootStore = structuredClone(storeCache); });
-ipcMain.handle('store:get', async () => { await storeReady; return bootStore; });
+ipcMain.handle('store:get', async (e) => { await storeReady; return e?.remote ? storeCache : bootStore; });
 // Back up everything to one file (to move to another Mac, or just to be safe), and bring it back
 ipcMain.handle('backup:save', async () => {
   const day = new Date().toISOString().slice(0, 10);
@@ -767,10 +771,14 @@ ipcMain.handle('backup:load', async () => {
   if (j?.bento !== 'backup' || !j.data) throw new Error('That file isn’t a Bento backup.');
   return j.data;
 });
+const SHARED = /^bento\.(lessons|progress|settings|projects|savedAt)$/;
 ipcMain.handle('store:set', async (_e, key, value) => {
   if (!/^bento\.[\w.-]{1,80}$/.test(str(key, 90))) refuse();
   await storeReady;
+  // your lessons, progress, settings and projects are the same on every device: a change here is passed on to the others
+  const before = SHARED.test(key) && (host?.isOn() || _e?.sender?.remote) ? JSON.stringify(storeCache[key] ?? null) : null;
   if (value === undefined) delete storeCache[key]; else storeCache[key] = value;
+  if (before !== null && JSON.stringify(value ?? null) !== before) shareChange(key, value, _e.sender);
   clearTimeout(storeTimer);
   storeTimer = setTimeout(saveStore, 500);
   return true;
@@ -788,6 +796,7 @@ async function saveStore() {
   storeTrouble = why;
   if (why) logger.log('saving lessons failed', why);
   if (win && !win.isDestroyed()) win.webContents.send('store:health', why ? { error: why } : { ok: true });
+  host?.broadcast('store:health', [why ? { error: why } : { ok: true }]);
 }
 // Quitting (or restarting for an update) while Bento is still writing a lesson or reading a project throws that away,
 // along with the part of your plan it used. Ask first. Tests, and quits you already confirmed, go straight through.
@@ -892,3 +901,69 @@ ipcMain.handle('gh:fork', async (_e, full) => {
   const me = JSON.parse(await gh(['api', 'user'])).login;
   return { url: `https://github.com/${me}/${full.split('/')[1]}`, note: String(out).trim() };
 });
+
+// ---------------------------------------------------------------- your phone and iPad
+// Off until you turn it on in Settings. Then this Mac serves Bento's page to the devices you pair (host.cjs) and does
+// their work with your AIs, the way T3 Code's phone app works with your computer: nothing hosted, nothing extra to pay.
+// What a device may ask for: everything Bento does for its page, except what only makes sense sitting at the Mac
+// (Terminal, Finder, file dialogs, updates, backups); those tell the person to use the Mac.
+const REMOTE_CALLS = new Set(['providers', 'scan', 'limits:get', 'usage:get', 'usage:clearSaved', 'quick', 'store:get', 'store:set', 'folder:read', 'gh:me', 'gh:repos', 'gh:tree', 'gh:file',
+  'atlas:fetch', 'atlas:history', 'gh:issues', 'atlas:refresh', 'atlas:analyze', 'atlas:meta', 'atlas:list', 'atlas:reopen', 'atlas:cache:get', 'atlas:cache:put', 'atlas:search',
+  'gh:search', 'project:find', 'project:openLocal', 'gh:code', 'site:inspect', 'gh:fork', 'web:publish', 'play:put', 'update:get', 'repos:usage']);
+const REMOTE_SENDS = new Set(['ask:start', 'ask:cancel', 'prefs']);
+const HOST_FILE = path.join(app.getPath('userData'), 'host.json');
+let hostPrefs = { on: false, wifi: false }, macName = os.hostname();
+// this Mac's names on Tailscale ("my-mac.tail1234.ts.net" and "my-mac"), so a link can use them
+let tsNames = { v: [], at: 0 };
+async function tailscaleNames() {
+  if (Date.now() - tsNames.at < 5 * 60_000) return tsNames.v;
+  tsNames.at = Date.now();
+  for (const bin of [await which('tailscale'), MAC ? '/Applications/Tailscale.app/Contents/MacOS/Tailscale' : null].filter(Boolean)) {
+    const r = await runQuiet(bin, ['status', '--json'], 5000);
+    try { const n = String(JSON.parse(r.out)?.Self?.DNSName || '').replace(/\.$/, '').toLowerCase(); if (r.ok && /^[a-z0-9.-]+$/.test(n)) return (tsNames.v = [n, n.split('.')[0]]); } catch {}
+  }
+  return (tsNames.v = []);
+}
+function hostNow() {
+  return (host ??= require('./host.cjs').createHost({
+    dist: DIST, devicesFile: path.join(app.getPath('userData'), 'devices.json'), name: () => macName, version: app.getVersion(),
+    call: async (ch, args, sender) => {
+      const fn = REMOTE_CALLS.has(ch) && RAW.handle.get(ch);
+      if (!fn) throw new Error('That works on your Mac: open Bento there to do it.');
+      try { return await fn({ sender, remote: true }, ...args); } catch (e) { throw new Error(e instanceof BadInput ? e.message : String(e?.message || e)); }
+    },
+    send: (ch, args, sender) => { if (REMOTE_SENDS.has(ch)) RAW.on.get(ch)?.({ sender, remote: true }, ...args); },
+    netProxy, playGet: (id) => PLAY.get(id), dnsNames: tailscaleNames, writeFile: writeSafeAsync, log: logger.log,
+    onChange: () => { clearTimeout(hostTick); hostTick = setTimeout(() => { if (win && !win.isDestroyed()) win.webContents.send('host:state', hostState()); }, 120); },
+    port: TEST_BUILD && Number(process.env.BENTO_HOST_PORT) ? Number(process.env.BENTO_HOST_PORT) : undefined,
+  }));
+}
+let hostTick = null;
+function hostState() {
+  const st = host ? host.state() : { on: false, wifi: hostPrefs.wifi, urls: [], devices: [], pairing: null, error: null };
+  const url = st.urls[0]?.url;
+  return { ...st, name: macName, pairUrl: st.pairing && url ? `${url}/#pair=${st.pairing.code}` : null };
+}
+// a change made on one device appears on the others (and in the Mac's own window)
+function shareChange(key, value, from) {
+  if (from?.remote && win && !win.isDestroyed()) win.webContents.send('store:changed', key, value);
+  host?.broadcast('store:changed', [key, value], from?.clientId);
+}
+ipcMain.handle('host:get', () => hostState());
+ipcMain.handle('host:set', async (_e, p) => {
+  hostPrefs = { on: p?.on === true, wifi: p?.wifi === true };
+  await writeSafeAsync(HOST_FILE, JSON.stringify(hostPrefs));
+  if (hostPrefs.on) await hostNow().start({ wifi: hostPrefs.wifi, local: TEST_BUILD && !!process.env.BENTO_HOST }); else await host?.stop();
+  return hostState();
+});
+ipcMain.handle('host:pair', () => { if (!host?.isOn()) throw new Error('Turn on “Use Bento on your phone and iPad” first.'); host.newPairing(); return hostState(); });
+ipcMain.handle('host:forget', (_e, id) => { host?.forget(str(id, 40)); return hostState(); });
+// what this Mac is called, for people ("My Mac"), then start if it was on when Bento last quit
+app.whenReady().then(async () => {
+  if (MAC) { const r = await runQuiet('/usr/sbin/scutil', ['--get', 'ComputerName'], 3000); if (r.ok && r.out.trim()) macName = r.out.trim().slice(0, 60); }
+  const saved = await readJson(HOST_FILE, {}); hostPrefs = { on: saved?.on === true, wifi: saved?.wifi === true };
+  // tests (test builds only): on, and only on this Mac itself, never your real Tailscale or Wi-Fi
+  const testHost = TEST_BUILD && !!process.env.BENTO_HOST; if (testHost) hostPrefs = { on: true, wifi: false };
+  if (hostPrefs.on) hostNow().start({ wifi: hostPrefs.wifi, local: testHost }).catch((e) => logger.log('host start failed', e));
+});
+app.on('will-quit', () => { host?.stop(); });

@@ -63,7 +63,7 @@ function WebViz({ id, v }) {
   return (
     <div className="webviz">
       <div className="wv-bar"><span /><span /><span /><i>your page · point at anything to find its code</i></div>
-      <iframe ref={frame} title="Your page" src={`play://${id}/?v=${v || 0}`} sandbox="allow-scripts allow-modals allow-forms allow-same-origin" />
+      <iframe ref={frame} title="Your page" src={window.bento?.playUrl ? window.bento.playUrl(id, v) : `play://${id}/?v=${v || 0}`} sandbox="allow-scripts allow-modals allow-forms allow-same-origin" />
       {logs.length > 0 && <div className="console small">{logs.map((l, i) => <div key={i} className={`log ${l.k === 'error' ? 'err' : l.k === 'warn' ? 'warn' : ''}`}>{l.s}</div>)}</div>}
     </div>
   );

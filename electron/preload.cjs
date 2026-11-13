@@ -26,6 +26,10 @@ contextBridge.exposeInMainWorld('bento', {
   // saving starts or stops failing (a full disk, a folder Bento may no longer write to)
   onStoreHealth(fn) { const h = (_e, x) => fn(x); ipcRenderer.on('store:health', h); return () => ipcRenderer.removeListener('store:health', h); },
   storeGet: () => call('store:get'),
+  // your phone or iPad changed your lessons, progress, settings or projects: the page shows the same
+  onStoreChanged(fn) { const h = (_e, k, v) => fn(k, v); ipcRenderer.on('store:changed', h); return () => ipcRenderer.removeListener('store:changed', h); },
+  // Settings → Your phone and iPad: serve Bento to devices you pair (host.cjs)
+  host: { get: () => call('host:get'), set: (p) => call('host:set', { on: !!p?.on, wifi: !!p?.wifi }), pair: () => call('host:pair'), forget: (id) => call('host:forget', String(id)), on(fn) { const h = (_e, st) => fn(st); ipcRenderer.on('host:state', h); return () => ipcRenderer.removeListener('host:state', h); } },
   backupSave: () => call('backup:save'),
   usage: () => call('usage:get'),
   // how much of each plan is used: the last reading, or a fresh one (free) with { refresh: true }

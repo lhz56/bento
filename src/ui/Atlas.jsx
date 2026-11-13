@@ -33,6 +33,7 @@ export default function Atlas({ asked, onAskedDone, onIdeaInstead, onPlanIssue, 
   const [section, setSection] = useState('overview');
   const [forkState, setForkState] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [acts, setActs] = useState(false); // on a phone, the project's actions open from ⋯
 
   const stack = useMemo(() => { if (F) setDupes(F.files); return F ? detectStack(F) : []; }, [F]);
   const tools = useMemo(() => mergeTools(stack, N?.stack), [stack, N?.stack]);
@@ -90,7 +91,9 @@ export default function Atlas({ asked, onAskedDone, onIdeaInstead, onPlanIssue, 
           <span className="ab-name"><span className="muted">{(meta.full || A.name).includes('/') ? (meta.full || A.name).split('/')[0] + ' / ' : ''}</span>{(meta.full || A.name).split('/').pop()}</span>
         </div>
         <nav className={`ab-nav ${navMore}`} ref={navRef} aria-label="Sections">{SECTIONS.filter(([id]) => !['grow', 'help'].includes(id) || A.src?.kind === 'github').map(([id, l]) => <button key={id} className={section === id ? 'on' : ''} onClick={() => go(id)}>{l}</button>)}</nav>
-        <div className="ab-act">
+        <button className="ab-more" aria-label={t('More actions')} aria-expanded={acts} onClick={() => setActs((o) => !o)}>⋯</button>
+        {acts && <div className="ab-veil" onClick={() => setActs(false)} aria-hidden="true" />}
+        <div className={`ab-act ${acts ? 'open' : ''}`} onClick={() => setActs(false)}>
           {narrating && <button className="ab-live" title={`${modelLabel} is reading the code. Click to stop.`} onClick={onStopReading}><span className="dots"><i /><i /><i /></span>reading</button>}
           {A.status === 'narr-error' && (/^You stopped/.test(A.error || '') ? <button className="chip" onClick={onRetry} title={A.error}>❚❚ Reading paused · continue</button> : <button className="chip warnchip" onClick={onRetry} title={A.error}>Explanations failed · retry</button>)}
           {A.src?.kind === 'github' && <>
@@ -98,7 +101,7 @@ export default function Atlas({ asked, onAskedDone, onIdeaInstead, onPlanIssue, 
             <button className="chip" title="Open on GitHub" aria-label="Open on GitHub" onClick={() => onOpenUrl(meta.url || `https://github.com/${A.src.full}`)}><span className="lbl">GitHub </span>↗</button>
           </>}
           <button className="chip" onClick={onCompare} title="Compare: put it next to another app" aria-label="Compare with another app">⇄<span className="lbl"> Compare</span></button>
-          <button className="chip icon" title="Copy as study notes (Markdown)" onClick={() => { navigator.clipboard?.writeText(notesMd(A, tools, hot)); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>{copied ? '✓' : '⧉'}</button>
+          <button className="chip icon" title="Copy as study notes (Markdown)" aria-label="Copy as study notes" onClick={() => { navigator.clipboard?.writeText(notesMd(A, tools, hot)); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>{copied ? '✓' : '⧉'}</button>
           <button className="chip icon" title="Read it again from scratch" aria-label="Read it again from scratch" onClick={onRefresh}>↻</button>
         </div>
         {forkState?.url && <div className="fork-note">Forked to <button className="link" onClick={() => onOpenUrl(forkState.url)}>{forkState.url.replace('https://github.com/', '')}</button>. It’s now in your GitHub, ready to change.</div>}

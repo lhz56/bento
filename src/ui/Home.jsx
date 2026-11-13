@@ -111,7 +111,7 @@ export default function Home({ builtins = [], threads = [], skyDots = [], about,
               <div className="proj-line">
                 {project ? <span className="proj"><span className="proj-ic">{project.kind === 'github' ? '⌥' : '▢'}</span>in <b>{project.name}</b> · {project.loading ? <span className="warm">bringing it in…</span> : `${project.files.length} files`}<button className="link" onClick={() => setProject(null)}>change</button></span> : <span className="muted">{t('Which project?')}</span>}
                 {!project && <>
-                  <button className="chip" onClick={onPickFolder}>Open a folder…</button>
+                  {!window.bento?.remote && <button className="chip" onClick={onPickFolder}>Open a folder…</button>}
                   <span className="repo-pick">
                     <button className="chip" onClick={() => { setRepoMenu(!repoMenu); loadRepos(); }}>GitHub repo ▾</button>
                     {repoMenu && <div className="menu">{!repos ? <div className="muted pad">Loading…</div> : repos.length ? repos.map((r) => <button key={r.nameWithOwner} onClick={() => { setRepoMenu(false); onPickRepo(r.nameWithOwner); }}>{r.nameWithOwner}<span>{r.primaryLanguage?.name || ''}</span></button>) : <div className="muted pad">No repos found.</div>}</div>}

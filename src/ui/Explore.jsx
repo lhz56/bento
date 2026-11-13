@@ -106,7 +106,7 @@ export default function Explore({ top, api, onOpenAt, onCompare, onOpenSite, onO
             )}
             <div className="ex-box">
               <div className="mini-h">your own code</div>
-              <button className="ex-proj strong" onClick={onOpenFolder}><span className="ex-pi">▢</span>Open a folder on this Mac…</button>
+              {!api?.remote && <button className="ex-proj strong" onClick={onOpenFolder}><span className="ex-pi">▢</span>Open a folder on this Mac…</button>}
               {user && !repos && <div className="muted small pad">Loading your repos…</div>}
               {!user && <div className="muted small" style={{ padding: '4px 2px' }}>Sign in with <code>gh auth login</code> to see your GitHub repos here.</div>}
               {(repos || []).slice(0, 12).map((r) => <button key={r.nameWithOwner} className="ex-proj" onClick={() => onOpenRepo(r.nameWithOwner)}><span className="ldot" style={{ background: langColor(r.primaryLanguage?.name) }} />{r.name}{r.isPrivate && <span className="priv">private</span>}</button>)}

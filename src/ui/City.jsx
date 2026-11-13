@@ -1,3 +1,4 @@
+import { TOUCH, tap } from '../platform.js';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { BY_ID } from '../atlas/catalog.js';
 import { ICONS } from '../atlas/icons.js';
@@ -57,7 +58,11 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
 
   useLayoutEffect(() => {
     const el = wrap.current; if (!el) return;
-    const ro = new ResizeObserver(() => setWidth(el.clientWidth)); ro.observe(el); setWidth(el.clientWidth);
+    // on a phone the city keeps the size of a small window and you drag sideways to look around (squeezed into 390
+    // points, its names would sit on top of each other); it opens centred
+    const fit = () => (matchMedia('(max-width: 700px)').matches ? Math.max(el.clientWidth, 760) : el.clientWidth);
+    const ro = new ResizeObserver(() => setWidth(fit())); ro.observe(el); setWidth(fit());
+    requestAnimationFrame(() => { if (el.scrollWidth > el.clientWidth) el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2; });
     return () => ro.disconnect();
   }, []);
   useEffect(() => {
@@ -203,7 +208,7 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
               <span className="lg">{langsShown.map((l) => <i key={l} className="lg-roof" style={{ background: langColor(l) }} title={l} />)}roof = language</span>
               <span className="lg"><svg width="12" height="16"><line x1="2" y1="16" x2="2" y2="2" stroke="var(--mint)" strokeWidth="1.6" /><path d="M2 2 L11 5 L2 8 Z" fill="var(--mint)" /></svg>starts here</span>
               <span className="lg"><svg width="10" height="16"><line x1="5" y1="16" x2="5" y2="5" stroke="var(--accent)" strokeWidth="1.6" /><circle cx="5" cy="4" r="3" fill="var(--accent)" /></svg>lots depend on it</span>
-              <span className="lg muted">hover anything · click a building to open it</span>
+              <span className="lg muted">{TOUCH ? 'tap a building to see it, tap again to open it' : 'hover anything · click a building to open it'}</span>
             </div>
           )}
         </div>
@@ -244,7 +249,7 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
             const cls = ['bld', lit ? (lit.has(key) ? 'lit' : 'dim') : '', jr && jKeys[jr.s] === key ? 'now' : '', hover === key ? 'hov' : ''].join(' ');
             return (
               <g key={key} className={cls} style={{ '--c': c, '--roof': f.lang ? langColor(f.lang) : 'var(--ink-4)', '--side': side }}
-                onMouseEnter={() => setHover(key)} onMouseLeave={() => setHover(null)} onClick={() => onOpen(f.p)}>
+                onMouseEnter={() => setHover(key)} onMouseLeave={() => setHover(null)} onClick={() => { if (TOUCH && hover !== key) { setHover(key); return; } onOpen(f.p); }}>
                 <polygon className="f-l" points={[D0, C0, C, D].map((p) => p.join(',')).join(' ')} />
                 <polygon className="f-r" points={[C0, B0, B, C].map((p) => p.join(',')).join(' ')} />
                 <polygon className="f-t" points={[A, B, C, D].map((p) => p.join(',')).join(' ')} />

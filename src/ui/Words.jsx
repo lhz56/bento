@@ -1,3 +1,4 @@
+import { tap } from '../platform.js';
 import { useMemo, useState } from 'react';
 import { t, tx } from '../i18n.js';
 
@@ -33,7 +34,7 @@ export default function Words({ words, onOpen, onAsk, onGrade, onAdd }) {
       <div className="ex-inner">
         <div className="hello">{t('Your words')}</div>
         <h1 className="home-h">{tx('The language of code, *yours* now.')}</h1>
-        <p className="ex-sub">{t('Every new word from your lessons, with an everyday comparison. Point at a word for its real definition.')}</p>
+        <p className="ex-sub">{tap(t('Every new word from your lessons, with an everyday comparison. Point at a word for its real definition.'))}</p>
         {list.length === 0 ? (
           <div className="words-empty">
             <p>Words from your lessons collect here. Start with eight everyone meets:</p>

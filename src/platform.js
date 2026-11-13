@@ -13,5 +13,10 @@ export function keys(s) {
     .replace(/\+↵/g, '+Enter');
 }
 
+// a touch screen (a phone, an iPad without a trackpad): no hover, so a first tap shows what hovering would, and hints say
+// "tap" instead of "click"
+export const TOUCH = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
+export const tap = (s) => (TOUCH ? String(s).replace(/\bClick\b/g, 'Tap').replace(/\bclick\b/g, 'tap').replace(/\bPoint at\b/g, 'Tap').replace(/\bhover anything · /g, '') : s);
+
 // single keys, for hints drawn as separate <kbd> boxes
 export const K = IS_MAC ? { mod: '⌘', shift: '⇧', alt: '⌥', enter: '↵' } : { mod: 'Ctrl', shift: 'Shift', alt: 'Alt', enter: 'Enter' };

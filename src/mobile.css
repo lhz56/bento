@@ -1,0 +1,202 @@
+/* Bento on a phone, an iPad, and anything you touch. Layered over styles.css: the Mac app looks the same as before. */
+
+/* ---------------------------------------------------------------- pairing (a phone or iPad, first time) */
+.pair { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: calc(28px + env(safe-area-inset-top)) 24px calc(28px + env(safe-area-inset-bottom)); text-align: center; background: radial-gradient(120% 60% at 50% 0%, var(--accent-soft), transparent 70%), var(--bg); }
+.pair h1 { font-family: var(--serif); font-size: clamp(28px, 8vw, 40px); line-height: 1.08; letter-spacing: -.02em; margin: 14px 0 0; }
+.pair-sub { color: var(--ink-2); font-size: 17px; margin: 0 0 14px; max-width: 30ch; }
+.pair-art { display: flex; align-items: center; gap: 10px; }
+.pair-dev { display: grid; place-items: center; background: var(--panel); border: 1.5px solid var(--line-2); box-shadow: var(--shadow-1); }
+.pair-dev.phone { width: 64px; height: 108px; border-radius: 16px; }
+.pair-dev.phone .onb-logo.mini { width: 40px; height: 40px; border-radius: 11px; transform: scale(1); }
+.pair-dev.phone .onb-logo.mini .b1 { left: 6px; top: 6px; width: 13px; height: 28px; border-radius: 4px; }
+.pair-dev.phone .onb-logo.mini .b2 { left: 22px; top: 6px; width: 12px; height: 12px; border-radius: 4px; }
+.pair-dev.phone .onb-logo.mini .b3 { left: 22px; top: 22px; width: 12px; height: 12px; border-radius: 4px; }
+.pair-dev.mac { width: 104px; height: 72px; border-radius: 10px; grid-template-columns: auto auto; gap: 8px; align-content: center; justify-content: center; }
+.pair-ai { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent-ink); font-size: 15px; }
+.pair-ai.c { background: var(--ink); color: var(--bg); font: 700 13px var(--sans); }
+.pair-wire { display: flex; gap: 6px; }
+.pair-wire i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: pairdot 1.4s ease-in-out infinite; }
+.pair-wire i:nth-child(2) { animation-delay: .2s; } .pair-wire i:nth-child(3) { animation-delay: .4s; }
+@keyframes pairdot { 0%, 100% { opacity: .25; transform: scale(.8); } 50% { opacity: 1; transform: scale(1); } }
+.pair-form { display: flex; flex-direction: column; align-items: stretch; gap: 12px; width: min(100%, 360px); }
+.pair-steps { text-align: left; margin: 0 0 4px; padding-left: 22px; color: var(--ink-2); font-size: 15px; line-height: 1.45; display: grid; gap: 6px; }
+.pair-code { font: 600 26px/1 var(--mono); letter-spacing: .12em; text-align: center; padding: 16px 12px; border-radius: 14px; border: 1.5px solid var(--line-2); background: var(--panel); color: var(--ink); text-transform: uppercase; }
+.pair-code:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.pair-go { min-height: 52px; font-size: 17px; border-radius: 14px; justify-content: center; text-align: center; }
+.pair-wait { display: flex; align-items: center; gap: 10px; color: var(--ink-2); font-size: 17px; }
+.pair-err { color: var(--rose-ink); font-size: 15px; max-width: 34ch; }
+.spin { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid var(--line-2); border-top-color: var(--accent); animation: spin .8s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* the Mac can't be reached right now: a quiet line, never a wall */
+.host-off { position: fixed; z-index: 90; left: 50%; top: calc(8px + env(safe-area-inset-top)); transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 99px; background: var(--popover); box-shadow: var(--shadow-2); font-size: 14px; color: var(--ink-2); max-width: calc(100vw - 24px); }
+.host-off button { border-radius: 99px; padding: 6px 12px; background: var(--ink); color: var(--bg); font-weight: 600; font-size: 13px; white-space: nowrap; }
+.host-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--butter); flex: none; animation: pairdot 1.4s ease-in-out infinite; }
+
+/* ---------------------------------------------------------------- Settings → Your phone and iPad (on the Mac) */
+.dev-row .dev-top { display: flex; align-items: center; gap: 14px; }
+.dev-row .dev-top > div:nth-child(2) { flex: 1; display: grid; gap: 2px; }
+.dev-art { display: flex; align-items: center; gap: 4px; flex: none; }
+.dev-art .d-phone { width: 14px; height: 24px; border-radius: 4px; border: 2px solid var(--ink-3); }
+.dev-art .d-mac { width: 28px; height: 20px; border-radius: 4px; border: 2px solid var(--ink-3); }
+.dev-art .d-wire { display: flex; gap: 2px; } .dev-art .d-wire i { width: 3px; height: 3px; border-radius: 50%; background: var(--accent); }
+.dev-body { display: grid; gap: 12px; margin-top: 10px; padding-left: 4px; }
+.dev-ways { display: grid; gap: 6px; font-size: 13px; color: var(--ink-3); }
+.dev-way { display: flex; align-items: center; gap: 8px; }
+.dev-way > i { width: 8px; height: 8px; border-radius: 50%; background: var(--line-2); flex: none; }
+.dev-way.ok > i { background: var(--mint); }
+.dev-way code { font-size: 12px; background: var(--bg-2); padding: 1px 6px; border-radius: 6px; color: var(--ink-2); }
+label.dev-way > span { flex: 1; }
+.switch.small { width: 32px; height: 20px; } .switch.small i { width: 14px; height: 14px; } .switch.small.on i { transform: translateX(12px); }
+.dev-pair { display: flex; gap: 18px; align-items: center; padding: 14px; border-radius: 16px; background: var(--bg-2); }
+.dev-pair .qr { border-radius: 12px; flex: none; }
+.dev-pair > div { display: grid; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.dev-pair b { font-size: 15px; color: var(--ink); }
+.dev-code { font: 600 24px/1.1 var(--mono); letter-spacing: .1em; color: var(--ink); }
+.dev-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.dev-list li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; background: var(--bg-2); font-size: 14px; }
+.dev-list li b { flex: 1; font-weight: 600; }
+.dev-ico { width: 22px; text-align: center; color: var(--ink-3); }
+.dev-seen { font-size: 12px; color: var(--ink-3); } .dev-seen.on { color: var(--mint-ink); font-weight: 600; }
+.dev-err { color: var(--rose-ink); font-size: 13px; margin: 0; }
+
+/* ---------------------------------------------------------------- the phone frame (Phone.jsx): bars, tabs, drawer */
+body.touch { -webkit-tap-highlight-color: transparent; }
+body.touch kbd, body.touch .kbd-hint { display: none !important; }
+/* iOS zooms into any text box under 16px when you tap it: never under 16px on touch */
+body.touch input:not([type=checkbox]):not([type=radio]):not([type=range]), body.touch textarea, body.touch select { font-size: max(16px, 1em); }
+.app.phone { display: block; height: 100dvh; font-size: 15px; background: var(--bg); }
+.app.phone .sheet { position: fixed; top: calc(48px + env(safe-area-inset-top)); left: 0; right: 0; bottom: 0; margin: 0; border-radius: 0; box-shadow: none; padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); overscroll-behavior: contain; }
+.app.phone.at-root .sheet { bottom: calc(54px + env(safe-area-inset-bottom)); }
+.app.phone .titlebar-drag, .app.phone .side-open, .app.phone .gtabs { display: none !important; }
+.app.phone .sheet.has-tabs { padding-top: 0; }
+
+.pbar { position: fixed; z-index: 40; top: 0; left: 0; right: 0; height: calc(48px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) max(4px, env(safe-area-inset-right)) 0 max(4px, env(safe-area-inset-left));
+  display: grid; grid-template-columns: minmax(48px, max-content) minmax(0, 1fr) minmax(48px, max-content); align-items: center; gap: 4px;
+  background: color-mix(in srgb, var(--bg) 84%, transparent); -webkit-backdrop-filter: saturate(1.8) blur(20px); backdrop-filter: saturate(1.8) blur(20px); border-bottom: .5px solid transparent; transition: border-color .2s; }
+.pbar.scrolled { border-bottom-color: var(--line-2); }
+.pbar > :last-child { justify-self: end; }
+.pbar-btn { width: 44px; height: 44px; display: grid; place-items: center; color: var(--accent-ink); border-radius: 12px; }
+.pbar-btn:active, .pbar-back:active { opacity: .45; }
+.pbar-back { display: flex; align-items: center; gap: 5px; height: 44px; padding: 0 10px 0 8px; color: var(--accent-ink); font: 400 17px var(--sans); }
+.pbar-mid { min-width: 0; display: flex; justify-content: center; }
+.pbar-title { font: 600 17px var(--sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.01em; }
+.pseg { display: flex; background: color-mix(in srgb, var(--ink) 9%, transparent); border-radius: 9px; padding: 2px; max-width: 100%; }
+.pseg button { flex: 1; padding: 6px 12px; border-radius: 7px; font: 500 13px var(--sans); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background .2s, box-shadow .2s; }
+.pseg button.on { background: var(--panel); box-shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 0 0 .5px rgba(0, 0, 0, .04); font-weight: 600; }
+
+.ptabs { position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; height: calc(54px + env(safe-area-inset-bottom)); padding: 3px max(4px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(4px, env(safe-area-inset-left));
+  display: grid; grid-template-columns: repeat(5, 1fr); background: color-mix(in srgb, var(--bg) 84%, transparent); -webkit-backdrop-filter: saturate(1.8) blur(20px); backdrop-filter: saturate(1.8) blur(20px); border-top: .5px solid var(--line-2); }
+.ptabs button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--ink-3); font: 500 10.5px var(--sans); letter-spacing: .01em; }
+.ptabs button.on { color: var(--accent-ink); }
+.ptabs button:active .icon { transform: scale(.88); }
+.ptabs .icon { transition: transform .15s; stroke-width: 1.7; }
+
+/* the sidebar becomes a drawer: your recent lessons and projects, the model, settings (the tabs do the rest) */
+.app.phone .side { position: fixed; z-index: 60; top: 0; bottom: 0; left: 0; width: min(86vw, 340px); padding: calc(6px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: var(--bg-2); box-shadow: var(--shadow-2); transform: translateX(-104%); visibility: hidden; transition: transform .34s cubic-bezier(.2, .9, .3, 1), visibility 0s .34s; }
+.app.phone.drawer-open .side { transform: none; visibility: visible; transition: transform .34s cubic-bezier(.2, .9, .3, 1), visibility 0s; }
+.app.phone .side nav, .app.phone .side-drag { display: none; }
+.app.phone .side .brand { height: 48px; }
+.app.phone .side .new { min-height: 46px; font-size: 16px; border-radius: 12px; }
+.app.phone .side .rl-main { min-height: 44px; font-size: 16px; }
+.app.phone .side .rl-x { width: 36px; height: 36px; opacity: .6; }
+.app.phone .side .side-h { font-size: 12px; margin-top: 14px; }
+.app.phone .side .side-foot { min-height: 52px; }
+.pveil { position: fixed; inset: 0; z-index: 55; background: rgba(10, 8, 6, .32); animation: pfade .25s ease both; }
+@keyframes pfade { from { opacity: 0; } }
+.app.phone .sheet { overflow: hidden; }
+.app.phone .sheet > * { max-width: 100%; }
+
+/* ---------------------------------------------------------------- pages on a phone: one column, sizes for a thumb */
+.app.phone .pseg { width: min(100%, 300px); }
+.app.phone .pseg button { flex: 1 1 0; min-width: 0; padding: 6px 8px; }
+.app.phone :is(.home-inner, .ex-inner, .ideas-inner) { padding: 16px 18px 36px; }
+.app.phone .hello { font-size: 15px; margin-bottom: 2px; }
+.app.phone .home-h { font-size: clamp(28px, 8.4vw, 34px); letter-spacing: -.5px; line-height: 1.08; margin: 0 0 12px; }
+.app.phone .ex-sub { font-size: 16px; line-height: 1.5; margin: 0 0 18px; }
+/* side by side on a Mac, one under the other here */
+.app.phone :is(.step-cols, .ex-cols, .study, .idea-hero, .cmp-cols, .doors, .pr-cols, .dt-body, .pz-hero, .station, .pz-mission, .pg-sql, .pg-git, .sb-grid, .contrib, .tm-wrap.open, .home.split, .sky.open, .lang-wrap, .picks, .tracks, .takes, .idea-grid, .pcards, .belt2, .venn, .cmp-ask, .race-row, .today-row, .nextcard, .grow-dirs, .onb-promises, .starts3) { grid-template-columns: minmax(0, 1fr) !important; }
+.app.phone .tm-row { flex-direction: column; }
+.app.phone .tm { height: auto; min-height: 0; }
+.app.phone .pz-hero-art { max-width: 280px; }
+/* touch: everything you tap is at least 44 points */
+body.touch :is(.btn, .chip, .int, .seg button, .pz-chip, .choice, .door) { min-height: 44px; }
+
+/* first-visit tips: a card above your thumb, not a bubble pointing at something off-screen */
+.app.phone .coach-tip { left: 12px !important; right: 12px !important; top: auto !important; bottom: calc(14px + env(safe-area-inset-bottom)) !important; width: auto !important; font-size: 15px; }
+.app.phone.at-root .coach-tip { bottom: calc(66px + env(safe-area-inset-bottom)) !important; }
+
+/* ---------------------------------------------------------------- a project's Atlas on a phone (what Lin uses most) */
+.ab-more, .ab-veil { display: none; }
+.app.phone .atlas-bar { padding: 8px 0; gap: 6px; flex-wrap: nowrap; }
+.app.phone .ab-id { display: none; }
+.app.phone .ab-nav { margin: 0; flex: 1 1 auto; min-width: 0; border-radius: 0; background: none; padding: 0 4px 0 14px; gap: 6px; }
+.app.phone .ab-nav button { flex: none; height: 34px; padding: 0 14px; border-radius: 99px; background: var(--bg-2); color: var(--ink-2); font: 600 14px var(--round); }
+.app.phone .ab-nav button.on { background: var(--ink); color: var(--bg); box-shadow: none; }
+.app.phone .ab-more { display: grid; place-items: center; flex: none; width: 40px; height: 34px; margin-right: 10px; border-radius: 99px; background: var(--bg-2); color: var(--ink); font-size: 18px; font-weight: 700; }
+.app.phone .ab-act { display: none; }
+.app.phone .ab-veil { display: block; position: fixed; inset: 0; z-index: 44; }
+.app.phone .ab-act.open { display: flex; flex-direction: column; align-items: stretch; gap: 2px; position: fixed; z-index: 45; right: 10px; top: calc(100px + env(safe-area-inset-top)); width: min(280px, calc(100vw - 20px)); padding: 6px; border-radius: 16px; background: var(--popover); box-shadow: var(--shadow-2), 0 0 0 .5px var(--line-2); animation: pfade .15s ease both; }
+.app.phone .ab-act.open .chip { justify-content: flex-start; gap: 10px; height: 46px; padding: 0 14px; border-radius: 10px; background: none; box-shadow: none; font-size: 16px; }
+.app.phone .ab-act.open .chip .lbl { display: none; }
+.app.phone .ab-act.open .chip[aria-label]::after { content: attr(aria-label); font: 500 16px var(--sans); color: var(--ink); }
+.app.phone .ab-act.open .chip:active { background: var(--bg-2); }
+.app.phone .ab-live { order: -1; padding: 8px 14px; }
+.app.phone .asec { padding: 26px 18px 8px; scroll-margin-top: 54px; }
+.app.phone .a-over { padding-top: 14px; }
+.app.phone .over-top { grid-template-columns: minmax(0, 1fr); gap: 16px; margin-bottom: 18px; }
+.app.phone .over-text h1 { font-size: 26px; line-height: 1.18; letter-spacing: -.4px; }
+.app.phone .over-text .analogy { font-size: 17px; }
+.app.phone .vitals { padding: 14px; }
+.app.phone .ss-row { flex-wrap: nowrap; overflow-x: auto; margin: 0 -18px; padding: 0 18px 4px; scrollbar-width: none; scroll-snap-type: x proximity; }
+.app.phone .ss-row::-webkit-scrollbar { display: none; }
+.app.phone .ss-t { flex: none; width: 78px; scroll-snap-align: start; }
+/* asking about the project: a full-width bar above the home indicator; the conversation, a sheet over the page */
+.app.phone .atlas-ask { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); justify-content: stretch; }
+.app.phone .atlas-ask .fu, .app.phone .atlas-ask .fu:focus-within { width: 100%; }
+.app.phone .aq-card { width: 100%; max-height: 60dvh; }
+.app.phone .aq-dock { top: calc(56px + env(safe-area-inset-top)); left: 0; right: 0; bottom: 0; width: auto; border-radius: 20px 20px 0 0; padding-bottom: env(safe-area-inset-bottom); z-index: 50; }
+.app.phone .aq-dock .aq-a { font-size: 16px; }
+/* a file, opened from anywhere in the Atlas: a sheet that slides up */
+.app.phone .drawer { top: calc(56px + env(safe-area-inset-top)); left: 0; right: 0; bottom: 0; width: auto; border-radius: 20px 20px 0 0; z-index: 50; padding-bottom: env(safe-area-inset-bottom); animation: psheet .32s cubic-bezier(.2, .9, .3, 1) both; }
+.app.phone .drawer-veil { z-index: 49; background: rgba(10, 8, 6, .3); }
+@keyframes psheet { from { transform: translateY(40%); opacity: 0; } }
+/* (a blurred bar would trap the ⋯ menu inside itself: fixed things inside a backdrop-filter are fixed to it) */
+.app.phone .atlas-bar { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bg); }
+.app.phone .atlas { overflow-x: hidden; }
+.app.phone .ab-act.open .chip, .app.phone .ab-act.open .chip.icon { display: flex; width: 100%; justify-content: flex-start; text-align: left; white-space: nowrap; color: var(--ink-3); }
+/* a section's title, then its controls underneath (side by side on a Mac) */
+.app.phone .sec-head { flex-direction: column; align-items: stretch; gap: 10px; margin-bottom: 14px; }
+.app.phone .sec-head h2 { font-size: 24px; letter-spacing: -.3px; }
+.app.phone .sec-tools { flex-wrap: wrap; }
+/* the code city: a city you drag sideways through, with momentum, like a map */
+.app.phone .city { overflow-x: auto; overflow-y: hidden; margin: 0 -18px; padding: 0 0 6px; overscroll-behavior-x: contain; scrollbar-width: none; touch-action: pan-x pan-y; }
+.app.phone .city::-webkit-scrollbar { display: none; }
+.app.phone .city-cap { position: sticky; left: 0; font-size: 15px; }
+.app.phone .city .lg { font-size: 13px; }
+.app.phone .atlas-ask .aq-dock .fu { width: auto; margin: 0 12px 12px; }
+.app.phone .cap-f { flex-wrap: wrap; row-gap: 6px; }
+.app.phone :is(.drawer, .aq-dock) .ib { min-width: 44px; min-height: 44px; font-size: 18px; }
+
+/* ---------------------------------------------------------------- a lesson on a phone: two pages, Lesson and Code */
+.app.phone .lesson { position: relative; display: block; height: 100%; overflow: hidden; }
+.app.phone .lesson .story, .app.phone .lesson .desk { position: absolute; inset: 0; width: auto !important; min-width: 0 !important; margin: 0; border-radius: 0; box-shadow: none; transition: transform .32s cubic-bezier(.2, .9, .3, 1), visibility 0s .32s; }
+.app.phone .lesson .vdivider { display: none; }
+.app.phone .lesson.pane-story .desk { transform: translateX(100%); visibility: hidden; }
+.app.phone .lesson.pane-code .story { transform: translateX(-30%); visibility: hidden; }
+.app.phone .lesson.pane-story .story, .app.phone .lesson.pane-code .desk { transition: transform .32s cubic-bezier(.2, .9, .3, 1), visibility 0s; }
+.app.phone .lesson.article .desk { left: -10000px; right: auto; width: 900px !important; }
+.app.phone .story > .story-inner { padding: 14px 18px 0; }
+.app.phone .story-head h1 { font-size: 28px; letter-spacing: -.4px; }
+.app.phone .story-h { font-size: 20px; }
+.app.phone .lesson-acts { gap: 6px; }
+.app.phone .desk-head { height: 50px; padding: 0 8px 0 12px; }
+
+/* "Put Bento on your Home Screen" (Safari on an iPhone or iPad, once) */
+.hs-tip { position: fixed; z-index: 70; left: 12px; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 12px; padding: 12px 8px 12px 14px; border-radius: 18px; background: var(--popover); box-shadow: var(--shadow-2), 0 0 0 .5px var(--line-2); animation: psheet .4s cubic-bezier(.2, .9, .3, 1) both; max-width: 520px; margin: 0 auto; }
+.app.phone.at-root ~ .hs-tip { bottom: calc(66px + env(safe-area-inset-bottom)); }
+.hs-tip > div { flex: 1; display: grid; gap: 2px; font-size: 14px; color: var(--ink-2); line-height: 1.35; }
+.hs-tip b { font-size: 15px; color: var(--ink); }
+.hs-ico { width: 38px; height: 38px; flex: none; display: grid; place-items: center; border-radius: 11px; background: var(--accent-soft); color: var(--accent-ink); }
+.hs-tip .ib { width: 40px; height: 40px; flex: none; }
