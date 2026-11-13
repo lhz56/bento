@@ -40,6 +40,9 @@ GitHub, and no password in the repo or the environment.
 
    Apple usually notarizes in minutes; the first submissions on a new account took ~40 minutes each.
 
+   It needs about 1 GB of free disk per architecture plus 1.5 GB to spare (3.5 GB for both), and refuses to start with
+   less: a disk that fills up mid-build breaks every other app and build on the Mac too.
+
 What gets published:
 
 - `Bento-arm64.dmg`, `Bento-x64.dmg`: what people download. No version in the name, so

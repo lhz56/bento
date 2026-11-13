@@ -59,6 +59,14 @@ async function launchOnce(app) {
 console.log(`${PRODUCT} ${VERSION} for ${ARCHS.join(' + ')}${PUBLISH ? `, publishing to github.com/${TARGET}` : ' (build and check only)'}`);
 
 step('Preflight');
+// A build needs about 1 GB per architecture at its peak (the apps, the .dmg and .zip, the checks unpacking them), and
+// other work on this Mac (other apps' builds too) needs room meanwhile: a full disk breaks everything at once, so
+// refuse up front rather than run out halfway.
+{
+  const st = fs.statfsSync(root); const free = (st.bavail * st.bsize) / 2 ** 30, need = ARCHS.length + 1.5;
+  if (free < need) fail(`Only ${free.toFixed(1)} GB free on this disk; a build needs ${need.toFixed(1)} GB (about 1 GB per architecture, plus room for everything else). Free some space first, or build one architecture: --arch arm64`);
+  console.log(`✓ ${free.toFixed(1)} GB free (needs ${need.toFixed(1)} GB)`);
+}
 if (PUBLISH && quiet('git', ['status', '--porcelain']).out) fail('There are uncommitted changes. Commit them first, so the release matches a commit.');
 run('node', ['scripts/check-release.mjs']);
 if (!/Developer ID Application/.test(quiet('security', ['find-identity', '-v', '-p', 'codesigning']).out)) fail('No Developer ID Application certificate in the keychain.');

@@ -27,6 +27,7 @@ jobs:
         run: npm test
       - run: npx vite build
       - name: Package a test build (unpacked, unsigned; the debugger switch stays on so the tests can drive it, and the pretend AIs are allowed)
+        shell: bash # PowerShell would split the -c.x.y=z switches
         run: npx electron-builder --dir --publish never -c.electronFuses.enableNodeCliInspectArguments=true -c.extraMetadata.bentoTestBuild=true
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
