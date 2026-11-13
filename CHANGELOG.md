@@ -3,6 +3,18 @@
 Each version's section becomes its GitHub release notes, which is what "What's new" in the sidebar opens.
 Write for learners, not for developers.
 
+## 0.2.1
+
+Steadier and safer, especially when something goes wrong.
+
+- Bento opens even when your disk is full. If saving ever fails, a calm note says so, and Bento saves again by itself once there's space: nothing is lost while it stays open.
+- Big projects (thousands of files) are taken apart without Bento stopping for a moment: menus, saving and a lesson that's streaming in all keep going.
+- Answering a program's `input()` while it's still re-running no longer makes it ask you again.
+- A featured project no longer flickers back to its loading screen once it's open.
+- Offline, or a project that can't be downloaded? You get a plain sentence and a Try again button, not git's own output.
+- Opens faster from the second launch on, and the first launch loads less.
+- Tighter security: the window only ever runs Bento's own code, a file you drop is the only file Bento reads that way, website inspection can't be pointed at your own network, and links leave only for the web or email.
+
 ## 0.2.0
 
 The first release for the Mac: signed, notarized, and it keeps itself up to date.

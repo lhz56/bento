@@ -52,9 +52,11 @@ async function step(name, fn) {
   const t0 = Date.now(); let run = null;
   try { const note = await fn((r) => { run = r; }); console.log(`✓ ${name}${note ? ` · ${note}` : ''} (${((Date.now() - t0) / 1000).toFixed(1)}s)`); }
   catch (e) { fail++; console.log(`✗ ${name} → ${String(e.message).split('\n')[0]}`); await run?.p.screenshot({ path: path.join(OUT, `fail-${name.replace(/\W+/g, '-')}.png`) }).catch(() => {}); }
-  finally { await run?.app.close().catch(() => {}); }
+  finally { await run?.app.close().catch(() => {}); for (const d of made.splice(0)) { try { fs.chmodSync(d, 0o755); } catch {} fs.rmSync(d, { recursive: true, force: true }); } }
 }
-const tmp = (n) => fs.mkdtempSync(path.join(os.tmpdir(), `bento-fail-${n}-`));
+// folders made for a case are removed once its app has closed (Chromium still writes to its profile while quitting)
+const made = [];
+const tmp = (n) => { const d = fs.mkdtempSync(path.join(os.tmpdir(), `bento-fail-${n}-`)); made.push(d); return d; };
 
 await step('a damaged lessons file: Bento starts normally and keeps it aside', async (keep) => {
   const profile = tmp('damaged');
@@ -64,7 +66,6 @@ await step('a damaged lessons file: Bento starts normally and keeps it aside', a
   await sleep(500);
   const aside = fs.readdirSync(profile).find((f) => /^bento-store damaged .*\.json$/.test(f));
   if (!aside) throw new Error('the damaged file wasn’t kept aside');
-  fs.rmSync(profile, { recursive: true, force: true });
   return aside;
 });
 
@@ -84,7 +85,6 @@ await step('offline: searching and downloading say so plainly, and Bento stays u
   await sane(r, profile);
   // still usable: back to Learn
   await p.click('.side nav button:has-text("Learn")'); await p.waitForSelector('.home, .cx', { timeout: 10000 });
-  fs.rmSync(profile, { recursive: true, force: true });
   return said.slice(0, 90);
 });
 
@@ -108,7 +108,6 @@ if (process.platform !== 'win32') await step('a file Bento may not read, or that
   if (!/isn’t allowed to read/.test(answers[0]) || !/isn’t there any more/.test(answers[1]) || !/didn’t look right/.test(answers[2])) throw new Error(answers.join(' | '));
   await sane(r, profile);
   fs.chmodSync(path.join(proj, 'util.py'), 0o644);
-  fs.rmSync(proj, { recursive: true, force: true }); fs.rmSync(profile, { recursive: true, force: true });
   return answers.join(' · ');
 });
 
@@ -127,7 +126,6 @@ if (process.platform !== 'win32') await step('Bento may no longer write its data
   await p.evaluate(() => window.bento.storeSet('bento.smoke', { at: Date.now() }));
   await p.waitForFunction(() => !document.querySelector('.save-trouble'), null, { timeout: 5000 });
   await sane(r, profile);
-  fs.rmSync(profile, { recursive: true, force: true });
   return 'note shown, then gone once it could save again';
 });
 
