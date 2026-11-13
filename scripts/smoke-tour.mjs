@@ -42,7 +42,8 @@ const openProject = async () => {
 };
 
 const errs = []; p.on('pageerror', e => errs.push('PAGE ' + e.message)); p.on('console', m => { if (m.type() === 'error' && !/favicon|ERR_/.test(m.text())) errs.push('console ' + m.text().slice(0, 200)); });
-const step = async (name, fn) => { try { await fn(); console.log('✓', name); } catch (e) { console.log('✗', name, e.message.split('\n')[0]); errs.push(name); } };
+const OUT = path.join(root, 'smoke-out'); fs.mkdirSync(OUT, { recursive: true });
+const step = async (name, fn) => { try { await fn(); console.log('✓', name); } catch (e) { console.log('✗', name, e.message.split('\n')[0]); errs.push(name); await p.screenshot({ path: path.join(OUT, `tour-fail-${name.replace(/\W+/g, '-')}.png`) }).catch(() => {}); } };
 await step('home doors', async () => { await p.click('text=Learn'); await p.waitForSelector('.composer.cx', { timeout: 5000 }); await p.waitForSelector('.ideaflow', { timeout: 5000 }); });
 await step('path', async () => { await p.click('.side nav button:has-text("Path")'); await p.waitForSelector('.stop', { timeout: 5000 }); });
 // every kind of stop, on the newer paths: a lesson (pre-written, so it opens with no AI), a playground, a clever idea
@@ -85,7 +86,16 @@ await step('step-through', async () => { await p.click('.act:has(.act-i:text("�
 await step('remix → scratch', async () => { await p.click('.reset.remix'); await p.waitForSelector('.story-head h1:has-text("Remix")', { timeout: 5000 }); await p.click('.act.run'); await p.waitForSelector('.tree', { timeout: 30000 }); });
 await step('palette', async () => { await p.keyboard.press(`${MOD}+k`); await p.waitForSelector('.pal'); await p.keyboard.type('flask'); await p.waitForSelector('.pl-i'); await p.keyboard.press('Escape'); });
 await step('atlas overview', async () => { await openProject(); await p.waitForSelector('.flow', { timeout: 30000 }); await p.locator('.fnode').first().click(); await p.waitForSelector('.dive.open', { timeout: 5000 }); });
-await step('city hover', async () => { await p.click('.ab-nav button:has-text("Anatomy")'); await p.waitForTimeout(600); const bb = await p.locator('.bld .f-t').nth(1).boundingBox(); await p.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 4 }); await p.waitForSelector('.cap-f', { timeout: 5000 }); });
+await step('city hover', async () => {
+  await p.click('.ab-nav button:has-text("Anatomy")'); await p.waitForTimeout(600);
+  // a first-visit tip may be up, as for anyone: skip it, the way a person would
+  const skip = p.locator('.coach-tip button:has-text("Skip")'); if (await skip.count()) await skip.first().click();
+  const top = p.locator('.bld .f-t').nth(1); await top.scrollIntoViewIfNeeded();
+  const bb = await top.boundingBox(); const x = bb.x + bb.width / 2, y = bb.y + bb.height / 2;
+  const under = await p.evaluate(([x, y]) => { const el = document.elementFromPoint(x, y); return el?.closest('.bld') ? null : `${el?.tagName.toLowerCase()}.${String(el?.className?.baseVal ?? el?.className ?? '').split(' ').join('.')}`; }, [x, y]);
+  if (under) throw new Error(`the building is covered by ${under}`);
+  await p.mouse.move(x, y, { steps: 4 }); await p.waitForSelector('.cap-f', { timeout: 5000 });
+});
 await step('drawer', async () => { await p.locator('.bld').nth(1).dispatchEvent('click'); await p.waitForSelector('.drawer .cm-content', { timeout: 10000 }); await p.keyboard.press('Escape'); });
 await step('compare page', async () => { await p.keyboard.press(`${MOD}+k`); await p.keyboard.type('compare'); await p.keyboard.press('Enter'); await p.waitForSelector('.cmp-cols', { timeout: 5000 }); });
 await step('idea lesson (cached) + toc', async () => { await p.click('.side nav button:has-text("Explore")'); await p.click('.gtabs button:has-text("Clever ideas")'); await p.click('.idea-hero'); await p.waitForSelector('.lesson .story-head h1', { timeout: 120000 }); });
