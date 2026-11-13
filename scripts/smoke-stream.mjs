@@ -61,9 +61,9 @@ await step('a question inside the lesson gets a short answer, with what to ask n
   await p.click('#followup'); await p.keyboard.type('Why is that so fast?'); await p.keyboard.press('Enter');
   await p.waitForSelector('.qa .qa-a:has-text("hook")', { timeout: 30000 });
   const next = await p.locator('.qa-next button').count(); if (next !== 2) throw new Error(`${next} follow-ups`);
-  await p.waitForTimeout(700); // the scroll to it is smooth
-  const seen = await p.evaluate(() => { const q = [...document.querySelectorAll('.qa')].pop().getBoundingClientRect(); return q.top >= 0 && q.top < innerHeight / 2; }); // the question near the top, its answer below
-  if (!seen) throw new Error('the answer is off screen');
+  // the question settles near the top, its answer below (the scroll is smooth: slower machines take longer than a frame or two)
+  const settled = () => p.waitForFunction(() => { const q = [...document.querySelectorAll('.qa')].pop().getBoundingClientRect(); return q.top >= 0 && q.top < innerHeight / 2; }, null, { timeout: 5000 }).then(() => true, () => false);
+  if (!(await settled())) throw new Error('the answer is off screen');
   return `${next} follow-ups, Simpler and Show an example`;
 });
 if (process.env.SHOT) await p.screenshot({ path: process.env.SHOT });
@@ -74,9 +74,8 @@ await step('its optional check counts a right answer', async () => {
 await step('“Simpler” asks again and brings the new answer into view', async () => {
   await p.click('.qa .qa-chip:has-text("Simpler")');
   await p.waitForFunction(() => document.querySelectorAll('.qa').length === 2 && !document.querySelector('.qa:last-child .dots'), null, { timeout: 30000 });
-  await p.waitForTimeout(700);
-  const seen = await p.evaluate(() => { const q = [...document.querySelectorAll('.qa')].pop().getBoundingClientRect(); return q.top >= 0 && q.top < innerHeight / 2; });
-  if (!seen) throw new Error('the new answer is off screen');
+  const settled2 = await p.waitForFunction(() => { const q = [...document.querySelectorAll('.qa')].pop().getBoundingClientRect(); return q.top >= 0 && q.top < innerHeight / 2; }, null, { timeout: 5000 }).then(() => true, () => false);
+  if (!settled2) throw new Error('the new answer is off screen');
 });
 await step('no errors on the page', async () => { if (errors.length) throw new Error(errors.join(' | ')); });
 
