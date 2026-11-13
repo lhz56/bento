@@ -474,7 +474,7 @@ ipcMain.handle('folder:open', async () => {
 ipcMain.handle('drop:open', async (_e, p) => {
   if (typeof p !== 'string' || !path.isAbsolute(p) || !fs.existsSync(p)) throw new Error('Couldn’t read that.');
   const st = fs.statSync(p);
-  if (st.isDirectory()) { if (!projectRootOk(p)) throw new Error('Bento opens project folders, not your whole disk, home folder or system folders.'); roots.add(p); return { kind: 'local', root: p, name: path.basename(p) }; }
+  if (st.isDirectory()) { if (!projectRootOk(p, undefined, REPOS)) throw new Error('Bento opens project folders, not your whole disk, home folder or system folders.'); roots.add(p); return { kind: 'local', root: p, name: path.basename(p) }; }
   if (/\.bento$/i.test(p)) {
     if (st.size > 2_000_000) throw new Error('That lesson file is too big.');
     let j; try { j = JSON.parse(fs.readFileSync(p, 'utf8')); } catch { throw new Error('That .bento file is damaged.'); }
@@ -668,7 +668,7 @@ ipcMain.handle('atlas:list', async () => {
   }
   return out.sort((a, b) => b.at - a.at);
 });
-ipcMain.handle('atlas:reopen', async (_e, root) => { if (typeof root === 'string' && projectRootOk(root) && fs.existsSync(root)) { roots.add(root); return true; } return false; });
+ipcMain.handle('atlas:reopen', async (_e, root) => { if (typeof root === 'string' && projectRootOk(root, undefined, REPOS) && fs.existsSync(root)) { roots.add(root); return true; } return false; });
 
 // A plain JSON mirror of what the renderer keeps in localStorage, so a crash never loses lessons.
 const STORE = path.join(app.getPath('userData'), 'bento-store.json');

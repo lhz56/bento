@@ -1,6 +1,6 @@
 // Checks the finished Mac build in release/ before anything is published: what people download (.dmg),
 // what auto-update downloads (.zip) and how installed copies find it (latest-mac.yml).
-//   node scripts/verify-mac-release.mjs              a signed, notarized build (the release workflow runs this)
+//   node scripts/verify-mac-release.mjs              a signed, notarized build (npm run release runs this)
 //   node scripts/verify-mac-release.mjs --unsigned   a local test build: skips the Developer ID and Apple checks
 //   node scripts/verify-mac-release.mjs --dir /tmp/x another folder
 // Disk images are mounted hidden (never shown in Finder) and unmounted again. Nothing is changed.

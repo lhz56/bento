@@ -63,7 +63,11 @@ export default function Atlas({ asked, onAskedDone, onIdeaInstead, onPlanIssue, 
   const shownAt = useRef(Date.now()); const worked = useRef(false);
   if (A.status === 'reading' || (A.progress && A.progress.phase !== 'cached')) worked.current = true;
   const [hold, setHold] = useState(!F);
-  const holding = hold && (!F || worked.current);
+  // once the project is on screen it stays there: a featured one shows at once and its code downloads afterwards,
+  // and that download's progress used to bring the steps back over it for a second
+  const shown = useRef(false);
+  const holding = !shown.current && hold && (!F || worked.current);
+  if (F && !holding) shown.current = true;
   useEffect(() => { if (!F || !holding) return; const t = setTimeout(() => setHold(false), Math.max(1100, 1800 - (Date.now() - shownAt.current))); return () => clearTimeout(t); }, [F, holding]);
 
   // more sections than fit? fade the edge you can scroll towards, and keep the one you picked in view

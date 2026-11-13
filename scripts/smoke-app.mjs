@@ -87,6 +87,13 @@ await step('Python asks a question with input()', async () => {
   await p.waitForSelector('.log.asking input', { timeout: 30000 }); await p.fill('.log.asking input', 'Ana'); await p.keyboard.press('Enter');
   await p.waitForFunction(() => /Hi Ana/.test(document.querySelector('.stage-body')?.innerText || ''), null, { timeout: 30000 });
 });
+await step('an answer given while the code is still re-running is kept', async () => {
+  // typing starts a run by itself; Run pressed during it waits its turn, and the answer arrives during that one
+  await typeCode('n = sum(range(4000000))\nname = input("Name? ")\nprint("Hi again " + name)\n');
+  await p.waitForTimeout(700); await run();
+  await p.waitForSelector('.log.asking input', { timeout: 30000 }); await p.fill('.log.asking input', 'Bo'); await p.keyboard.press('Enter');
+  await p.waitForFunction(() => /Hi again Bo/.test(document.querySelector('.stage-body')?.innerText || ''), null, { timeout: 30000 });
+});
 await step('a crash points at its line', async () => {
   await typeCode('x = 1\nprint(x / 0)\n'); await run(); await p.waitForSelector('.err-card', { timeout: 30000 });
   const t = await p.locator('.err-card').innerText(); if (!/line 2/.test(t)) throw new Error(t.slice(0, 120)); return t.split('\n')[0].slice(0, 60);
@@ -129,6 +136,14 @@ await step('Settings open and close from the keyboard', async () => {
   await p.keyboard.press('Escape'); await p.waitForSelector('.settings', { state: 'detached', timeout: 5000 });
 });
 await p.waitForTimeout(700); await p.screenshot({ path: path.join(OUT, `bento-${process.platform}.png`) }).catch(() => {});
+await step('a featured project stays on screen once it’s open', async () => {
+  await p.click('.side nav button:has-text("Explore")'); await p.click('.gtabs button:has-text("Code")');
+  await p.click('.feat-i:has-text("taxonomy")');
+  await p.waitForSelector('.ab-nav', { timeout: 30000 });
+  // its code then downloads quietly; that mustn't bring the loading steps back over the project
+  const back = await p.evaluate(() => new Promise((r) => { const t0 = Date.now(); const iv = setInterval(() => { const l = !!document.querySelector('.atlas-loading'); if (l || Date.now() - t0 > 5000) { clearInterval(iv); r(l); } }, 40); }));
+  if (back) throw new Error('the loading steps came back after the project was on screen');
+});
 await step('no errors on the page', async () => { if (errors.length) throw new Error(errors.slice(0, 3).join(' | ')); });
 
 await app.close().catch(() => {});

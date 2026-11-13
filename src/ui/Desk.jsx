@@ -57,7 +57,7 @@ const Desk = forwardRef(function Desk(props, ref) {
   const [liveLogs, setLiveLogs] = useState([]);
   // stuck detector: the same error on three runs you asked for, or three failed test runs in a row
   const streak = useRef({ err: null, n: 0, tests: 0 }); const [stuck, setStuck] = useState(null);
-  const inflight = useRef(false), dirty = useRef(false);
+  const inflight = useRef(false), queued = useRef(null); // a run asked for during another one: the latest request's options
   const codeRef = useRef(code); codeRef.current = code;
   const lidRef = useRef(L.id); lidRef.current = L.id;
 
@@ -151,7 +151,7 @@ const Desk = forwardRef(function Desk(props, ref) {
   // ---- running
   const doRun = useCallback(async (src = codeRef.current, opts = {}) => {
     if (!src.trim()) return;
-    if (inflight.current) { dirty.current = true; return; }
+    if (inflight.current) { queued.current = opts; return; }
     if (!opts.fromTyping) clearTimeout(liveTimer.current); // a run you asked for (or an answer) replaces the pending re-run
     if (!opts.keepAnswers) { answersRef.current = []; seedRef.current = Math.floor(Math.random() * 1e9); }
     inflight.current = true; setRunning(true); setLiveLogs([]);
@@ -159,11 +159,12 @@ const Desk = forwardRef(function Desk(props, ref) {
     const bundle = projectBundle(src);
     const r = await runCode(lang, 'run', bundle.main, { key: L.id, answers: [...answersRef.current], seed: seedRef.current, files: bundle.files }, { onLive: (batch) => { if (lidRef.current === mine) setLiveLogs((l) => [...l, ...batch].slice(-400)); } });
     inflight.current = false; setRunning(false);
-    if (lidRef.current !== mine) { dirty.current = false; return; } // the learner moved to another lesson meanwhile
+    if (lidRef.current !== mine) { queued.current = null; return; } // the learner moved to another lesson meanwhile
     setResult(r); props.onResult?.(mine, r, src);
     if (!opts.quiet) { const S = streak.current; if (r.error) { S.n = S.err === r.error.msg ? S.n + 1 : 1; S.err = r.error.msg; if (S.n >= 3) setStuck({ why: 'error', err: r.error }); } else { S.n = 0; S.err = null; setStuck(null); } }
     if (!opts.quiet) { if (r.error) setTab((t) => (t === 'steps' || t === 'growth' || t === 'tests' ? t : 'output')); }
-    if (dirty.current) { dirty.current = false; doRun(codeRef.current, { quiet: true }); }
+    // then the one that waited, as asked: an answer typed meanwhile keeps the answers so far (it used to start over and ask again)
+    if (queued.current) { const next = queued.current; queued.current = null; doRun(codeRef.current, { quiet: true, keepAnswers: !!next.keepAnswers }); }
     onMastery?.('run');
   }, [lang, onMastery]);
 

@@ -63,7 +63,7 @@ const pass = async (theme) => {
   await nav('You', 'Your map'); await audit('map', theme);
   await p.locator('.tm-cell').first().click(); await audit('map, a skill open', theme); await p.click('.tm-x');
   await nav('You', 'Your words'); await audit('words', theme);
-  await nav('Explore', 'Code'); await p.click('.ready-box button:has-text("taxonomy"), .spec:has-text("taxonomy")').catch(async () => { await p.click('text=taxonomy'); });
+  await nav('Explore', 'Code'); await p.click('.feat-i:has-text("taxonomy")');
   await p.waitForSelector('.ab-nav', { timeout: 30000 }); await audit('a project (Atlas)', theme);
   await p.click('.side .recent .rl-main:has-text("hash map")'); await p.waitForSelector('.story-head h1:not(.sr-only)'); await audit('a lesson', theme);
   await p.keyboard.press(`${MOD}+,`); await p.waitForSelector('.settings'); await audit('settings', theme); await p.keyboard.press('Escape');

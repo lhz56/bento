@@ -283,9 +283,16 @@ if (process.platform !== 'win32') { const { createRequire } = await import('node
 
 // Folders a page could open as a project on its own: real projects yes, the whole disk, home, system or secrets no
 { const { createRequire } = await import('node:module'); const { projectRootOk } = createRequire(import.meta.url)('../electron/roots.cjs');
-  const H = '/Users/ana';
-  check(['/', H, '/Users', `${H}/.ssh`, `${H}/Library/Keychains`, '/etc', '/System/Library'].every((p) => !projectRootOk(p, H)), 'the disk, home, system folders and secrets can’t be opened as a project', '');
-  check([`${H}/Projects/app`, `${H}/Library/Application Support/Bento/repos/a__b`, '/Volumes/Work/code/app', `${H}/Desktop/site`].every((p) => projectRootOk(p, H)), 'real project folders can', ''); }
+  const win = process.platform === 'win32', H = win ? 'C:\\Users\\ana' : '/Users/ana';
+  const no = win ? ['C:\\', 'D:\\', H, 'C:\\Users', `${H}\\.ssh`, `${H}\\AppData\\Roaming`, 'C:\\Windows\\System32', 'C:\\Program Files\\app', 'D:\\ProgramData\\x']
+    : ['/', H, '/Users', `${H}/.ssh`, `${H}/Library/Keychains`, `${H}/.config`, '/etc', '/System/Library'];
+  const yes = win ? [`${H}\\Projects\\app`, 'D:\\code\\app', `${H}\\Desktop\\site`]
+    : [`${H}/Projects/app`, `${H}/Library/Application Support/Bento/repos/a__b`, '/Volumes/Work/code/app', `${H}/Desktop/site`];
+  check(no.every((p) => !projectRootOk(p, H)), 'the disk, home, system folders and secrets can’t be opened as a project', no.filter((p) => projectRootOk(p, H)).join('  '));
+  check(yes.every((p) => projectRootOk(p, H)), 'real project folders can', yes.filter((p) => !projectRootOk(p, H)).join('  '));
+  // a project Bento downloaded reopens wherever Bento keeps its data (AppData on Windows, ~/.config on Linux)
+  const own = win ? `${H}\\AppData\\Roaming\\Bento\\repos` : `${H}/.config/Bento/repos`;
+  check(projectRootOk(`${own}${win ? '\\' : '/'}a__b`, H, own) && !projectRootOk(H, H, own), 'a project Bento downloaded can be reopened, wherever Bento keeps its data', ''); }
 
 // Paths: every stop has its own id and is one thing; every lesson on a path ships pre-written (it opens instantly,
 // with no AI); stops that open another part of Bento point at something real
@@ -310,7 +317,7 @@ if (process.platform !== 'win32') { const { createRequire } = await import('node
 // personal settings are off), its stream read back into the same lesson, its errors explained in its own words
 { const { createRequire } = await import('node:module'); const P = createRequire(import.meta.url)('../electron/providers.cjs');
   const fs = await import('node:fs'); const os = await import('node:os'); const path = await import('node:path'); const { spawnSync } = await import('node:child_process');
-  const fake = new URL('./fixtures/fake-ai.mjs', import.meta.url).pathname;
+  const fake = (await import('node:url')).fileURLToPath(new URL('./fixtures/fake-ai.mjs', import.meta.url)); // a real path on Windows too
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bento-ai-')); const files = P.setupFiles(dir);
   P._resetCodexFeatures(['shell_tool', 'unified_exec', 'apps', 'plugins', 'browser_use', 'computer_use', 'view_image', 'image_generation']);
   const sysFile = path.join(dir, 'instructions.md'); fs.writeFileSync(sysFile, 'You teach by showing short, runnable code.');
