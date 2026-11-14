@@ -52,6 +52,9 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
   const wrap = useRef(null);
   const [width, setWidth] = useState(900);
   const [hover, setHover] = useState(null); // 'f:i' | 's:id' | 'd:layer'
+  // on a touch screen the first tap shows a building, the second opens it: counted by taps, since a tap's own
+  // mouseenter can arrive (and set hover) before its click on a slower iPad or iPhone
+  const tapped = useRef(null);
   const [heatOn, setHeatOn] = useState(false);
   const [focus, setFocus] = useState(null);
   const [jr, setJr] = useState(null);
@@ -249,7 +252,7 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
             const cls = ['bld', lit ? (lit.has(key) ? 'lit' : 'dim') : '', jr && jKeys[jr.s] === key ? 'now' : '', hover === key ? 'hov' : ''].join(' ');
             return (
               <g key={key} className={cls} style={{ '--c': c, '--roof': f.lang ? langColor(f.lang) : 'var(--ink-4)', '--side': side }}
-                onMouseEnter={() => setHover(key)} onMouseLeave={() => setHover(null)} onClick={() => { if (TOUCH && hover !== key) { setHover(key); return; } onOpen(f.p); }}>
+                onMouseEnter={() => setHover(key)} onMouseLeave={() => setHover(null)} onClick={() => { if (TOUCH && tapped.current !== key) { tapped.current = key; setHover(key); return; } onOpen(f.p); }}>
                 <polygon className="f-l" points={[D0, C0, C, D].map((p) => p.join(',')).join(' ')} />
                 <polygon className="f-r" points={[C0, B0, B, C].map((p) => p.join(',')).join(' ')} />
                 <polygon className="f-t" points={[A, B, C, D].map((p) => p.join(',')).join(' ')} />
