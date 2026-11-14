@@ -44,8 +44,21 @@ updates, the bookmarklet. Those are hidden on the phone.
 - Your recent lessons and projects, the model and Settings: the button at the top left.
 - A lesson has two pages, **Lesson** and **Code** (with Run and what the code does). Tapping a line the lesson
   points at jumps to the code.
-- A project's Atlas: section chips at the top, **⋯** for Fork, GitHub, Compare and notes. In the code city, drag
-  sideways to look around; tap a building to see what it is, tap it again to open the file.
+- A project's Atlas is laid out as a phone page of its own (`src/ui/AtlasPhone.jsx`), plain words first and the
+  technical side as you scroll:
+  - **Summary**: the project's icon, name and maker, its numbers in a row (stars, language, size), what it is in
+    one sentence, what it's like, and a checklist of what you can do with it.
+  - **How it works**: a card per step, from the person using it to everything behind the screen; tap one to see
+    what it does and the real word for it.
+  - **Parts**: one bar for the whole app, then a row per kind of part (what you see, the brains, memory…).
+  - **Services**: the services it signs up for as cards (tap one for what it does here, why it was picked and what
+    else would have worked), then the code it's built from.
+  - **Under the hood**: the code city (drag sideways; tap a building to see it, again to open it), hot spots, the
+    language, how it grew.
+  - **Code**: folders and files like a code app's file browser. A file opens as a sheet with **About** (what it
+    uses, what uses it, who'd feel a change) and **Code**, and a box to ask about it.
+  - **Learn it**: the order to read it in, and questions that open lessons. The question box for the whole project
+    is always at the bottom; **⋯** has Fork, GitHub, Compare and notes.
 - It moves the way an iPhone app does. A page you open slides in; Back and the tabs bring you back to the exact spot
   you left. A file, Settings, search or a conversation is a sheet: drag it down (or tap ✕) and it slides away. The
   drawer drags shut. In the Home Screen app, where Safari has no swipe of its own, a swipe from the left edge goes

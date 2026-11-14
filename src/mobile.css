@@ -405,3 +405,189 @@ body.touch .fu-hint { display: none; }
 .app.phone .sc-row { grid-template-columns: auto minmax(0, 1fr) auto; column-gap: 10px; }
 .app.phone .sc-o { white-space: nowrap; }
 .app.phone .sc-t { max-width: 40vw; }
+
+/* a file's sheet on a phone: one page that scrolls (what it uses, who'd feel a change, then its code), with ✕ and
+   the ask box always in reach. (On a Mac it's a column of fixed parts; on a phone that squeezed the lists to nothing.) */
+.app.phone .drawer { overflow-y: auto; overscroll-behavior: contain; }
+.app.phone .drawer > * { flex: none; }
+.app.phone .dr-top { position: sticky; top: 0; z-index: 2; padding: 18px 12px 8px 18px; background: var(--panel); }
+.app.phone .dr-path, .app.phone .dr-meta { padding-left: 18px; padding-right: 18px; }
+.app.phone .dr-role { margin: 6px 18px; font-size: 24px; }
+.app.phone .dr-path { font-size: 13px; }
+.app.phone .dr-meta { font-size: 13px; }
+.app.phone .dr-actions { padding: 14px 18px 4px; flex-wrap: wrap; }
+.app.phone .dr-rel { grid-template-columns: minmax(0, 1fr); max-height: none; overflow: visible; padding: 14px 18px 4px; gap: 12px; }
+.app.phone .drawer .ripple { margin: 10px 12px 4px; }
+.app.phone .dr-code { height: 64dvh; min-height: 0; margin: 12px 12px 0; }
+.app.phone .dr-ask { position: sticky; bottom: 0; z-index: 2; background: var(--panel); padding: 10px 12px; box-shadow: 0 -.5px 0 var(--line); }
+.app.phone .dr-ask input { height: 44px; font-size: 16px; border-radius: 12px; }
+
+/* the big picture: a part you tap opens right under it, one column, and Show me in the code fills the width */
+.app.phone .vf-node { min-height: 48px; scroll-margin-top: 64px; }
+.app.phone .vf-node b { font-size: 16px; }
+.app.phone .vf-edge { font-size: 11.5px; }
+.app.phone .dive-in { grid-template-columns: minmax(0, 1fr); gap: 14px; margin: 8px 0 2px; padding: 16px 16px 14px; border-radius: 16px; }
+.app.phone .dive-main h3 { font-size: 21px; }
+.app.phone .dive-main p { font-size: 16px; }
+.app.phone .dive-k { font-size: 11px; }
+.app.phone .dive-side .btn { width: 100%; justify-content: center; min-height: 44px; font-size: 15px; }
+
+/* Explore: a pasted link turns the button into "Take apart <name>": it gets its own line under the link */
+.app.phone .ex-search { flex-wrap: wrap; height: auto; min-height: 58px; padding: 6px 8px 6px 16px; row-gap: 4px; }
+.app.phone .ex-search input { min-width: 0; height: 46px; font-size: 17px; }
+.app.phone .ex-search.is-repo .send { flex-basis: 100%; height: 46px; justify-content: center; margin: 0 0 2px -8px; font-size: 16px; }
+.app.phone .ex-search .send { height: 40px; }
+
+/* the city's caption for a building: its path and what it does across the width, the numbers on a line under them */
+.app.phone .city-cap { width: calc(100vw - 24px); margin: 0 12px 6px; left: 12px; padding: 10px 14px; }
+.app.phone .cap-f { flex-wrap: wrap; row-gap: 4px; }
+.app.phone .cap-f .cap-main { flex: 1 1 calc(100% - 40px); }
+.app.phone .cap-f .cap-stats { flex-basis: 100%; padding-left: 24px; font-size: 12.5px; }
+.app.phone .cap-where { font-size: 12px; }
+.app.phone .cap-md { font-size: 16px; }
+
+/* ================================================================ a project's Atlas on a phone (AtlasPhone.jsx)
+   An app's page, the iPhone way: who made it and what it is at the top, the plain-words parts as cards and grouped
+   lists, then a dark band where the technical side begins, and the code as a code app shows it. */
+.vf-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.vf-does { font-size: 12.5px; line-height: 1.35; color: var(--ink-3); }
+.ask-go { display: none; }
+
+.app.phone .atlas .asec { padding: 36px 16px 6px; scroll-margin-top: 58px; }
+.app.phone .ph-head, .app.phone .atlas .sec-head { margin: 0 2px 16px; }
+.app.phone .ph-head .kicker, .app.phone .atlas .sec-head .kicker { margin-bottom: 4px; font-size: 12px; }
+.app.phone .ph-head h2, .app.phone .atlas .sec-head h2 { font: 600 27px/1.15 var(--serif); letter-spacing: -.5px; margin: 0; }
+.app.phone .ph-sub, .app.phone .atlas .sec-sub { margin: 7px 0 0; font-size: 15px; line-height: 1.45; color: var(--ink-3); }
+.app.phone .ph-sub-h { font: 750 12px var(--round); letter-spacing: .9px; text-transform: uppercase; color: var(--ink-3); margin: 24px 2px 10px; }
+.app.phone .ph-note { font-size: 15px; line-height: 1.45; color: var(--ink-3); margin: 0 2px; }
+.app.phone .ph-chev { flex: none; width: 8px; height: 8px; margin: 0 3px 0 4px; border: solid var(--ink-4); border-width: 2px 2px 0 0; transform: rotate(45deg); transition: transform .2s; }
+.app.phone [aria-expanded=true] > .ph-chev { transform: rotate(135deg); }
+.app.phone .ph-link { justify-self: start; min-height: 38px; color: var(--accent-ink); font: 600 15.5px var(--sans); }
+/* a grouped list or card: white on the page, hairline edges, rows divided after their picture */
+.app.phone :is(.ph-list, .ph-card) { border-radius: 18px; background: var(--panel); box-shadow: 0 0 0 .5px var(--line-2), 0 1px 2px rgba(0, 0, 0, .04); }
+
+/* the top: icon, name, maker, kind; the numbers in a row; what it is, what it's like, what you can do with it */
+.app.phone .ph-hero { padding-top: 20px; }
+.ph-id { display: flex; align-items: center; gap: 14px; }
+.ph-av { width: 76px; height: 76px; flex: none; border-radius: 19px; object-fit: cover; background: var(--bg-2); box-shadow: 0 0 0 .5px var(--line-2), 0 4px 14px -6px rgba(0, 0, 0, .25); }
+.ph-av-ph { display: grid; place-items: center; font: 800 32px var(--round); color: var(--accent-ink); background: var(--accent-soft); }
+.ph-idt { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+.ph-name { margin: 0; font: 700 25px/1.12 var(--sans); letter-spacing: -.5px; overflow-wrap: anywhere; }
+.ph-by { font-size: 15.5px; color: var(--ink-3); }
+.ph-kind { margin-top: 7px; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-ink); font: 750 11.5px var(--round); letter-spacing: .6px; text-transform: uppercase; }
+.ph-stats { display: flex; overflow-x: auto; margin: 20px -16px 0; padding: 12px 6px; border-block: .5px solid var(--line-2); scrollbar-width: none; overscroll-behavior-x: contain; }
+.ph-stats::-webkit-scrollbar { display: none; }
+.ph-stat { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 88px; padding: 0 10px; text-align: center; }
+.ph-stat + .ph-stat { border-left: .5px solid var(--line-2); }
+.ph-stat span { font: 700 10.5px var(--round); letter-spacing: .7px; text-transform: uppercase; color: var(--ink-4); }
+.ph-stat b { font: 700 21px/1.2 var(--sans); letter-spacing: -.4px; color: var(--ink-2); }
+.ph-stat i { font-style: normal; font-size: 12px; color: var(--ink-4); white-space: nowrap; }
+.ph-one { margin: 22px 2px 0; font: 600 25px/1.24 var(--serif); letter-spacing: -.4px; }
+.ph-like { margin: 12px 2px 0; font: italic 17.5px/1.5 var(--serif); color: var(--ink-2); }
+.app.phone .ph-card { margin-top: 20px; padding: 16px 16px 18px; }
+.ph-card-h { margin-bottom: 12px; font: 750 12px var(--round); letter-spacing: .9px; text-transform: uppercase; color: var(--ink-3); }
+.ph-does ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.ph-does li { display: flex; align-items: flex-start; gap: 12px; font-size: 16.5px; line-height: 1.35; }
+.ph-tick { flex: none; width: 22px; height: 22px; margin-top: -1px; border-radius: 50%; display: grid; place-items: center; background: var(--mint-soft); color: var(--mint-ink); }
+.ph-for { margin: 18px 2px 0; font-size: 15px; line-height: 1.5; color: var(--ink-2); }
+.ph-for b { display: block; margin-bottom: 3px; font: 750 12px var(--round); letter-spacing: .9px; text-transform: uppercase; color: var(--ink-3); }
+
+/* how it works: a step per card, its picture, its name and what it does; the line between them says how they talk */
+.app.phone .bigpic .bp-head { justify-content: flex-start; margin: -2px 2px 12px; }
+.app.phone .bigpic .bp-head .mini-h { display: none; }
+.app.phone .bigpic .bp-hint { font-size: 0; gap: 0; }
+.app.phone .bigpic .walk-btn { margin: 0; font-size: 14px; height: 38px; padding: 0 16px; }
+.app.phone .vflow { padding: 0; }
+.app.phone .vf-node { gap: 13px; min-height: 66px; padding: 12px 14px; border-radius: 18px; box-shadow: 0 0 0 .5px var(--line-2), 0 1px 2px rgba(0, 0, 0, .04); }
+.app.phone .vf-node::before { display: none; }
+.app.phone .vf-node::after { content: ''; flex: none; width: 8px; height: 8px; margin: 0 2px 0 2px; border: solid var(--ink-4); border-width: 2px 2px 0 0; transform: rotate(45deg); transition: transform .2s; }
+.app.phone .vf-node.on::after { transform: rotate(135deg); }
+.app.phone .vf-node.on { box-shadow: 0 0 0 2px var(--c), 0 6px 20px -10px var(--c); }
+.app.phone .vf-node .fn-term { display: none; }
+.app.phone .vf-node b { font: 650 17px/1.25 var(--serif); }
+.app.phone .vf-does { font-size: 14.5px; }
+.app.phone .vf-edge { height: 30px; padding-left: 27px; gap: 12px; font-size: 12.5px; }
+.app.phone .vf-edge i { width: 2px; background: color-mix(in srgb, var(--ink) 14%, transparent); }
+.app.phone .bigpic .takes { margin-top: 26px; }
+
+/* its parts: one bar for the whole app, then a row per kind with its own colour */
+.pp-bar { display: flex; gap: 2px; height: 12px; margin: 0 2px 14px; border-radius: 6px; overflow: hidden; }
+.pp-bar i { display: block; min-width: 5px; }
+.app.phone .ph-list { overflow: hidden; }
+.pp-row + .pp-row::before { content: ''; display: block; height: .5px; margin-left: 64px; background: var(--line-2); }
+.pp-main { display: flex; align-items: center; gap: 13px; width: 100%; min-height: 66px; padding: 10px 14px; text-align: left; }
+.pp-ic { flex: none; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: var(--c); color: #fff; }
+.pp-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.pp-t b { font-size: 16.5px; font-weight: 600; }
+.pp-t span { font-size: 13.5px; line-height: 1.3; color: var(--ink-3); }
+.pp-n { font: 600 15px var(--sans); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.pp-more { display: grid; gap: 8px; padding: 0 16px 14px 65px; animation: fadeIn .2s both; }
+.pp-say { font-size: 15px; line-height: 1.5; color: var(--ink-2); }
+.pp-say code { font-size: 13px; }
+
+/* what it relies on: the services as cards, two by two; the code it's built from, a row you swipe */
+.sv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.sv { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; min-height: 156px; padding: 14px 14px 16px; border-radius: 18px; background: var(--panel); box-shadow: 0 0 0 .5px var(--line-2), 0 1px 2px rgba(0, 0, 0, .04); text-align: left; }
+.sv b { margin-top: 10px; font-size: 16.5px; font-weight: 650; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sv-cat { font: 750 11px var(--round); letter-spacing: .6px; text-transform: uppercase; color: var(--accent-ink); }
+.sv-what { margin-top: 5px; font-size: 13.5px; line-height: 1.35; color: var(--ink-3); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.sv-row { display: flex; gap: 10px; overflow-x: auto; margin: 0 -16px; padding: 2px 16px 8px; scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding: 0 16px; overscroll-behavior-x: contain; }
+.sv-row::-webkit-scrollbar { display: none; }
+.sv-lib { flex: none; width: 100px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 14px 6px 12px; border-radius: 18px; background: var(--panel); box-shadow: 0 0 0 .5px var(--line-2); scroll-snap-align: start; }
+.sv-lib b { max-width: 100%; margin-top: 6px; font-size: 13.5px; font-weight: 600; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sv-lib span { max-width: 100%; font-size: 11.5px; color: var(--ink-4); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* one of them, as a sheet */
+.app.phone .drawer.tool-sheet { top: auto; max-height: 86dvh; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+.ts-id { display: flex; align-items: center; gap: 14px; padding: 4px 18px 4px; }
+.ts-id h3 { margin: 0; font: 700 24px var(--sans); letter-spacing: -.4px; }
+.ts-id span { font-size: 14.5px; color: var(--ink-3); }
+.ts-block { padding: 16px 18px 0; }
+.ts-block p, .ts-p { margin: 0; font-size: 16px; line-height: 1.5; color: var(--ink); }
+.ts-alt { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; }
+.ts-alt b { display: block; font-size: 15.5px; }
+.ts-alt span { font-size: 14px; line-height: 1.4; color: var(--ink-3); }
+.ts-go { padding: 20px 18px 4px; }
+.ts-go .btn { width: 100%; min-height: 50px; justify-content: center; font-size: 16px; border-radius: 14px; }
+
+/* where the technical side begins */
+.ph-under { display: flex; align-items: center; gap: 14px; margin: 44px 16px 0; padding: 18px; border-radius: 20px; background: var(--ink); color: var(--bg); }
+.ph-under-ic { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 16%, transparent); }
+.ph-under b { display: block; font: 700 18px var(--sans); letter-spacing: -.2px; }
+.ph-under span { display: block; margin-top: 2px; font-size: 14px; line-height: 1.4; opacity: .72; }
+
+/* the code: folders and files, as a code app lists them */
+.app.phone .fl { columns: auto; margin-top: 10px; border-radius: 18px; background: var(--panel); box-shadow: 0 0 0 .5px var(--line-2), 0 1px 2px rgba(0, 0, 0, .04); overflow: hidden; }
+.app.phone .fl-dir { margin: 0; }
+.app.phone .fl-dir + .fl-dir { border-top: .5px solid var(--line-2); }
+.app.phone .fl-dname { width: 100%; min-height: 52px; gap: 11px; padding: 0 14px; font: 600 15px var(--sans); color: var(--ink); }
+.app.phone .fl-dn { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 14.5px var(--mono); }
+.app.phone .fl-dname .muted { font-size: 14px; }
+.fl-folder { flex: none; display: grid; place-items: center; color: color-mix(in srgb, var(--sky, #4aa3df) 85%, var(--ink)); }
+.app.phone .fl-f { grid-template-columns: 34px minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 12px; row-gap: 1px; min-height: 58px; padding: 9px 14px 9px 22px; border-radius: 0; border-top: .5px solid var(--line); }
+.app.phone .fl-f:hover { background: none; box-shadow: none; }
+.fl-ic { grid-row: 1 / 3; width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font: 800 10px var(--round); letter-spacing: .2px; color: var(--c); background: color-mix(in srgb, var(--c) 14%, var(--panel)); box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--c) 30%, transparent); }
+.app.phone .fl-n { grid-column: 2; max-width: none; font: 500 15px var(--mono); }
+.app.phone .fl-r { grid-column: 2; grid-row: 2; font-size: 13px; white-space: nowrap; }
+.app.phone .fl-l { grid-column: 3; grid-row: 1 / 3; font-size: 12px; }
+.app.phone #sec-files .sec-tools .seg button { min-width: 64px; }
+
+/* a file: About | Code, like a code app's file view; the code fills the sheet */
+.app.phone .dr-tabs { display: flex; margin: 14px 16px 2px; padding: 2px; border-radius: 10px; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.app.phone .dr-tabs button { flex: 1; height: 34px; border-radius: 8px; font: 600 14.5px var(--sans); color: var(--ink-2); display: flex; align-items: center; justify-content: center; gap: 6px; }
+.app.phone .dr-tabs button.on { background: var(--panel); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 0 0 .5px rgba(0, 0, 0, .04); }
+.app.phone .dr-tabs button span { font: 500 11.5px var(--mono); color: var(--ink-4); }
+.app.phone .drawer.tab-code { overflow: hidden; display: flex; flex-direction: column; }
+.app.phone .drawer.tab-code .dr-code { flex: 1 1 auto; height: auto; min-height: 0; margin: 10px 0 0; border-radius: 0; box-shadow: none; border-top: .5px solid var(--line); }
+.app.phone .drawer.tab-code :is(.dr-path, .dr-meta) { display: none; }
+.app.phone .drawer.tab-code .dr-role { font-size: 19px; margin-top: 2px; }
+.app.phone .drawer.tab-code .dr-actions { padding-top: 10px; }
+.app.phone .drawer .dr-ask { margin-top: auto; }
+
+/* asking: a box like any chat app's, with a send button that lights up once you've typed */
+body.touch .ask-go { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--accent-ink); color: var(--on-ink); transition: opacity .15s, background .15s; }
+body.touch .ask-go:disabled { background: var(--bg-3); color: var(--ink-4); }
+.app.phone .atlas-ask .fu { height: 52px; padding: 0 9px 0 16px; border-radius: 26px; box-shadow: 0 0 0 .5px var(--line-2), 0 8px 26px -10px rgba(0, 0, 0, .28); background: var(--popover); }
+.app.phone .atlas-ask .fu input { font-size: 16px; }
+.app.phone .atlas-ask .ask-ic { display: none; }
+.app.phone .dr-ask { display: flex; align-items: center; gap: 8px; }
+.app.phone .dr-ask input { flex: 1; min-width: 0; border-radius: 22px; padding: 0 16px; }

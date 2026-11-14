@@ -140,6 +140,8 @@ await step('a project, taken apart, and a file opened from its code city', async
   await b.click({ force: true }); await p.waitForSelector('.cap-f', { timeout: 5000 });
   for (let i = 0; i < 20 && !(await p.locator('.drawer').count()); i++) { await b.click({ force: true }); await p.waitForTimeout(1500); }
   await p.waitForSelector('.drawer', { timeout: 10000 });
+  // (on an iPhone a file opens on what it's about; its code is the other tab)
+  if (await p.locator('.dr-tabs').count()) await p.click('.dr-tabs button:has-text("Code")');
   await p.waitForFunction(() => /\w/.test(document.querySelector('.drawer .cm-content, .drawer pre, .drawer code')?.textContent || ''), null, { timeout: 90000 });
   return (await p.locator('.drawer').innerText()).split('\n').find((l) => /\.\w+$/.test(l)) || '';
 });
@@ -147,9 +149,9 @@ if (!IPAD) await step('a file’s sheet drags down and away; a section chip land
   await p.waitForTimeout(500); // (the sheet has finished sliding up)
   await swipe(196, 150, 196, 540); await p.waitForTimeout(700);
   must(!(await p.locator('.drawer').count()), 'the sheet stayed');
-  await p.click('.ab-nav button:text-is("Files")'); await p.waitForTimeout(1400);
+  await p.click('.ab-nav button:text-is("Code")'); await p.waitForTimeout(1400);
   const off = await p.evaluate(() => Math.round(document.querySelector('#sec-files').getBoundingClientRect().top - document.querySelector('.atlas-bar').getBoundingClientRect().bottom));
-  must(Math.abs(off) < 40 && (await p.locator('.ab-nav button.on').innerText()) === 'Files', `Files landed ${off}px off`);
+  must(Math.abs(off) < 40 && (await p.locator('.ab-nav button.on').innerText()) === 'Code', `Code landed ${off}px off`);
 });
 if (!IPAD) await step('a swipe from the left edge goes back, and the page is whole after', async () => {
   await swipe(4, 420, 330, 425, 220); await p.waitForSelector('.explore', { timeout: 10000 }); await p.waitForTimeout(400);

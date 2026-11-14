@@ -251,7 +251,7 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
             const side = hv > 0.3 ? `color-mix(in srgb, var(--rose) ${Math.round(hv * 80)}%, var(--bsid))` : 'var(--bsid)';
             const cls = ['bld', lit ? (lit.has(key) ? 'lit' : 'dim') : '', jr && jKeys[jr.s] === key ? 'now' : '', hover === key ? 'hov' : ''].join(' ');
             return (
-              <g key={key} className={cls} style={{ '--c': c, '--roof': f.lang ? langColor(f.lang) : 'var(--ink-4)', '--side': side }}
+              <g key={key} className={cls} data-p={f.p} style={{ '--c': c, '--roof': f.lang ? langColor(f.lang) : 'var(--ink-4)', '--side': side }}
                 onMouseEnter={() => setHover(key)} onMouseLeave={() => setHover(null)} onClick={() => { if (TOUCH && tapped.current !== key) { tapped.current = key; setHover(key); return; } onOpen(f.p); }}>
                 <polygon className="f-l" points={[D0, C0, C, D].map((p) => p.join(',')).join(' ')} />
                 <polygon className="f-r" points={[C0, B0, B, C].map((p) => p.join(',')).join(' ')} />

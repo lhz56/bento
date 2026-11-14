@@ -13,6 +13,7 @@ Bento on your iPhone and iPad.
 - Put it on your Home Screen and it opens like an app, already connected.
 - It moves like an app, too: pages slide in, Back and the tabs return you to the exact spot you left, sheets drag down to close, the drawer drags shut, and in the Home Screen app a swipe from the left edge goes back. When you type, the keyboard takes the bottom of the screen and the top bar stays where it is.
 - Every screen fits a phone. The Path is one column you scroll down, with the paths in a row you swipe. Projects in Explore and puzzles in Practice are full-width rows that light up under your finger, as in any iPhone list, and the rows of topics and filters scroll sideways instead of piling up. Small buttons and links are now big enough for a thumb, and no text is too small to read. In dark mode, the screen is never white while Bento loads.
+- Taking apart an app looks made for a phone. It opens like an App Store page: the project's icon, its numbers, what it is in one sentence and what you can do with it. Scroll for how it works (a card per step), its parts, and the services it relies on (tap Stripe, say, for what it does here and what else would have worked), then a clear line where the technical side begins: the code city, hot spots, and the code as a file browser. A file opens as a sheet with About and Code, and a box to ask about it.
 
 ## 0.2.1
 

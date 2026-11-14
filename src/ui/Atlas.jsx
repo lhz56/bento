@@ -11,6 +11,8 @@ import { Md } from './Story.jsx';
 import { keys, mod } from '../platform.js';
 import { t } from '../i18n.js';
 import { save } from '../store.js';
+import { useNarrow } from './Phone.jsx';
+import { PHONE_SECTIONS, PhoneHero, PhoneParts, PhoneServices, PhoneHead, UnderHood } from './AtlasPhone.jsx';
 
 const SECTIONS = [['overview', 'Overview'], ['anatomy', 'Anatomy'], ['grow', 'Growth'], ['stack', 'Toolbelt'], ['language', 'Language'], ['hot', 'Hot spots'], ['files', 'Files'], ['study', 'Study it'], ['help', 'Help out']];
 const edLang = (l) => (l === 'Python' ? 'python' : l === 'TypeScript' ? 'typescript' : 'javascript');
@@ -34,6 +36,7 @@ export default function Atlas({ asked, onAskedDone, onIdeaInstead, onPlanIssue, 
   const [forkState, setForkState] = useState(null);
   const [copied, setCopied] = useState(false);
   const [acts, setActs] = useState(false); // on a phone, the project's actions open from ⋯
+  const phone = useNarrow(); // a phone (or a narrow window): the Atlas as a phone page (AtlasPhone.jsx)
 
   const stack = useMemo(() => { if (F) setDupes(F.files); return F ? detectStack(F) : []; }, [F]);
   const tools = useMemo(() => mergeTools(stack, N?.stack), [stack, N?.stack]);
@@ -49,7 +52,10 @@ export default function Atlas({ asked, onAskedDone, onIdeaInstead, onPlanIssue, 
     const io = new IntersectionObserver((es) => { if (Date.now() < goingTo.current) return; const v = es.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]; if (v) setSection(v.target.id.replace('sec-', '')); }, { root: el, rootMargin: '-80px 0px -60% 0px' });
     el.querySelectorAll('.asec').forEach((s) => io.observe(s));
     return () => io.disconnect();
-  }, [F]);
+  }, [F, phone]);
+  // (on a phone: a tool's alternatives, and the files that use it, in the code city)
+  const altsOf = (s) => { const n = N?.stack?.[s.id] || Object.values(N?.stack || {}).find((x) => x.name?.toLowerCase() === s.name.toLowerCase()); return (n?.alts?.length ? n.alts.map((a) => ({ name: a.name, when: a.when, tool: findTool(a.name) })) : (s.alt || []).map((id) => BY_ID[id]).filter(Boolean).map((t) => ({ name: t.name, when: t.when, tool: t }))).slice(0, 4); };
+  const showFiles = (ids) => { window.dispatchEvent(new CustomEvent('atlas-focus', { detail: ids })); go('anatomy'); };
   // a section picked from the bar: it stays the one lit while the page glides there (not each one it passes)
   const goingTo = useRef(0);
   const go = (id) => {
@@ -100,7 +106,7 @@ export default function Atlas({ asked, onAskedDone, onIdeaInstead, onPlanIssue, 
           {meta.avatar ? <img src={meta.avatar} alt="" /> : <span className="ab-folder">▢</span>}
           <span className="ab-name"><span className="muted">{(meta.full || A.name).includes('/') ? (meta.full || A.name).split('/')[0] + ' / ' : ''}</span>{(meta.full || A.name).split('/').pop()}</span>
         </div>
-        <nav className={`ab-nav ${navMore}`} ref={navRef} aria-label="Sections">{SECTIONS.filter(([id]) => !['grow', 'help'].includes(id) || A.src?.kind === 'github').map(([id, l]) => <button key={id} className={section === id ? 'on' : ''} onClick={() => go(id)}>{l}</button>)}</nav>
+        <nav className={`ab-nav ${navMore}`} ref={navRef} aria-label="Sections">{(phone ? PHONE_SECTIONS : SECTIONS).filter(([id]) => !['grow', 'help'].includes(id) || A.src?.kind === 'github').map(([id, l]) => <button key={id} className={section === id ? 'on' : ''} onClick={() => go(id)}>{l}</button>)}</nav>
         <button className="ab-more" aria-label={t('More actions')} aria-expanded={acts} onClick={() => setActs((o) => !o)}>⋯</button>
         {acts && <div className="ab-veil" onClick={() => setActs(false)} aria-hidden="true" />}
         <div className={`ab-act ${acts ? 'open' : ''}`} onClick={() => setActs(false)}>
@@ -119,53 +125,76 @@ export default function Atlas({ asked, onAskedDone, onIdeaInstead, onPlanIssue, 
       </div>
       {asked && <AskedBanner asked={asked} A={A} onIdeaInstead={onIdeaInstead} onClose={onAskedDone} />}
 
-      {/* ------------------------------------------------ overview: a headline, vitals, and the whole system as one picture */}
-      <section className="asec a-over" id="sec-overview">
-        <div className="over-top">
-          <div className="over-text">
-            <div className="kicker">{gist?.kind || (A.src?.kind === 'local' ? 'your project' : 'open source')}</div>
-            <h1 className={gist ? '' : 'pending'}>{gist?.one || meta.description || F.sig?.pkgDesc || `What is ${A.name.split('/').pop()}?`}</h1>
-            {gist?.analogy ? <p className="analogy">{gist.analogy}</p> : narrating ? <div className="shimmer" style={{ width: '62%', height: 16 }} /> : null}
-          </div>
-          <div className="vitals">
-            <Donut langs={langs} total={totalL} />
-            <div className="vt-rows">
-              <div><b>{F.totals.code}</b><span>code files</span></div>
-              <div><b>{fmtN(F.totals.lines)}</b><span>lines</span></div>
-              <div><b>{tools.length}</b><span>outside tools</span></div>
-              {meta.stars > 0 && <div><b>★ {fmtN(meta.stars)}</b><span>{meta.pushed ? `updated ${ago(meta.pushed)}` : 'stars'}</span></div>}
+      {phone ? (
+        <>
+          {/* a phone: the app for anyone first, then the technical side, then the code (AtlasPhone.jsx) */}
+          <PhoneHero A={A} F={F} N={N} meta={meta} tools={tools} langs={langs} totalL={totalL} narrating={narrating} ago={ago} />
+          <section className="asec" id="sec-how">
+            <PhoneHead k="the big picture" title="How it works" sub="Follow it from the person using it to everything behind the screen. Tap any step to see what it does." />
+            <BigPicture appName={(meta.full || A.name).split('/').pop()} onMakePath={onMakePath} build={N?.build} onBuild={onBuild} flow={N?.flow || fallbackFlow(F, tools)} terms={N?.terms || []} tools={tools} pathIdx={pathIdx} onOpen={openFile} onAsk={onAsk} narrating={narrating} role={role} />
+          </section>
+          <PhoneParts F={F} N={N} onShow={(k) => window.dispatchEvent(new CustomEvent('atlas-layer', { detail: k }))} />
+          <PhoneServices tools={tools} N={N} narrating={narrating} altsOf={altsOf} onShowFiles={showFiles} />
+          <UnderHood />
+          <City F={F} N={N} tools={tools} pathIdx={pathIdx} role={role} onOpen={openFile} narrating={narrating} hot={hot} />
+          <Hotspots hot={hot} role={role} onOpen={openFile} narrating={narrating} F={F} pathIdx={pathIdx} />
+          <Language langs={langs} totalL={totalL} main={mainLang} N={N} narrating={narrating} />
+          {A.src?.kind === 'github' && <Grow full={A.src.full || meta.full} />}
+          <FileList F={F} role={role} onOpen={openFile} phone />
+          <Study F={F} readFile={readFile} onOpen={openFile} A={A} N={N} onAsk={onAsk} onFeature={onFeature} narrating={narrating} tour={(N?.tour || []).filter((t) => pathIdx.has(t.p))} role={role} onTour={(i) => { const st = (N?.tour || []).filter((t) => pathIdx.has(t.p)); setTourAt(i); setDrawer(st[i].p); }} />
+          {A.src?.kind === 'github' && <Contribute full={A.src.full || meta.full} onPlan={onPlanIssue} onOpen={openFile} onOpenUrl={onOpenUrl} pathIdx={pathIdx} />}
+        </>
+      ) : (
+        <>
+          {/* ------------------------------------------------ overview: a headline, vitals, and the whole system as one picture */}
+          <section className="asec a-over" id="sec-overview">
+            <div className="over-top">
+              <div className="over-text">
+                <div className="kicker">{gist?.kind || (A.src?.kind === 'local' ? 'your project' : 'open source')}</div>
+                <h1 className={gist ? '' : 'pending'}>{gist?.one || meta.description || F.sig?.pkgDesc || `What is ${A.name.split('/').pop()}?`}</h1>
+                {gist?.analogy ? <p className="analogy">{gist.analogy}</p> : narrating ? <div className="shimmer" style={{ width: '62%', height: 16 }} /> : null}
+              </div>
+              <div className="vitals">
+                <Donut langs={langs} total={totalL} />
+                <div className="vt-rows">
+                  <div><b>{F.totals.code}</b><span>code files</span></div>
+                  <div><b>{fmtN(F.totals.lines)}</b><span>lines</span></div>
+                  <div><b>{tools.length}</b><span>outside tools</span></div>
+                  {meta.stars > 0 && <div><b>★ {fmtN(meta.stars)}</b><span>{meta.pushed ? `updated ${ago(meta.pushed)}` : 'stars'}</span></div>}
+                </div>
+                {gist?.users && <div className="vt-who"><span className="k">for</span>{gist.users}</div>}
+              </div>
             </div>
-            {gist?.users && <div className="vt-who"><span className="k">for</span>{gist.users}</div>}
-          </div>
-        </div>
-        <BigPicture appName={(meta.full || A.name).split('/').pop()} onMakePath={onMakePath} build={N?.build} onBuild={onBuild} flow={N?.flow || fallbackFlow(F, tools)} terms={N?.terms || []} tools={tools} pathIdx={pathIdx} onOpen={openFile} onAsk={onAsk} narrating={narrating} role={role} />
-        {tools.length > 0 && (
-          <div className="stack-strip">
-            <span className="mini-h">built with</span>
-            <div className="ss-row">
-              {tools.slice(0, 14).map((t) => (
-                <button key={t.id} className="ss-t" onClick={() => { window.dispatchEvent(new CustomEvent('atlas-tool', { detail: t.id })); go('stack'); }} title={`${t.name}: ${N?.stack?.[t.id]?.role || t.what}`}>
-                  <Brand slug={t.slug} name={t.name} color={t.color} size={34} />
-                  <span>{t.name}</span>
-                  <i>{CATS[t.cat]?.[0]}</i>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </section>
+            <BigPicture appName={(meta.full || A.name).split('/').pop()} onMakePath={onMakePath} build={N?.build} onBuild={onBuild} flow={N?.flow || fallbackFlow(F, tools)} terms={N?.terms || []} tools={tools} pathIdx={pathIdx} onOpen={openFile} onAsk={onAsk} narrating={narrating} role={role} />
+            {tools.length > 0 && (
+              <div className="stack-strip">
+                <span className="mini-h">built with</span>
+                <div className="ss-row">
+                  {tools.slice(0, 14).map((t) => (
+                    <button key={t.id} className="ss-t" onClick={() => { window.dispatchEvent(new CustomEvent('atlas-tool', { detail: t.id })); go('stack'); }} title={`${t.name}: ${N?.stack?.[t.id]?.role || t.what}`}>
+                      <Brand slug={t.slug} name={t.name} color={t.color} size={34} />
+                      <span>{t.name}</span>
+                      <i>{CATS[t.cat]?.[0]}</i>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
 
-      <City F={F} N={N} tools={tools} pathIdx={pathIdx} role={role} onOpen={openFile} narrating={narrating} hot={hot} />
-      {A.src?.kind === 'github' && <Grow full={A.src.full || meta.full} />}
-      <Toolbelt tools={tools} stack={stack} N={N} narrating={narrating} onShowFiles={(ids) => { window.dispatchEvent(new CustomEvent('atlas-focus', { detail: ids })); go('anatomy'); }} />
-      <Language langs={langs} totalL={totalL} main={mainLang} N={N} narrating={narrating} />
-      <Hotspots hot={hot} role={role} onOpen={openFile} narrating={narrating} F={F} pathIdx={pathIdx} />
-      <FileList F={F} role={role} onOpen={openFile} />
-      <Study F={F} readFile={readFile} onOpen={openFile} A={A} N={N} onAsk={onAsk} onFeature={onFeature} narrating={narrating} tour={(N?.tour || []).filter((t) => pathIdx.has(t.p))} role={role} onTour={(i) => { const st = (N?.tour || []).filter((t) => pathIdx.has(t.p)); setTourAt(i); setDrawer(st[i].p); }} />
-      {A.src?.kind === 'github' && <Contribute full={A.src.full || meta.full} onPlan={onPlanIssue} onOpen={openFile} onOpenUrl={onOpenUrl} pathIdx={pathIdx} />}
+          <City F={F} N={N} tools={tools} pathIdx={pathIdx} role={role} onOpen={openFile} narrating={narrating} hot={hot} />
+          {A.src?.kind === 'github' && <Grow full={A.src.full || meta.full} />}
+          <Toolbelt tools={tools} stack={stack} N={N} narrating={narrating} onShowFiles={(ids) => { window.dispatchEvent(new CustomEvent('atlas-focus', { detail: ids })); go('anatomy'); }} />
+          <Language langs={langs} totalL={totalL} main={mainLang} N={N} narrating={narrating} />
+          <Hotspots hot={hot} role={role} onOpen={openFile} narrating={narrating} F={F} pathIdx={pathIdx} />
+          <FileList F={F} role={role} onOpen={openFile} />
+          <Study F={F} readFile={readFile} onOpen={openFile} A={A} N={N} onAsk={onAsk} onFeature={onFeature} narrating={narrating} tour={(N?.tour || []).filter((t) => pathIdx.has(t.p))} role={role} onTour={(i) => { const st = (N?.tour || []).filter((t) => pathIdx.has(t.p)); setTourAt(i); setDrawer(st[i].p); }} />
+          {A.src?.kind === 'github' && <Contribute full={A.src.full || meta.full} onPlan={onPlanIssue} onOpen={openFile} onOpenUrl={onOpenUrl} pathIdx={pathIdx} />}
+        </>
+      )}
       <div style={{ height: 110 }} />
       <AskBar name={(meta.full || A.name).split('/').pop()} threadKey={A.key} onAsk={onAsk} onQuick={onQuick} onOpen={openFile} pathIdx={pathIdx} initial={asked && A.src?.root ? asked : null} onFeature={onFeature} />
-      {drawer && <Drawer onOthers={onOthers} tour={tourAt != null ? { i: tourAt, steps: (N?.tour || []).filter((t) => pathIdx.has(t.p)), go: (i) => { const st = (N?.tour || []).filter((t) => pathIdx.has(t.p)); if (i < 0 || i >= st.length) { setTourAt(null); setDrawer(null); return; } setTourAt(i); setDrawer(st[i].p); } } : null} p={drawer} F={F} pathIdx={pathIdx} role={role} stack={stack} onClose={() => { setDrawer(null); setTourAt(null); }} onOpen={openFile} readFile={readFile} onExplain={onExplainFile} onAsk={onAsk} />}
+      {drawer && <Drawer phone={phone} onOthers={onOthers} tour={tourAt != null ? { i: tourAt, steps: (N?.tour || []).filter((t) => pathIdx.has(t.p)), go: (i) => { const st = (N?.tour || []).filter((t) => pathIdx.has(t.p)); if (i < 0 || i >= st.length) { setTourAt(null); setDrawer(null); return; } setTourAt(i); setDrawer(st[i].p); } } : null} p={drawer} F={F} pathIdx={pathIdx} role={role} stack={stack} onClose={() => { setDrawer(null); setTourAt(null); }} onOpen={openFile} readFile={readFile} onExplain={onExplainFile} onAsk={onAsk} />}
     </div>
   );
 }
@@ -426,7 +455,7 @@ function FileMap({ files, role, onOpen }) {
           <div key={b.d} className="fm-block" style={{ left: b.x, top: b.y, width: b.w, height: b.h }}>
             {head > 0 && <span className="fm-dir">{b.d === '·' ? 'top level' : b.d}/</span>}
             {tiles.map((t) => (
-              <button key={t.f.p} className={`fm-tile ${hov === t.f.p ? 'on' : ''}`} style={{ left: t.x - b.x, top: t.y - b.y, width: Math.max(0, t.w - 2), height: Math.max(0, t.h - 2), '--c': LAYER[t.f.layer][3] }}
+              <button key={t.f.p} data-p={t.f.p} className={`fm-tile ${hov === t.f.p ? 'on' : ''}`} style={{ left: t.x - b.x, top: t.y - b.y, width: Math.max(0, t.w - 2), height: Math.max(0, t.h - 2), '--c': LAYER[t.f.layer][3] }}
                 onMouseEnter={() => setHov(t.f.p)} onMouseLeave={() => setHov(null)} onClick={() => onOpen(t.f.p)} title={`${t.f.p}\n${role(t.f.p)}\n${t.f.lines} lines`}>
                 {t.w > 64 && t.h > 22 && <span className="fm-n">{t.f.p.split('/').pop()}</span>}
                 {t.w > 110 && t.h > 44 && <span className="fm-r">{role(t.f.p)}</span>}
@@ -459,12 +488,12 @@ function MiniBuilding({ f, maxL, maxU, kind }) {
 }
 
 // =====================================================================================================
-function FileList({ F, role, onOpen }) {
+function FileList({ F, role, onOpen, phone }) {
   const [q, setQ] = useState('');
   const [layer, setLayer] = useState('all');
   const [open, setOpen] = useState({});
-  const [mode, setMode] = useState('map');
-  useEffect(() => { const h = (e) => { setLayer(e.detail); setMode('map'); setQ(''); }; addEventListener('atlas-layer', h); return () => removeEventListener('atlas-layer', h); }, []);
+  const [mode, setMode] = useState(phone ? 'list' : 'map'); // a phone: the files as a list, like a code app's file browser
+  useEffect(() => { const h = (e) => { setLayer(e.detail); setMode(phone ? 'list' : 'map'); setQ(''); }; addEventListener('atlas-layer', h); return () => removeEventListener('atlas-layer', h); }, []);
   const files = F.files.filter((f) => (layer === 'all' || f.layer === layer) && (!q || f.p.toLowerCase().includes(q.toLowerCase()) || role(f.p).toLowerCase().includes(q.toLowerCase())));
   const dirs = new Map();
   for (const f of files) { const d = f.p.includes('/') ? f.p.slice(0, f.p.lastIndexOf('/')) : ''; if (!dirs.has(d)) dirs.set(d, []); dirs.get(d).push(f); }
@@ -477,7 +506,9 @@ function FileList({ F, role, onOpen }) {
         <h2>Every file, in plain words</h2>
       </div>
       <div className="sec-tools">
-        <div className="seg small"><button className={mode === 'map' ? 'on' : ''} onClick={() => setMode('map')}>Map</button><button className={mode === 'list' ? 'on' : ''} onClick={() => setMode('list')}>List</button></div>
+        {phone
+          ? <div className="seg small"><button className={mode === 'list' ? 'on' : ''} onClick={() => setMode('list')}>Files</button><button className={mode === 'map' ? 'on' : ''} onClick={() => setMode('map')}>Map</button></div>
+          : <div className="seg small"><button className={mode === 'map' ? 'on' : ''} onClick={() => setMode('map')}>Map</button><button className={mode === 'list' ? 'on' : ''} onClick={() => setMode('list')}>List</button></div>}
         <input className="fl-q" placeholder="Find a file or a job…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div></div>
       <div className="fl-layers">
@@ -486,13 +517,14 @@ function FileList({ F, role, onOpen }) {
       {mode === 'map' ? <FileMap files={files} role={role} onOpen={onOpen} /> : (
       <div className="fl">
         {sorted.map(([d, fs]) => {
-          const isOpen = !many || open[d] || fs.length <= 3;
+          // (a phone: folders closed until you open one, as in a code app, unless you're searching or filtering)
+          const isOpen = phone ? (open[d] ?? (!!q || layer !== 'all' || sorted.length <= 3)) : (!many || open[d] || fs.length <= 3);
           return (
             <div key={d} className="fl-dir">
-              <button className="fl-dname" onClick={() => setOpen({ ...open, [d]: !isOpen })}><span className="caret2">{isOpen ? '▾' : '▸'}</span>{d || 'top level'}/<span className="muted"> {fs.length}</span></button>
+              <button className="fl-dname" aria-expanded={isOpen} onClick={() => setOpen({ ...open, [d]: !isOpen })}>{phone ? <span className="fl-folder" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2.2h7.5A2.5 2.5 0 0 1 21 9.7v7.8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z" fill="currentColor" /></svg></span> : <span className="caret2">{isOpen ? '▾' : '▸'}</span>}<span className="fl-dn">{d || 'top level'}/</span><span className="muted"> {fs.length}</span>{phone && <span className="ph-chev" aria-hidden="true" />}</button>
               {isOpen && fs.map((f) => (
                 <button key={f.p} className="fl-f" onClick={() => onOpen(f.p)}>
-                  <span className="ldot" style={{ background: LAYER[f.layer][3] }} />
+                  {phone ? <FileIcon f={f} /> : <span className="ldot" style={{ background: LAYER[f.layer][3] }} />}
                   <span className="fl-n">{f.p.split('/').pop()}</span>
                   <span className="fl-r">{role(f.p)}</span>
                   <span className="fl-l">{f.lines ? f.lines.toLocaleString() : ''}</span>
@@ -505,6 +537,13 @@ function FileList({ F, role, onOpen }) {
       )}
     </section>
   );
+}
+
+const SHORT = { TypeScript: 'TS', JavaScript: 'JS', Python: 'PY', CSS: 'CSS', HTML: 'HTML', SQL: 'SQL', Go: 'GO', Rust: 'RS', Ruby: 'RB', Java: 'JV', Kotlin: 'KT', Swift: 'SW', Shell: 'SH', Markdown: 'MD', MDX: 'MDX', JSON: '{ }', YAML: 'YML', Vue: 'VUE', Svelte: 'SV', PHP: 'PHP', 'C++': 'C++', C: 'C', 'C#': 'C#' };
+function FileIcon({ f }) {
+  const ext = (f.p.split('.').pop() || '').toLowerCase();
+  const tag = SHORT[f.lang] || (ext.length <= 4 ? ext.toUpperCase() : '·');
+  return <span className="fl-ic" style={{ '--c': f.lang ? langColor(f.lang) : 'var(--ink-4)' }} aria-hidden="true">{tag}</span>;
 }
 
 // =====================================================================================================
@@ -658,6 +697,7 @@ function AskBar({ name, threadKey, onAsk, onQuick, onOpen, pathIdx, initial, onF
         placeholder={thread.length ? t('Ask a follow-up…') : `Ask anything about ${name}…`} aria-label={thread.length ? t('Ask a follow-up') : `Ask anything about ${name}`}
         onKeyDown={(e) => { if (e.key === 'Enter' && mod(e)) { e.preventDefault(); submit(true); } }} />
       <kbd aria-hidden="true">↵</kbd>
+      <button className="ask-go" aria-label={t('Ask')} disabled={!v.trim()}><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
     </form>
   );
   // a conversation sits beside the code (the page makes room), so you can read and ask at the same time
@@ -737,8 +777,13 @@ function Ripple({ F, idx, onOpen }) {
 
 // =====================================================================================================
 const EXT_LANG = { ts: 'TypeScript', tsx: 'TypeScript', js: 'JavaScript', jsx: 'JavaScript', mjs: 'JavaScript', cjs: 'JavaScript', py: 'Python', go: 'Go', rs: 'Rust', rb: 'Ruby', java: 'Java', kt: 'Kotlin', swift: 'Swift', c: 'C', cpp: 'C++', cs: 'C#', php: 'PHP', vue: 'Vue', svelte: 'Svelte', css: 'CSS', html: 'HTML', sql: 'SQL', sh: 'Shell' };
-function Drawer({ onOthers, tour, p, F, pathIdx, role, stack, onClose, onOpen, readFile, onExplain, onAsk }) {
+function Drawer({ onOthers, tour, p, F, pathIdx, role, stack, onClose, onOpen, readFile, onExplain, onAsk, phone }) {
   const [text, setText] = useState(null);
+  // a phone: what the file is about, or its code, one at a time (as a code app shows a file)
+  // (a file nothing uses and that uses nothing opens on its code: there'd be nothing to say about it)
+  const first = () => { const i = pathIdx.get(p); return i != null && (F.files[i].imp.length > 0 || F.files.some((g) => g.imp.includes(i))) ? 'about' : 'code'; };
+  const [tab, setTab] = useState(first);
+  useEffect(() => setTab(first()), [p]); // eslint-disable-line react-hooks/exhaustive-deps
   // a file outside the analysed sample: what we know from its name and its text
   const f = F.files[pathIdx.get(p)] || { p, lang: EXT_LANG[(/\.([^./]+)$/.exec(p)?.[1] || '').toLowerCase()] || null, lines: text ? text.split('\n').length : 0, layer: Object.keys(LAYER).includes('logic') ? 'logic' : Object.keys(LAYER)[0], imp: [], ext: [], used: 0 };
   const [q, setQ] = useState('');
@@ -754,7 +799,7 @@ function Drawer({ onOthers, tour, p, F, pathIdx, role, stack, onClose, onOpen, r
   return (
     <>
       <div className="drawer-veil" onClick={onClose} />
-      <aside className="drawer" aria-label="File">
+      <aside className={`drawer ${phone ? `tab-${tab}` : ''}`} aria-label="File">
         <div className="dr-top">
           <span className="dr-layer" style={{ '--c': lcolor }}>{lname}</span>
           {f.entry && <span className="dr-layer" style={{ '--c': 'var(--mint)' }}>starts here</span>}
@@ -776,19 +821,26 @@ function Drawer({ onOthers, tour, p, F, pathIdx, role, stack, onClose, onOpen, r
           {onOthers && f.lang && <button className="btn ghost" disabled={!text || others === 'busy'} onClick={async () => { setOthers('busy'); try { await onOthers(p, text); setOthers(null); } catch (e) { setOthers(String(e.message || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')); } }}>{others === 'busy' ? 'Searching GitHub…' : 'How do others write this?'}</button>}
         </div>
         {others && others !== 'busy' && <div className="dr-note">{others}</div>}
-        {(uses.length > 0 || usedBy.length > 0 || tools.length > 0) && (
+        {phone && (
+          <div className="dr-tabs" role="tablist">
+            <button role="tab" aria-selected={tab === 'about'} className={tab === 'about' ? 'on' : ''} onClick={() => setTab('about')}>About</button>
+            <button role="tab" aria-selected={tab === 'code'} className={tab === 'code' ? 'on' : ''} onClick={() => setTab('code')}>Code{f.lines ? <span>{f.lines.toLocaleString()}</span> : null}</button>
+          </div>
+        )}
+        {(!phone || tab === 'about') && (uses.length > 0 || usedBy.length > 0 || tools.length > 0) && (
           <div className="dr-rel">
             {uses.length > 0 && <div><div className="mini-h">it uses</div>{uses.slice(0, 12).map((g) => <button key={g.p} className="rel" onClick={() => onOpen(g.p)}><span className="arrow out">→</span>{displayName(g.p)}<span className="muted">{role(g.p)}</span></button>)}</div>}
             {usedBy.length > 0 && <div><div className="mini-h">used by</div>{usedBy.slice(0, 12).map((g) => <button key={g.p} className="rel" onClick={() => onOpen(g.p)}><span className="arrow in">←</span>{displayName(g.p)}<span className="muted">{role(g.p)}</span></button>)}{usedBy.length > 12 && <div className="muted small">and {usedBy.length - 12} more</div>}</div>}
             {tools.length > 0 && <div><div className="mini-h">outside help</div><div className="dr-tools">{tools.map((s) => <span key={s.id} className="ws"><Brand slug={s.slug} name={s.name} color={s.color} size={18} plain />{s.name}</span>)}</div></div>}
           </div>
         )}
-        {idx != null && <Ripple F={F} idx={idx} onOpen={onOpen} />}
-        <div className="dr-code">
+        {(!phone || tab === 'about') && idx != null && <Ripple F={F} idx={idx} onOpen={onOpen} />}
+        {(!phone || tab === 'code') && <div className="dr-code">
           {text == null ? <div className="pad"><div className="shimmer" /><div className="shimmer short" /></div> : <Editor value={text.length > 60000 ? text.slice(0, 60000) + '\n// …' : text} lang={edLang(f.lang)} readOnly lens="code" />}
-        </div>
+        </div>}
         <form className="dr-ask" onSubmit={(e) => { e.preventDefault(); if (q.trim()) onAsk(q.trim(), p); }}>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask about this file…" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask about this file…" enterKeyHint="send" />
+          {phone && <button className="ask-go" aria-label="Ask" disabled={!q.trim()}><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg></button>}
         </form>
       </aside>
     </>

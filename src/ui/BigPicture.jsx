@@ -80,10 +80,44 @@ export default function BigPicture({ appName, onMakePath, build, onBuild, flow, 
   const L = useMemo(() => layout(flow, w), [flow, w]);
   const narrow = Math.min(999, ...Object.values(L.pos).map((q) => q.w)) < 120; // cards too thin to read → go vertical
   const node = L.nodes.find((n) => n.id === sel);
+  useEffect(() => {
+    if (!narrow || !sel) return undefined;
+    const t = setTimeout(() => box.current?.querySelector(walk != null ? '.vf-node.on' : '.dive.open')?.scrollIntoView({ behavior: 'smooth', block: walk != null ? 'start' : 'nearest' }), 80);
+    return () => clearTimeout(t);
+  }, [sel]); // eslint-disable-line react-hooks/exhaustive-deps
   const toolFor = (n) => (n.stack && (tools.find((t) => t.id === n.stack) || BY_ID[n.stack])) || null;
   const termDef = (t) => { const k = String(t || '').toLowerCase(); if (!k) return null; return terms.find((x) => String(x.term).toLowerCase() === k) || terms.find((x) => { const y = String(x.term).toLowerCase(); return y.length > 2 && (k.includes(y) || y.includes(k)); }); };
 
   const path = (e) => { const a = L.pos[e.from], b = L.pos[e.to]; const x1 = a.x + a.w, y1 = a.y + a.h / 2, x2 = b.x, y2 = b.y + b.h / 2; const dx = Math.max(30, (x2 - x1) * 0.5); return `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}`; };
+
+  // what the part you picked does: under the picture, or (on a phone) right under the part itself
+  const dive = (
+    <div className={`dive ${node ? 'open' : ''}`}>
+      {node && (
+        <div className="dive-in" key={node.id}>
+          <div className="dive-main">
+            <div className="dive-k">{node.kind === 'person' ? 'who starts it' : node.kind === 'outside' ? 'outside help' : node.kind === 'store' ? 'where things are kept' : 'part of this code'}</div>
+            <h3>{node.label}</h3>
+            <p>{node.more ? <Md text={node.more} /> : node.does}</p>
+            {(node.files || []).filter((f) => pathIdx.has(f)).length > 0 && (
+              <div className="dive-files">{node.files.filter((f) => pathIdx.has(f)).map((f) => <button key={f} className="file-chip" onClick={() => onOpen(f)}>{f}<span>{role(f)}</span></button>)}</div>
+            )}
+          </div>
+          <div className="dive-side">
+            {node.term && (
+              <div className="dive-term">
+                <span className="tc-k2">the real word</span>
+                <b>{node.term}</b>
+                <span>{termDef(node.term)?.plain || 'Ask below and Bento will explain it with an example.'}</span>
+                {termDef(node.term)?.like && <i>≈ {termDef(node.term).like}</i>}
+              </div>
+            )}
+            <button className="btn" onClick={() => onAsk(`How does “${node.label}” (${node.term || node.kind}) work in this project?`, (node.files || []).find((f) => pathIdx.has(f)))}>Show me in the code →</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <section className="bigpic">
@@ -100,8 +134,9 @@ export default function BigPicture({ appName, onMakePath, build, onBuild, flow, 
                 {i > 0 && <div className="vf-edge"><i />{into?.label && <span>{into.label}</span>}</div>}
                 <button className={`vf-node ${sel === n.id ? 'on' : ''}`} style={{ '--c': n.layer ? LAYER[n.layer][3] : c }} onClick={() => setSel(sel === n.id ? null : n.id)}>
                   {t ? <Brand slug={t.slug} name={t.name} color={t.color} size={28} /> : <span className="fn-glyph" style={{ width: 28, height: 28 }}><svg viewBox="0 0 24 24" width={16} height={16}>{glyph}</svg></span>}
-                  <b>{n.label}</b>{n.term && <span className="fn-term">{n.term}</span>}
+                  <span className="vf-t"><b>{n.label}</b>{n.does && <span className="vf-does">{n.does}</span>}</span>{n.term && <span className="fn-term">{n.term}</span>}
                 </button>
+                {sel === n.id && dive}
               </div>
             );
           })}
@@ -132,31 +167,7 @@ export default function BigPicture({ appName, onMakePath, build, onBuild, flow, 
       </div>
       )}
 
-      <div className={`dive ${node ? 'open' : ''}`}>
-        {node && (
-          <div className="dive-in" key={node.id}>
-            <div className="dive-main">
-              <div className="dive-k">{node.kind === 'person' ? 'who starts it' : node.kind === 'outside' ? 'outside help' : node.kind === 'store' ? 'where things are kept' : 'part of this code'}</div>
-              <h3>{node.label}</h3>
-              <p>{node.more ? <Md text={node.more} /> : node.does}</p>
-              {(node.files || []).filter((f) => pathIdx.has(f)).length > 0 && (
-                <div className="dive-files">{node.files.filter((f) => pathIdx.has(f)).map((f) => <button key={f} className="file-chip" onClick={() => onOpen(f)}>{f}<span>{role(f)}</span></button>)}</div>
-              )}
-            </div>
-            <div className="dive-side">
-              {node.term && (
-                <div className="dive-term">
-                  <span className="tc-k2">the real word</span>
-                  <b>{node.term}</b>
-                  <span>{termDef(node.term)?.plain || 'Ask below and Bento will explain it with an example.'}</span>
-                  {termDef(node.term)?.like && <i>≈ {termDef(node.term).like}</i>}
-                </div>
-              )}
-              <button className="btn" onClick={() => onAsk(`How does “${node.label}” (${node.term || node.kind}) work in this project?`, (node.files || []).find((f) => pathIdx.has(f)))}>Show me in the code →</button>
-            </div>
-          </div>
-        )}
-      </div>
+      {!narrow && dive}
 
       {build && (
         <div className="takes">
