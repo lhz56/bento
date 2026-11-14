@@ -48,7 +48,8 @@ function plan(bands) {
   return ds;
 }
 
-export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, hot }) {
+// bare: just the city, no heading of its own (a phone shows it as a picture in its page, and full screen)
+export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, hot, bare }) {
   const wrap = useRef(null);
   const [width, setWidth] = useState(900);
   const [hover, setHover] = useState(null); // 'f:i' | 's:id' | 'd:layer'
@@ -157,16 +158,18 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
   const hoveredD = hover?.startsWith('d:') ? hover.slice(2) : null;
   const hoveredS = hover?.startsWith('s:') ? svcs.find((s) => `s:${s.id}` === hover) : null;
   const langsShown = [...new Set(lots.map((l) => l.f.lang).filter(Boolean))].slice(0, 6);
+  const Box = bare ? 'div' : 'section';
 
   return (
-    <section className="asec" id="sec-anatomy">
+    <Box className={bare ? 'city-bare' : 'asec'} id={bare ? undefined : 'sec-anatomy'}>
+      {bare ? <div className="city-tools"><button className={`chip ${heatOn ? 'on' : ''}`} onClick={() => setHeatOn(!heatOn)}><span className="heat-sw" />Heat</button></div> : (
       <div className="sec-head">
         <div>
           <div className="kicker">anatomy</div>
           <h2>How it’s put together</h2>
         </div>
         <div className="sec-tools"><button className={`chip ${heatOn ? 'on' : ''}`} onClick={() => setHeatOn(!heatOn)}><span className="heat-sw" />Heat</button></div>
-      </div>
+      </div>)}
       {(journeys.length > 0 || narrating) && (
         <div className="journeys">
           {journeys.map((j, ji) => (
@@ -302,7 +305,7 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
         {jPath.length > 0 && jPath[jPath.length - 1].cur && <span key={`dot${jr.j}-${jr.s}`} className="jdot" style={{ offsetPath: `path('${jPath[jPath.length - 1].d}')` }} />}
 
       </div>
-    </section>
+    </Box>
   );
 }
 

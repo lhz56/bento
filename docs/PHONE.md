@@ -44,21 +44,27 @@ updates, the bookmarklet. Those are hidden on the phone.
 - Your recent lessons and projects, the model and Settings: the button at the top left.
 - A lesson has two pages, **Lesson** and **Code** (with Run and what the code does). Tapping a line the lesson
   points at jumps to the code.
-- A project's Atlas is laid out as a phone page of its own (`src/ui/AtlasPhone.jsx`), plain words first and the
-  technical side as you scroll:
-  - **Summary**: the project's icon, name and maker, its numbers in a row (stars, language, size), what it is in
-    one sentence, what it's like, and a checklist of what you can do with it.
-  - **How it works**: a card per step, from the person using it to everything behind the screen; tap one to see
-    what it does and the real word for it.
-  - **Parts**: one bar for the whole app, then a row per kind of part (what you see, the brains, memory…).
-  - **Services**: the services it signs up for as cards (tap one for what it does here, why it was picked and what
-    else would have worked), then the code it's built from.
-  - **Under the hood**: the code city (drag sideways; tap a building to see it, again to open it), hot spots, the
-    language, how it grew.
-  - **Code**: folders and files like a code app's file browser. A file opens as a sheet with **About** (what it
-    uses, what uses it, who'd feel a change) and **Code**, and a box to ask about it.
-  - **Learn it**: the order to read it in, and questions that open lessons. The question box for the whole project
-    is always at the bottom; **⋯** has Fork, GitHub, Compare and notes.
+- A project's Atlas is laid out as a phone page of its own (`src/ui/AtlasPhone.jsx`), the way an iPhone app lays out a
+  page: a grouped background with white rows and cards, the system typeface at the iPhone's own sizes, and a sheet from
+  the bottom for anything you tap. Plain words first, the technical side as you scroll:
+  - **Summary**: like an App Store page. The icon, name and maker, Ask and ⋯, its numbers in a strip (stars, kind,
+    language, size), what it is in one sentence, what it's like, and what you can do with it.
+  - **How it works**: one picture of the whole app. Who uses it at the top, the app's own parts, where it keeps things
+    and the outside services (dashed), in rows from top to bottom, with lines and a moving dot showing who talks to
+    whom. A box opens a sheet: what it does, the real word for it, what it talks to, where it lives in the code. Then
+    *Follow one thing through it* (a click or a sign-in, step by step, as a sheet) and *Words you'll meet*.
+  - **What it's made of**: one bar like iPhone Storage, then a row per kind of part with the logos of what it's made
+    with; a row opens a sheet with its biggest files.
+  - **Services it uses**: a card each (tap one for what it does here, why it was picked and what else would have
+    worked), then *Built with*, three rows you page through as in the App Store.
+  - **Under the hood**: the code city as a picture (tap it for the city full screen, with its journeys), where it could
+    break (a sheet each), the language, how it grew.
+  - **The code**: a search field, the kinds of part, and folders you open one at a time, as in a code app. A file opens
+    as a sheet with **About** (what it uses, what uses it, who'd feel a change) and **Code**, and a box to ask about it.
+  - **Learn from it**: what it takes to build something like it, the order to read it in, questions that open lessons,
+    and adding a feature. The question box for the whole project floats at the bottom; a conversation reads like a
+    chat. **⋯** (at the top, and in the bar of sections that appears once you scroll) has Fork, GitHub, Compare and
+    notes.
 - It moves the way an iPhone app does. A page you open slides in; Back and the tabs bring you back to the exact spot
   you left. A file, Settings, search or a conversation is a sheet: drag it down (or tap ✕) and it slides away. The
   drawer drags shut. In the Home Screen app, where Safari has no swipe of its own, a swipe from the left edge goes

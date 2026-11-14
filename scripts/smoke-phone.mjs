@@ -133,10 +133,15 @@ await step('a project, taken apart, and a file opened from its code city', async
   await nav.tab('Explore'); await nav.sub('Code');
   await p.click('.feat-i:has-text("taxonomy")');
   await p.waitForSelector('.ab-nav', { timeout: 30000 }); await skipTips();
-  await p.evaluate(() => document.querySelector('.city')?.scrollIntoView({ block: 'center' }));
+  // (an iPhone shows the city as a picture in the page; tapping the picture opens the city full screen)
+  const full = !!(await p.locator('.cc-hit').count());
+  if (full) { await p.evaluate(() => document.querySelector('.cc-card').scrollIntoView({ block: 'center' })); await p.waitForTimeout(400); await p.click('.cc-hit'); await p.waitForSelector('.cv-full', { timeout: 5000 }); }
+  else await p.evaluate(() => document.querySelector('.city')?.scrollIntoView({ block: 'center' }));
+  const city = full ? '.cv-full .city' : '.city';
   // its code arrives on the Mac in the background; the city's buildings can open files once it has
-  await p.waitForFunction(() => document.querySelectorAll('.city .bld').length > 3, null, { timeout: 60000 });
-  const b = p.locator('.city .bld').nth(3);
+  await p.waitForFunction((c) => document.querySelectorAll(`${c} .bld`).length > 3, city, { timeout: 60000 });
+  const b = p.locator(`${city} .bld`).nth(3);
+  await b.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'center' })); await p.waitForTimeout(300);
   await b.click({ force: true }); await p.waitForSelector('.cap-f', { timeout: 5000 });
   for (let i = 0; i < 20 && !(await p.locator('.drawer').count()); i++) { await b.click({ force: true }); await p.waitForTimeout(1500); }
   await p.waitForSelector('.drawer', { timeout: 10000 });
@@ -149,6 +154,8 @@ if (!IPAD) await step('a file’s sheet drags down and away; a section chip land
   await p.waitForTimeout(500); // (the sheet has finished sliding up)
   await swipe(196, 150, 196, 540); await p.waitForTimeout(700);
   must(!(await p.locator('.drawer').count()), 'the sheet stayed');
+  // the city it was opened from is still there, full screen; Done puts it away
+  if (await p.locator('.cv-done').count()) { await p.click('.cv-done'); await p.waitForTimeout(500); must(!(await p.locator('.cv-full').count()), 'the city stayed'); }
   await p.click('.ab-nav button:text-is("Code")'); await p.waitForTimeout(1400);
   const off = await p.evaluate(() => Math.round(document.querySelector('#sec-files').getBoundingClientRect().top - document.querySelector('.atlas-bar').getBoundingClientRect().bottom));
   must(Math.abs(off) < 40 && (await p.locator('.ab-nav button.on').innerText()) === 'Code', `Code landed ${off}px off`);
