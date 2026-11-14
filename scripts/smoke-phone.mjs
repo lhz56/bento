@@ -85,7 +85,8 @@ await step('an unpaired device sees how to pair, and a wrong code is refused', a
 await step('the QR code’s link pairs it, straight into Bento', async () => {
   await p.goto(st.pairUrl);
   await p.waitForSelector(IPAD ? '.side nav' : '.ptabs', { timeout: 30000 });
-  must(!/#pair=/.test(p.url()), 'the code stayed in the address');
+  // (the QR code's own code; the Home Screen tip may put a new one-time code there on purpose, for Add to Home Screen)
+  must(!p.url().includes(st.pairUrl.split('#pair=')[1]), 'the code stayed in the address');
   await until(() => window.bento.host.get().then((x) => x.devices[0]?.online));
   const s = await mac.evaluate(() => window.bento.host.get());
   must(s.devices.length === 1 && s.devices[0].online, `Mac sees ${JSON.stringify(s.devices)}`);
