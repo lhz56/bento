@@ -237,6 +237,7 @@ body.touch :is(button, [role=button], [role=tab], .ptabs, .pbar, .pseg, .ab-nav)
 /* a button answers the moment a finger lands (touch.js): it dims; a big card gives a little */
 body.touch .pressed { opacity: .5; transition: none !important; }
 body.touch .pressed.big { opacity: 1; transform: scale(.975); }
+body.touch .pressed.prow { opacity: 1; background-image: linear-gradient(color-mix(in srgb, var(--ink) 8%, transparent), color-mix(in srgb, var(--ink) 8%, transparent)); }
 body.touch .unpress { transition: opacity .3s ease-out, transform .3s ease-out !important; }
 .app.phone :is(.sheet *, .drawer, .aq-thread, .settings, .pal-list) { overscroll-behavior-y: contain; }
 
@@ -304,3 +305,103 @@ html.kb .app.phone { position: fixed; top: var(--kb-top, 0px); left: 0; right: 0
 html.kb .app.phone :is(.atlas-ask, .aq-dock, .drawer, .settings, .pal) { padding-bottom: 8px; }
 html.kb .app.phone .ptabs { transform: translateY(calc(100% + 2px)); visibility: hidden; }
 html.kb .app.phone.at-root .sheet { bottom: 0; }
+
+/* ---------------------------------------------------------------- second pass: every screen fits a phone, and a thumb */
+/* the path: the paths are a row you swipe, the one you picked is a card with its progress under it, and the trail is
+   one column down the left (on a Mac it winds left and right, which leaves a phone a sliver each side) */
+.app.phone .pcards { display: flex; overflow-x: auto; margin: -4px -18px 14px; padding: 4px 18px 8px; gap: 8px; scroll-snap-type: x mandatory; scroll-padding: 0 18px; scrollbar-width: none; overscroll-behavior-x: contain; }
+.app.phone .pcards::-webkit-scrollbar { display: none; }
+.app.phone .pcard { flex: none; width: 148px; min-height: 96px; scroll-snap-align: start; padding: 12px 12px 12px; }
+.app.phone .pcard-t { font-size: 14px; }
+.app.phone .make-path { margin: 0 0 18px; }
+.app.phone .make-path input { min-width: 0; }
+.app.phone .make-path .btn { min-height: 38px; flex: none; }
+.app.phone .phero { flex-direction: column; gap: 16px; padding: 20px 18px 18px; margin-bottom: 26px; }
+.app.phone .phero h2 { font-size: 26px; }
+.app.phone .phero p { font-size: 15.5px; }
+.app.phone .phero-end { font-size: 14.5px; }
+.app.phone .phero-side { width: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px 0 0; border-left: 0; border-top: 1px dashed var(--line-2); }
+.app.phone .phero-side .btn { height: 44px; padding: 0 18px; font-size: 15px; margin-left: auto; }
+.app.phone .phero-next { flex-basis: 100%; font-size: 13.5px; }
+.app.phone .trail-road { display: none; }
+.app.phone .trail::before { content: ''; position: absolute; left: 16px; top: 24px; bottom: 60px; border-left: 3px dotted var(--line-2); }
+.app.phone .stop, .app.phone .stop.l, .app.phone .stop.r { width: auto; margin: 0; padding: 0 0 0 48px; flex-direction: row; }
+.app.phone .stop .stop-n, .app.phone .stop.l .stop-n, .app.phone .stop.r .stop-n { left: 0; right: auto; }
+.app.phone .stop-card { max-width: none; padding: 16px; }
+.app.phone .stop-card b { font-size: 19px; }
+.app.phone .stop-card > span { font-size: 14.5px; }
+.app.phone .stop-words i { font-size: 11.5px; padding: 2px 8px; }
+
+/* Explore: kinds of project are a row you swipe; a project is a row with a chevron, its details on one line */
+.app.phone .shelves { flex-wrap: nowrap; overflow-x: auto; margin: 16px -18px 26px; padding: 2px 18px; scrollbar-width: none; overscroll-behavior-x: contain; }
+.app.phone .shelves::-webkit-scrollbar { display: none; }
+.app.phone .shelf { flex: none; height: 36px; padding: 0 14px 0 12px; font-size: 14px; }
+.app.phone .site-try { gap: 8px; }
+.app.phone .site-try button { padding: 8px 12px; font-size: 13px; }
+.app.phone .spec { gap: 12px; margin: 0; padding: 14px 0; border-radius: 0; align-items: center; }
+.app.phone .spec:hover { background: none; box-shadow: none; border-color: var(--line); }
+.app.phone .spec-av { width: 44px; height: 44px; border-radius: 12px; align-self: flex-start; }
+.app.phone .spec-name { font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app.phone .spec-desc { font-size: 15px; }
+.app.phone .spec-meta { gap: 10px; font-size: 12.5px; white-space: nowrap; }
+.app.phone .spec-meta > span { white-space: nowrap; }
+.app.phone .sz { font-size: 11.5px; padding: 2px 8px; }
+.app.phone .spec-go { display: none; }
+.app.phone .spec::after { content: ''; flex: none; width: 8px; height: 8px; margin: 0 4px 0 2px; border: solid var(--ink-4); border-width: 2px 2px 0 0; transform: rotate(45deg); }
+.app.phone .spec.ghost::after { display: none; }
+
+/* Practice: a stop's puzzles are rows you can hit with a thumb; "how long would it take" fits the width */
+.app.phone .st-pz { flex-direction: column; flex-wrap: nowrap; gap: 6px; }
+.app.phone .pz-chip { width: 100%; height: 48px; padding: 0 14px 0 12px; gap: 10px; border-radius: 14px; font-size: 15px; }
+.app.phone .pz-chip .pz-name { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app.phone .pz-chip:hover { transform: none; }
+.app.phone .pz-stars i { font-size: 13px; }
+.app.phone .pz-lc { font-size: 12px; }
+.app.phone .sc-h { flex-direction: column; align-items: stretch; gap: 10px; }
+.app.phone .sc-h input[type=range] { width: 100%; height: 32px; }
+.app.phone .sc-row { grid-template-columns: 76px minmax(0, 1fr) auto; row-gap: 6px; padding: 9px 6px; }
+.app.phone .sc-say { font-size: 14px; }
+.app.phone .sc-bar { grid-row: 2; grid-column: 1 / -1; height: 8px; }
+.app.phone .sc-t { grid-row: 1; grid-column: 3; font-size: 13.5px; }
+
+/* the Atlas: a section's controls in one row, and its filters a row you swipe */
+.app.phone .sec-tools { flex-wrap: nowrap; gap: 8px; }
+.app.phone .sec-tools .seg { flex: none; }
+.app.phone .sec-tools .seg button { min-height: 36px; padding: 0 14px; font-size: 14px; }
+.app.phone .fl-q { flex: 1; min-width: 0; width: auto; height: 40px; border-radius: 12px; }
+.app.phone .fl-layers { flex-wrap: nowrap; overflow-x: auto; margin-left: -18px; margin-right: -18px; padding: 2px 18px 4px; scrollbar-width: none; overscroll-behavior-x: contain; }
+.app.phone .fl-layers::-webkit-scrollbar { display: none; }
+.app.phone .fl-layers > * { flex: none; }
+.app.phone .fn-term { font-size: 11.5px; padding: 2px 8px; }
+
+/* small controls, big enough for a thumb (they look the same, they're just easier to hit) */
+.app.phone .listen { height: 38px; padding: 0 15px; margin-bottom: 8px; font-size: 14px; }
+.app.phone :is(.lens, .stab) { height: 34px; padding: 0 12px; font-size: 13.5px; }
+.app.phone :is(.wchip, .walk-btn) { height: 36px; padding: 0 14px; font-size: 13.5px; }
+.app.phone .tk-path { padding: 11px 14px; font-size: 14.5px; }
+.app.phone .w-foot .link, .app.phone .link { display: inline-flex; align-items: center; min-height: 40px; padding: 0 2px; font-size: 14.5px; }
+.app.phone .settings .set-h .ib { width: 44px; height: 44px; font-size: 18px; }
+.app.phone :is(.ih-pick, .ic-instant, .tk-k, .stop-kind, .quiz-k) { font-size: 11.5px !important; }
+.app.phone .here { font-size: 10.5px; }
+body.touch .fu-hint { display: none; }
+
+/* search: each place has a little tile, and nothing looks picked until you've typed something */
+.app.phone .pal-g { font-size: 12px; letter-spacing: .6px; padding: 16px 12px 6px; }
+.app.phone .pl-i { gap: 12px; height: auto; }
+.app.phone .pl-ic { width: 32px; height: 32px; flex: none; border-radius: 9px; background: var(--bg-2); color: var(--ink-2); font-size: 15px; }
+.app.phone .pl-h { font-size: 13px; }
+.app.phone .pal:has(input:placeholder-shown) .pl-i.on { background: none; }
+
+/* "Put Bento on your Home Screen": a short note above the tabs, on a tab's own page only, under any sheet */
+.hs-tip { z-index: 45; }
+.app.phone ~ .hs-tip { left: 10px; right: 10px; padding: 8px 4px 8px 10px; gap: 10px; border-radius: 16px; }
+.app.phone.at-detail ~ .hs-tip, .app.phone.drawer-open ~ .hs-tip, html.kb .hs-tip { display: none; }
+.app.phone ~ .hs-tip .hs-ico { width: 34px; height: 34px; border-radius: 10px; }
+.app.phone ~ .hs-tip > div { font-size: 13px; }
+.app.phone ~ .hs-tip b { font-size: 14.5px; }
+.app.phone .wn-depth button { min-height: 36px; padding: 0 12px; font-size: 13.5px; }
+.app.phone .desk-head .act { min-width: 36px; height: 36px; justify-content: center; }
+.app.phone .fe-label { font-size: 11.5px; }
+.app.phone .sc-row { grid-template-columns: auto minmax(0, 1fr) auto; column-gap: 10px; }
+.app.phone .sc-o { white-space: nowrap; }
+.app.phone .sc-t { max-width: 40vw; }

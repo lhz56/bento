@@ -80,7 +80,7 @@ function HomeScreenTip() {
   return (
     <div className="hs-tip" role="note">
       <span className="hs-ico" aria-hidden="true"><svg width="20" height="24" viewBox="0 0 20 24"><path d="M10 15V2m0 0L5.5 6.5M10 2l4.5 4.5M6 10H3.5A1.5 1.5 0 0 0 2 11.5v9A1.5 1.5 0 0 0 3.5 22h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 16.5 10H14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
-      <div><b>Put Bento on your Home Screen</b><span>Tap Share, then “Add to Home Screen”. It opens like an app, already connected.</span></div>
+      <div><b>Put Bento on your Home Screen</b><span>Tap Share, then “Add to Home Screen”: it opens like an app.</span></div>
       <button className="ib" aria-label="Not now" onClick={done}>✕</button>
     </div>
   );

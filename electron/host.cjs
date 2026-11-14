@@ -147,6 +147,8 @@ function createHost(o) {
       '<meta name="apple-mobile-web-app-title" content="Bento">',
       '<meta name="apple-mobile-web-app-status-bar-style" content="default">',
       '<meta name="theme-color" content="#fbf8f3" media="(prefers-color-scheme: light)">', '<meta name="theme-color" content="#18171b" media="(prefers-color-scheme: dark)">',
+      // Bento's own background from the very first moment (no white flash in dark mode while the rest arrives)
+      '<style>html{background:#fbf8f3}@media (prefers-color-scheme:dark){html{background:#18171b;color-scheme:dark}}</style>',
     ].join('\n  ');
     return { html: html.replace('<title>', `${head}\n  <title>`), csp };
   };

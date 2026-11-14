@@ -51,6 +51,9 @@ updates, the bookmarklet. Those are hidden on the phone.
   drawer drags shut. In the Home Screen app, where Safari has no swipe of its own, a swipe from the left edge goes
   back, and on a tab's own page it opens the drawer. While you type, the keyboard takes the bottom of the screen and
   the top bar stays put. Settings is the gear at the bottom of the drawer.
+- Built for a thumb: anything you tap is at least about 36 points tall, rows across the screen light up under your
+  finger as in any iPhone list, and rows of choices (kinds of project, Atlas filters, paths) scroll sideways
+  instead of piling up. `src/mobile.css` holds all of it; the Mac's layout doesn't change.
 
 ## Safety
 

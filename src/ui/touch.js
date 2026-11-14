@@ -65,13 +65,18 @@ export function useTouch(on, o) {
 
     // ---------------------------------------------------------------- a button answers as soon as you touch it
     let pressed = null, pressT = 0, p0 = [0, 0];
-    const press = (el) => { el.classList.remove('unpress'); el.classList.add('pressed'); const r = el.getBoundingClientRect(); el.classList.toggle('big', r.width * r.height > 9000 && r.height > 54); };
+    // a row across the screen lights up behind its words (as in an iPhone list); a big card gives a little; the rest dim
+    const press = (el) => {
+      el.classList.remove('unpress'); el.classList.add('pressed'); const r = el.getBoundingClientRect();
+      const row = r.width > innerWidth * 0.7 && r.height < 130;
+      el.classList.toggle('prow', row); el.classList.toggle('big', !row && r.width * r.height > 9000 && r.height > 54);
+    };
     const unpress = () => {
       clearTimeout(pressT); const el = pressed; pressed = null; if (!el) return;
-      const release = () => { el.classList.remove('pressed'); el.classList.add('unpress'); setTimeout(() => el.classList.remove('unpress', 'big'), 280); };
+      const release = () => { el.classList.remove('pressed'); el.classList.add('unpress'); setTimeout(() => el.classList.remove('unpress', 'big', 'prow'), 280); };
       if (el.classList.contains('pressed')) release(); else { press(el); requestAnimationFrame(() => requestAnimationFrame(release)); } // a quick tap still shows
     };
-    const unpressNow = () => { clearTimeout(pressT); if (pressed) pressed.classList.remove('pressed', 'big'); pressed = null; };
+    const unpressNow = () => { clearTimeout(pressT); if (pressed) pressed.classList.remove('pressed', 'big', 'prow'); pressed = null; };
 
     const start = (e) => {
       if (e.touches.length !== 1) { g = null; return; }
