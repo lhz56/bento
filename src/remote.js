@@ -6,6 +6,7 @@
 // This file runs before anything else on the page (main.jsx imports it first), so every part of Bento finds
 // window.bento already there, exactly as in the app.
 
+let spare = ''; // a pairing code from the link this page opened with, while it had a key already (see the bottom)
 const KEY = 'bentoHost.key'; // this device's key, from pairing (only this device has it; the Mac keeps a hash)
 export const isHosted = () => typeof document !== 'undefined' && !!document.querySelector('meta[name="bento-host"]');
 const OFFLINE = 'Can’t reach your Mac. Bento needs to be open on it, and this device on the same Tailscale or Wi-Fi.';
@@ -167,7 +168,8 @@ export function createRemote() {
     try { await fetch('/api/forget-me', { method: 'POST', headers: headers(), body: '{}' }); } catch {}
     forgetKey();
   }
-  const remote = { get state() { return state; }, get host() { return hostInfo; }, on(fn) { watchers.add(fn); return () => watchers.delete(fn); }, pair, connect, forget: forgetKey, disconnect, armHomeScreen };
+  const takeSpareCode = () => { const c = spare; spare = ''; return c; };
+  const remote = { get state() { return state; }, get host() { return hostInfo; }, on(fn) { watchers.add(fn); return () => watchers.delete(fn); }, pair, connect, forget: forgetKey, disconnect, armHomeScreen, takeSpareCode };
   return { api, remote };
 }
 
@@ -184,8 +186,9 @@ export function deviceName() {
 
 // installed first thing on the page (see the top of main.jsx)
 if (isHosted() && !window.bento) {
-  // already paired, opened from a Home Screen link that still carries its (used) pairing code: tidy the address
-  try { if (localStorage.getItem(KEY) && /^#pair=/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search); } catch {}
+  // already paired, opened from a Home Screen link that still carries its (used) pairing code: tidy the address.
+  // The code is kept aside: if this device's key turns out to be stale (a fresh QR code scanned with an old key), pairing uses it.
+  try { if (localStorage.getItem(KEY) && /^#pair=/.test(location.hash)) { spare = location.hash.slice(6); history.replaceState(null, '', location.pathname + location.search); } } catch {}
   const { api, remote } = createRemote();
   window.bento = api; window.bentoRemote = remote;
   if (remote.state !== 'unpaired') remote.connect().catch(() => {});

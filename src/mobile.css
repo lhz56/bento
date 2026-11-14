@@ -91,6 +91,9 @@ body.touch input:not([type=checkbox]):not([type=radio]):not([type=range]), body.
 .ptabs button.on { color: var(--accent-ink); }
 .ptabs button:active .icon { transform: scale(.88); }
 .ptabs .icon { transition: transform .15s; stroke-width: 1.7; }
+/* on a page opened from a tab, and while you type, the tabs slide down out of the way */
+.ptabs { transition: transform .32s cubic-bezier(.2, .8, .2, 1); }
+.ptabs.away, body.touch:has(:is(input:not([type=checkbox], [type=radio], [type=range]), textarea, [contenteditable=true]):focus) .ptabs { transform: translateY(calc(100% + 2px)); }
 
 /* the sidebar becomes a drawer: your recent lessons and projects, the model, settings (the tabs do the rest) */
 .app.phone .side { position: fixed; z-index: 60; top: 0; bottom: 0; left: 0; width: min(86vw, 340px); padding: calc(6px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
@@ -103,7 +106,8 @@ body.touch input:not([type=checkbox]):not([type=radio]):not([type=range]), body.
 .app.phone .side .rl-x { width: 36px; height: 36px; opacity: .6; }
 .app.phone .side .side-h { font-size: 12px; margin-top: 14px; }
 .app.phone .side .side-foot { min-height: 52px; }
-.pveil { position: fixed; inset: 0; z-index: 55; background: rgba(10, 8, 6, .32); animation: pfade .25s ease both; }
+.pveil { position: fixed; inset: 0; z-index: 55; background: rgba(10, 8, 6, .32); opacity: 0; pointer-events: none; transition: opacity .3s ease; }
+.pveil.on { opacity: 1; pointer-events: auto; }
 @keyframes pfade { from { opacity: 0; } }
 .app.phone .sheet { overflow: hidden; }
 .app.phone .sheet > * { max-width: 100%; }
@@ -225,3 +229,78 @@ body.touch .chip { min-height: 36px; }
 .dev-ico { width: 22px; display: grid; place-items: center; flex: none; }
 .dev-ico i { display: block; border: 2px solid var(--ink-3); border-radius: 3px; }
 .dev-ico.phone i { width: 9px; height: 15px; } .dev-ico.tablet i { width: 13px; height: 17px; } .dev-ico.computer i { width: 17px; height: 12px; }
+
+/* ---------------------------------------------------------------- touch: it should feel like an app, not a web page */
+/* no double-tap zoom wait, no page bounce behind the bars, no "Copy | Look Up" on a long-pressed button */
+html:has(body.touch), body.touch { overscroll-behavior: none; touch-action: manipulation; }
+body.touch :is(button, [role=button], [role=tab], .ptabs, .pbar, .pseg, .ab-nav) { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+/* a button answers the moment a finger lands (touch.js): it dims; a big card gives a little */
+body.touch .pressed { opacity: .5; transition: none !important; }
+body.touch .pressed.big { opacity: 1; transform: scale(.975); }
+body.touch .unpress { transition: opacity .3s ease-out, transform .3s ease-out !important; }
+.app.phone :is(.sheet *, .drawer, .aq-thread, .settings, .pal-list) { overscroll-behavior-y: contain; }
+
+/* sheets have a handle: drag it down to put the sheet away */
+.app.phone :is(.drawer, .settings, .pal, .aq-dock)::before { content: ''; position: absolute; z-index: 3; top: 6px; left: 50%; width: 36px; height: 5px; margin-left: -18px; border-radius: 3px; background: color-mix(in srgb, var(--ink) 18%, transparent); pointer-events: none; }
+.app.phone :is(.settings, .pal) { position: relative; }
+
+/* Home's ideas: two rows of cards you swipe through (on a Mac they drift by on their own) */
+.app.phone .ideaflow { margin: 30px -18px 0; }
+.app.phone .if-h { padding: 0 18px; }
+.app.phone .if-row { overflow-x: auto; -webkit-mask-image: none; mask-image: none; padding: 4px 18px 8px; scroll-snap-type: x mandatory; scroll-padding: 0 18px; scrollbar-width: none; overscroll-behavior-x: contain; }
+.app.phone .if-row::-webkit-scrollbar { display: none; }
+.app.phone .if-track { animation: none; gap: 10px; }
+.app.phone .if-card { width: 214px; scroll-snap-align: start; background: var(--panel); }
+.app.phone .if-card[aria-hidden] { display: none; }
+
+/* search: the whole screen, with Cancel, as on an iPhone */
+.pal-cancel { display: none; }
+.app.phone .pal-veil { padding: calc(10px + env(safe-area-inset-top)) 0 0; align-items: stretch; background: rgba(10, 8, 6, .32); }
+/* (it fades in where it will stay: its box takes the keyboard at once, and Safari would scroll the page to a box still on its way up) */
+.app.phone .pal { width: 100%; max-height: none; border-radius: 20px 20px 0 0; animation: pfade .18s ease both; padding-bottom: env(safe-area-inset-bottom); }
+.app.phone .pal-in { height: 64px; padding: 10px 6px 0 16px; border-bottom: .5px solid var(--line-2); }
+.app.phone .pal-ic { display: grid; place-items: center; color: var(--ink-3); }
+.app.phone .pal-cancel { display: block; flex: none; height: 44px; padding: 0 10px; color: var(--accent-ink); font: 400 17px var(--sans); }
+.app.phone .pal-list { padding: 6px 8px; }
+.app.phone .pal-list .pl-i { min-height: 48px; border-radius: 12px; font-size: 16px; }
+.app.phone .pal-g { padding: 14px 12px 6px; }
+
+/* a lesson's actions (Listen, Copy, Share…): one row you can swipe, not two that wrap */
+.app.phone .lesson-acts { flex-wrap: nowrap; overflow-x: auto; margin: 0 -18px; padding: 0 18px 2px; scrollbar-width: none; }
+.app.phone .lesson-acts::-webkit-scrollbar { display: none; }
+.app.phone .lesson-acts > * { flex: none; }
+
+/* the drawer: search is already in the bar at the top; Settings is a gear at the bottom (on a Mac: ⌘, and the model menu) */
+.app.phone .side .brand .side-search + .side-search { display: none; }
+.side-gear { display: none; }
+.app.phone .side-gear { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 12px; color: var(--ink-2); }
+.app.phone .side-foot .avatar.ph { display: none; }
+
+/* a file's ripple (who would feel a change): the picture above its words */
+.app.phone .ripple { flex-direction: column; align-items: stretch; gap: 4px; padding: 10px 16px 16px; }
+.app.phone .ripple svg { align-self: center; width: 124px; height: 124px; }
+
+/* Your map: tiles two by two, names in the middle */
+.app.phone .tm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; grid-auto-rows: auto; }
+.app.phone .tm-cell { min-height: 50px; align-items: center; }
+.app.phone .tm-area { flex-basis: auto; }
+
+/* Home: one page that scrolls (on a Mac, the day's plan is a rail of its own beside it) */
+.app.phone .home.split { display: block; overflow: auto; height: 100%; }
+.app.phone .sp-main { overflow: visible; }
+.app.phone .sp-inner { padding: 26px 18px 8px; }
+.app.phone .sp-hello { font-size: 34px; letter-spacing: -.6px; }
+.app.phone .sp-sub { font-size: 16px; margin: 6px 0 20px; }
+.app.phone .sp-rail { overflow: visible; border-left: 0; background: none; padding: 18px 18px 30px; }
+
+/* what a file uses, and what uses it: the name, then what it does underneath (one line would run off the edge) */
+.app.phone .rel { flex-wrap: wrap; row-gap: 1px; white-space: normal; padding: 7px 6px; font-size: 14px; }
+.app.phone .rel .muted { flex-basis: 100%; padding-left: 20px; font-size: 13px; line-height: 1.35; }
+
+/* the keyboard is up (touch.js): the app is as tall as what's left above it, and the bars that sit on the bottom edge sit
+   on the keyboard (a fixed box inside a transformed one is placed by it, so the app is the screen for them) */
+html.kb, html.kb body { height: var(--kb-h); overflow: hidden; }
+html.kb .app.phone { position: fixed; top: var(--kb-top, 0px); left: 0; right: 0; height: var(--kb-h); transform: translateZ(0); }
+html.kb .app.phone :is(.atlas-ask, .aq-dock, .drawer, .settings, .pal) { padding-bottom: 8px; }
+html.kb .app.phone .ptabs { transform: translateY(calc(100% + 2px)); visibility: hidden; }
+html.kb .app.phone.at-root .sheet { bottom: 0; }

@@ -46,6 +46,11 @@ updates, the bookmarklet. Those are hidden on the phone.
   points at jumps to the code.
 - A project's Atlas: section chips at the top, **⋯** for Fork, GitHub, Compare and notes. In the code city, drag
   sideways to look around; tap a building to see what it is, tap it again to open the file.
+- It moves the way an iPhone app does. A page you open slides in; Back and the tabs bring you back to the exact spot
+  you left. A file, Settings, search or a conversation is a sheet: drag it down (or tap ✕) and it slides away. The
+  drawer drags shut. In the Home Screen app, where Safari has no swipe of its own, a swipe from the left edge goes
+  back, and on a tab's own page it opens the drawer. While you type, the keyboard takes the bottom of the screen and
+  the top bar stays put. Settings is the gear at the bottom of the drawer.
 
 ## Safety
 
@@ -61,7 +66,7 @@ updates, the bookmarklet. Those are hidden on the phone.
   reaches the internet through the same guarded fetch as on the Mac: public sites only, never your home network.
 
 How it's built: `electron/host.cjs` (the server, pairing, the stream), `src/remote.js` (the page's side),
-`src/ui/Phone.jsx` and `src/mobile.css` (the phone layout). Tests: `node test/host.test.mjs` and
+`src/ui/Phone.jsx` and `src/mobile.css` (the phone layout), `src/ui/touch.js` (the gestures and the keyboard). Tests: `node test/host.test.mjs` and
 `node scripts/smoke-phone.mjs [--ipad]` (needs `npx playwright-core install webkit` once).
 
 ## Next

@@ -3,7 +3,8 @@ import { IDEAS } from '../ideas.js';
 import { parseRepo, parseSite, parseBlob } from './Explore.jsx';
 import Brand from './Brand.jsx';
 import { useDialog } from './a11y.js';
-import { IS_MAC } from '../platform.js';
+import { IS_MAC, TOUCH } from '../platform.js';
+import Icon from './Icons.jsx';
 import { coverScore, projectNames, namesALesson } from '../findProject.js';
 
 // A lesson's own words, plain and lowercased once (searching them on every keystroke stays fast)
@@ -27,7 +28,7 @@ export default function Palette({ onOpenAt, onOpenSite, onClose, lessons, projec
   const inp = useRef(null);
   const box = useDialog(onClose);
   const list = useRef(null);
-  useEffect(() => { inp.current?.focus(); }, []);
+  useEffect(() => { inp.current?.focus({ preventScroll: true }); }, []);
   const items = useMemo(() => {
     const t = q.trim().toLowerCase();
     const m = (s) => !t || String(s).toLowerCase().includes(t);
@@ -66,8 +67,9 @@ export default function Palette({ onOpenAt, onOpenSite, onClose, lessons, projec
   return (
     <div className="pal-veil" onMouseDown={onClose}>
       <div className="pal" ref={box} role="dialog" aria-modal="true" aria-label="Search everything" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="pal-in"><span className="pal-ic" aria-hidden="true">{IS_MAC ? '⌘' : '⌕'}</span><input ref={inp} data-autofocus value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={key} placeholder="Ask, search, or paste a GitHub link…"
-          role="combobox" aria-label="Ask, search, or paste a GitHub link" aria-expanded="true" aria-controls="pal-list" aria-autocomplete="list" aria-activedescendant={items[i] ? `pal-o-${i}` : undefined} /><kbd aria-hidden="true">esc</kbd></div>
+        <div className="pal-in"><span className="pal-ic" aria-hidden="true">{TOUCH ? <Icon name="search" size={18} /> : IS_MAC ? '⌘' : '⌕'}</span><input ref={inp} data-autofocus value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={key} placeholder={TOUCH ? 'Ask, search, or paste a link' : 'Ask, search, or paste a GitHub link…'}
+          role="combobox" aria-label="Ask, search, or paste a GitHub link" aria-expanded="true" aria-controls="pal-list" aria-autocomplete="list" aria-activedescendant={items[i] ? `pal-o-${i}` : undefined} /><kbd aria-hidden="true">esc</kbd>
+          <button type="button" className="pal-cancel" onClick={onClose}>Cancel</button></div>
         <div className="pal-list" ref={list} id="pal-list" role="listbox" aria-label="Results">
           {items.length === 0 && <div className="muted pad" role="status">Nothing matches.</div>}
           {items.map((it, n) => {

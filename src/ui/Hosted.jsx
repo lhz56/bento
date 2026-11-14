@@ -14,7 +14,9 @@ function useRemote() {
 const codeInLink = () => { const m = /#pair=([0-9A-Za-z-]{4,20})/.exec(location.hash); return m ? m[1] : ''; };
 
 function Pair() {
-  const fromLink = codeInLink();
+  // (or the code a link brought while this device still had a key, which turned out to be stale: remote.js)
+  const [spare] = useState(() => (codeInLink() ? '' : R().takeSpareCode?.() || ''));
+  const fromLink = codeInLink() || spare;
   const [code, setCode] = useState(fromLink);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -22,7 +24,7 @@ function Pair() {
     if (!c.trim() || busy) return;
     setBusy(true); setErr('');
     try { await R().pair(c, deviceName()); history.replaceState(null, '', location.pathname); }
-    catch (e) { setErr(e.message); setBusy(false); }
+    catch (e) { setBusy(false); if (c === spare) setCode(''); else setErr(e.message); } // an old Home Screen code: just the pairing screen, no error
   };
   useEffect(() => { if (fromLink) go(fromLink); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // the pairing screen is already open and the QR code is scanned: Safari may only change the address's #pair=…

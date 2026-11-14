@@ -119,7 +119,8 @@ Bento never stores tokens. Every request is a call to your own CLI with every to
 
 Turn on **Settings → Your phone and iPad**, scan the QR code with your phone, and Bento opens there, already
 connected. Your Mac still does the work with your own AI; the phone gets tabs, Back, lessons as two pages (the story,
-then the code you can run on the phone), and the Atlas made for a thumb. Lessons and progress are the same on every
+then the code you can run on the phone), the Atlas made for a thumb, and the gestures you'd expect (pages that slide,
+sheets that drag away, swipe back). Lessons and progress are the same on every
 device. Your devices reach the Mac over Tailscale (from anywhere) or your Wi-Fi; nothing is hosted. See
 [docs/PHONE.md](docs/PHONE.md).
 

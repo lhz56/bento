@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { TOUCH } from '../platform.js';
 import { t, tx } from '../i18n.js';
 import { sizeWord, fmtN, langColor } from '../atlas/analyze.js';
 import FEATURED from '../atlas-featured.json';
@@ -29,7 +30,7 @@ export default function Explore({ top, api, onOpenAt, onCompare, onOpenSite, onO
   const [ph, setPh] = useState(0);
   const inp = useRef(null);
   const reqId = useRef(0);
-  useEffect(() => { loadRepos?.(); const t = setInterval(() => setPh((p) => p + 1), 3000); inp.current?.focus(); return () => clearInterval(t); }, []);
+  useEffect(() => { loadRepos?.(); const t = setInterval(() => setPh((p) => p + 1), 3000); if (!TOUCH) inp.current?.focus(); return () => clearInterval(t); }, []);
   const search = async (query, opts = {}) => {
     const id = ++reqId.current; setBusy(true); setErr(null);
     try { const r = await api.ghSearch(query, { limit: 18, ...opts }); if (id === reqId.current) setRes({ q: query, items: r }); }

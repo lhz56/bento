@@ -46,12 +46,17 @@ export default function Atlas({ asked, onAskedDone, onIdeaInstead, onPlanIssue, 
 
   useEffect(() => {
     const el = scroller.current; if (!el) return;
-    const io = new IntersectionObserver((es) => { const v = es.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]; if (v) setSection(v.target.id.replace('sec-', '')); }, { root: el, rootMargin: '-80px 0px -60% 0px' });
+    const io = new IntersectionObserver((es) => { if (Date.now() < goingTo.current) return; const v = es.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]; if (v) setSection(v.target.id.replace('sec-', '')); }, { root: el, rootMargin: '-80px 0px -60% 0px' });
     el.querySelectorAll('.asec').forEach((s) => io.observe(s));
     return () => io.disconnect();
   }, [F]);
-  const go = (id) => scroller.current?.querySelector(`#sec-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  useEffect(() => { document.querySelector('.ab-nav button.on')?.scrollIntoView({ inline: 'nearest', block: 'nearest' }); }, [section]);
+  // a section picked from the bar: it stays the one lit while the page glides there (not each one it passes)
+  const goingTo = useRef(0);
+  const go = (id) => {
+    const el = scroller.current?.querySelector(`#sec-${id}`); if (!el) return;
+    goingTo.current = Date.now() + 900; setSection(id);
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   useEffect(() => { const h = () => setTimeout(() => go('files'), 30); addEventListener('atlas-layer', h); return () => removeEventListener('atlas-layer', h); }, []);
 
   const narrating = A.status === 'narrating';
@@ -79,7 +84,12 @@ export default function Atlas({ asked, onAskedDone, onIdeaInstead, onPlanIssue, 
     upd(); const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(upd) : null; ro?.observe(n); n.addEventListener('scroll', upd, { passive: true });
     return () => { ro?.disconnect(); n.removeEventListener('scroll', upd); };
   }, [holding]); // the bar only exists once the project has loaded
-  useEffect(() => { navRef.current?.querySelector('button.on')?.scrollIntoView({ inline: 'nearest', block: 'nearest' }); }, [section, holding]);
+  // keep the lit section in view in the bar, by moving the bar only (scrolling anything else would stop the page's glide)
+  useEffect(() => {
+    const n = navRef.current; const b = n?.querySelector('button.on'); if (!b || n.scrollWidth <= n.clientWidth) return;
+    const r = b.getBoundingClientRect(); const left = n.scrollLeft + r.left - n.getBoundingClientRect().left - (n.clientWidth - r.width) / 2;
+    n.scrollTo({ left: Math.max(0, Math.min(left, n.scrollWidth - n.clientWidth)), behavior: 'smooth' });
+  }, [section, holding]);
 
   if (holding) return <AtlasLoading A={A} F={F} onRetry={onRetry} onBig={onBig} asked={asked} onIdeaInstead={onIdeaInstead} />;
 

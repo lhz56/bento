@@ -11,6 +11,7 @@ Bento on your iPhone and iPad.
 - Made for a phone: tabs at the bottom, Back at the top, your recent things a swipe away. Lessons are two pages, the story and the code (which runs right on the phone). A project's Atlas fits your thumb: tap a building in the code city to see what it is, tap again to open the file.
 - Your lessons and progress are the same on every device, and change everywhere at once.
 - Put it on your Home Screen and it opens like an app, already connected.
+- It moves like an app, too: pages slide in, Back and the tabs return you to the exact spot you left, sheets drag down to close, the drawer drags shut, and in the Home Screen app a swipe from the left edge goes back. When you type, the keyboard takes the bottom of the screen and the top bar stays where it is.
 
 ## 0.2.1
 

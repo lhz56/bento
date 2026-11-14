@@ -11,7 +11,7 @@ import Icon from './Icons.jsx';
 import IdeaFlow from './IdeaFlow.jsx';
 import { IDEAS as CLEVER, ideaById } from '../ideas.js';
 import { langColor } from '../atlas/analyze.js';
-import { mod, keys, IS_MAC } from '../platform.js';
+import { mod, keys, IS_MAC, TOUCH } from '../platform.js';
 import { REGIONS } from '../skills.js';
 
 const IDEAS = {
@@ -51,7 +51,8 @@ export default function Home({ builtins = [], threads = [], skyDots = [], about,
   const ta = useRef(null);
   useEffect(() => { if (user) loadRepos?.(); }, [user]);
   useEffect(() => { const t = setInterval(() => setPh((p) => p + 1), 4200); return () => clearInterval(t); }, []);
-  useEffect(() => { ta.current?.focus(); }, [mode]);
+  // (not on a phone or iPad: the keyboard would come up, and the page jump to the box, every time you came back here)
+  useEffect(() => { if (!TOUCH) ta.current?.focus(); }, [mode]);
   const ideas = IDEAS[mode];
   // while the box is empty, it types out example questions, so there's always something to try
   const [typed, setTyped] = useState('');

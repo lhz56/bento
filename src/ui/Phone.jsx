@@ -35,10 +35,11 @@ export function TopBar({ view, title, onBack, onMenu, onSearch, setView, scrolle
   );
 }
 
-export function TabBar({ view, setView, onTop }) {
+// away: a page opened from a tab (a lesson, a project) has the whole screen; the tabs slide down out of its way
+export function TabBar({ view, setView, onTop, away }) {
   const active = groupOf(view)?.id;
   return (
-    <nav className="ptabs" aria-label={t('Main')}>
+    <nav className={`ptabs ${away ? 'away' : ''}`} aria-label={t('Main')} inert={away || undefined} aria-hidden={away || undefined}>
       {GROUPS.map((g) => (
         <button key={g.id} className={active === g.id ? 'on' : ''} aria-current={active === g.id ? 'page' : undefined}
           // tapping the tab you're on goes back to its top, as on iPhone
@@ -49,3 +50,50 @@ export function TabBar({ view, setView, onTop }) {
     </nav>
   );
 }
+
+// ---------------------------------------------------------------- moving between pages, the way an iPhone does
+// A page you open slides in from the right, Back brings the last one in from the left, a tab just fades across.
+// (Safari's own swipe back has already animated by the time we hear of it: dir 'none'.)
+const EASE = 'cubic-bezier(.2, .8, .2, 1)';
+export function enter(main, dir) {
+  if (!main) return;
+  // a swipe back may have left the old page off to the side
+  ['transform', 'transition', 'boxShadow', 'visibility', 'animation'].forEach((p) => { main.style[p] = ''; });
+  const bar = document.querySelector('.pbar-mid'); if (bar) { bar.style.opacity = ''; bar.style.transition = ''; }
+  if (dir === 'none' || !main.animate) return;
+  // (only a fade for a tab: a moving page holds anything fixed inside it, like the Atlas's ask bar, while it moves)
+  const fade = dir === 'tab' || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // (a tab starts part-way in, so there's never a blank moment between two tabs)
+  const frames = (d) => (fade ? [{ opacity: dir === 'tab' ? 0.35 : 0 }, { opacity: 1 }] : [{ transform: `translateX(${dir === 'push' ? d : -d}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }]);
+  const o = { duration: dir === 'tab' ? 160 : 300, easing: EASE };
+  [...main.children].filter((c) => !c.matches('.titlebar-drag, .gtabs, .side-open')).forEach((c) => c.animate(frames(36), o));
+  if (bar) bar.animate(frames(24), { ...o, duration: 240 });
+}
+
+// where you were on each page: Back and the tabs bring you to the same spot, a page opened afresh starts at its top
+const spots = new Map(); // page → Map(path to the scrolling element → scrollTop)
+const pathOf = (el, root) => { const p = []; for (let n = el; n !== root; n = n.parentElement) { if (!n?.parentElement) return null; p.push([...n.parentElement.children].indexOf(n)); } return p.reverse().join('.'); };
+const atPath = (root, p) => (p === '' ? root : p.split('.').reduce((n, i) => n?.children[+i], root));
+export function noteScroll(page, root, el) {
+  if (!(el instanceof Element) || !root.contains(el)) return;
+  const p = pathOf(el, root); if (p == null) return;
+  if (!spots.has(page)) spots.set(page, new Map());
+  spots.get(page).set(p, el.scrollTop);
+}
+export function restoreScroll(page, root) {
+  const m = spots.get(page); if (!m || !root) return;
+  let tries = 0;
+  // a page can still be filling in: keep trying for half a second, until the spot exists
+  const go = () => {
+    let left = 0;
+    m.forEach((top, p) => {
+      const el = atPath(root, p); if (!el) { left++; return; }
+      if (Math.abs(el.scrollTop - top) < 2) return;
+      const b = el.style.scrollBehavior; el.style.scrollBehavior = 'auto'; el.scrollTop = top; el.style.scrollBehavior = b;
+      if (Math.abs(el.scrollTop - top) >= 2) left++;
+    });
+    if (left && ++tries < 30) requestAnimationFrame(go);
+  };
+  go();
+}
+export const forgetScroll = (page) => spots.delete(page);

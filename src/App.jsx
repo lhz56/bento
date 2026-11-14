@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { SAMPLES, CHALLENGE, emptyLesson, applyBlock, ndjsonParser, buildPrompt, parseJSONLoose } from './lesson.js';
 import { tidyLesson } from './verify.js'; // when a lesson finishes: slipped plain English is written again, slipped line links moved back
 import { projectNames, decide, mentionedProject, pointsBack, namesALesson } from './findProject.js';
@@ -40,7 +40,8 @@ import { mockBridge } from './mock.js';
 import useLibrary, { FEATURED } from './hooks/useLibrary.js';
 import { load, save, saveLessons, cleanErr } from './store.js';
 import { mergeLessons } from './sync.js';
-import { useNarrow, TopBar, TabBar, isRoot } from './ui/Phone.jsx';
+import { useNarrow, TopBar, TabBar, isRoot, enter, noteScroll, restoreScroll, forgetScroll } from './ui/Phone.jsx';
+import { useTouch, STANDALONE } from './ui/touch.js';
 import { mod, keys, TOUCH } from './platform.js';
 
 const api = window.bento || mockBridge;
@@ -511,12 +512,31 @@ export default function App() {
     if (cur?.bento && cur.view === view && cur.currentId === currentId && cur.atlasKey === atlasKey && cur.siteKey === siteKey) return;
     if (!cur?.bento) history.replaceState({ ...st, depth: 0 }, ''); else history.pushState({ ...st, depth: (cur.depth || 0) + 1 }, '');
   }, [view, currentId, atlasKey, siteKey]);
+  // which way the next page arrives (Phone.jsx: enter): set by Back; Safari's own swipe back has animated already
+  const navDir = useRef(null);
   useEffect(() => {
     if (!api.remote) return undefined;
-    const back = (e) => { const s = e.state; if (!s?.bento) return; setCurrentId(s.currentId ?? null); setAtlasKey(s.atlasKey ?? null); setSiteKey(s.siteKey ?? null); setViewRaw(s.view || 'home'); };
+    const back = (e) => {
+      const s = e.state; if (!s?.bento) return;
+      if (navDir.current !== 'pop') navDir.current = STANDALONE ? 'pop' : 'none';
+      setCurrentId(s.currentId ?? null); setAtlasKey(s.atlasKey ?? null); setSiteKey(s.siteKey ?? null); setViewRaw(s.view || 'home');
+    };
     addEventListener('popstate', back); return () => removeEventListener('popstate', back);
   }, []);
-  const goBack = () => { if (api.remote && history.state?.depth > 0) history.back(); else setView(lastTab(groupOf(view) || GROUPS[0])); };
+  const goBack = () => { navDir.current = 'pop'; if (api.remote && history.state?.depth > 0) history.back(); else setView(lastTab(groupOf(view) || GROUPS[0])); };
+  // each page on a phone: it slides in, and Back or a tab returns you to the spot you left it at
+  const page = `${view}:${view === 'lesson' ? currentId : view === 'atlas' ? atlasKey : view === 'site' ? siteKey : ''}`;
+  const shownPage = useRef({ page, root: isRoot(view) });
+  useLayoutEffect(() => {
+    const was = shownPage.current; if (was.page === page) return;
+    const root = isRoot(view); shownPage.current = { page, root };
+    const dir = navDir.current || (was.root && root ? 'tab' : root ? 'pop' : 'push'); navDir.current = null;
+    if (!phone) return;
+    const main = document.getElementById('content');
+    if (dir === 'push') forgetScroll(page); else restoreScroll(page, main);
+    enter(main, dir);
+  }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
+  useTouch(TOUCH, { phone, back: goBack, canBack: () => !isRoot(view), atRoot: () => isRoot(view), drawerOpen: () => drawer, openDrawer: () => setDrawer(true), closeDrawer: () => setDrawer(false), swipe: STANDALONE || sessionStorage.getItem('bento.swipe') === '1' });
   const phoneTitle = view === 'lesson' ? (current?.title || current?.q || '') : view === 'atlas' ? (atlases[atlasKey]?.name || '').split('/').pop() : view === 'site' ? siteKey : view === 'compare' ? t('Compare') : t(groupOf(view)?.label || '');
   const [article, setArticle] = useState(() => !!localStorage.getItem('bento.article'));
   const [runs, setRuns] = useState({});
@@ -656,7 +676,7 @@ export default function App() {
     <div className={`app ${phone ? `phone ${drawer ? 'drawer-open' : ''} ${isRoot(view) ? 'at-root' : 'at-detail'}` : sideOpen ? '' : 'side-closed'}`}>
       {phone && <TopBar view={view} title={phoneTitle} onBack={goBack} onMenu={() => setDrawer(true)} onSearch={() => setPal(true)} setView={setView} scrolled={scrolled}
         seg={view === 'lesson' && current && !(article && current.code && current.lang !== 'html' && !current.steps?.length) ? { value: pane, options: [['story', t('Lesson')], ['code', current.lang === 'html' ? t('Page') : t('Code')]], onChange: setPane } : null} />}
-      {phone && drawer && <div className="pveil" onClick={() => setDrawer(false)} aria-hidden="true" />}
+      {phone && <div className={`pveil ${drawer ? 'on' : ''}`} onClick={() => setDrawer(false)} aria-hidden="true" />}
       {saveTrouble && (
         <div className="save-trouble" role="alert">
           <b>{saveTrouble === 'ENOSPC' ? 'Your disk is full, so Bento can’t save.' : 'Bento can’t save your work right now.'}</b>
@@ -668,19 +688,19 @@ export default function App() {
       <Sidebar onClose={() => (phone ? setDrawer(false) : setSideOpen(false))} closed={phone ? !drawer : !sideOpen} view={view} setView={setView} lessons={lessons} current={currentId} onOpen={openLesson} onNew={() => setViewRaw('home')}
         projects={projects} atlasKey={view === 'atlas' ? atlasKey : null} atlases={atlases} onOpenProject={(p) => showAtlas(p.key)} onForgetProject={(k) => setProjects((ps) => ps.filter((p) => p.key !== k))}
         onDelete={(id) => { cancels.current.get(id)?.(); setLessons((ls) => ls.filter((l) => l.id !== id)); if (id === currentId) setViewRaw('home'); }}
-        settings={settings} setSettings={setSettings} providers={providers} user={user} progress={progress} onSetup={() => setOnb(1)} onSettings={() => setShowSettings(true)} siteKey={siteKey} />
+        settings={settings} setSettings={setSettings} providers={providers} user={user} progress={progress} onSetup={() => setOnb(1)} onSettings={() => { setShowSettings(true); setDrawer(false); }} siteKey={siteKey} />
       {onb == null && view === 'lesson' && current && <Coach key="lesson" screen="lesson" ready={!streaming && !!current.code && current.lang !== 'html'} />}
       {onb == null && view === 'atlas' && <Coach key="atlas" screen="atlas" ready={!!atlases[atlasKey]?.facts} />}
       {dropping && <div className="drop-veil"><div className="drop-card"><span>⤓</span><b>Drop to take it apart</b><i>A folder becomes a picture of the project. A code file gets explained line by line.</i></div></div>}
       {showKeys && <KeySheet onClose={() => setShowKeys(false)} />}
       {showSettings && <Settings settings={settings} setSettings={setSettings} providers={providers} onClose={() => setShowSettings(false)} onSetup={() => { setShowSettings(false); setOnb(1); }} onOpenData={() => api.openData?.()} packs={packs} onRemovePack={(id) => setPacks((ps) => ps.filter((p) => p.id !== id))} onAddPack={(json) => { const { errors, pack } = validatePack(json); if (errors.length) return { errors }; setPacks((ps) => [...ps.filter((p) => p.id !== pack.id), pack]); return { pack }; }} onBackup={() => api.backupSave?.()} onRestore={async () => { const d = await api.backupLoad?.(); return d ? restoreBackup(d) : null; }} onReplayOnboarding={() => { setShowSettings(false); setOnb(0); }} wordsCount={Object.keys(progress.words || {}).length} lessonsCount={lessons.filter((l) => !l.builtin).length} />}
       {pal && <Palette onOpenAt={openRepoAt} onOpenSite={openSite} onClose={() => setPal(false)} lessons={lessons} projects={projects} words={progress.words || {}}
-        actions={[['home', 'Learn: ask anything', '✦'], ['path', 'Paths: learn it in order', '⤳'], ['explore', 'Explore code', '◈'], ['ideas', 'Clever ideas', '⬡'], ['puzzles', 'Puzzles: LeetCode, from the top down', '◇'], ['play', 'Playgrounds: SQL, Git and the terminal, designing for a billion', '▦'], ['map', 'Your map: everything you know', '✺'], ['words', 'Your words', 'Aa'], ['bug', 'Daily bug', '⚑']].map(([v, label, icon]) => ({ label, icon, run: () => setView(v) })).concat([{ label: 'Settings', icon: '⚙', run: () => setShowSettings(true) }, { label: 'Keyboard shortcuts', icon: '?', run: () => setShowKeys(true) }, { label: 'Connections & setup', icon: '⚙', run: () => setOnb(1) }, { label: 'Open a folder on this Mac', icon: '▢', run: openFolderAtlas }, { label: 'Compare two apps', icon: '⇄', run: () => openCompare() }, { label: 'Scratchpad: write your own code', icon: '✎', run: () => newScratch() }])}
+        actions={[['home', 'Learn: ask anything', '✦'], ['path', 'Paths: learn it in order', '⤳'], ['explore', 'Explore code', '◈'], ['ideas', 'Clever ideas', '⬡'], ['puzzles', 'Puzzles: LeetCode, from the top down', '◇'], ['play', 'Playgrounds: SQL, Git and the terminal, designing for a billion', '▦'], ['map', 'Your map: everything you know', '✺'], ['words', 'Your words', 'Aa'], ['bug', 'Daily bug', '⚑']].map(([v, label, icon]) => ({ label, icon, run: () => setView(v) })).concat([{ label: 'Settings', icon: '⚙', run: () => setShowSettings(true) }, { label: 'Keyboard shortcuts', icon: '?', run: () => setShowKeys(true) }, { label: 'Connections & setup', icon: '⚙', run: () => setOnb(1) }, { label: 'Open a folder on this Mac', icon: '▢', run: openFolderAtlas }, { label: 'Compare two apps', icon: '⇄', run: () => openCompare() }, { label: 'Scratchpad: write your own code', icon: '✎', run: () => newScratch() }]).filter((a) => !(TOUCH && a.label === 'Keyboard shortcuts') && !(api.remote && /^(Connections|Open a folder)/.test(a.label)))}
         onAsk={(q) => onAsk(q, {})} onOpenRepo={openRepo} onLesson={openLesson} onProject={(p) => showAtlas(p.key)} onIdea={readIdea} onWord={() => setViewRaw('words')}
         builtins={builtins} />}
       {onb != null && <Onboarding api={api} settings={settings} setSettings={setSettings} startAt={onb} onDone={(go) => { setOnb(null); if (['explore', 'ideas', 'path', 'puzzles'].includes(go)) setViewRaw(go); else setViewRaw('home'); api.providers().then(setProviders); }} />}
       <main className={`sheet ${groupOf(view)?.views.length > 1 && groupOf(view).views.some(([v]) => v === view) ? 'has-tabs' : ''}`} id="content" tabIndex={-1}
-        onScrollCapture={phone ? (e) => { const y = e.target?.scrollTop || 0; if ((y > 8) !== scrolled) setScrolled(y > 8); } : undefined}>
+        onScrollCapture={phone ? (e) => { const y = e.target?.scrollTop || 0; if ((y > 8) !== scrolled) setScrolled(y > 8); noteScroll(page, e.currentTarget, e.target); } : undefined}>
         <div className="titlebar-drag" />
         {!sideOpen && <button className="side-open" onClick={() => setSideOpen(true)} aria-label={`${t('Show the sidebar')} (${keys('⌘\\')})`} title={`${t('Show the sidebar')}  ${keys('⌘\\')}`}><Icon name="sidebar" size={17} /></button>}
         {(() => { const g = groupOf(view); if (!g || g.views.length < 2 || !g.views.some(([v]) => v === view)) return null; return (
@@ -850,7 +870,7 @@ export default function App() {
           </div>
         )}
       </main>
-      {phone && isRoot(view) && <TabBar view={view} setView={setView} onTop={() => document.querySelectorAll('#content *').forEach((el) => { if (el.scrollTop > 0) el.scrollTo({ top: 0, behavior: 'smooth' }); })} />}
+      {phone && <TabBar away={!isRoot(view)} view={view} setView={setView} onTop={() => document.querySelectorAll('#content *').forEach((el) => { if (el.scrollTop > 0) el.scrollTo({ top: 0, behavior: 'smooth' }); })} />}
     </div>
   );
 }
