@@ -16,14 +16,16 @@ const codeInLink = () => { const m = /#pair=([0-9A-Za-z-]{4,20})/.exec(location.
 function Pair() {
   // (or the code a link brought while this device still had a key, which turned out to be stale: remote.js)
   const [spare] = useState(() => (codeInLink() ? '' : R().takeSpareCode?.() || ''));
-  const fromLink = codeInLink() || spare;
+  const [fromLink] = useState(() => codeInLink() || spare);
   const [code, setCode] = useState(fromLink);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const go = async (c = code) => {
     if (!c.trim() || busy) return;
     setBusy(true); setErr('');
-    try { await R().pair(c, deviceName()); history.replaceState(null, '', location.pathname); }
+    // the code leaves the address at once (Bento may be on screen before pairing has quite finished; and this keeps the page's history)
+    if (/^#pair=/.test(location.hash)) history.replaceState(history.state, '', location.pathname + location.search);
+    try { await R().pair(c, deviceName()); }
     catch (e) { setBusy(false); if (c === spare) setCode(''); else setErr(e.message); } // an old Home Screen code: just the pairing screen, no error
   };
   useEffect(() => { if (fromLink) go(fromLink); }, []); // eslint-disable-line react-hooks/exhaustive-deps
