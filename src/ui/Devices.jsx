@@ -158,7 +158,7 @@ export default function DevicesRow() {
 export function ThisDeviceRow() {
   const R = window.bentoRemote;
   const [st, setSt] = useState(() => ({ state: R?.state, host: R?.host }));
-  useEffect(() => R?.on((state, host) => setSt({ state, host })), []);
+  useEffect(() => { if (!R) return undefined; const off = R.on((state, host) => setSt({ state, host })); setSt({ state: R.state, host: R.host }); return off; }, []);
   if (!R) return null;
   const me = /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)) ? 'iPad' : /iPhone/.test(navigator.userAgent) ? 'iPhone' : 'device';
   return (

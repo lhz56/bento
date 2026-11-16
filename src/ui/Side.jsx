@@ -81,7 +81,8 @@ export const rememberTab = (view) => { const g = GROUPS.find((x) => x.views.some
 function MacCard({ model, onSettings }) {
   const R = window.bentoRemote;
   const [st, setSt] = useState(() => ({ state: R.state, host: R.host }));
-  useEffect(() => R.on((state, host) => setSt({ state, host })), [R]);
+  // (read it again once listening: Bento can come online between the first render and this effect)
+  useEffect(() => { const off = R.on((state, host) => setSt({ state, host })); setSt({ state: R.state, host: R.host }); return off; }, [R]);
   const on = st.state === 'online';
   const ai = modelInfo(model)?.short || aiModelLabel(model);
   return (

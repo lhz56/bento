@@ -7,7 +7,8 @@ const R = () => window.bentoRemote;
 
 function useRemote() {
   const [st, setSt] = useState(() => ({ state: R().state, host: R().host }));
-  useEffect(() => R().on((state, host) => setSt({ state, host })), []);
+  // (read it again once listening: the state can change between the first render and this effect)
+  useEffect(() => { const off = R().on((state, host) => setSt({ state, host })); setSt({ state: R().state, host: R().host }); return off; }, []);
   return st;
 }
 
