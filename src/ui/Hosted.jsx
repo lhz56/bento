@@ -1,6 +1,7 @@
 // On a phone or iPad (see remote.js): pair with Bento on your Mac once, then it's Bento, with the Mac doing the work.
 import { useEffect, useState } from 'react';
 import { deviceName } from '../remote.js';
+import { STANDALONE } from './touch.js';
 
 const R = () => window.bentoRemote;
 
@@ -71,7 +72,6 @@ function Offline() {
 // In Safari on an iPhone or iPad: Bento can live on the Home Screen and open like an app. That copy has storage of its
 // own, so this arms a one-time code in the link it will start from (remote.js), and it opens already connected.
 const APPLE_TOUCH = /iPhone|iPad/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-const STANDALONE = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
 function HomeScreenTip() {
   const [show, setShow] = useState(() => APPLE_TOUCH && !STANDALONE && !localStorage.getItem('bentoHost.homeTip'));
   useEffect(() => { if (show) R().armHomeScreen().catch(() => {}); }, [show]);

@@ -4,7 +4,8 @@
 // slides away instead of vanishing, and the keyboard takes the bottom of the screen without pushing the top bar off it.
 import { useEffect, useRef } from 'react';
 
-export const STANDALONE = typeof navigator !== 'undefined' && (navigator.standalone === true || matchMedia('(display-mode: standalone)').matches);
+// the Home Screen copy, or Bento's iPhone and iPad app (ios/), which shows this page full screen with no Safari around it
+export const STANDALONE = typeof navigator !== 'undefined' && (navigator.standalone === true || matchMedia('(display-mode: standalone)').matches || /\bBentoApp\//.test(navigator.userAgent));
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const OUT = 'cubic-bezier(.4, 0, .9, .6)', SPRING = 'cubic-bezier(.2, .9, .3, 1)';
 

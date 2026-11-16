@@ -4,3 +4,5 @@ release/
 .DS_Store
 *.log
 smoke-out/
+ios/**/xcuserdata/
+ios/build/
