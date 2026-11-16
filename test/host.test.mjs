@@ -18,9 +18,10 @@ fs.mkdirSync(path.join(dir, 'dist-evil')); fs.writeFileSync(path.join(dir, 'dist
 fs.writeFileSync(path.join(dir, 'secret.txt'), 'nope');
 
 const port = 47000 + Math.floor(Math.random() * 900) * 2;
-const calls = []; const sends = [];
+const calls = []; const sends = []; const asks = []; const askEnds = [];
 const host = createHost({
-  dist, devicesFile: path.join(dir, 'devices.json'), name: 'Test Mac', version: '9.9.9', port, ttlMs: 60_000,
+  dist, devicesFile: path.join(dir, 'devices.json'), name: 'Test Mac', version: '9.9.9', port, ttlMs: 60_000, askMs: 1500, askCoolMs: 400,
+  onAsk: (a) => asks.push(a), onAskEnd: (id, st) => askEnds.push(st),
   interfaces: () => ({}), // localhost only
   call: async (ch, args, sender) => { calls.push({ ch, args, sender }); if (ch === 'boom') throw new Error('it broke'); if (ch === 'stream') { sender.send('ask:chunk', 'x1', 'hello'); sender.send('ask:done', 'x1'); } return { ch, args }; },
   send: (ch, args, sender) => sends.push({ ch, args, sender }),
@@ -150,6 +151,40 @@ let key;
   const netAfter = await req('GET', '/__net?u=https%3A%2F%2Fexample.com%2F', { headers: { cookie: `bento_net=${cookieV}` } });
   check(after.status === 401 && netAfter.status === 401, 'a removed device can’t do anything any more, lesson code included', `${after.status} ${netAfter.status}`);
   stream.destroy(); }
+
+// ---- "Approve on Mac": the Bento Code app asks, you answer on the Mac
+{ const fromPage = await post('/api/connect', { name: 'iPhone', kind: 'phone' }, null, { origin: `http://127.0.0.1:${port}` });
+  check(fromPage.status === 403 && asks.length === 0, 'a web page can’t ask to connect (only the app can), so it can’t raise the dialog', fromPage.status);
+  const a = await post('/api/connect', { name: 'Lin’s iPhone<b>', kind: 'phone' });
+  check(a.status === 200 && /^\d{4}$/.test(a.json?.code || '') && a.json.id && a.json.secret && a.json.mac === 'Test Mac' && asks.length === 1 && asks[0].code === a.json.code && asks[0].name === 'Lin’s iPhoneb' && !('secret' in asks[0]),
+    'the app asks: the Mac is shown its name and the same 4-digit number (never its secret)', a.text);
+  const busy = await post('/api/connect', { name: 'Someone else', kind: 'phone' });
+  check(busy.status === 429 && asks.length === 1, 'while one request waits, nobody else can raise another', busy.status);
+  check(host.state().ask?.code === a.json.code, 'Settings knows a device is asking', JSON.stringify(host.state().ask));
+  const guess = await post('/api/connect/state', { id: a.json.id, secret: 'a-guess' });
+  check(guess.status === 404, 'without the request’s secret, nobody can hear the answer', guess.status);
+  const waiting = post('/api/connect/state', { id: a.json.id, secret: a.json.secret });
+  await new Promise((r) => setTimeout(r, 150));
+  check(host.answer(a.json.id, true) === true, 'Allow, on the Mac', '');
+  const w = await waiting;
+  check(w.status === 200 && w.json?.state === 'allowed' && /^[0-9A-Z]{8}$/.test(w.json.pair || ''), 'the waiting app hears Allow at once, with a one-time code', w.text);
+  const again = await post('/api/connect/state', { id: a.json.id, secret: a.json.secret });
+  check(again.status === 404, 'that code is handed out once', again.status);
+  const paired = await post('/api/pair', { code: w.json.pair, name: 'iPhone' });
+  check(paired.status === 200 && paired.json?.token, 'the app’s page trades the code for its own key, as with the QR code', paired.text);
+  host.forget(paired.json.device.id);
+  const b = await post('/api/connect', { name: 'iPad', kind: 'tablet' });
+  check(host.answer(b.json.id, false) && !host.answer(b.json.id, true), 'Don’t Allow is final', '');
+  const no = await post('/api/connect/state', { id: b.json.id, secret: b.json.secret });
+  const soon = await post('/api/connect', { name: 'iPad', kind: 'tablet' });
+  check(no.json?.state === 'denied' && soon.status === 429, 'Don’t Allow is heard, and then nobody may ask for a while', `${no.text} ${soon.status}`);
+  await new Promise((r) => setTimeout(r, 450));
+  const d = await post('/api/connect', { name: 'iPad', kind: 'tablet' });
+  const quit = await post('/api/connect/cancel', { id: d.json?.id, secret: d.json?.secret });
+  check(quit.json?.state === 'expired' && !host.state().ask && !host.answer(d.json.id, true), 'the app can take its request back (and the dialog goes)', quit.text);
+  const c = await post('/api/connect', { name: 'iPad', kind: 'tablet' });
+  const t0 = Date.now(); const gone = await post('/api/connect/state', { id: c.json?.id, secret: c.json?.secret });
+  check(askEnds.join() === 'allowed,denied,expired,expired' && c.status === 200 && gone.json?.state === 'expired' && Date.now() - t0 < 3000 && !host.state().ask && !host.answer(c.json.id, true), 'a request nobody answers runs out, and a late Allow does nothing', `${askEnds} ${c.status} ${gone.text}`); }
 
 // ---- guessing codes gets nowhere fast
 { host.newPairing(); let last;

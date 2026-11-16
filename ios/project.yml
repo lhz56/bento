@@ -10,7 +10,7 @@ settings:
     CODE_SIGN_STYLE: Automatic
     SWIFT_VERSION: "5.0"
     MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "2"
+    CURRENT_PROJECT_VERSION: "3"
 targets:
   Bento:
     type: application
@@ -41,7 +41,8 @@ targets:
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
         NSCameraUsageDescription: Bento uses the camera only to scan the pairing code on your Mac.
-        NSLocalNetworkUsageDescription: Bento connects to Bento on your own Mac over your Wi-Fi, where the work happens.
+        NSLocalNetworkUsageDescription: Bento Code finds Bento on your Mac over your Wi-Fi, where the work happens.
+        NSBonjourServices: [_bento._tcp]
         ITSAppUsesNonExemptEncryption: false
         # Bento talks only to the user's own Mac, by its Tailscale name or private Wi-Fi address, over plain HTTP
         # (Tailscale encrypts it end to end). There's no public server to put a certificate on. Every request after

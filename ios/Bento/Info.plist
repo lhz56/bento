@@ -31,10 +31,14 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_bento._tcp</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Bento uses the camera only to scan the pairing code on your Mac.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Bento connects to Bento on your own Mac over your Wi-Fi, where the work happens.</string>
+	<string>Bento Code finds Bento on your Mac over your Wi-Fi, where the work happens.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

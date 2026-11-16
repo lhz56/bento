@@ -3,7 +3,9 @@
 // here, everything is saved here. Nothing is hosted anywhere else.
 //
 // Who may use it: only devices you paired. Settings shows a QR code holding a one-time code (10 minutes, one use);
-// the device trades it for its own key, which only it keeps (this Mac keeps a hash of it). Remove a device in Settings
+// the device trades it for its own key, which only it keeps (this Mac keeps a hash of it). Or the Bento Code app asks
+// ("Approve on Mac"): it finds this Mac nearby, asks to connect, and this Mac shows a native Allow dialog with the same
+// 4-digit number the phone shows; Allow hands that one asker a one-time code, which it trades for a key the same way. Remove a device in Settings
 // and its key stops working at once. Every call carries the key in a header, so another website open on the phone
 // can't make one; it must arrive on an address Bento chose (Tailscale, or your Wi-Fi if you turned that on) and name
 // this Mac as its host, so a website can't point its own name at this Mac and get in that way either.
@@ -21,6 +23,8 @@ const zlib = require('node:zlib');
 
 const PORT = 4917; // Bento's page; lesson web pages get the next port, an origin of their own
 const PAIR_MS = 10 * 60_000;
+const ASK_MS = 2 * 60_000;      // how long an "Approve on Mac" request waits for an answer
+const ASK_COOL_MS = 30_000;     // after Don't Allow, how long before anyone may ask again
 const sha = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
 const rand = (n = 32) => crypto.randomBytes(n).toString('base64url');
 const ABC = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'; // no 0/O, 1/I/L: easy to type from the screen
@@ -54,7 +58,9 @@ const BASE_HEADERS = { 'x-content-type-options': 'nosniff', 'referrer-policy': '
  *   playGet(id) → html | undefined,                             // a lesson's web page
  *   dnsNames() → Promise<string[]>,                             // this Mac's names on Tailscale (full and short)
  *   writeFile(file, text), log(...), onChange(),                // Settings is told when something changes
- *   interfaces?() (tests), port?, ttlMs? (tests)
+ *   onAsk?({ id, name, kind, code, exp }),                     // a device asks to connect: show Allow / Don't Allow
+ *   onAskEnd?(id, state),                                       // …and it was answered, ran out, or the device gave up
+ *   interfaces?() (tests), port?, ttlMs?, askMs?, askCoolMs? (tests)
  * }
  */
 function createHost(o) {
@@ -67,6 +73,10 @@ function createHost(o) {
   // code of its own in its start link (never the device's key), good for 30 minutes
   const handoffs = new Map(); // code → { exp, name }
   let misses = []; // when wrong codes were tried
+  // "Approve on Mac": one request at a time. Its id and secret go only to the device that asked (the secret never
+  // leaves it except to ask how it went); the 4-digit number is only for people to compare the two screens.
+  let ask = null; // { id, secret, name, kind, code, exp, state: 'waiting'|'allowed'|'denied'|'expired', pair, waiters }
+  let askTimes = [], askCool = 0;
   const clients = new Map(); // id → { id, deviceId, res, buf: [], seq, gone, idleAt }
   const tickets = new Map(); // ticket → { client, exp }
   const netKeys = new Map(); // key → deviceId (a cookie that lets lesson code reach the web, and nothing else)
@@ -111,6 +121,36 @@ function createHost(o) {
     for (const [k, v] of netKeys) if (v === id) netKeys.delete(k);
     for (const c of clients.values()) if (c.deviceId === id) dropClient(c, 'removed');
     changed();
+  }
+
+  function settle(a, st) {
+    if (a.state !== 'waiting') return;
+    a.state = st; clearTimeout(a.timer);
+    for (const w of a.waiters) w(); a.waiters.clear(); changed();
+    try { o.onAskEnd?.(a.id, st); } catch {}
+  }
+  function newAsk(name, kind) {
+    const now = Date.now();
+    if (ask?.state === 'waiting' && now < ask.exp) return { status: 429, error: 'Your Mac is already showing a request. Answer that one first.' };
+    if (now < askCool) return { status: 429, error: 'Your Mac said no a moment ago. Wait half a minute, then try again.' };
+    askTimes = askTimes.filter((t) => now - t < 60_000);
+    if (askTimes.length >= 5) return { status: 429, error: 'Too many requests. Wait a minute, then try again.' };
+    askTimes.push(now);
+    const clean = (x, d) => String(x || '').replace(/[^\p{L}\p{N} ’'().-]/gu, '').trim().slice(0, 40) || d;
+    const a = { id: rand(16), secret: rand(24), name: clean(name, 'A device'), kind: ['phone', 'tablet'].includes(kind) ? kind : 'phone',
+      code: String(crypto.randomInt(0, 10000)).padStart(4, '0'), exp: now + (o.askMs || ASK_MS), state: 'waiting', pair: null, waiters: new Set() };
+    a.timer = setTimeout(() => settle(a, 'expired'), a.exp - now); a.timer.unref?.();
+    ask = a; changed();
+    try { o.onAsk?.({ id: a.id, name: a.name, kind: a.kind, code: a.code, exp: a.exp }); } catch (e) { o.log?.('ask dialog', e); }
+    return { id: a.id, secret: a.secret, code: a.code, exp: a.exp, mac: typeof o.name === 'function' ? o.name() : o.name };
+  }
+  /** The person answered on this Mac. Allow mints a one-time pairing code that only this request's device receives. */
+  function answer(id, allow) {
+    const a = ask;
+    if (!a || a.id !== id || a.state !== 'waiting' || !on) return false;
+    if (Date.now() > a.exp) { settle(a, 'expired'); return false; }
+    if (allow) { a.pair = newPairing().code; settle(a, 'allowed'); } else { askCool = Date.now() + (o.askCoolMs || ASK_COOL_MS); settle(a, 'denied'); }
+    return true;
   }
 
   // ---------------------------------------------------------------- clients and their streams
@@ -236,6 +276,25 @@ function createHost(o) {
 
   async function api(req, res, u) {
     const route = u.pathname.slice(5);
+    if (route === 'connect' || route === 'connect/state' || route === 'connect/cancel') {
+      // only the Bento Code app asks this way, never a web page: browsers always send Origin with these, the app never
+      // does, so a page on any device on the Wi-Fi (or one that points its own name at this Mac) can't raise the dialog
+      if (req.headers.origin) return json(res, 403, { error: 'Ask from the Bento Code app.' });
+      const b = await readJson(req, 4000);
+      if (route === 'connect') { const r = newAsk(b?.name, b?.kind); return json(res, r.status || 200, r.status ? { error: r.error } : r); }
+      const a = ask && typeof b?.id === 'string' && same(b.id, ask.id) && typeof b?.secret === 'string' && same(b.secret, ask.secret) ? ask : null;
+      if (!a) return json(res, 404, { state: 'gone' });
+      if (route === 'connect/cancel') { settle(a, 'expired'); if (ask === a) ask = null; return json(res, 200, { state: 'expired' }); }
+      // wait (up to 25 s) for the answer, so the phone hears it the moment you click
+      if (a.state === 'waiting') await new Promise((r) => { const t = setTimeout(r, 25_000); const w = () => { clearTimeout(t); r(); }; a.waiters.add(w); req.on('close', () => { a.waiters.delete(w); clearTimeout(t); r(); }); });
+      if (res.destroyed) return undefined;
+      if (a.state === 'allowed') {
+        // the code goes out once: then this request is done
+        const pair = a.pair; if (ask === a) ask = null;
+        return json(res, 200, { state: 'allowed', pair, mac: typeof o.name === 'function' ? o.name() : o.name });
+      }
+      return json(res, 200, { state: a.state });
+    }
     if (route === 'pair') {
       // however many addresses someone tries from, wrong codes slow to a stop: 30 a minute for the whole Mac
       const now = Date.now(); misses = misses.filter((t) => now - t < 60_000);
@@ -340,6 +399,7 @@ function createHost(o) {
     on = false; clearInterval(scanTimer); clearInterval(beatTimer);
     for (const c of [...clients.values()]) dropClient(c, 'off');
     await Promise.all([...servers.values()].flat().map((s) => new Promise((r) => { s.close(() => r()); s.closeAllConnections?.(); })));
+    if (ask) settle(ask, 'expired'); ask = null;
     servers.clear(); pairing = null; error = null; changed();
   }
   function urls() {
@@ -357,9 +417,10 @@ function createHost(o) {
       on, wifi, port, error, urls: urls(),
       devices: devices.map((d) => ({ id: d.id, name: d.name, added: d.added, seen: d.seen, online: online.has(d.id) })),
       pairing: pairing && Date.now() < pairing.exp ? { code: pairing.code, exp: pairing.exp } : null,
+      ask: ask && ask.state === 'waiting' && Date.now() < ask.exp ? { id: ask.id, name: ask.name, kind: ask.kind, code: ask.code, exp: ask.exp } : null,
     };
   }
-  return { start, stop, state, newPairing, forget, broadcast, push, isOn: () => on, PORT: port, _clients: clients };
+  return { start, stop, state, newPairing, answer, forget, broadcast, push, isOn: () => on, PORT: port, _clients: clients };
 }
 
 module.exports = { createHost, addressesOf, isTailscale, isPrivate, cleanCode, PORT };

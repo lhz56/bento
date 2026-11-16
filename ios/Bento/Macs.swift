@@ -22,6 +22,7 @@ struct PairedMac: Codable, Identifiable, Equatable {
 /// What the QR code in Bento's Settings on the Mac says: http://<host>:<port>/#pair=<8-character code>
 struct PairLink {
     let url: URL; let host: String; let port: Int
+    var name: String? = nil   // the Mac's own name, when it told us (Approve on Mac)
     init?(_ text: String) {
         guard let u = URL(string: text.trimmingCharacters(in: .whitespacesAndNewlines)), u.scheme == "http",
               let host = u.host, !host.isEmpty, let port = u.port,
@@ -46,10 +47,14 @@ final class MacStore: ObservableObject {
     /// pairing the same Mac again (same address and port) replaces its old entry
     @discardableResult func add(_ l: PairLink) -> PairedMac {
         macs.removeAll { $0.host == l.host && $0.port == l.port }
-        let m = PairedMac(name: MacStore.guessName(l.host), host: l.host, port: l.port)
+        let m = PairedMac(name: l.name ?? MacStore.guessName(l.host), host: l.host, port: l.port)
         macs.append(m); currentID = m.id; save()
         return m
     }
+    #if DEBUG
+    /// simulator screenshots: a pretend Mac for this run only (never saved)
+    func adopt(_ m: PairedMac) { macs = [m]; currentID = m.id }
+    #endif
     func remove(_ id: String) { macs.removeAll { $0.id == id }; if currentID == id { currentID = macs.first?.id }; save() }
     private func save() { UserDefaults.standard.set(try? JSONEncoder().encode(macs), forKey: "macs") }
 
@@ -62,10 +67,10 @@ final class MacStore: ObservableObject {
 
 /// Is the Mac answering right now? Asks for Bento's public web manifest, so nothing secret is sent while probing.
 enum Reach {
-    static func ok(_ mac: PairedMac) async -> Bool {
+    static func ok(_ mac: PairedMac, timeout: TimeInterval = 4) async -> Bool {
         var c = URLComponents(); c.scheme = "http"; c.host = mac.host; c.port = mac.port; c.path = "/manifest.webmanifest"
         guard let u = c.url else { return false }
-        let r = URLRequest(url: u, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 4)
+        let r = URLRequest(url: u, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: timeout)
         return (try? await URLSession.shared.data(for: r)).map { ($0.1 as? HTTPURLResponse)?.statusCode == 200 } ?? false
     }
 }

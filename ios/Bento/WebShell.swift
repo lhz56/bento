@@ -6,6 +6,7 @@ import UIKit
 /// The shell only adds what a web page can't do well: remembering Macs, scanning the code, and opening links outside.
 struct WebShell: UIViewRepresentable {
     let url: URL
+    var onLoad: () -> Void = {}
     var onFail: (String) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -61,6 +62,11 @@ struct WebShell: UIViewRepresentable {
             if let u = a.request.url, ["http", "https", "mailto"].contains(u.scheme ?? "") { UIApplication.shared.open(u) }
             return nil
         }
+        // the page has loaded: give it a moment to draw, then the cover over it can go
+        func webView(_ wv: WKWebView, didFinish n: WKNavigation!) {
+            let done = parent.onLoad
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { done() }
+        }
         func webView(_ wv: WKWebView, didFailProvisionalNavigation n: WKNavigation!, withError e: Error) {
             if (e as NSError).code != NSURLErrorCancelled { parent.onFail(e.localizedDescription) }
         }
@@ -82,15 +88,6 @@ struct WebShell: UIViewRepresentable {
             let root = UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.keyWindow?.rootViewController }.first
             var top = root; while let p = top?.presentedViewController { top = p }
             if let top { top.present(a, animated: true) } else { actions.first?.2() }
-        }
-    }
-}
-
-enum Haptics {
-    static func play(_ kind: String) {
-        switch kind {
-        case "success": UINotificationFeedbackGenerator().notificationOccurred(.success)
-        default: UISelectionFeedbackGenerator().selectionChanged()
         }
     }
 }
