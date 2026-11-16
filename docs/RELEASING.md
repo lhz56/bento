@@ -14,9 +14,12 @@ GitHub, and no password in the repo or the environment.
 1. **Certificate.** One **Developer ID Application** certificate signs all your apps, and Apple allows only a few per
    team, so reuse the one you have. Only if `security find-identity -v -p codesigning` doesn't list one yet:
    Xcode → Settings → Accounts → Manage Certificates → **+** → Developer ID Application.
-2. **Notary profile.** A notarytool profile in the login keychain. This Mac's is the team's shared `lemma-notary`
-   (the default). Elsewhere: make an app-specific password at account.apple.com, run
-   `xcrun notarytool store-credentials <name> --apple-id <Apple ID> --team-id <TEAMID>`, and set
+2. **Notary credentials.** Preferred: the team's App Store Connect API key (App Store Connect → Users and Access →
+   Integrations → Team Keys, access Developer). Keep the `.p8` at `~/.appstoreconnect/private_keys/AuthKey_<KEYID>.p8`
+   (chmod 600) and put `{"keyId":"<KEYID>","issuer":"<ISSUER ID>"}` in `~/.appstoreconnect/notary.json`. notarytool
+   reads it from disk, so releases work while the Mac is locked. Lemma's release script uses the same file.
+   Fallback: a notarytool keychain profile (default `lemma-notary`). macOS hides it while the screen is locked. Make
+   it with `xcrun notarytool store-credentials <name> --apple-id <Apple ID> --team-id <TEAMID>` and set
    `APPLE_KEYCHAIN_PROFILE=<name>`.
 3. **Releases repo.** Public, with one commit so releases have something to tag:
    `gh repo create lhz56/bento-releases --public --add-readme`.

@@ -3,6 +3,7 @@
 //   node scripts/check-release.mjs --quick  skip the tests
 // Nothing is built, uploaded or changed. `npm run release` runs this first.
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -63,8 +64,11 @@ const PROFILE = process.env.APPLE_KEYCHAIN_PROFILE || 'lemma-notary'; // the not
 if (process.platform === 'darwin') {
   const ids = run('security', ['find-identity', '-v', '-p', 'codesigning']);
   ok(/Developer ID Application/.test(ids), 'a Developer ID Application certificate is in the keychain', 'one certificate signs all your apps: reuse yours; only if you have none, Xcode → Settings → Accounts → Manage Certificates → + Developer ID Application', true);
-  const n = spawnSync('xcrun', ['notarytool', 'history', '--keychain-profile', PROFILE], { encoding: 'utf8', timeout: 60000 });
-  ok(n.status === 0, `notarytool profile "${PROFILE}" works`, `xcrun notarytool store-credentials ${PROFILE} --apple-id <Apple ID> --team-id <TEAMID>, or set APPLE_KEYCHAIN_PROFILE to yours`, true);
+  // the team's App Store Connect API key (works while the Mac is locked), else the keychain profile
+  let asc = null;
+  try { const c = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.appstoreconnect', 'notary.json'), 'utf8')); const key = path.join(os.homedir(), '.appstoreconnect', 'private_keys', `AuthKey_${c.keyId}.p8`); if (c.keyId && c.issuer && fs.existsSync(key)) asc = { ...c, key }; } catch {}
+  const n = spawnSync('xcrun', ['notarytool', 'history', ...(asc ? ['--key', asc.key, '--key-id', asc.keyId, '--issuer', asc.issuer] : ['--keychain-profile', PROFILE])], { encoding: 'utf8', timeout: 60000 });
+  ok(n.status === 0, asc ? `App Store Connect API key ${asc.keyId} works` : `notarytool profile "${PROFILE}" works`, `xcrun notarytool store-credentials ${PROFILE} --apple-id <Apple ID> --team-id <TEAMID>, or set APPLE_KEYCHAIN_PROFILE to yours`, true);
 }
 ok(!!(process.env.GH_TOKEN || run('gh', ['auth', 'token'])), 'a GitHub token is available to publish', 'gh auth login, or export GH_TOKEN', true);
 

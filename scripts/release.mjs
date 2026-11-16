@@ -5,8 +5,10 @@
 //   npm run release                   build and check only; the files stay in release/v<version>/ to try
 //   npm run release -- --publish      the same, then publish the GitHub release
 //   npm run release -- --arch arm64   one architecture only (a quicker test build)
-// Apple credentials come from a notarytool keychain profile (APPLE_KEYCHAIN_PROFILE, default "lemma-notary", the
-// team's shared one). No password is ever in the repo, the environment or the output.
+// Apple credentials: the team's App Store Connect API key when it's set up (~/.appstoreconnect/notary.json with
+// {"keyId","issuer"}, plus ~/.appstoreconnect/private_keys/AuthKey_<keyId>.p8). notarytool reads it from disk, so a
+// release works while the Mac is locked. Otherwise a notarytool keychain profile (APPLE_KEYCHAIN_PROFILE, default
+// "lemma-notary"), which macOS hides while the screen is locked. No password or key is ever in the repo or the output.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -26,9 +28,19 @@ const PROFILE = process.env.APPLE_KEYCHAIN_PROFILE || 'lemma-notary';
 // Never release/ itself: release/mac-arm64 is the copy `npm run app` makes, and it may be the one you're running.
 const OUT = path.join(root, 'release', TAG);
 
-// Only the keychain profile, so nothing else in the environment can change how it's signed or notarized.
-const env = { ...process.env, APPLE_KEYCHAIN_PROFILE: PROFILE };
-for (const k of ['CSC_LINK', 'CSC_KEY_PASSWORD', 'CSC_NAME', 'APPLE_API_KEY', 'APPLE_API_KEY_ID', 'APPLE_API_ISSUER', 'APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD', 'APPLE_TEAM_ID', 'ELECTRON_RUN_AS_NODE']) delete env[k];
+const ASC = (() => {
+  try {
+    const c = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.appstoreconnect', 'notary.json'), 'utf8'));
+    const key = path.join(os.homedir(), '.appstoreconnect', 'private_keys', `AuthKey_${c.keyId}.p8`);
+    return c.keyId && c.issuer && fs.existsSync(key) ? { ...c, key } : null;
+  } catch { return null; }
+})();
+const NOTARY = ASC ? ['--key', ASC.key, '--key-id', ASC.keyId, '--issuer', ASC.issuer] : ['--keychain-profile', PROFILE];
+
+// Only these Apple credentials, so nothing else in the environment can change how it's signed or notarized.
+const env = { ...process.env };
+for (const k of ['CSC_LINK', 'CSC_KEY_PASSWORD', 'CSC_NAME', 'APPLE_KEYCHAIN_PROFILE', 'APPLE_API_KEY', 'APPLE_API_KEY_ID', 'APPLE_API_ISSUER', 'APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD', 'APPLE_TEAM_ID', 'ELECTRON_RUN_AS_NODE']) delete env[k];
+Object.assign(env, ASC ? { APPLE_API_KEY: ASC.key, APPLE_API_KEY_ID: ASC.keyId, APPLE_API_ISSUER: ASC.issuer } : { APPLE_KEYCHAIN_PROFILE: PROFILE });
 
 const step = (t) => console.log(`\n▸ ${t}`);
 const fail = (m) => { console.error(`\n✗ ${m}`); process.exit(1); };
@@ -70,7 +82,7 @@ step('Preflight');
 if (PUBLISH && quiet('git', ['status', '--porcelain']).out) fail('There are uncommitted changes. Commit them first, so the release matches a commit.');
 run('node', ['scripts/check-release.mjs']);
 if (!/Developer ID Application/.test(quiet('security', ['find-identity', '-v', '-p', 'codesigning']).out)) fail('No Developer ID Application certificate in the keychain.');
-if (!quiet('xcrun', ['notarytool', 'history', '--keychain-profile', PROFILE]).ok) fail(`The notarytool profile "${PROFILE}" doesn't work. Set APPLE_KEYCHAIN_PROFILE to yours.`);
+if (!quiet('xcrun', ['notarytool', 'history', ...NOTARY]).ok) fail(ASC ? `Apple rejected the App Store Connect API key ${ASC.keyId}.` : `The notarytool profile "${PROFILE}" doesn't work. Set APPLE_KEYCHAIN_PROFILE to yours.`);
 if (PUBLISH && quiet('gh', ['repo', 'view', TARGET, '--json', 'visibility', '--jq', '.visibility']).out !== 'PUBLIC') fail(`github.com/${TARGET} must exist and be public (gh repo create ${TARGET} --public --add-readme).`);
 
 step(`Building, signing and notarizing the apps (Apple usually takes a few minutes per app)`);
