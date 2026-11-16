@@ -955,7 +955,7 @@ async function askOnMac(a) {
   askBox?.ctl.abort(); const box = new AbortController(); askBox = { id: a.id, ctl: box };
   const t = setTimeout(() => box.abort(), Math.max(1000, a.exp - Date.now()));
   // tests: answer by itself (allow / deny), or leave it waiting (never); a test never puts a dialog on the screen
-  if (TEST_BUILD && process.env.BENTO_TEST_ASK) { if (process.env.BENTO_TEST_ASK !== 'never') setTimeout(() => host?.answer(a.id, process.env.BENTO_TEST_ASK === 'allow'), 400); return; }
+  if (TEST_BUILD && process.env.BENTO_TEST_ASK) { if (process.env.BENTO_TEST_ASK !== 'never') setTimeout(() => host?.answer(a.id, process.env.BENTO_TEST_ASK === 'allow'), Number(process.env.BENTO_TEST_ASK_MS) || 400); return; }
   const parent = win && !win.isDestroyed() && win.isVisible() ? win : null;
   if (MAC) { app.focus({ steal: true }); app.dock?.bounce('informational'); }
   if (parent?.isMinimized()) parent.restore();

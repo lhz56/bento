@@ -7,7 +7,7 @@ Write for learners, not for developers.
 
 Bento on your iPhone and iPad.
 
-- Turn on **Settings → Your phone and iPad**, open the **Bento Code** app, tap your Mac and click **Allow** on the Mac (both screens show the same number, so you know it's yours). Or scan the QR code with your phone, and Bento opens there. Your Mac still does the work with your own AI, and nothing is hosted: your phone talks straight to your Mac, over Tailscale from anywhere, or your Wi-Fi at home.
+- Turn on **Settings → Your phone and iPad**, open the **Bento Code** app, and your Mac pops up on it the way people do in AirDrop. Tap it and click **Allow** on the Mac (both screens show the same number, and the phone shows you the box to look for), and you're in. Or scan the QR code with your phone, and Bento opens there. Your Mac still does the work with your own AI, and nothing is hosted: your phone talks straight to your Mac, over Tailscale from anywhere, or your Wi-Fi at home.
 - Made for a phone: tabs at the bottom, Back at the top, your recent things a swipe away. Lessons are two pages, the story and the code (which runs right on the phone). A project's Atlas fits your thumb: tap a building in the code city to see what it is, tap again to open the file.
 - **Keep this Mac awake** (on by default): while your phone can use it and it's plugged in, your Mac doesn't fall asleep, so Bento is there when you're out. The screen still turns off.
 - Settings explains it all in one place: how to connect, where your phone can reach your Mac (anywhere with Tailscale, or at home on your Wi-Fi), and your devices.

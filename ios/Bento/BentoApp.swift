@@ -33,7 +33,7 @@ struct Root: View {
             Color.paper.ignoresSafeArea()
             switch phase {
             case .welcome:
-                WelcomeView(onNext: { welcomed = true; go(.pair) })
+                IntroView(onDone: { welcomed = true; go(.pair) })
                     .transition(.asymmetric(insertion: .opacity, removal: .move(edge: .leading).combined(with: .opacity)))
             case .pair:
                 ConnectView(canCancel: store.current != nil, canBack: store.current == nil, onLink: pair,
@@ -47,8 +47,10 @@ struct Root: View {
                              onFail: { why in go(.unreachable(id, why)) })
                         .ignoresSafeArea()
                     if !loaded {
-                        LoadingCover(title: pairing ? "Pairing with \(name(id))…" : "Connecting to \(name(id))…",
-                                     detail: pairing ? "This \(deviceWord) gets its own key. Your Mac keeps only a fingerprint of it." : nil)
+                        // right after pairing the link is already made: say so, rather than "connecting" again
+                        LoadingCover(title: pairing ? "Opening Bento…" : "Connecting to \(name(id))…",
+                                     detail: pairing ? "This \(deviceWord) now has its own key. \(name(id)) keeps only a fingerprint of it." : nil,
+                                     mode: pairing ? .done : .flowing)
                             .transition(.opacity)
                     }
                 }
@@ -138,9 +140,10 @@ struct Root: View {
 struct LoadingCover: View {
     let title: String
     var detail: String? = nil
+    var mode: LinkArt.Mode = .flowing
     var body: some View {
         VStack(spacing: 30) {
-            LinkArt(mode: .flowing)
+            LinkArt(mode: mode)
             VStack(spacing: 8) {
                 Text(title).font(.title3.weight(.semibold))
                 if let detail { Text(detail).font(.subheadline).foregroundStyle(.secondary) }

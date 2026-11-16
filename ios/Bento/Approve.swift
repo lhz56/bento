@@ -59,7 +59,7 @@ final class Nearby: ObservableObject {
 enum Approve {
     struct Started: Decodable { let id: String; let secret: String; let code: String; let mac: String? }
     struct Answer: Decodable { let state: String; let pair: String?; let mac: String? }
-    struct Problem: Error { let text: String }
+    struct Problem: Error { let text: String; var old = false }
 
     /// the first way to the Mac that answers, as Bento's address
     static func reach(_ ways: [String]) async -> URL? {
@@ -76,7 +76,7 @@ enum Approve {
         let (d, status) = try await post(base, "connect", ["name": pad ? "iPad" : "iPhone", "kind": pad ? "tablet" : "phone"], wait: 10)
         if status == 200, let s = try? JSONDecoder().decode(Started.self, from: d) { return s }
         // a Mac whose Bento predates Approve on Mac answers like any unknown call: "pair first"
-        if status == 401 || status == 404 { throw Problem(text: "Bento on this Mac needs an update for this. Until then, scan the code in its Settings.") }
+        if status == 401 || status == 404 { throw Problem(text: "Bento on this Mac is an older version that can’t be asked this way. Scan the code in its Settings instead, or update it.", old: true) }
         throw Problem(text: (try? JSONDecoder().decode([String: String].self, from: d))?["error"] ?? "Your Mac didn’t take the request. Try again.")
     }
 
@@ -106,86 +106,119 @@ enum Approve {
     }
 }
 
-/// Asking the Mac, full screen: the number to compare, then a check when you click Allow.
+/// Asking the Mac, full screen. The phone shows the number and a picture of the box that has just appeared on the Mac,
+/// so you know exactly what to click; when you do, a check, a burst of Bento's colours, and you're in.
 struct ApproveView: View {
     let mac: NearbyMac
     let onLink: (PairLink) -> Void
     let onClose: () -> Void
+    var onScan: () -> Void = {}
     var preview: Step? = nil
-    enum Step: Equatable { case reaching, waiting(String), allowed, denied, expired, failed(String) }
+    enum Step: Equatable { case reaching, waiting(String), allowed, denied, expired, failed(String, old: Bool) }
     @State private var step: Step = .reaching
     @State private var attempt = 0
     @State private var live: (URL, Approve.Started)?
+    @State private var shown = 0          // digits that have popped in
+    @State private var burst: Date?
+    @State private var shake = 0
     private var device: String { UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone" }
+    private var code: String { if case .waiting(let c) = step { return c }; return lastCode }
+    @State private var lastCode = ""
+    private var failed: Bool { if case .failed = step { return true }; return [.denied, .expired].contains(step) }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Button(step == .allowed ? "" : "Cancel") { close() }.font(.body.weight(.medium)).frame(height: 44).disabled(step == .allowed)
-                Spacer()
-            }
-            .padding(.horizontal, 20)
-            GeometryReader { g in ScrollView {
-                VStack(spacing: 0) {
-                    LinkArt(mode: art).animation(.spring(response: 0.4), value: art)
-                    VStack(spacing: 10) {
-                        Text(title).font(.system(size: 30, weight: .bold)).tracking(-0.3)
-                        Text(detail).font(.body).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                    }
-                    .multilineTextAlignment(.center).padding(.top, 34).padding(.horizontal, 12)
-                    .contentTransition(.opacity)
-                    if case .waiting(let code) = step {
-                        HStack(spacing: 10) {
-                            ForEach(Array(code.enumerated()), id: \.offset) { _, ch in
-                                Text(String(ch)).font(.system(size: 40, weight: .semibold, design: .rounded)).monospacedDigit()
-                                    .frame(width: 62, height: 76)
-                                    .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.card))
-                            }
+        ZStack {
+            Color.paper.ignoresSafeArea()
+            VStack(spacing: 0) {
+                HStack {
+                    Button("Cancel") { close() }.font(.body.weight(.medium)).frame(height: 44)
+                        .opacity(step == .allowed ? 0 : 1).disabled(step == .allowed)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                GeometryReader { g in ScrollView {
+                    VStack(spacing: 0) {
+                        top
+                        VStack(spacing: 10) {
+                            Text(title).font(.system(size: 30, weight: .bold)).tracking(-0.3)
+                            Text(detail).font(.body).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                         }
-                        .padding(.top, 30)
-                        .accessibilityElement(children: .ignore).accessibilityLabel("Number \(code.map(String.init).joined(separator: " "))")
-                        .transition(.scale(scale: 0.9).combined(with: .opacity))
-                        Text("Check that your Mac shows the same number.").font(.footnote).foregroundStyle(.secondary).padding(.top, 14)
+                        .multilineTextAlignment(.center).padding(.horizontal, 12).padding(.top, 26)
+                        .id(titleKey).transition(.opacity)
+                        if case .waiting = step {
+                            MacAlert(device: device, code: code)
+                                .padding(.top, 30)
+                                .transition(.opacity.combined(with: .scale(scale: 0.94)))
+                        }
                     }
-                    if step == .reaching { ProgressView().controlSize(.large).padding(.top, 30) }
+                    .padding(.horizontal, 24).padding(.bottom, 40)
+                    .frame(minHeight: g.size.height).column()   // centred, and still scrolls with big text
                 }
-                .padding(.horizontal, 24).padding(.bottom, 40)
-                .frame(minHeight: g.size.height).column()   // centred on the screen, and still scrolls with big text
-            }
-            .scrollBounceBehavior(.basedOnSize) }
-            if [.denied, .expired].contains(step) || { if case .failed = step { return true }; return false }() {
-                VStack(spacing: 10) {
-                    Button("Try Again") { attempt += 1 }.buttonStyle(BigButton())
-                    Button("Back", action: close).buttonStyle(BigButton(main: false))
+                .scrollBounceBehavior(.basedOnSize) }
+                if failed {
+                    VStack(spacing: 10) {
+                        if case .failed(_, old: true) = step {
+                            Button { onScan() } label: { Label("Scan its code", systemImage: "qrcode.viewfinder") }.buttonStyle(BigButton())
+                        } else {
+                            Button("Try Again") { attempt += 1 }.buttonStyle(BigButton())
+                        }
+                        Button("Back", action: close).buttonStyle(BigButton(main: false))
+                    }
+                    .padding(.horizontal, 24).padding(.bottom, 12).column()
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                .padding(.horizontal, 24).padding(.bottom, 12).column()
             }
+            if let burst { Confetti(start: burst) }
         }
-        .background(Color.paper.ignoresSafeArea())
-        .animation(.spring(response: 0.45, dampingFraction: 0.85), value: step)
+        .animation(.spring(response: 0.5, dampingFraction: 0.85), value: step)
         .task(id: attempt) { await run() }
         .interactiveDismissDisabled()
     }
 
-    private var art: LinkArt.Mode { step == .allowed ? .done : [.denied, .expired].contains(step) ? .broken : { if case .failed = step { return .broken }; return .flowing }() }
+    /// the number while you're asked, a big check once you're in, the link picture otherwise
+    @ViewBuilder private var top: some View {
+        switch step {
+        case .waiting:
+            HStack(spacing: 10) {
+                ForEach(Array(code.enumerated()), id: \.offset) { i, ch in
+                    Text(String(ch)).font(.system(size: 42, weight: .semibold, design: .rounded)).monospacedDigit()
+                        .frame(width: 64, height: 80)
+                        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.card).shadow(color: .black.opacity(0.06), radius: 8, y: 3))
+                        .scaleEffect(i < shown ? 1 : 0.5).opacity(i < shown ? 1 : 0)
+                }
+            }
+            .modifier(Shake(n: shake))
+            .accessibilityElement(children: .ignore).accessibilityLabel("Number \(code.map(String.init).joined(separator: " "))")
+        case .allowed:
+            ZStack {
+                Circle().fill(Brand.mint.opacity(0.16)).frame(width: 132, height: 132)
+                Image(systemName: "checkmark.circle.fill").font(.system(size: 92)).symbolRenderingMode(.palette).foregroundStyle(.white, Brand.mint)
+            }
+            .transition(.scale(scale: 0.3).combined(with: .opacity))
+        default:
+            LinkArt(mode: failed ? .broken : .flowing).transition(.opacity)
+        }
+    }
+
+    private var titleKey: String { "\(step)" }
     private var title: String {
         switch step {
         case .reaching: "Finding \(mac.name)…"
         case .waiting: "Allow on your Mac"
-        case .allowed: "You’re connected"
+        case .allowed: "You’re in"
         case .denied: "Your Mac said no"
         case .expired: "No answer from your Mac"
-        case .failed: "Can’t reach \(mac.name)"
+        case .failed(_, let old): old ? "Use the code instead" : "Can’t reach \(mac.name)"
         }
     }
     private var detail: LocalizedStringKey {
         switch step {
         case .reaching: "One moment."
-        case .waiting: "On **\(mac.name)**, click **Allow**."
-        case .allowed: "Opening Bento…"
+        case .waiting: "This just appeared on **\(mac.name)**. Check the number matches, then click **Allow**."
+        case .allowed: "\(mac.name) is connected. Opening Bento…"
         case .denied: "Someone clicked Don’t Allow on \(mac.name). Try again, and click Allow."
         case .expired: "Nobody clicked Allow on \(mac.name) in time. Try again, with the Mac in front of you."
-        case .failed(let why): LocalizedStringKey(why)
+        case .failed(let why, _): LocalizedStringKey(why)
         }
     }
 
@@ -195,32 +228,128 @@ struct ApproveView: View {
     }
 
     private func run() async {
-        if let preview { step = preview; return }
-        step = .reaching; live = nil
+        if let preview { lastCode = "4821"; step = preview; await popDigits(); return }
+        step = .reaching; live = nil; shown = 0; burst = nil
         guard let base = await Approve.reach(mac.ways) else {
             let tsOnly = mac.ways.allSatisfy { $0.contains(".ts.net") }
             step = .failed(tsOnly
-                ? "\(mac.name) can only be reached through Tailscale. Turn on Tailscale on this \(device), then try again. Or, on the Mac, turn on **Also on this Wi-Fi**."
-                : "Make sure this \(device) is on the same Wi-Fi as \(mac.name), or that Tailscale is on for both.")
+                ? "\(mac.name) can only be reached through Tailscale. Turn on Tailscale on this \(device), then try again. Or, on the Mac, turn on **At home, on this Wi-Fi**."
+                : "Make sure this \(device) is on the same Wi-Fi as \(mac.name), or that Tailscale is on for both.", old: false)
+            Haptics.play("warn")
             return
         }
         do {
             let s = try await Approve.ask(base)
-            live = (base, s); step = .waiting(s.code); Haptics.play("tap")
+            live = (base, s); lastCode = s.code; step = .waiting(s.code)
+            await popDigits()
             let a = try await Approve.answer(base, s)
             switch a.state {
             case "allowed":
-                guard let p = a.pair, var l = PairLink("\(base.absoluteString)#pair=\(p)") else { step = .failed("Something went wrong. Try again."); return }
+                guard let p = a.pair, var l = PairLink("\(base.absoluteString)#pair=\(p)") else { step = .failed("Something went wrong. Try again.", old: false); return }
                 l.name = a.mac ?? mac.name
                 step = .allowed; Haptics.play("success")
-                try await Task.sleep(for: .milliseconds(900))
+                burst = Date()
+                try await Task.sleep(for: .milliseconds(1500))
                 onLink(l)
-            case "denied": step = .denied; Haptics.play("warn")
+            case "denied":
+                withAnimation(.default) { shake += 1 }
+                Haptics.play("warn")
+                try await Task.sleep(for: .milliseconds(450))
+                step = .denied
             default: step = .expired
             }
         } catch is CancellationError {
-        } catch let e as Approve.Problem { step = .failed(e.text)
-        } catch { if !Task.isCancelled { step = .failed("Lost touch with \(mac.name). Try again.") } }
+        } catch let e as Approve.Problem { step = .failed(e.text, old: e.old); Haptics.play("warn")
+        } catch { if !Task.isCancelled { step = .failed("Lost touch with \(mac.name). Try again.", old: false) } }
+    }
+
+    private func popDigits() async {
+        for i in 1...4 {
+            try? await Task.sleep(for: .milliseconds(i == 1 ? 120 : 90))
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.55)) { shown = i }
+            Haptics.play("select")
+        }
+    }
+}
+
+/// A picture of the box Bento puts up on the Mac, with Allow gently pulsing, so you know what to look for and click.
+struct MacAlert: View {
+    let device: String
+    let code: String
+    @State private var pulse = false
+    @Environment(\.accessibilityReduceMotion) private var still
+    private let macBlue = Color(red: 0.0, green: 0.48, blue: 1.0)
+
+    var body: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: 9) {
+                Image("Mark").resizable().frame(width: 44, height: 44)
+                Text("Allow “\(device)” to use Bento on this Mac?").font(.system(size: 13, weight: .bold)).multilineTextAlignment(.center)
+                Text("Check that your \(device) shows \(code.map(String.init).joined(separator: " ")).").font(.system(size: 11)).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                HStack(spacing: 8) {
+                    Text("Don’t Allow").font(.system(size: 12, weight: .medium)).frame(maxWidth: .infinity, minHeight: 26)
+                        .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Color.ink.opacity(0.08)))
+                    Text("Allow").font(.system(size: 12, weight: .semibold)).foregroundStyle(.white).frame(maxWidth: .infinity, minHeight: 26)
+                        .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(macBlue))
+                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(macBlue.opacity(pulse ? 0 : 0.5), lineWidth: pulse ? 9 : 2).padding(-3))
+                }
+                .padding(.top, 5)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 16)
+            .frame(width: 252)
+            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.card).shadow(color: .black.opacity(0.18), radius: 22, y: 10))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.ink.opacity(0.06)))
+            Text("On your Mac").font(.caption.weight(.semibold)).foregroundStyle(.secondary).padding(.top, 12)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("On your Mac, a box asks to allow this \(device). Click Allow.")
+        .onAppear { if !still { withAnimation(.easeOut(duration: 1.3).repeatForever(autoreverses: false)) { pulse = true } } }
+    }
+}
+
+/// a quick side-to-side shake, for Don't Allow
+struct Shake: GeometryEffect {
+    var amount: CGFloat
+    init(n: Int) { amount = CGFloat(n) }
+    var animatableData: CGFloat { get { amount } set { amount = newValue } }
+    func effectValue(size: CGSize) -> ProjectionTransform { ProjectionTransform(CGAffineTransform(translationX: 10 * sin(amount * .pi * 4), y: 0)) }
+}
+
+/// Bento's colours bursting up from the middle, once
+struct Confetti: View {
+    let start: Date
+    @Environment(\.accessibilityReduceMotion) private var still
+    private struct Bit { let vx, vy, spin, size, delay: Double; let color: Color }
+    private let bits: [Bit] = {
+        var g = SystemRandomNumberGenerator()
+        let colors = [Brand.orange, Brand.mint, Brand.violet, Color(red: 1, green: 0.8, blue: 0.3)]
+        return (0..<70).map { i in
+            Bit(vx: .random(in: -300...300, using: &g), vy: .random(in: -880...(-420), using: &g), spin: .random(in: -9...9, using: &g),
+                size: .random(in: 8...15, using: &g), delay: .random(in: 0...0.12, using: &g), color: colors[i % colors.count])
+        }
+    }()
+
+    var body: some View {
+        if !still {
+            TimelineView(.animation) { tl in
+                Canvas { g, size in draw(g, size, tl.date.timeIntervalSince(start)) }
+            }
+            .ignoresSafeArea().allowsHitTesting(false).accessibilityHidden(true)
+        }
+    }
+
+    private func draw(_ g: GraphicsContext, _ size: CGSize, _ t: Double) {
+        for b in bits {
+            let tt = t - b.delay
+            guard tt > 0, tt < 2.4 else { continue }
+            let x = size.width / 2 + b.vx * tt
+            let y = size.height * 0.36 + b.vy * tt + 0.5 * 1100 * tt * tt
+            var c = g
+            c.opacity = max(0, 1 - tt / 2.4)
+            c.translateBy(x: x, y: y)
+            c.rotate(by: .radians(b.spin * tt))
+            c.fill(Path(roundedRect: CGRect(x: -b.size / 2, y: -b.size * 0.35, width: b.size, height: b.size * 0.7), cornerRadius: 2.5), with: .color(b.color))
+        }
     }
 }
 

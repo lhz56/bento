@@ -9,7 +9,8 @@ it. Nothing is hosted anywhere else and nothing costs extra: your devices talk s
 With the **Bento Code** app (iPhone and iPad, `ios/`):
 
 1. On the Mac, open Bento → **Settings** → **Your phone and iPad**, and turn it on.
-2. Open Bento Code on the phone. Your Mac shows up under **On this Wi-Fi**: tap it.
+2. Open Bento Code on the phone. After three short pages about Bento, your Mac pops up around the phone, the way
+   people do in AirDrop: tap it.
 3. The Mac asks "Allow “iPhone” to use Bento on this Mac?", and both screens show the same 4-digit number. Check it
    and click **Allow**. The phone opens Bento, connected, and remembers this Mac.
 

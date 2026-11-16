@@ -1,108 +1,10 @@
 import SwiftUI
 
-// First run: what Bento is (Welcome), then connecting this device to Bento on a Mac (Connect). The camera, typing the
-// code, and "no Mac?" each open from Connect. However the code arrives, this only opens Bento's page with the one-time
+// First run: what Bento is (Intro.swift), then connecting this device to Bento on a Mac (Connect, here). Macs nearby
+// appear on their own (Radar.swift); typing a Mac's name, the camera, typing the code, and "no Mac?" open from here too. However the code arrives, this only opens Bento's page with the one-time
 // code; the page trades it for this device's own key (see Macs.swift).
 
 let macDownload = URL(string: "https://github.com/lhz56/bento-releases/releases/latest")!
-
-// ---------------------------------------------------------------- Welcome
-
-struct WelcomeView: View {
-    let onNext: () -> Void
-    @State private var shown = false
-
-    var body: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                VStack(spacing: 0) {
-                    BentoHero().padding(.top, 12)
-                    VStack(spacing: 10) {
-                        Text("Bento Code").font(.system(size: 40, weight: .bold)).tracking(-0.5)
-                        Text("See how any app is built.\nThen learn to build your own.")
-                            .font(.title3).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                    }
-                    .padding(.top, 4)
-                    VStack(alignment: .leading, spacing: 24) {
-                        Feature(icon: "square.3.layers.3d.down.right", tint: Brand.orange, title: "Take apart any app",
-                                text: "Its screens, parts and services in plain words, with the real code a tap away.")
-                        Feature(icon: "graduationcap.fill", tint: Brand.violet, title: "Learn by building",
-                                text: "Short lessons made from real projects, at your own pace.")
-                        Feature(icon: "sparkles", tint: Brand.mint, title: "With the AI you already have",
-                                text: "Bento uses your Claude or ChatGPT plan on your Mac. Nothing extra to pay.")
-                    }
-                    .padding(.top, 40).padding(.horizontal, 8)
-                    .opacity(shown ? 1 : 0).offset(y: shown ? 0 : 14)
-                }
-                .padding(.horizontal, 24).padding(.bottom, 24).column()
-            }
-            .scrollBounceBehavior(.basedOnSize)
-            Button("Continue", action: onNext).buttonStyle(BigButton())
-                .padding(.horizontal, 24).padding(.bottom, 12).column()
-        }
-        .onAppear { withAnimation(.easeOut(duration: 0.6).delay(0.5)) { shown = true } }
-    }
-}
-
-private struct Feature: View {
-    let icon: String; let tint: Color; let title: LocalizedStringKey; let text: LocalizedStringKey
-    var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            Image(systemName: icon).font(.system(size: 26, weight: .medium)).foregroundStyle(tint)
-                .frame(width: 38, alignment: .center).accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(.headline)
-                Text(text).font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .accessibilityElement(children: .combine)
-    }
-}
-
-/// The icon taking itself apart: its three boxes lift out of the tray and float, the way Bento takes an app apart.
-struct BentoHero: View {
-    @State private var apart = false
-    @Environment(\.accessibilityReduceMotion) private var still
-    @Environment(\.colorScheme) private var scheme
-
-    var body: some View {
-        TimelineView(.animation(paused: still || !apart)) { tl in
-            let t = tl.date.timeIntervalSinceReferenceDate
-            ZStack {
-                Circle()
-                    .fill(RadialGradient(colors: [Brand.orange.opacity(scheme == .dark ? 0.22 : 0.16), .clear], center: .center, startRadius: 10, endRadius: 150))
-                    .frame(width: 320, height: 320)
-                RoundedRectangle(cornerRadius: 46, style: .continuous).fill(Brand.tray)
-                    .overlay(RoundedRectangle(cornerRadius: 46, style: .continuous).strokeBorder(.white.opacity(scheme == .dark ? 0.1 : 0), lineWidth: 1))
-                    .frame(width: 180, height: 180)
-                    .shadow(color: .black.opacity(scheme == .dark ? 0.5 : 0.22), radius: 26, y: 16)
-                    .scaleEffect(apart ? 0.9 : 1)
-                piece(Brand.orange, 68, 140, at: CGPoint(x: -36, y: 0), out: CGPoint(x: -30, y: 8), turn: -7, float: wave(t, 0), dot: true)
-                piece(Brand.mint, 63, 65, at: CGPoint(x: 38.5, y: -37.5), out: CGPoint(x: 26, y: -24), turn: 8, float: wave(t, 2.1))
-                piece(Brand.violet, 63, 65, at: CGPoint(x: 38.5, y: 37.5), out: CGPoint(x: 30, y: 22), turn: -5, float: wave(t, 4.2))
-            }
-        }
-        .frame(height: 280)
-        .accessibilityHidden(true)
-        .onAppear {
-            guard !apart else { return }
-            if still { apart = true; return }
-            withAnimation(.spring(response: 0.85, dampingFraction: 0.62).delay(0.35)) { apart = true }
-        }
-    }
-
-    private func wave(_ t: Double, _ phase: Double) -> CGFloat { apart && !still ? CGFloat(sin(t * 1.3 + phase) * 4) : 0 }
-
-    private func piece(_ c: Color, _ w: CGFloat, _ h: CGFloat, at: CGPoint, out: CGPoint, turn: Double, float: CGFloat, dot: Bool = false) -> some View {
-        RoundedRectangle(cornerRadius: 17, style: .continuous)
-            .fill(LinearGradient(colors: [c.opacity(0.92), c], startPoint: .top, endPoint: .bottom))
-            .overlay(alignment: .leading) { if dot { Circle().fill(.white.opacity(0.45)).frame(width: 13).padding(.leading, 20) } }
-            .frame(width: w, height: h)
-            .shadow(color: c.opacity(apart ? 0.45 : 0), radius: 16, y: 10)
-            .rotationEffect(.degrees(apart ? turn : 0))
-            .offset(x: at.x + (apart ? out.x : 0), y: at.y + (apart ? out.y : 0) + float)
-    }
-}
 
 // ---------------------------------------------------------------- Connect
 
@@ -118,6 +20,7 @@ struct ConnectView: View {
     @State private var sheet: Sheet?
     @State private var scanning = false
     @State private var asking: NearbyMac?
+    @State private var slow = false      // a while has passed and no Mac showed up
     @Environment(\.scenePhase) private var scene
 
     var body: some View {
@@ -130,37 +33,32 @@ struct ConnectView: View {
             .padding(.horizontal, 12).frame(height: 44).foregroundStyle(Color.ink)
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    LinkArt(mode: .flowing).frame(maxWidth: .infinity).padding(.top, 4).padding(.bottom, 26)
-                    Text("Connect your Mac").font(.system(size: 34, weight: .bold)).tracking(-0.4)
-                    Text("Open Bento on your Mac and turn on **Settings → Your phone and iPad**. Then tap your Mac here.")
-                        .font(.body).foregroundStyle(.secondary).padding(.top, 8).fixedSize(horizontal: false, vertical: true)
+                    VStack(spacing: 8) {
+                        Text("Connect your Mac").font(.system(size: 34, weight: .bold)).tracking(-0.4)
+                        Text(nearby.macs.isEmpty ? "Open Bento on your Mac and turn on **Settings → Your phone and iPad**." : "Tap your Mac to connect.")
+                            .font(.body).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                            .contentTransition(.opacity)
+                    }
+                    .multilineTextAlignment(.center).frame(maxWidth: .infinity).padding(.top, 6)
+                    .animation(.easeInOut, value: nearby.macs.isEmpty)
 
-                    Group_(title: "On this Wi-Fi", busy: !nearby.blocked) {
-                        if nearby.blocked {
+                    Radar(macs: nearby.macs, blocked: nearby.blocked) { m in Haptics.play("tap"); asking = m }
+                        .padding(.vertical, 4)
+
+                    if nearby.blocked {
+                        Group_(title: "On this Wi-Fi") {
                             Row(icon: "wifi.exclamationmark", tint: Brand.orange, title: "Bento Code can’t look on your Wi-Fi",
-                                text: "Allow **Local Network** for Bento Code in Settings.") {
+                                text: "Allow **Local Network** for Bento Code in Settings.", chevron: true) {
                                 if let u = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(u) }
                             }
-                        } else if nearby.macs.isEmpty {
-                            HStack(alignment: .top, spacing: 14) {
-                                ProgressView().frame(width: 34, height: 34)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Looking for your Mac…").font(.body.weight(.semibold))
-                                    Text("It shows up here once Bento is open on it with **Your phone and iPad** turned on. Not at home? Use another way below.")
-                                        .font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                                }
-                                Spacer(minLength: 0)
-                            }
-                            .padding(14)
-                        } else {
-                            ForEach(Array(nearby.macs.enumerated()), id: \.element.id) { i, m in
-                                if i > 0 { Divider().padding(.leading, 62) }
-                                Row(icon: "desktopcomputer", tint: Color.ink, title: LocalizedStringKey(m.name), text: "Tap to connect", chevron: true) {
-                                    Haptics.play("tap"); asking = m
-                                }
-                                .transition(.opacity.combined(with: .move(edge: .top)))
-                            }
                         }
+                    } else if nearby.macs.isEmpty {
+                        HStack(spacing: 8) {
+                            ProgressView().controlSize(.small)
+                            Text("Looking for Bento on your Wi-Fi…").font(.subheadline).foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        if slow { NotShowing(onScan: { Haptics.play("tap"); scanning = true }).padding(.top, 18).transition(.opacity.combined(with: .move(edge: .bottom))) }
                     }
 
                     Group_(title: "Other ways") {
@@ -191,7 +89,8 @@ struct ConnectView: View {
                        onType: { scanning = false; DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { sheet = .type } })
         }
         .fullScreenCover(item: $asking) { m in
-            ApproveView(mac: m, onLink: { l in asking = nil; onLink(l) }, onClose: { asking = nil }, preview: previewStep)
+            ApproveView(mac: m, onLink: { l in asking = nil; onLink(l) }, onClose: { asking = nil },
+                        onScan: { asking = nil; DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { scanning = true } }, preview: previewStep)
         }
         .sheet(item: $sheet) { s in
             switch s {
@@ -201,6 +100,7 @@ struct ConnectView: View {
             case .scan, .approve: EmptyView()
             }
         }
+        .task { try? await Task.sleep(for: .seconds(8)); withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) { slow = true } }
         .onAppear {
             nearby.start()
             switch start {
@@ -214,7 +114,9 @@ struct ConnectView: View {
         #if DEBUG
         // simulator test (SIMCTL_CHILD_BENTO_AUTO_APPROVE=1): tap the first Mac that shows up
         .onChange(of: nearby.macs) { _, ms in
-            if ProcessInfo.processInfo.environment["BENTO_AUTO_APPROVE"] != nil, asking == nil, let m = ms.first { asking = m }
+            if ProcessInfo.processInfo.environment["BENTO_AUTO_APPROVE"] != nil, asking == nil, let m = ms.first {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { if asking == nil { Haptics.play("tap"); asking = m } }
+            }
         }
         #endif
         .onChange(of: scene) { _, s in if s == .active { nearby.start() } else if s == .background { nearby.stop() } }

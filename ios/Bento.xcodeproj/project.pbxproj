@@ -7,7 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		19024FDCF66C6972CDAD41AB /* Intro.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6AAA72F8293BF9A5190E9A0 /* Intro.swift */; };
 		1BD726F14F78E871A8DD199C /* BentoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22B8E77321B0E94EB86ECF27 /* BentoApp.swift */; };
+		26E35171E0A8AA1E82DB3EA0 /* Radar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E2F6F735E19A7700BB9E6F1 /* Radar.swift */; };
 		34B050D1DD1CF5C38BC6399B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E614F6779A9A4D30BF469522 /* Assets.xcassets */; };
 		5C1BBC4BE7EB0BFB0393351E /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA8D5AE4FFE29B6BF62157A /* Theme.swift */; };
 		5EF0CC4F3E29D5548E309A91 /* Macs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B2A411DF17793DBE650382 /* Macs.swift */; };
@@ -21,12 +23,14 @@
 		11B2A411DF17793DBE650382 /* Macs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Macs.swift; sourceTree = "<group>"; };
 		22B8E77321B0E94EB86ECF27 /* BentoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BentoApp.swift; sourceTree = "<group>"; };
 		5C6AE36C8253245A7705E2B8 /* Approve.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Approve.swift; sourceTree = "<group>"; };
+		9E2F6F735E19A7700BB9E6F1 /* Radar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Radar.swift; sourceTree = "<group>"; };
 		B3A7DA9EBE9D12033B6AB5F2 /* WebShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebShell.swift; sourceTree = "<group>"; };
 		C8729164EF40727F8657E60B /* Bento.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Bento.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDA8D5AE4FFE29B6BF62157A /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		D9A04149BB830DE736B7F95A /* Onboarding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Onboarding.swift; sourceTree = "<group>"; };
 		E614F6779A9A4D30BF469522 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E69650CEC4A2A39ACDD6A526 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
+		E6AAA72F8293BF9A5190E9A0 /* Intro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intro.swift; sourceTree = "<group>"; };
 		FE882E570309530828A4E2FA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -38,8 +42,10 @@
 				E614F6779A9A4D30BF469522 /* Assets.xcassets */,
 				22B8E77321B0E94EB86ECF27 /* BentoApp.swift */,
 				FE882E570309530828A4E2FA /* Info.plist */,
+				E6AAA72F8293BF9A5190E9A0 /* Intro.swift */,
 				11B2A411DF17793DBE650382 /* Macs.swift */,
 				D9A04149BB830DE736B7F95A /* Onboarding.swift */,
+				9E2F6F735E19A7700BB9E6F1 /* Radar.swift */,
 				E69650CEC4A2A39ACDD6A526 /* ScanView.swift */,
 				CDA8D5AE4FFE29B6BF62157A /* Theme.swift */,
 				B3A7DA9EBE9D12033B6AB5F2 /* WebShell.swift */,
@@ -136,8 +142,10 @@
 			files = (
 				E83896DBDFB21D31B15CDE6C /* Approve.swift in Sources */,
 				1BD726F14F78E871A8DD199C /* BentoApp.swift in Sources */,
+				19024FDCF66C6972CDAD41AB /* Intro.swift in Sources */,
 				5EF0CC4F3E29D5548E309A91 /* Macs.swift in Sources */,
 				72E0AE64E3E12D98FAF46213 /* Onboarding.swift in Sources */,
+				26E35171E0A8AA1E82DB3EA0 /* Radar.swift in Sources */,
 				8ECA482DB306E83D5346C63A /* ScanView.swift in Sources */,
 				5C1BBC4BE7EB0BFB0393351E /* Theme.swift in Sources */,
 				E1C611332F9BD418D7278F46 /* WebShell.swift in Sources */,
@@ -216,7 +224,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = ZX6ABY8QF9;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -283,7 +291,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = ZX6ABY8QF9;
 				ENABLE_NS_ASSERTIONS = NO;
