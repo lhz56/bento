@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path'; import http from 'node:http';
 const require = createRequire(import.meta.url);
 const { createHost, addressesOf, cleanCode } = require('../electron/host.cjs');
+const { writeSafeAsync } = require('../electron/safewrite.cjs');
 const { mergeLessons } = await import('../src/sync.js');
 
 let fail = 0;
@@ -28,7 +29,9 @@ const host = createHost({
   netProxy: async (req, u) => new Response(`proxied ${u.searchParams.get('u')} ${req.headers.get('x-h-accept') || ''}`, { headers: { 'x-status': '200' } }),
   playGet: (id) => (id === 'l-demo' ? '<p>my page</p>' : undefined),
   dnsNames: async () => ['test-mac.tail123.ts.net', 'test-mac'],
-  writeFile: async (f, t) => { const tmp = `${f}.${process.pid}.${Math.random().toString(36).slice(2)}`; await fs.promises.writeFile(tmp, t); await fs.promises.rename(tmp, f); }, log: () => {},
+  // the app's own writer (main.cjs passes the same one): saves of one file wait their turn, which Windows needs, since
+  // it refuses to swap in a file while another save is swapping in the same one (EPERM)
+  writeFile: writeSafeAsync, log: () => {},
 });
 await host.start({ wifi: false });
 
