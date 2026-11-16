@@ -7,6 +7,23 @@ import { useEffect, useRef } from 'react';
 // the Home Screen copy, or Bento's iPhone and iPad app (ios/), which shows this page full screen with no Safari around it
 export const STANDALONE = typeof navigator !== 'undefined' && (navigator.standalone === true || matchMedia('(display-mode: standalone)').matches || /\bBentoApp\//.test(navigator.userAgent));
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Bento Code (ios/WebShell.swift) listens for a few things only it can do: its own Your Macs sheet, connecting again
+// with Allow on the Mac when the Mac has forgotten this device, and the iPhone's haptics (a web page has none on iOS).
+const bridge = () => (typeof window !== 'undefined' && /\bBentoApp\//.test(navigator.userAgent) ? window.webkit?.messageHandlers?.bento : null);
+export const IN_APP = !!bridge();
+export const native = (type, more) => { try { bridge()?.postMessage({ type, ...more }); return !!bridge(); } catch { return false; } };
+/** a tick under the finger: 'select' (a tab, a switch, a picked option), 'light', 'success', 'warn' */
+export const haptic = (kind = 'select') => native('haptic', { kind });
+if (IN_APP) {
+  // what an iPhone ticks for on its own: picking a tab, a segment or an option, and flipping a switch
+  const TICK = '.ptabs button, .pseg button, .seg button, .ab-nav button, [role=tab], [role=switch], .switch, .shelf, .int, .set-models button, .pz-chip';
+  addEventListener('click', (e) => {
+    const b = e.target.closest?.(TICK); if (!b || b.disabled) return;
+    // (a switch ticks both ways; a tab or segment only when it changes)
+    if (b.matches('[role=switch], .switch') || (b.getAttribute('aria-selected') !== 'true' && !b.classList.contains('on'))) haptic('select');
+  }, true);
+}
 const OUT = 'cubic-bezier(.4, 0, .9, .6)', SPRING = 'cubic-bezier(.2, .9, .3, 1)';
 
 // the sheets that slide up over a page, and how each is put away (the same way Esc or its ✕ does)

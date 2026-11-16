@@ -80,7 +80,12 @@ updates, the bookmarklet. Those are hidden on the phone.
   you left. A file, Settings, search or a conversation is a sheet: drag it down (or tap ✕) and it slides away. The
   drawer drags shut. In the Home Screen app, where Safari has no swipe of its own, a swipe from the left edge goes
   back, and on a tab's own page it opens the drawer. While you type, the keyboard takes the bottom of the screen and
-  the top bar stays put. Settings is the gear at the bottom of the drawer.
+  the top bar stays put. Settings is at the bottom of the drawer, and the Mac you're using is at its top: in the
+  Bento Code app, tapping it opens the app's own list of your Macs.
+- **The app and the page.** Bento Code shows Bento's page from your Mac, and the page can ask the app for three things
+  (`native()` in `src/ui/touch.js`, `WKScriptMessageHandler` "bento" in `ios/Bento/WebShell.swift`, answered only for
+  the Mac's own page): a haptic tick, the Your Macs sheet, and connecting again. If the Mac has forgotten the device,
+  the page never shows its own pairing form in the app; the app asks that Mac again with Allow.
 - Built for a thumb: anything you tap is at least about 36 points tall, rows across the screen light up under your
   finger as in any iPhone list, and rows of choices (kinds of project, Atlas filters, paths) scroll sideways
   instead of piling up. `src/mobile.css` holds all of it; the Mac's layout doesn't change.

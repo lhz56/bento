@@ -27,6 +27,7 @@ struct Root: View {
     @State private var pairing = false     // that page is trading a fresh code for this device's key
     @State private var started = false
     @State private var openWith: ConnectView.Sheet?
+    @State private var again: NearbyMac?    // the Mac forgot this device: Connect asks it again
 
     var body: some View {
         ZStack {
@@ -37,14 +38,29 @@ struct Root: View {
                     .transition(.asymmetric(insertion: .opacity, removal: .move(edge: .leading).combined(with: .opacity)))
             case .pair:
                 ConnectView(canCancel: store.current != nil, canBack: store.current == nil, onLink: pair,
-                            onCancel: { if let m = store.current { connect(m) } }, onBack: { go(.welcome) }, start: openWith)
+                            // (a Mac that forgot this device would only send it straight back here: pick from the list instead)
+                            onCancel: { if again != nil { showMacs = true } else if let m = store.current { connect(m) } },
+                            onBack: { go(.welcome) }, start: openWith, again: again)
+                    .id(again?.id ?? "")
                     .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
             case .connecting(let id):
                 LoadingCover(title: "Connecting to \(name(id))…").transition(.opacity)
             case .connected(let id, let url):
                 ZStack {
                     WebShell(url: url, onLoad: { withAnimation(.easeOut(duration: 0.35)) { loaded = true } },
-                             onFail: { why in go(.unreachable(id, why)) })
+                             onFail: { why in go(.unreachable(id, why)) },
+                             onAsk: { what in
+                                 switch what {
+                                 case "macs": showMacs = true
+                                 case "unpaired":
+                                     // removed in that Mac's Settings: ask it again with Allow, rather than a page asking for a code
+                                     guard let m = store.macs.first(where: { $0.id == id }) else { return go(.pair) }
+                                     Haptics.play("warn")
+                                     again = NearbyMac(id: m.name, ways: ["\(m.host):\(m.port)"])
+                                     go(.pair)
+                                 default: break
+                                 }
+                             })
                         .ignoresSafeArea()
                     if !loaded {
                         // right after pairing the link is already made: say so, rather than "connecting" again
@@ -63,8 +79,12 @@ struct Root: View {
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.9), value: phase)
         .sheet(isPresented: $showMacs) {
-            MacsSheet(onPick: { m in showMacs = false; store.currentID = m.id; connect(m) },
-                      onPairNew: { showMacs = false; go(.pair) })
+            MacsSheet(live: liveID, onPick: { m in
+                          showMacs = false
+                          // the Mac already on screen: nothing to do
+                          if m.id == liveID { return }
+                          again = nil; store.currentID = m.id; connect(m) },
+                      onPairNew: { showMacs = false; again = nil; go(.pair) })
                 .environmentObject(store)
         }
         .onAppear {
@@ -96,6 +116,9 @@ struct Root: View {
         }
     }
 
+    /// the Mac whose Bento is on screen right now
+    private var liveID: String? { if case .connected(let id, _) = phase { return id }; return nil }
+
     private var deviceWord: String { UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone" }
     private func name(_ id: String) -> String { store.macs.first { $0.id == id }?.name ?? "your Mac" }
 
@@ -106,6 +129,7 @@ struct Root: View {
 
     /// Open Bento's page with the scanned one-time code; the page trades it for this device's key and keeps that key.
     func pair(_ l: PairLink) {
+        again = nil
         let m = store.add(l)
         Haptics.play("success")
         pairing = true
@@ -166,17 +190,17 @@ struct Unreachable: View {
                 VStack(alignment: .leading, spacing: 0) {
                     LinkArt(mode: .broken).frame(maxWidth: .infinity).padding(.top, 36).padding(.bottom, 30)
                     Text("Can’t reach \(name)").font(.system(size: 30, weight: .bold)).tracking(-0.3)
-                    Text("Bento does its work on your Mac, so this \(UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone") needs to reach it. Check these:")
+                    Text("Check these three things. Bento Code connects by itself the moment it can.")
                         .foregroundStyle(.secondary).padding(.top, 8).fixedSize(horizontal: false, vertical: true)
                     VStack(spacing: 0) {
-                        Check(icon: "power", tint: Brand.orange, title: "Your Mac is on and awake",
-                              text: "Bento’s **Keep this Mac awake** setting stops it from sleeping while it’s plugged in.")
+                        Check(icon: "power", tint: Brand.orange, title: "The Mac is on and awake",
+                              text: "**Keep this Mac awake** in Bento helps.")
                         Divider().padding(.leading, 58)
                         Check(icon: "macwindow", tint: Brand.violet, title: "Bento is open on it",
-                              text: "And **Settings → Your phone and iPad** is on.")
+                              text: "With **Your phone and iPad** turned on.")
                         Divider().padding(.leading, 58)
-                        Check(icon: "network", tint: Brand.mint, title: "You’re on the same Wi-Fi, or using Tailscale",
-                              text: "Away from home, turn on Tailscale here and on the Mac.")
+                        Check(icon: "network", tint: Brand.mint, title: "Same Wi-Fi, or Tailscale",
+                              text: "Away from home, Tailscale on both.")
                     }
                     .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color.card))
                     .padding(.top, 22)
@@ -215,8 +239,10 @@ private struct Check: View {
     }
 }
 
+/// Every Mac this device has connected to: the one on screen, switching to another, adding one, forgetting one.
 struct MacsSheet: View {
     @EnvironmentObject var store: MacStore
+    var live: String? = nil
     let onPick: (PairedMac) -> Void; let onPairNew: () -> Void
     @Environment(\.dismiss) private var dismiss
     var body: some View {
@@ -224,24 +250,48 @@ struct MacsSheet: View {
             List {
                 Section {
                     ForEach(store.macs) { m in
-                        Button { onPick(m) } label: {
+                        Button { Haptics.play("select"); onPick(m) } label: {
                             HStack(spacing: 14) {
-                                Image(systemName: "desktopcomputer").font(.title3).foregroundStyle(.secondary).frame(width: 30)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(m.name).foregroundStyle(.primary)
-                                    Text("\(m.host):\(String(m.port))").font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                ZStack {
+                                    Circle().fill(m.id == live ? Color.ink : Color.ink.opacity(0.08)).frame(width: 40, height: 40)
+                                    Image(systemName: "desktopcomputer").font(.system(size: 17, weight: .medium))
+                                        .foregroundStyle(m.id == live ? Color.paper : Color.ink)
                                 }
-                                Spacer()
-                                if m.id == store.current?.id { Image(systemName: "checkmark").font(.body.weight(.semibold)).foregroundStyle(.tint) }
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(m.name).font(.body.weight(.semibold)).foregroundStyle(Color.ink)
+                                    if m.id == live {
+                                        Label("Connected", systemImage: "circle.fill").labelStyle(Dot()).font(.subheadline).foregroundStyle(Brand.mint)
+                                    } else {
+                                        Text(m.host).font(.subheadline).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                                    }
+                                }
+                                Spacer(minLength: 0)
+                                if m.id != live { Text("Switch").font(.subheadline.weight(.semibold)).foregroundStyle(Brand.orange) }
                             }
+                            .padding(.vertical, 4)
                         }
+                        .accessibilityLabel(m.id == live ? "\(m.name), connected" : "Switch to \(m.name)")
                         .swipeActions { Button("Forget", role: .destructive) { store.remove(m.id) } }
                     }
-                } footer: { Text("To stop this device using a Mac for good, remove it in Bento on that Mac: Settings → Your phone and iPad.") }
-                Section { Button { onPairNew() } label: { Label("Connect another Mac", systemImage: "qrcode.viewfinder") } }
+                } header: { Text("This \(UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone") can use") }
+                  footer: { Text("Swipe left to forget a Mac here. To stop a device for good, remove it on that Mac: Settings → Your phone and iPad.") }
+                Section {
+                    Button { onPairNew() } label: {
+                        Label { Text("Connect another Mac").foregroundStyle(Color.ink) } icon: { Image(systemName: "plus.circle.fill").foregroundStyle(Brand.orange) }
+                    }
+                }
             }
             .navigationTitle("Your Macs").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.fontWeight(.semibold) } }
         }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+/// a small dot before a status word, as in Settings
+private struct Dot: LabelStyle {
+    func makeBody(configuration c: Configuration) -> some View {
+        HStack(spacing: 6) { c.icon.font(.system(size: 7)); c.title }
     }
 }

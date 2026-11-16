@@ -46,7 +46,8 @@ final class MacStore: ObservableObject {
 
     /// pairing the same Mac again (same address and port) replaces its old entry
     @discardableResult func add(_ l: PairLink) -> PairedMac {
-        macs.removeAll { $0.host == l.host && $0.port == l.port }
+        // the same Mac reached another way (its Wi-Fi address, then its Tailscale name) is still one Mac in the list
+        macs.removeAll { ($0.host == l.host && $0.port == l.port) || (l.name != nil && $0.name == l.name) }
         let m = PairedMac(name: l.name ?? MacStore.guessName(l.host), host: l.host, port: l.port)
         macs.append(m); currentID = m.id; save()
         return m

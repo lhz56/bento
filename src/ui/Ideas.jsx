@@ -17,7 +17,8 @@ export default function Ideas({ onRead, readIds = {}, interests = [], races = []
       <div className="ideas-inner">
         <div className="hello">{t('Clever ideas')}</div>
         <h1 className="home-h">{tx('The tricks behind *famous* software.')}</h1>
-        <p className="ex-sub">{t(`${IDEAS.length} real problems from Uber, Google, Amazon, Discord and more, each a short blog post with code you can run: the obvious way next to the clever way.`)}</p>
+        <p className="ex-sub long">{t(`${IDEAS.length} real problems from Uber, Google, Amazon, Discord and more, each a short blog post with code you can run: the obvious way next to the clever way.`)}</p>
+        <p className="ex-sub short">{t(`${IDEAS.length} real tricks from Uber, Google, Discord and more, with code you run.`)}</p>
         <div className="shelves">{THEMES.map(([k, l]) => <button key={k} className={`shelf ${theme === k ? 'on' : ''}`} onClick={() => setTheme(k)}>{l}</button>)}</div>
 
         {featured && (

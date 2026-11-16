@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import qrcode from 'qrcode-generator';
 import { t } from '../i18n.js';
+import { IN_APP, native } from './touch.js';
 
 // a QR code as crisp SVG squares (the camera app on a phone opens the link)
 export function QR({ text, size = 176 }) {
@@ -166,7 +167,9 @@ export function ThisDeviceRow() {
         <div className="dev-art" aria-hidden="true"><span className="d-phone" /><span className="d-wire"><i /><i /><i /></span><span className="d-mac" /></div>
         <div><b>{t(`This ${me} uses Bento on`)} {st.host?.name || t('your Mac')}</b>
           <span className={`dev-seen ${st.state === 'online' ? 'on' : ''}`}>{st.state === 'online' ? t('connected · the Mac does the work, with your AI') : t('can’t reach the Mac right now')}</span></div>
-        <button className="btn ghost" onClick={() => { if (confirm(t('Disconnect this device? You can pair it again with a new code from the Mac.'))) R.disconnect(); }}>{t('Disconnect')}</button>
+        {IN_APP
+          ? <button className="btn ghost" onClick={() => native('macs')}>{t('Your Macs')}</button>
+          : <button className="btn ghost" onClick={() => { if (confirm(t('Disconnect this device? You can pair it again with a new code from the Mac.'))) R.disconnect(); }}>{t('Disconnect')}</button>}
       </div>
     </div>
   );

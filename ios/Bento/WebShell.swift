@@ -8,6 +8,8 @@ struct WebShell: UIViewRepresentable {
     let url: URL
     var onLoad: () -> Void = {}
     var onFail: (String) -> Void = { _ in }
+    /// what the page asks of the app: "macs" (show Your Macs), "unpaired" (the Mac forgot this device: connect again)
+    var onAsk: (String) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -19,6 +21,8 @@ struct WebShell: UIViewRepresentable {
         cfg.defaultWebpagePreferences.preferredContentMode = .mobile
         // "BentoApp" tells the page it's in the app (no "Add to Home Screen" tip; edge swipes on, as in a Home Screen copy)
         cfg.applicationNameForUserAgent = "BentoApp/1.0 Mobile/15E148 Safari/604.1"
+        // the page's line to the app (src/ui/touch.js: native()); a weak hop, so the web view never keeps itself alive
+        cfg.userContentController.add(WeakHandler(context.coordinator), name: "bento")
         let wv = WKWebView(frame: .zero, configuration: cfg)
         wv.isOpaque = false
         wv.backgroundColor = UIColor(named: "Paper")
@@ -30,10 +34,18 @@ struct WebShell: UIViewRepresentable {
         wv.uiDelegate = context.coordinator
         #if DEBUG
         if #available(iOS 16.4, *) { wv.isInspectable = true }
+        // simulator tests: SIMCTL_CHILD_BENTO_PILOT=<a .js file> drives the page (taps, scrolls) and asks for pictures
+        if let f = ProcessInfo.processInfo.environment["BENTO_PILOT"], let js = try? String(contentsOfFile: f, encoding: .utf8) {
+            wv.configuration.userContentController.addUserScript(WKUserScript(source: js, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        }
         #endif
         wv.load(URLRequest(url: url))
         context.coordinator.loaded = url
         return wv
+    }
+
+    static func dismantleUIView(_ wv: WKWebView, coordinator: Coordinator) {
+        wv.configuration.userContentController.removeScriptMessageHandler(forName: "bento")
     }
 
     func updateUIView(_ wv: WKWebView, context: Context) {
@@ -41,10 +53,26 @@ struct WebShell: UIViewRepresentable {
         if context.coordinator.loaded != url { context.coordinator.loaded = url; wv.load(URLRequest(url: url)) }
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
         var parent: WebShell
         var loaded: URL?
         init(_ p: WebShell) { parent = p }
+
+        /// Only Bento's own page (the Mac it came from) can ask: a haptic tick, the Macs sheet, connecting again.
+        func userContentController(_ uc: WKUserContentController, didReceive m: WKScriptMessage) {
+            guard m.frameInfo.isMainFrame, let u = m.frameInfo.request.url, u.host == loaded?.host, u.port == loaded?.port,
+                  let body = m.body as? [String: Any], let type = body["type"] as? String else { return }
+            switch type {
+            case "haptic":
+                let kind = body["kind"] as? String ?? "select"
+                Haptics.play(["light": "tap", "success": "success", "warn": "warn"][kind] ?? "select")
+            case "macs", "unpaired": parent.onAsk(type)
+            #if DEBUG
+            case "shot": print("BENTO_SHOT \(body["name"] as? String ?? "")"); fflush(stdout)
+            #endif
+            default: break
+            }
+        }
 
         /// Bento's own page (this Mac, this port) stays here. Frames inside it (a lesson's web page on the next port)
         /// are the page's business and still under its Content-Security-Policy. Any other page the app itself would
@@ -90,4 +118,11 @@ struct WebShell: UIViewRepresentable {
             if let top { top.present(a, animated: true) } else { actions.first?.2() }
         }
     }
+}
+
+/// WKUserContentController holds its handlers strongly; this keeps the coordinator (and the web view) free to go.
+private final class WeakHandler: NSObject, WKScriptMessageHandler {
+    weak var target: WKScriptMessageHandler?
+    init(_ t: WKScriptMessageHandler) { target = t }
+    func userContentController(_ uc: WKUserContentController, didReceive m: WKScriptMessage) { target?.userContentController(uc, didReceive: m) }
 }

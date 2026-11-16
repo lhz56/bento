@@ -1,7 +1,7 @@
 // On a phone or iPad (see remote.js): pair with Bento on your Mac once, then it's Bento, with the Mac doing the work.
 import { useEffect, useState } from 'react';
 import { deviceName } from '../remote.js';
-import { STANDALONE } from './touch.js';
+import { STANDALONE, IN_APP, native } from './touch.js';
 
 const R = () => window.bentoRemote;
 
@@ -27,9 +27,13 @@ function Pair() {
     // the code leaves the address at once (Bento may be on screen before pairing has quite finished; and this keeps the page's history)
     if (/^#pair=/.test(location.hash)) history.replaceState(history.state, '', location.pathname + location.search);
     try { await R().pair(c, deviceName()); }
-    catch (e) { setBusy(false); if (c === spare) setCode(''); else setErr(e.message); } // an old Home Screen code: just the pairing screen, no error
+    catch (e) {
+      // in Bento Code, the app connects again its own way (Allow on the Mac), never with this page's form
+      if (IN_APP) { native('unpaired', { why: e.message }); return; }
+      setBusy(false); if (c === spare) setCode(''); else setErr(e.message); // an old Home Screen code: just the pairing screen, no error
+    }
   };
-  useEffect(() => { if (fromLink) go(fromLink); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (fromLink) go(fromLink); else if (IN_APP) native('unpaired'); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // the pairing screen is already open and the QR code is scanned: Safari may only change the address's #pair=…
   useEffect(() => { const h = () => { const c = codeInLink(); if (c) { setCode(c); go(c); } }; addEventListener('hashchange', h); return () => removeEventListener('hashchange', h); });
   const shown = code.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 8);
@@ -42,7 +46,7 @@ function Pair() {
       </div>
       <h1>Bento, on this {deviceName() === 'iPad' ? 'iPad' : deviceName() === 'iPhone' ? 'iPhone' : 'device'}</h1>
       <p className="pair-sub">Your Mac does the work, with the AI you already have.</p>
-      {fromLink && busy ? <p className="pair-wait" role="status"><span className="spin" /> Connecting to your Mac…</p> : (
+      {(fromLink && busy) || IN_APP ? <p className="pair-wait" role="status"><span className="spin" /> Connecting to your Mac…</p> : (
         <form className="pair-form" onSubmit={(e) => { e.preventDefault(); go(); }}>
           <ol className="pair-steps">
             <li>On your Mac, open Bento → <b>Settings</b> → <b>Your phone and iPad</b></li>

@@ -15,6 +15,8 @@ struct ConnectView: View {
     let onCancel: () -> Void
     let onBack: () -> Void
     var start: Sheet? = nil
+    /// the Mac this device was using has forgotten it (removed in its Settings): ask that Mac again, straight away
+    var again: NearbyMac? = nil
     enum Sheet: String, Identifiable { case scan, type, name, noMac, approve; var id: String { rawValue } }
     @StateObject private var nearby = Nearby()
     @State private var sheet: Sheet?
@@ -34,8 +36,10 @@ struct ConnectView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     VStack(spacing: 8) {
-                        Text("Connect your Mac").font(.system(size: 34, weight: .bold)).tracking(-0.4)
-                        Text(nearby.macs.isEmpty ? "Open Bento on your Mac and turn on **Settings → Your phone and iPad**." : "Tap your Mac to connect.")
+                        Text(again == nil ? "Connect your Mac" : "Connect again").font(.system(size: 34, weight: .bold)).tracking(-0.4)
+                        // (a String doesn't read **bold**; a LocalizedStringKey does)
+                        Text(LocalizedStringKey(again.map { "**\($0.name)** no longer knows this \(UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone"), so ask it again." }
+                             ?? (nearby.macs.isEmpty ? "Open Bento on your Mac and turn on **Settings → Your phone and iPad**." : "Tap your Mac to connect.")))
                             .font(.body).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                             .contentTransition(.opacity)
                     }
@@ -103,6 +107,7 @@ struct ConnectView: View {
         .task { try? await Task.sleep(for: .seconds(8)); withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) { slow = true } }
         .onAppear {
             nearby.start()
+            if let again { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { asking = again }; return }
             switch start {
             case .scan: scanning = true
             case .approve: asking = NearbyMac(id: "My Mac", ways: ["my-mac.tail1234.ts.net:4917"])

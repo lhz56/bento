@@ -10,6 +10,7 @@ import { IS_MAC, keys } from '../platform.js';
 import Icon from './Icons.jsx';
 import { MODELS as ALL_MODELS, PROVIDERS, provOf, modelInfo, modelLabel as aiModelLabel, noAI, fastModel, mainWindow, level, usedText } from '../ai.js';
 import { PlanMeter, AIMark, Ring, usePlans } from './Plans.jsx';
+import { IN_APP, native } from './touch.js';
 
 // What each model is good at, in plain words, with two small meters. Grouped by AI; the ones this Mac doesn't have
 // yet say so, with a way to connect them.
@@ -75,6 +76,24 @@ export const groupOf = (view) => GROUPS.find((g) => g.views.some(([v]) => v === 
 export const lastTab = (g) => { try { const v = JSON.parse(localStorage.getItem('bento.lastTab') || '{}')[g.id]; return g.views.some(([x]) => x === v) ? v : g.views[0][0]; } catch { return g.views[0][0]; } };
 export const rememberTab = (view) => { const g = GROUPS.find((x) => x.views.some(([v]) => v === view)); if (!g || g.views.length < 2) return; try { const m = JSON.parse(localStorage.getItem('bento.lastTab') || '{}'); m[g.id] = view; localStorage.setItem('bento.lastTab', JSON.stringify(m)); } catch {} };
 
+// On a phone or iPad: the Mac this device is using, and whether it can reach it. In Bento Code, a tap opens the app's
+// own list of your Macs (switch, add another, forget one); in Safari, Settings, where This iPhone uses Bento on… lives.
+function MacCard({ model, onSettings }) {
+  const R = window.bentoRemote;
+  const [st, setSt] = useState(() => ({ state: R.state, host: R.host }));
+  useEffect(() => R.on((state, host) => setSt({ state, host })), [R]);
+  const on = st.state === 'online';
+  const ai = modelInfo(model)?.short || aiModelLabel(model);
+  return (
+    <button className={`mac-card ${on ? 'on' : 'off'}`} onClick={() => (IN_APP ? native('macs') : onSettings?.())}
+      aria-label={`${st.host?.name || t('Your Mac')}: ${on ? t('connected') : t('can’t reach it right now')}. ${IN_APP ? t('Your Macs') : t('Settings')}`}>
+      <span className="mc-ic" aria-hidden="true"><svg width="26" height="22" viewBox="0 0 26 22"><rect x="1.2" y="1.2" width="23.6" height="15" rx="2.6" fill="none" stroke="currentColor" strokeWidth="1.8" /><path d="M9 21h8M13 16.5V21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg></span>
+      <span className="mc-t"><b>{st.host?.name || t('Your Mac')}</b><span><i className="mc-dot" />{on ? `${t('Connected')}${ai ? ` · ${ai}` : ''}` : t('Can’t reach it right now')}</span></span>
+      <Icon name="chevron" size={15} className="mc-chev" />
+    </button>
+  );
+}
+
 export function Sidebar({ progress = {}, onClose, closed, view, setView, lessons, current, onOpen, onNew, onDelete, settings, setSettings, providers, user, projects = [], atlasKey, atlases = {}, onOpenProject, onForgetProject, onSetup, onSettings, siteKey }) {
   const [menu, setMenu] = useState(false);
   const [more, setMore] = useState(false);
@@ -97,6 +116,7 @@ export function Sidebar({ progress = {}, onClose, closed, view, setView, lessons
         <button className="side-search" onClick={onClose} aria-label={`${t('Hide the sidebar')} (${keys('⌘\\')})`} title={`${t('Hide the sidebar')}  ${keys('⌘\\')}`}><Icon name="sidebar" size={16} /></button>
         <button className="side-search" onClick={search} aria-label={`${t('Search everything')} (${keys('⌘K')})`} title={`${t('Search everything')}  ${keys('⌘K')}`}><Icon name="search" size={16} /></button>
       </div>
+      {window.bentoRemote && <MacCard model={settings.model} onSettings={onSettings} />}
       <button className="new" onClick={onNew}><Icon name="plus" size={16} />{t('New question')}<kbd>{keys('⌘N')}</kbd></button>
       <nav aria-label={t('Main')}>
         <span className="nav-pill" aria-hidden="true" style={{ transform: `translateY(${Math.max(0, ai) * 34}px)`, opacity: ai >= 0 ? 1 : 0 }} />

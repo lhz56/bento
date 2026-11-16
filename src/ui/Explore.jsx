@@ -47,7 +47,8 @@ export default function Explore({ top, api, onOpenAt, onCompare, onOpenSite, onO
         {top}
         <div className="hello">{t('Explore')}</div>
         <h1 className="home-h">{tx('Take apart *any* app.')}</h1>
-        <p className="ex-sub">{t('Search open source, paste a GitHub link, or paste any website. Bento shows what every part does, how the parts connect, which outside tools it leans on, and why it was built that way.')}</p>
+        <p className="ex-sub long">{t('Search open source, paste a GitHub link, or paste any website. Bento shows what every part does, how the parts connect, which outside tools it leans on, and why it was built that way.')}</p>
+        <p className="ex-sub short">{t('Paste a GitHub link or a website, or search.')}</p>
 
         <form className={`ex-search ${repo || site ? 'is-repo' : ''}`} onSubmit={submit}>
           <span className="ex-ic">{repo ? '⌥' : site ? '◎' : '⌕'}</span>

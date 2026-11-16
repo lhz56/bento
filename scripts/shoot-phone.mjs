@@ -24,7 +24,10 @@ const st = await mac.evaluate(() => window.bento.host.pair());
 // the playwright WebKit build that's installed (WK= to choose another)
 const wk = process.env.WK || ['webkit-2388', 'webkit-2370'].map((d) => path.join(os.homedir(), 'Library/Caches/ms-playwright', d, 'pw_run.sh')).find((f) => fs.existsSync(f));
 const browser = await webkit.launch(wk ? { executablePath: wk } : {});
-const ctx = await browser.newContext({ ...devices[IPAD ? 'iPad Pro 11' : 'iPhone 15 Pro'], colorScheme: DARK ? 'dark' : 'light' });
+// APP=1: as the Bento Code app shows it (its user agent, the whole screen, no Safari bars)
+const dev = devices[IPAD ? 'iPad Pro 11' : 'iPhone 15 Pro'];
+const inApp = process.env.APP ? { userAgent: `${dev.userAgent} BentoApp/1.0`, viewport: IPAD ? { width: 834, height: 1194 } : { width: 393, height: 852 } } : {};
+const ctx = await browser.newContext({ ...dev, ...inApp, colorScheme: DARK ? 'dark' : 'light' });
 const p = await ctx.newPage();
 const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text().slice(0, 200)); });
 const shot = async (name) => { await p.waitForTimeout(500); await p.screenshot({ path: path.join(out, `${name}.png`) }); console.log('📷', name); };

@@ -34,7 +34,8 @@ export default function Words({ words, onOpen, onAsk, onGrade, onAdd }) {
       <div className="ex-inner">
         <div className="hello">{t('Your words')}</div>
         <h1 className="home-h">{tx('The language of code, *yours* now.')}</h1>
-        <p className="ex-sub">{tap(t('Every new word from your lessons, with an everyday comparison. Point at a word for its real definition.'))}</p>
+        <p className="ex-sub long">{tap(t('Every new word from your lessons, with an everyday comparison. Point at a word for its real definition.'))}</p>
+        <p className="ex-sub short">{t('Every new word from your lessons. Tap one for what it really means.')}</p>
         {list.length === 0 ? (
           <div className="words-empty">
             <p>Words from your lessons collect here. Start with eight everyone meets:</p>

@@ -25,7 +25,8 @@ export default function Puzzles({ progress = {}, onOpen, onIdeas, onIdea, races 
         <div className="pz-hero">
           <div className="pz-hero-art"><PatternArt kind="shape" big /></div>
           <div className="pz-hero-t">
-            <p className="ex-sub">{PUZZLES.length} interview puzzles in the order that makes them easy. Each one starts with code that already works, then asks: <b>what if there were a billion?</b></p>
+            <p className="ex-sub long">{PUZZLES.length} interview puzzles in the order that makes them easy. Each one starts with code that already works, then asks: <b>what if there were a billion?</b></p>
+            <p className="ex-sub short">{PUZZLES.length} interview puzzles. Make it work, then ask: <b>what if there were a billion?</b></p>
             <div className="pz-3">
               <span><i>✓</i>make it work</span><span><i>👾</i>survive the gremlins</span><span><i>🚀</i>make it scale</span>
             </div>
