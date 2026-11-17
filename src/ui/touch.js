@@ -3,6 +3,7 @@
 // own page, to open the drawer. And the small things: a button answers the moment a finger lands on it, a sheet
 // slides away instead of vanishing, and the keyboard takes the bottom of the screen without pushing the top bar off it.
 import { useEffect, useRef } from 'react';
+import { t } from '../i18n.js';
 
 // the Home Screen copy, or Bento's iPhone and iPad app (ios/), which shows this page full screen with no Safari around it
 export const STANDALONE = typeof navigator !== 'undefined' && (navigator.standalone === true || matchMedia('(display-mode: standalone)').matches || /\bBentoApp\//.test(navigator.userAgent));
@@ -17,14 +18,133 @@ export const native = (type, more) => { try { bridge()?.postMessage({ type, ...m
 export const haptic = (kind = 'select') => native('haptic', { kind });
 if (IN_APP) {
   // what an iPhone ticks for on its own: picking a tab, a segment or an option, and flipping a switch
-  const TICK = '.ptabs button, .pseg button, .seg button, .ab-nav button, [role=tab], [role=switch], .switch, .shelf, .int, .set-models button, .pz-chip';
+  const TICK = '.ptabs button, .pseg button, .seg button, .lens, .stab, .ab-nav button, [role=tab], [role=switch], .switch, .shelf, .int, .set-models button, .pz-chip';
   addEventListener('click', (e) => {
     const b = e.target.closest?.(TICK); if (!b || b.disabled) return;
     // (a switch ticks both ways; a tab or segment only when it changes)
     if (b.matches('[role=switch], .switch') || (b.getAttribute('aria-selected') !== 'true' && !b.classList.contains('on'))) haptic('select');
   }, true);
+  // a tap on the status bar (the app passes it on): what you're looking at goes back to its top, as anywhere on an iPhone
+  window.__bentoTop = () => {
+    const top = document.querySelector('.hold-menu') ? null : document.querySelector('.settings, .drawer, .cv-full') || document.getElementById('content');
+    if (!top) return;
+    const shown = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.right > 0 && r.left < innerWidth && getComputedStyle(el).visibility !== 'hidden'; };
+    [top, ...top.querySelectorAll('*')].filter((el) => el.scrollTop > 0 && shown(el)).forEach((el) => el.scrollTo({ top: 0, behavior: reduced() ? 'auto' : 'smooth' }));
+  };
+  // and a firmer tap for sending something off: a question, a repo to take apart
+  addEventListener('click', (e) => { const b = e.target.closest?.('.send, .ask-go'); if (b && !b.disabled) haptic('light'); }, true);
 }
 const OUT = 'cubic-bezier(.4, 0, .9, .6)', SPRING = 'cubic-bezier(.2, .9, .3, 1)';
+
+// ---------------------------------------------------------------- springs
+// A real spring, the kind an iPhone moves things with (SwiftUI's .spring(response:, dampingFraction:)): its curve,
+// written out as a CSS linear() easing, and how long it takes to come to rest.
+const LINEAR = typeof CSS !== 'undefined' && CSS.supports?.('transition-timing-function', 'linear(0, 1)');
+const springs = new Map();
+export function spring(response = 0.4, damping = 0.86) {
+  const k = `${response}/${damping}`; if (springs.has(k)) return springs.get(k);
+  const w = (2 * Math.PI) / response, z = Math.min(damping, 0.999), wd = w * Math.sqrt(1 - z * z);
+  const x = (t) => 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + ((z * w) / wd) * Math.sin(wd * t));
+  const T = Math.log(1000) / (z * w); // within a thousandth of where it's going
+  const pts = []; for (let i = 0; i <= 40; i++) pts.push(i === 40 ? 1 : +x((T * i) / 40).toFixed(4));
+  const s = { easing: LINEAR ? `linear(${pts.join(', ')})` : SPRING, ms: Math.round(T * 1000) };
+  springs.set(k, s); return s;
+}
+
+// ---------------------------------------------------------------- a switch's thumb slides to what you picked
+// (Lesson | Code, Puzzles | Playgrounds, Code | Both | Plain, Output | Steps | Growth…). The page only moves its
+// "on" look from one button to the next; a stand-in thumb glides between them while it does.
+const GLIDE = [['.pseg', 'button'], ['.seg', 'button'], ['.lenses', '.lens:not(.twin)'], ['.stage-tabs', '.stab:not(.predict)']];
+function glide(e) {
+  const b = e.target.closest?.('button'); const box = b?.parentElement; if (!box || b.disabled || reduced()) return;
+  const g = GLIDE.find(([c, it]) => box.matches(c) && b.matches(it)); if (!g) return;
+  const items = [...box.children].filter((x) => x.matches(g[1]));
+  const from = box.__glide?.ghost || items.find((x) => x.classList.contains('on'));
+  if (!from || (from === b && !box.__glide)) return;
+  if (getComputedStyle(box).position === 'static') box.style.position = 'relative';
+  box.style.isolation = 'isolate';
+  const bx = box.getBoundingClientRect(), fr = from.getBoundingClientRect();
+  let ghost = box.__glide?.ghost;
+  if (ghost) box.__glide.anim?.cancel();
+  else {
+    const cs = getComputedStyle(from);
+    ghost = document.createElement('i'); ghost.className = 'glide';
+    Object.assign(ghost.style, { background: cs.backgroundColor, boxShadow: cs.boxShadow, borderRadius: cs.borderRadius });
+    box.prepend(ghost); box.classList.add('gliding');
+  }
+  const at = (r) => ({ transform: `translate(${r.left - bx.left - box.clientLeft}px, ${r.top - bx.top - box.clientTop}px)`, width: `${r.width}px`, height: `${r.height}px` });
+  Object.assign(ghost.style, at(fr));
+  const me = (box.__glide = { ghost });
+  let tries = 0;
+  // the page shows the new choice once it has heard the tap: then the thumb follows it there
+  const go = () => {
+    if (box.__glide !== me) return;
+    let to = b.isConnected && b.classList.contains('on') ? b : null;
+    if (!to && ++tries < 6) { requestAnimationFrame(go); return; }
+    to = to || items.find((x) => x.classList.contains('on') && x.isConnected);
+    // (the real thumb takes over where the stand-in stopped, without fading in: one frame with no transitions)
+    const done = () => {
+      if (box.__glide !== me) return;
+      box.classList.add('glided'); ghost.remove(); box.classList.remove('gliding'); box.__glide = null; box.style.isolation = '';
+      requestAnimationFrame(() => requestAnimationFrame(() => box.classList.remove('glided')));
+    };
+    if (!to || !box.isConnected) { done(); return; }
+    const s = spring(0.34, 0.8);
+    me.anim = ghost.animate([at(fr), at(to.getBoundingClientRect())], { duration: s.ms, easing: s.easing, fill: 'forwards' });
+    me.anim.onfinish = done;
+  };
+  requestAnimationFrame(go);
+}
+
+// ---------------------------------------------------------------- press and hold: a menu, as on any iPhone list
+// The row lifts out of a blurred page and its actions open under it. Today: Recent (open it, or take it off the list).
+const HOLD = [{ sel: '.side .rl', items: (row) => [
+  { label: t('Open'), icon: 'M5 12h14M13 6l6 6-6 6', run: () => row.querySelector('.rl-main')?.click() },
+  { label: t('Remove from Recent'), icon: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13', danger: true, run: () => row.querySelector('.rl-x')?.click() },
+] }];
+// a copy of the row that looks the same anywhere on the page (its styles come from where it sits, so they go with it)
+const LOOK = ['display', 'flex-direction', 'align-items', 'justify-content', 'gap', 'flex', 'padding', 'width', 'height', 'min-width', 'min-height',
+  'font-family', 'font-size', 'font-weight', 'letter-spacing', 'line-height', 'color', 'background-color', 'border-radius', 'overflow',
+  'white-space', 'text-overflow', 'box-shadow', 'opacity', 'object-fit', 'stroke', 'fill'];
+function lookalike(el) {
+  const c = el.cloneNode(true);
+  const walk = (a, b) => {
+    if (!(a instanceof Element)) return;
+    const cs = getComputedStyle(a); for (const k of LOOK) b.style.setProperty(k, cs.getPropertyValue(k));
+    [...a.children].forEach((x, i) => walk(x, b.children[i]));
+  };
+  walk(el, c); return c;
+}
+function holdMenu(row, spec, done) {
+  haptic('light');
+  const r = row.getBoundingClientRect();
+  const veil = document.createElement('div'); veil.className = 'hold-veil';
+  const lift = lookalike(row); lift.classList.add('hold-lift'); lift.removeAttribute('id'); lift.setAttribute('aria-hidden', 'true');
+  lift.querySelectorAll('[id]').forEach((x) => x.removeAttribute('id'));
+  Object.assign(lift.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` });
+  const menu = document.createElement('div'); menu.className = 'hold-menu'; menu.setAttribute('role', 'menu');
+  const close = (then) => {
+    veil.classList.add('out'); lift.classList.add('out'); menu.classList.add('out');
+    setTimeout(() => { veil.remove(); lift.remove(); menu.remove(); row.style.visibility = ''; done(); then?.(); }, 180);
+  };
+  for (const it of spec.items(row)) {
+    const b = document.createElement('button'); b.setAttribute('role', 'menuitem'); if (it.danger) b.className = 'danger';
+    b.innerHTML = `<span></span><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path d="${it.icon}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    b.firstChild.textContent = it.label;
+    b.onclick = (e) => { e.stopPropagation(); if (it.danger) haptic('warn'); close(it.run); };
+    menu.append(b);
+  }
+  veil.onclick = () => close();
+  menu.onkeydown = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(() => row.querySelector('button')?.focus()); } };
+  document.body.append(veil, lift, menu);
+  // under the row if it fits, over it if not, never off the screen
+  const mh = menu.offsetHeight, below = r.bottom + 10 + mh < innerHeight - 20;
+  Object.assign(menu.style, { left: `${Math.min(Math.max(12, r.left + 8), innerWidth - menu.offsetWidth - 12)}px`, top: `${below ? r.bottom + 10 : Math.max(20, r.top - 10 - mh)}px`, transformOrigin: below ? 'top left' : 'bottom left' });
+  row.style.visibility = 'hidden';
+  const s = spring(0.32, 0.72);
+  lift.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.035)' }], { duration: s.ms, easing: s.easing, fill: 'forwards' });
+  menu.querySelector('button')?.focus({ preventScroll: true });
+}
 
 // the sheets that slide up over a page, and how each is put away (the same way Esc or its ✕ does)
 const esc = (el) => el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
@@ -54,7 +174,8 @@ function slideAway(el, s, after) {
   }, 220);
 }
 const snapBack = (el, veil) => {
-  set(el, { transition: `transform .32s ${SPRING}`, transform: '' });
+  const sp = spring(0.38, 0.8);
+  set(el, { transition: `transform ${sp.ms}ms ${sp.easing}`, transform: '' });
   if (veil) set(veil, { transition: 'opacity .32s, background-color .32s', opacity: '', backgroundColor: '' });
   setTimeout(() => { clear(el, 'transition'); clear(veil, 'transition'); }, 340);
 };
@@ -91,12 +212,17 @@ export function useTouch(on, o) {
     };
     const unpress = () => {
       clearTimeout(pressT); const el = pressed; pressed = null; if (!el) return;
-      const release = () => { el.classList.remove('pressed'); el.classList.add('unpress'); setTimeout(() => el.classList.remove('unpress', 'big', 'prow'), 280); };
+      const release = () => { el.classList.remove('pressed'); el.classList.add('unpress'); setTimeout(() => el.classList.remove('unpress', 'big', 'prow'), 520); };
       if (el.classList.contains('pressed')) release(); else { press(el); requestAnimationFrame(() => requestAnimationFrame(release)); } // a quick tap still shows
     };
     const unpressNow = () => { clearTimeout(pressT); if (pressed) pressed.classList.remove('pressed', 'big', 'prow'); pressed = null; };
 
+    // press and hold (a menu): the finger stays put for half a second
+    let holdT = 0, holding = false, eatUntil = 0;
+    const holdOff = () => { clearTimeout(holdT); holdT = 0; };
+
     const start = (e) => {
+      holdOff();
       if (e.touches.length !== 1) { g = null; return; }
       const t = e.touches[0]; const tgt = e.target instanceof Element ? e.target : e.target?.parentElement;
       if (!tgt) return;
@@ -104,6 +230,10 @@ export function useTouch(on, o) {
       // the press
       const b = tgt.closest(PRESSABLE);
       if (b && !b.disabled && !b.closest('.cm-editor, .city') && b.getAttribute('aria-disabled') !== 'true') { pressed = b; pressT = setTimeout(() => pressed === b && press(b), 60); }
+      for (const h of HOLD) {
+        const row = tgt.closest(h.sel); if (!row || tgt.closest('.rl-x') || document.querySelector('.hold-menu')) continue;
+        holdT = setTimeout(() => { holdT = 0; unpressNow(); g = null; holding = true; holdMenu(row, h, () => {}); }, 480);
+      }
       g = { x0: t.clientX, y0: t.clientY, trail: [[e.timeStamp, 0, 0]], mode: null, lock: false };
       if (!x.phone) return;
       for (const s of SHEETS) {
@@ -119,7 +249,8 @@ export function useTouch(on, o) {
 
     const move = (e) => {
       const t = e.touches[0];
-      if (pressed && (Math.abs(t.clientX - p0[0]) > 8 || Math.abs(t.clientY - p0[1]) > 8)) unpressNow();
+      if (Math.abs(t.clientX - p0[0]) > 8 || Math.abs(t.clientY - p0[1]) > 8) { holdOff(); if (pressed) unpressNow(); }
+      if (holding) { if (e.cancelable) e.preventDefault(); return; }
       if (!g?.mode) return;
       const dx = t.clientX - g.x0, dy = t.clientY - g.y0;
       if (!g.lock) {
@@ -149,6 +280,9 @@ export function useTouch(on, o) {
     };
 
     const end = () => {
+      holdOff();
+      // (the click a lifted finger may still send lands on the shade: it isn't a tap to close the menu)
+      if (holding) { holding = false; eatUntil = Date.now() + 250; }
       unpress();
       const k = g; g = null;
       if (!k?.lock) return;
@@ -180,7 +314,10 @@ export function useTouch(on, o) {
     // ---------------------------------------------------------------- ✕ and the shade behind a sheet: it slides away first
     // (only a finger's own tap: the click that follows the slide, or one Bento makes itself, goes straight through)
     const tapAway = (e) => {
-      const tgt = e.target instanceof Element ? e.target : null; if (!tgt || !e.isTrusted || !ref.current.phone) return;
+      const tgt = e.target instanceof Element ? e.target : null;
+      // the finger that held a row down for its menu lifts: that's not a tap on the row
+      if (e.type === 'click' && Date.now() < eatUntil && !tgt?.closest('.hold-menu')) { eatUntil = 0; e.preventDefault(); e.stopPropagation(); return; }
+      if (!tgt || !e.isTrusted || !ref.current.phone) return;
       for (const s of SHEETS) {
         const btn = s.x && tgt.closest(s.x); const el = btn?.closest(s.sel);
         if (btn && el) {
@@ -223,7 +360,11 @@ export function useTouch(on, o) {
     document.addEventListener('touchmove', move, { passive: false });
     document.addEventListener('touchend', end); document.addEventListener('touchcancel', end);
     document.addEventListener('click', tapAway, true); document.addEventListener('mousedown', tapAway, true);
+    document.addEventListener('click', glide, true);
+    root.style.setProperty('--spring-press', spring(0.42, 0.58).easing);
+    root.style.setProperty('--spring-sheet', spring(0.5, 0.94).easing);
     return () => {
+      holdOff(); document.removeEventListener('click', glide, true);
       vv?.removeEventListener('resize', fit); vv?.removeEventListener('scroll', fit); document.removeEventListener('focusout', out); removeEventListener('scroll', stay); root.classList.remove('kb');
       document.removeEventListener('touchstart', start); document.removeEventListener('touchmove', move);
       document.removeEventListener('touchend', end); document.removeEventListener('touchcancel', end);

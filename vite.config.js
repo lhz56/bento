@@ -31,8 +31,27 @@ const devCsp = {
     .replace("worker-src 'self'", "worker-src 'self' blob:"),
 };
 
+// A finger has no hover. On an iPhone or iPad a tapped button takes its :hover look and keeps it until you tap
+// something else, so every :hover rule only counts where there's a pointer that hovers (a Mac's mouse or trackpad).
+// (A rule that also names another state, like `.alt:hover, .alt.on`, keeps that state everywhere.)
+const hoverWhereHover = {
+  postcssPlugin: 'bento-hover-where-hover',
+  Once(root, { AtRule }) {
+    root.walkRules((rule) => {
+      if (!rule.selector.includes(':hover')) return;
+      for (let p = rule.parent; p; p = p.parent) if (p.type === 'atrule' && (/keyframes/.test(p.name) || /hover:\s*hover/.test(p.params))) return;
+      const hov = rule.selectors.filter((s) => s.includes(':hover')), rest = rule.selectors.filter((s) => !s.includes(':hover'));
+      const only = new AtRule({ name: 'media', params: '(hover: hover)' });
+      only.append(rule.clone({ selectors: hov }));
+      rule.after(only);
+      if (rest.length) rule.selectors = rest; else rule.remove();
+    });
+  },
+};
+
 export default defineConfig({
   plugins: [react(), devNet, devCsp],
+  css: { postcss: { plugins: [hoverWhereHover] } },
   base: './',
   server: { port: 5199, strictPort: true },
   worker: { format: 'es' },

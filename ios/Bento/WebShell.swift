@@ -32,6 +32,8 @@ struct WebShell: UIViewRepresentable {
         wv.allowsLinkPreview = false
         wv.navigationDelegate = context.coordinator
         wv.uiDelegate = context.coordinator
+        // a tap on the status bar: the page's own scrolling parts go back to their top (the web view itself never scrolls)
+        wv.scrollView.delegate = context.coordinator
         #if DEBUG
         if #available(iOS 16.4, *) { wv.isInspectable = true }
         // simulator tests: SIMCTL_CHILD_BENTO_PILOT=<a .js file> drives the page (taps, scrolls) and asks for pictures
@@ -53,10 +55,16 @@ struct WebShell: UIViewRepresentable {
         if context.coordinator.loaded != url { context.coordinator.loaded = url; wv.load(URLRequest(url: url)) }
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler, UIScrollViewDelegate {
         var parent: WebShell
         var loaded: URL?
         init(_ p: WebShell) { parent = p }
+
+        /// The status bar was tapped. What's on screen scrolls inside the page, so the page takes it (touch.js: __bentoTop).
+        func scrollViewShouldScrollToTop(_ sv: UIScrollView) -> Bool {
+            (sv.superview as? WKWebView)?.evaluateJavaScript("window.__bentoTop && window.__bentoTop()")
+            return false
+        }
 
         /// Only Bento's own page (the Mac it came from) can ask: a haptic tick, the Macs sheet, connecting again.
         func userContentController(_ uc: WKUserContentController, didReceive m: WKScriptMessage) {

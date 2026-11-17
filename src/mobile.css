@@ -1002,3 +1002,105 @@ body.touch .app:not(.phone) { --serif: var(--sans); }
 body.touch .app:not(.phone) :is(.home-h, .sp-hello) { font-family: var(--sans); font-weight: 700; letter-spacing: -1.2px; }
 body.touch .app:not(.phone) :is(.home-h, .sp-hello) em { font-style: normal; }
 body.touch .app:not(.phone) .hello { font-style: normal; font-weight: 600; }
+
+/* ---------------------------------------------------------------- the feel of touching things (touch.js) */
+/* a card gives under the finger at once and springs back when you let go (--spring-press: a real spring curve) */
+body.touch .pressed.big { transform: scale(.97); transition: transform .12s cubic-bezier(.3, .7, .4, 1) !important; }
+body.touch .unpress.big { transition: opacity .3s ease-out, transform .5s var(--spring-press, ease-out) !important; }
+
+/* a switch's thumb glides to what you picked: a stand-in moves while the real one waits, with no fade at either end */
+.glide { position: absolute; left: 0; top: 0; z-index: -1; pointer-events: none; will-change: transform, width; }
+.gliding > .on:not(.predict, .twin) { background: transparent !important; box-shadow: none !important; }
+:is(.gliding, .glided) > * { transition: none !important; }
+
+/* press and hold a recent: the row lifts out of a blurred page and its menu opens under it */
+.hold-veil { position: fixed; inset: 0; z-index: 90; background: rgba(0, 0, 0, .14); -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4); animation: pfade .22s ease both; }
+.hold-lift { position: fixed !important; z-index: 91; margin: 0 !important; display: flex; align-items: center; border-radius: 14px !important; background: var(--gcell, var(--panel)) !important; box-shadow: 0 14px 40px -10px rgba(0, 0, 0, .35), 0 0 0 .5px var(--gsep, var(--line)); pointer-events: none; }
+.hold-lift::before { display: none !important; }
+.hold-lift .rl-x { display: none; }
+.hold-menu { position: fixed; z-index: 92; width: 250px; border-radius: 14px; overflow: hidden; background: color-mix(in srgb, var(--popover) 88%, transparent); -webkit-backdrop-filter: blur(30px) saturate(1.8); backdrop-filter: blur(30px) saturate(1.8); box-shadow: 0 0 0 .5px var(--gsep, var(--line)), 0 18px 50px -12px rgba(0, 0, 0, .4); animation: menuIn .3s cubic-bezier(.2, .9, .3, 1.15) both; }
+.hold-menu button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 46px; padding: 0 16px; font: 400 17px var(--sans); letter-spacing: -.3px; color: var(--ink); text-align: left; }
+.hold-menu button + button { box-shadow: inset 0 .5px 0 var(--gsep, var(--line)); }
+.hold-menu button:active { background: color-mix(in srgb, var(--ink) 9%, transparent); }
+.hold-menu button.danger { color: var(--rose-ink); }
+:is(.hold-veil, .hold-lift, .hold-menu).out { animation: pfadeOut .18s ease both; }
+@keyframes pfadeOut { to { opacity: 0; } }
+/* (so a finger has no little × on every row: holding the row is how you remove it; VoiceOver still finds the button) */
+body.touch .side .rl-x { position: absolute; width: 1px !important; height: 1px !important; padding: 0; overflow: hidden; clip-path: inset(50%); opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .hold-menu, .hold-veil { animation: none; } }
+
+/* ---------------------------------------------------------------- code you read with a finger (Editor.jsx touch mode) */
+/* the notes sit at the end of their line; a tap opens what they say right under it */
+.ed-wrap.touch .note-chip { display: inline-flex; align-items: center; gap: 5px; height: 22px; margin-left: 10px; padding: 0 9px 0 7px; border-radius: 99px; vertical-align: 1px; text-indent: 0; font: 600 11.5px var(--sans); white-space: nowrap; background: var(--accent-soft); color: var(--accent-ink); }
+.ed-wrap.touch .note-chip .note-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.ed-wrap.touch .note-chip.c1, .ed-wrap.touch .note-say.c1 { background: var(--violet-soft); color: var(--violet-ink); }
+.ed-wrap.touch .note-chip.c2, .ed-wrap.touch .note-say.c2 { background: var(--mint-soft); color: var(--mint-ink); }
+.ed-wrap.touch .note-chip.c3, .ed-wrap.touch .note-say.c3 { background: var(--butter-soft); color: var(--butter-ink); }
+.ed-wrap.touch .note-chip.open { box-shadow: 0 0 0 1.5px currentColor; }
+.ed-wrap.touch .note-say { margin: 4px 14px 8px 40px; padding: 10px 12px; border-radius: 12px; background: var(--accent-soft); color: var(--accent-ink); font: 400 14.5px/1.45 var(--sans); white-space: normal; animation: noteIn .32s cubic-bezier(.2, .9, .3, 1) both; }
+@keyframes noteIn { from { opacity: 0; transform: translateY(-6px); } }
+/* the word you tapped, or the number you're dragging */
+/* (a light tint, so every code colour keeps its contrast on it, and a ring around it that does the showing) */
+.ed-wrap.touch .cm-tapped { border-radius: 4px; background: color-mix(in srgb, var(--ink) 6%, transparent); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--ink) 28%, transparent); }
+/* numbers you can drag: a dotted line under each while you're reading */
+.ed-wrap.touch.reading .cm-num { text-decoration: underline dotted color-mix(in srgb, var(--syn-num) 70%, transparent); text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
+.ed-wrap.touch.reading .cm-content { -webkit-user-select: none; user-select: none; }
+.ed-wrap.touch.reading .cm-cursor { display: none; }
+.scrub-badge.touch { transform: translateX(-50%); padding: 7px 12px; border-radius: 12px; font: 600 17px var(--mono); box-shadow: 0 10px 30px -8px rgba(0, 0, 0, .4); }
+
+/* a tapped word's card, with an arrow at the word */
+.tok-card.tap { position: fixed; z-index: 60; padding: 13px 15px 14px; border-radius: 16px; background: color-mix(in srgb, var(--popover) 97%, transparent); -webkit-backdrop-filter: blur(24px) saturate(1.6); backdrop-filter: blur(24px) saturate(1.6); box-shadow: 0 0 0 .5px var(--gsep, var(--line)), 0 16px 44px -12px rgba(0, 0, 0, .38); transform-origin: var(--arrow) 0; animation: tapIn .26s cubic-bezier(.2, .9, .3, 1.12) both; user-select: text; }
+.tok-card.tap.up { transform-origin: var(--arrow) 100%; }
+.tok-card.tap::before { content: ''; position: absolute; top: -6px; left: calc(var(--arrow) - 7px); width: 14px; height: 14px; border-radius: 3px; background: inherit; transform: rotate(45deg); box-shadow: -.5px -.5px 0 0 var(--gsep, var(--line)); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.tok-card.tap.up::before { top: auto; bottom: -6px; box-shadow: .5px .5px 0 0 var(--gsep, var(--line)); }
+@keyframes tapIn { from { opacity: 0; transform: scale(.86); } }
+.tok-card.tap .tok-word { font-size: 16px; }
+.tok-card.tap .tok-kind { font: 600 10.5px var(--sans); letter-spacing: .3px; }
+.tok-card.tap .tok-what { font: 400 15px/1.45 var(--sans); color: var(--ink-2); }
+.tok-card.tap .tok-plain { font: 400 15px/1.45 var(--sans); font-style: normal; }
+.tok-card.tap .tok-jump { display: block; margin-top: 10px; font: 600 15px var(--sans); color: var(--accent-ink); }
+.tok-card.tap .tok-hint { display: flex; gap: 10px; align-items: flex-start; font: 400 15px/1.4 var(--sans); color: var(--ink-2); }
+.tok-card.tap .tok-hint span { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: color-mix(in srgb, var(--syn-num) 16%, transparent); color: var(--syn-num); font-weight: 700; }
+/* Edit / Done, as in any iPhone app that shows you something you could change */
+.app.phone .desk-head .act.edit { padding: 0 10px; font: 500 16px var(--sans); color: var(--accent-ink); background: none; box-shadow: none; }
+.app.phone .desk-head .act.edit.on { font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .tok-card.tap, .ed-wrap.touch .note-say { animation: none; } }
+/* the bar between the code and what it does: big enough for a thumb, and it settles where you leave it */
+.app.phone .desk .divider { height: 22px; touch-action: none; background: var(--panel); }
+.app.phone .desk .divider span { width: 40px; height: 5px; border-radius: 3px; background: var(--line-2); transition: width .2s, background .2s; }
+.app.phone .desk .divider.held span { width: 56px; background: var(--ink-3); }
+.app.phone .desk.settling :is(.desk-main, .desk-stage) { transition: height .42s var(--spring-press, ease-out); }
+/* the code's own bar on a phone: how to look at it, then Edit and Run (the file's name is the lesson's, and stepping
+   through is the Steps tab right under the code) */
+.app.phone .desk-head .file > :is(.lang-dot, .fname, .newfile) { display: none; }
+.app.phone .desk-head .file:not(:has(button)) { display: none; }
+.app.phone .desk-head :is(.act.step, .live) { display: none; }
+.app.phone .desk-head .actions { margin-left: auto; gap: 4px; }
+
+/* ---------------------------------------------------------------- a quick check you answer with a thumb */
+/* the answers are rows across the card; the right one turns green with a tick that draws itself, a wrong pick shakes */
+.app.phone .quiz { padding: 16px 14px 14px; border-radius: 18px; }
+.app.phone .quiz-q { margin: 0 2px 14px; font: 600 17px/1.4 var(--sans); letter-spacing: -.2px; }
+.app.phone .quiz-choices, .app.phone .qc-row { flex-direction: column; flex-wrap: nowrap; gap: 8px; }
+.app.phone :is(.choice, .qc-row button) { position: relative; width: 100%; min-height: 50px; padding: 12px 46px 12px 16px; border-radius: 14px; text-align: left; font: 500 16px/1.3 var(--sans); letter-spacing: -.2px; color: var(--ink); background: var(--gcell, var(--panel)); box-shadow: 0 0 0 .5px var(--gsep, var(--line)); }
+.app.phone :is(.choice, .qc-row button):is(.right, .wrong)::after { content: ''; position: absolute; right: 14px; top: 50%; width: 22px; height: 22px; margin-top: -11px; border-radius: 50%; background: currentColor no-repeat center / 14px; }
+.app.phone :is(.choice, .qc-row button).right { color: var(--on-ink); background: var(--mint-ink); box-shadow: none; animation: rightPop .5s var(--spring-press, ease-out) both; }
+.app.phone :is(.choice, .qc-row button).right::after { background: var(--on-ink); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"); }
+.app.phone :is(.choice, .qc-row button).right::before { content: ''; position: absolute; z-index: 1; right: 19px; top: 50%; width: 12px; height: 6px; margin-top: -5px; border-left: 2.5px solid var(--mint-ink); border-bottom: 2.5px solid var(--mint-ink); transform: rotate(-45deg); clip-path: inset(0 100% 0 0); animation: tickDraw .32s .12s ease-out forwards; }
+.app.phone :is(.choice, .qc-row button).wrong { color: var(--rose-ink); background: var(--rose-soft); box-shadow: none; animation: shake .38s; }
+.app.phone :is(.choice, .qc-row button).wrong::after { background: none; content: '✕'; display: grid; place-items: center; font: 700 15px var(--sans); }
+.app.phone :is(.choice, .qc-row button):disabled:not(.right, .wrong) { opacity: .45; }
+.app.phone :is(.quiz-why, .qc-why) { margin: 12px 2px 0; font: 400 15px/1.45 var(--sans); }
+.app.phone .quiz-why .link { display: inline-block; margin-left: 4px; font-weight: 600; }
+@keyframes rightPop { 0% { transform: scale(.96); } 100% { transform: scale(1); } }
+@keyframes tickDraw { to { clip-path: inset(0 0 0 0); } }
+@media (prefers-reduced-motion: reduce) { .app.phone :is(.choice, .qc-row button):is(.right, .wrong), .app.phone :is(.choice, .qc-row button).right::before { animation: none; clip-path: none; } }
+
+/* sheets come up from the bottom edge on a spring (--spring-sheet, touch.js), the way an iPhone's do, instead of fading in part-way */
+.app.phone :is(.drawer, .settings) { animation: psheetUp .52s var(--spring-sheet, cubic-bezier(.2, .9, .3, 1)) both; }
+.app.phone .drawer.psheet { animation-duration: .5s; }
+@keyframes psheetUp { from { transform: translateY(100%); } }
+.pal-veil:has(> .settings) { animation: pfade .3s ease both; }
+@media (prefers-reduced-motion: reduce) { .app.phone :is(.drawer, .settings) { animation: pfade .2s ease both; } }
+/* "Explain what I changed" (once you've changed the code): a round sparkle button, not a stray little star */
+.app.phone .desk-head .act.coach-act { width: 34px; min-width: 34px; height: 34px; padding: 0; border-radius: 50%; display: grid; place-items: center; background: var(--violet-soft); color: var(--violet-ink); font-size: 15px; box-shadow: none; }

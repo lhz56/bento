@@ -280,9 +280,12 @@ function Steps({ trace, stepIdx, setStepIdx, playing, setPlaying, english, onSte
 }
 
 function Growth({ lesson, growth, onMeasure, measuring, code, lang }) {
+  // the function to measure: one at the top level (not a class's own method, not a _helper), one that takes a single
+  // input if there is one (it gets make_input(n)), else the first
   const guess = useMemo(() => {
-    const m = lang === 'python' ? /def\s+(\w+)\s*\(/.exec(code || '') : /function\s+(\w+)\s*\(|const\s+(\w+)\s*=\s*(?:\([^)]*\)|\w+)\s*=>/.exec(code || '');
-    const fn = m ? (m[1] || m[2]) : 'f';
+    const rx = lang === 'python' ? /^def\s+(\w+)\s*\(([^)]*)\)/gm : /^(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(([^)]*)\)|^(?:export\s+)?const\s+(\w+)\s*=\s*(?:async\s*)?(?:\(([^)]*)\)|(\w+))\s*=>/gm;
+    const fns = [...(code || '').matchAll(rx)].map((m) => ({ name: m[1] || m[3], need: (m[2] ?? m[4] ?? m[5] ?? '').split(',').map((x) => x.trim()).filter((x) => x && !/[=*]/.test(x) && x !== 'self').length })).filter((f) => f.name && !f.name.startsWith('_'));
+    const fn = (fns.find((f) => f.need === 1) || fns[0])?.name || 'f';
     return lang === 'python' ? `${fn}(make_input(n))` : `${fn}(makeInput(n))`;
   }, [code, lang]);
   const g = lesson?.growth;

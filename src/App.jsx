@@ -378,6 +378,8 @@ export default function App() {
   const onTry = async (t) => {
     const L = current; if (!L) return;
     const d = desk.current;
+    // on a phone the code is on the other page: go there, so you see what the try does
+    if (phone) setPane('code');
     if (/step/i.test(t)) return d?.step();
     if (/run the tests|tests/i.test(t) && L.tests) return d?.tests();
     if (/measure|growth/i.test(t)) return document.querySelector('.stab:nth-child(3)')?.click();
@@ -850,7 +852,7 @@ export default function App() {
               puzzleEnd={current.puzzle ? <PuzzleEnd L={current} rec={progress.puzzles?.[current.puzzle]} setPuzzleCode={setPuzzleCode} onIdea={readIdea} onOpenAt={openRepoAt} onOpenUrl={(u) => api.openExternal(u)} onSeen={(pid) => setProgress((p) => ({ ...p, puzzles: { ...(p.puzzles || {}), [pid]: { ...(p.puzzles?.[pid] || {}), seen: true } } }))} /> : null}
               onRetry={() => { const a = current; setLessons((ls) => ls.filter((l) => l.id !== a.id)); askLesson(a.q, { mode: a.mode, lang: a.lang, context: a.context }); }} />
             <div className="vdivider" onMouseDown={dragStory} />
-            <Desk ref={desk} lesson={current} onPatch={(p) => patch(current.id, p)} quick={api.quick} model={settings.model}
+            <Desk ref={desk} phone={phone} lesson={current} onPatch={(p) => patch(current.id, p)} quick={api.quick} model={settings.model}
               knownWords={knownWordSet} onWord={(w) => setProgress((p) => { const k = w.term.toLowerCase(); if (p.words?.[k]) return p; return { ...p, words: { ...(p.words || {}), [k]: { ...w, from: current.id, title: current.title, at: Date.now() } } }; })}
               linkRange={linkRange} stepSel={current.steps?.length ? stepSel : null} pyReady={pyReady} streaming={streaming}
               onResult={(id, r, src) => setRuns((m) => ({ ...m, [id]: { r, src } }))}

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Icon from './Icons.jsx';
 import { GROUPS, groupOf, lastTab } from './Side.jsx';
 import { t } from '../i18n.js';
+import { spring } from './touch.js';
 
 /** true on a phone-sized screen (and in a phone held sideways) */
 export function useNarrow() {
@@ -65,7 +66,9 @@ export function enter(main, dir) {
   const fade = dir === 'tab' || matchMedia('(prefers-reduced-motion: reduce)').matches;
   // (a tab starts part-way in, so there's never a blank moment between two tabs)
   const frames = (d) => (fade ? [{ opacity: dir === 'tab' ? 0.35 : 0 }, { opacity: 1 }] : [{ transform: `translateX(${dir === 'push' ? d : -d}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }]);
-  const o = { duration: dir === 'tab' ? 160 : 300, easing: EASE };
+  // (a page you open or go back to settles like an iPhone's: a spring with no bounce)
+  const sp = spring(0.46, 1);
+  const o = dir === 'tab' || fade ? { duration: 160, easing: EASE } : { duration: sp.ms, easing: sp.easing };
   [...main.children].filter((c) => !c.matches('.titlebar-drag, .gtabs, .side-open')).forEach((c) => c.animate(frames(36), o));
   if (bar) bar.animate(frames(24), { ...o, duration: 240 });
 }

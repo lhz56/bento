@@ -10,6 +10,8 @@ import { javascript } from '@codemirror/lang-javascript';
 import { sql, SQLite } from '@codemirror/lang-sql';
 import { css } from '@codemirror/lang-css';
 import { tags as t } from '@lezer/highlight';
+import { haptic } from './touch.js';
+import { t as tr } from '../i18n.js';
 
 // ---------------------------------------------------------------- theme
 const hl = HighlightStyle.define([
@@ -154,17 +156,173 @@ function tokenTooltip(getExplain) {
 }
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 
+// ---------------------------------------------------------------- code you read with a finger (a phone)
+// A long line wraps under its own start, a little further in, so wrapped code still reads as code (no sideways scrolling).
+const hangIndent = ViewPlugin.fromClass(class {
+  constructor(v) { this.decorations = this.build(v); }
+  update(u) { if (u.docChanged || u.viewportChanged) this.decorations = this.build(u.view); }
+  build(v) {
+    const b = new RangeSetBuilder();
+    for (const { from, to } of v.visibleRanges) {
+      for (let pos = from; pos <= to;) {
+        const line = v.state.doc.lineAt(pos); const n = /^\s*/.exec(line.text)[0].replace(/\t/g, '    ').length + 2;
+        b.add(line.from, line.from, Decoration.line({ attributes: { style: `padding-left: calc(${n}ch + 6px); text-indent: -${n}ch` } }));
+        pos = line.to + 1;
+      }
+    }
+    return b.finish();
+  }
+}, { decorations: (p) => p.decorations });
+
+// The notes ("base case", "the one rule") sit at the end of their line instead of floating over the code; a tap opens
+// what they say right under the line.
+const setNoteState = StateEffect.define();
+const noteField = StateField.define({ create: () => ({ list: [], open: null, toggle: null }), update(v, tr) { for (const e of tr.effects) if (e.is(setNoteState)) v = e.value; return v; } });
+class NoteChip extends WidgetType {
+  constructor(n, i, open, toggle) { super(); Object.assign(this, { n, i, open, toggle }); }
+  eq(o) { return o.i === this.i && o.open === this.open && o.n.label === this.n.label; }
+  toDOM() {
+    const b = document.createElement('button'); b.className = `note-chip c${this.i % 4} ${this.open ? 'open' : ''}`; b.setAttribute('aria-expanded', String(this.open));
+    b.append(Object.assign(document.createElement('span'), { className: 'note-dot' }), this.n.label);
+    b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); this.toggle?.(this.i); };
+    return b;
+  }
+  ignoreEvent() { return true; }
+}
+class NoteText extends WidgetType {
+  constructor(n, i) { super(); Object.assign(this, { n, i }); }
+  eq(o) { return o.i === this.i && o.n.text === this.n.text; }
+  toDOM() { const d = document.createElement('div'); d.className = `note-say c${this.i % 4}`; d.textContent = this.n.text; return d; }
+}
+const noteDeco = EditorView.decorations.compute([noteField, 'doc'], (state) => {
+  const { list, open, toggle } = state.field(noteField); const doc = state.doc; const out = [];
+  list.forEach((n, i) => {
+    if (!(n.from >= 1 && n.from <= doc.lines)) return;
+    const end = doc.line(n.from).to;
+    out.push(Decoration.widget({ widget: new NoteChip(n, i, open === i, toggle), side: 1 }).range(end));
+    if (open === i && n.text) out.push(Decoration.widget({ widget: new NoteText(n, i), block: true, side: 2 }).range(end));
+  });
+  return Decoration.set(out, true);
+});
+// the word you tapped stays lit while its card is open
+const setTapped = StateEffect.define();
+const tappedField = StateField.define({ create: () => null, update(v, tr) { for (const e of tr.effects) if (e.is(setTapped)) v = e.value; return tr.docChanged ? null : v; } });
+const tappedDeco = EditorView.decorations.compute([tappedField], (state) => { const r = state.field(tappedField); return r ? Decoration.set([Decoration.mark({ class: 'cm-tapped' }).range(r.from, r.to)]) : Decoration.none; });
+const touchExt = [EditorView.lineWrapping, hangIndent, noteField, noteDeco, tappedField, tappedDeco];
+
 const langExt = (lang) => (lang === 'python' ? python() : lang === 'html' ? html() : lang === 'css' ? css() : lang === 'sql' ? sql({ dialect: SQLite, upperCaseKeywords: true }) : javascript({ jsx: true, typescript: lang === 'typescript' }));
 
+// A finger on the code you're reading: a tap opens the card for that word; a sideways drag on a number changes it, a
+// tick at every step, and the code runs again as it goes (Alt-drag does the same with a Mac's mouse).
+function fingers(v, cb, setCard) {
+  const on = () => cb.current.touch && cb.current.reading;
+  let sc = null, badge = null, lastTick = 0;
+  const numAt = (pos) => { const tr = syntaxTree(v.state); let n = tr.resolveInner(pos, 1); if (n.name !== 'Number') n = tr.resolveInner(pos, -1); return n.name === 'Number' ? n : null; };
+  const lit = (r) => v.dispatch({ effects: setTapped.of(r) });
+  const start = (e) => {
+    sc = null; if (!on() || e.touches.length !== 1) return;
+    const t = e.touches[0]; const pos = v.posAtCoords({ x: t.clientX, y: t.clientY }); const n = pos == null ? null : numAt(pos); if (!n) return;
+    const text = v.state.sliceDoc(n.from, n.to); const v0 = parseFloat(text); if (Number.isNaN(v0)) return;
+    const dec = (text.split('.')[1] || '').length;
+    sc = { x0: t.clientX, y0: t.clientY, from: n.from, len: n.to - n.from, v0, dec, step: dec ? 10 ** -dec : 1, lock: false, cur: text };
+  };
+  const move = (e) => {
+    if (!sc) return; const t = e.touches[0]; const dx = t.clientX - sc.x0, dy = t.clientY - sc.y0;
+    if (!sc.lock) {
+      if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) { sc = null; return; }
+      if (Math.abs(dx) < 6) return;
+      sc.lock = true; setCard(null); lit({ from: sc.from, to: sc.from + sc.len }); haptic('light');
+      badge = document.createElement('div'); badge.className = 'scrub-badge touch'; document.body.appendChild(badge);
+    }
+    if (e.cancelable) e.preventDefault();
+    let val = sc.v0 + Math.round(dx / (sc.dec ? 6 : 9)) * sc.step;
+    if (sc.v0 >= 0 && !sc.dec && val < 0) val = 0;
+    const s = sc.dec ? val.toFixed(sc.dec) : String(Math.round(val));
+    badge.textContent = s; badge.style.left = `${t.clientX}px`; badge.style.top = `${t.clientY - 70}px`;
+    if (s === sc.cur) return;
+    v.dispatch({ changes: { from: sc.from, to: sc.from + sc.len, insert: s }, effects: setTapped.of({ from: sc.from, to: sc.from + s.length }), userEvent: 'input.scrub' });
+    sc.len = s.length; sc.cur = s;
+    const now = performance.now(); if (now - lastTick > 28) { lastTick = now; haptic('select'); }
+    cb.current.onScrub?.();
+  };
+  const end = () => { if (sc?.lock) { badge?.remove(); badge = null; setTimeout(() => lit(null), 600); } sc = null; };
+  const tap = (e) => {
+    if (!on() || e.target.closest?.('.note-chip, .note-say')) return;
+    const close = () => { setCard(null); lit(null); };
+    const pos = v.posAtCoords({ x: e.clientX, y: e.clientY }); if (pos == null) return close();
+    const box = (a, b) => { const p = v.coordsAtPos(a), q = v.coordsAtPos(b); return p && { left: p.left, right: q?.right ?? p.right, top: p.top, bottom: p.bottom }; };
+    const num = numAt(pos);
+    if (num) { lit({ from: num.from, to: num.to }); setCard({ id: Math.random(), hint: 'number', at: box(num.from, num.to) }); return; }
+    if (/String|Comment/.test(syntaxTree(v.state).resolveInner(pos, 1).name)) return close();
+    const w = v.state.wordAt(pos); if (!w) return close();
+    const word = v.state.sliceDoc(w.from, w.to); if (!/^[A-Za-z_$][\w$]*$/.test(word) || word.length > 40) return close();
+    const line = v.state.doc.lineAt(pos); const at = box(w.from, w.to); if (!at) return close();
+    lit({ from: w.from, to: w.to });
+    const r = cb.current.explain?.(word, line.text, { isMember: v.state.sliceDoc(w.from - 1, w.from) === '.', lineNo: line.number, doc: v.state.doc.toString() });
+    const id = Math.random();
+    if (r && typeof r.then === 'function') {
+      setCard({ id, word, at, loading: true });
+      const put = (info) => setCard((c) => (c?.id === id ? { ...c, info, loading: false } : c));
+      r.then(put, () => put(null));
+    } else setCard({ id, word, at, info: r });
+  };
+  const gone = () => { setCard(null); };
+  const c = v.contentDOM;
+  c.addEventListener('click', tap); c.addEventListener('touchstart', start, { passive: true }); c.addEventListener('touchmove', move, { passive: false });
+  c.addEventListener('touchend', end); c.addEventListener('touchcancel', end); v.scrollDOM.addEventListener('scroll', gone, { passive: true });
+  return () => {
+    badge?.remove();
+    c.removeEventListener('click', tap); c.removeEventListener('touchstart', start); c.removeEventListener('touchmove', move);
+    c.removeEventListener('touchend', end); c.removeEventListener('touchcancel', end); v.scrollDOM.removeEventListener('scroll', gone);
+  };
+}
+
+// the card for a tapped word: under it (or over it, near the bottom), its little arrow pointing at the word
+function TapCard({ card, onClose, onJump }) {
+  const ref = useRef(null);
+  const [at, setAt] = useState(null);
+  useLayoutEffect(() => {
+    const el = ref.current; if (!el || !card.at) return;
+    const w = Math.min(card.hint ? 260 : 330, innerWidth - 24); el.style.width = `${w}px`; const h = el.offsetHeight;
+    const left = Math.min(Math.max(12, card.at.left - 28), innerWidth - w - 12);
+    const below = card.at.bottom + 12 + h < innerHeight - 80;
+    setAt({ left, width: w, top: below ? card.at.bottom + 10 : Math.max(56, card.at.top - 10 - h), below, arrow: Math.min(Math.max(18, (card.at.left + card.at.right) / 2 - left), w - 18) });
+  }, [card]);
+  useEffect(() => {
+    const away = (e) => { if (!ref.current?.contains(e.target) && !e.target.closest?.('.cm-content')) onClose(); };
+    document.addEventListener('touchstart', away, true); return () => document.removeEventListener('touchstart', away, true);
+  }, [onClose]);
+  if (!card.loading && !card.hint && !card.info) return null;
+  const i = card.info || {};
+  return (
+    <div ref={ref} className={`tok-card tap ${at && !at.below ? 'up' : ''}`} role="dialog" aria-label={card.word || tr('Numbers')}
+      style={at ? { left: at.left, top: at.top, width: at.width, '--arrow': `${at.arrow}px` } : { left: 0, top: 0, visibility: 'hidden' }}>
+      {card.hint ? <div className="tok-hint"><span aria-hidden="true">↔</span>{tr('Drag a number sideways to change it. The code runs again as you go.')}</div>
+        : card.loading ? <><div className="tok-head"><span className="tok-word">{card.word}</span><span className="tok-kind">{tr('asking…')}</span></div><div className="shimmer" /><div className="shimmer short" /></>
+        : <>
+          <div className="tok-head"><span className="tok-word">{i.title || card.word}</span><span className="tok-kind">{i.t || ''}</span></div>
+          {i.w && <div className="tok-what">{i.w}</div>}
+          {i.p && <div className="tok-plain"><span className="tok-plain-k">{tr('here')}</span><span>{i.p}</span></div>}
+          {i.ex && <pre className="tok-ex">{i.ex}</pre>}
+          {i.line && <button className="tok-jump" onClick={() => onJump(i.line)}>{tr('Go to line')} {i.line}</button>}
+        </>}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------- component
+const NONE = [];
 const Editor = forwardRef(function Editor(props, ref) {
-  const { value, lang, readOnly, onChange, marks, lens = 'code', english, notes = [], onLineHover, hoverLine, onEnglishHover } = props;
+  // touch: a finger (wrapped lines, notes at line ends, tap a word for its card, drag a number to change it).
+  // reading: nothing to type into, so a tap never brings up the keyboard (the phone's Edit button turns it off)
+  const { value, lang, readOnly, onChange, marks, lens = 'code', english, notes = NONE, onLineHover, hoverLine, onEnglishHover, touch = false, reading = false } = props;
   const host = useRef(null), wrap = useRef(null);
   const view = useRef(null);
   const cb = useRef(props); cb.current = props;
-  const langC = useRef(new Compartment()), roC = useRef(new Compartment());
+  const langC = useRef(new Compartment()), roC = useRef(new Compartment()), touchC = useRef(new Compartment()), editC = useRef(new Compartment());
   const [geo, setGeo] = useState({ tops: [], lh: 22, off: 0 });
   const [openNote, setOpenNote] = useState(null);
+  const [card, setCard] = useState(null); // the card for a tapped word: { word, at: DOMRect-ish, info, loading }
 
   useImperativeHandle(ref, () => ({
     view: () => view.current,
@@ -184,7 +342,8 @@ const Editor = forwardRef(function Editor(props, ref) {
           indentUnit.of(lang === 'python' ? '    ' : '  '), EditorState.tabSize.of(4),
           syntaxHighlighting(hl), theme, marksField, marksDeco, numberPlugin,
           EditorView.contentAttributes.of({ 'aria-label': props.label || (readOnly ? `${lang} code (read only)` : `${lang} code editor. Press Escape, then Tab, to leave it.`) }),
-          scrubHandler(() => cb.current.onScrub), tokenTooltip(() => cb.current.explain),
+          scrubHandler(() => cb.current.onScrub),
+          touchC.current.of(touch ? touchExt : tokenTooltip(() => cb.current.explain)), editC.current.of(EditorView.editable.of(!reading)),
           langC.current.of(langExt(lang)), roC.current.of(EditorState.readOnly.of(!!readOnly)),
           keymap.of([
             { key: 'Mod-Enter', run: () => { cb.current.onRun?.(); return true; } },
@@ -205,7 +364,8 @@ const Editor = forwardRef(function Editor(props, ref) {
     v.contentDOM.addEventListener('mousemove', onMove); v.contentDOM.addEventListener('mouseleave', onLeave);
     const ro = new ResizeObserver(measureSoon); ro.observe(host.current);
     measureSoon();
-    return () => { ro.disconnect(); v.destroy(); };
+    const offTouch = fingers(v, cb, setCard);
+    return () => { offTouch(); ro.disconnect(); v.destroy(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -226,15 +386,30 @@ const Editor = forwardRef(function Editor(props, ref) {
   useEffect(() => { view.current?.dispatch({ effects: langC.current.reconfigure(langExt(lang)) }); }, [lang]);
   useEffect(() => { view.current?.dispatch({ effects: roC.current.reconfigure(EditorState.readOnly.of(!!readOnly)) }); }, [readOnly]);
   useEffect(() => { view.current?.dispatch({ effects: setMarks.of(marks || {}) }); }, [marks]);
+  useEffect(() => { view.current?.dispatch({ effects: touchC.current.reconfigure(touch ? touchExt : tokenTooltip(() => cb.current.explain)) }); }, [touch]);
+  useEffect(() => {
+    const v = view.current; if (!v) return;
+    v.dispatch({ effects: editC.current.reconfigure(EditorView.editable.of(!reading)) });
+    if (reading) { setCard(null); v.contentDOM.blur(); } else if (touch) { setCard(null); v.focus(); }
+  }, [reading]);
+  // (a finger's notes live inside the code: open one, and its lines light up the way a hover does on a Mac)
+  useEffect(() => {
+    if (!touch) return;
+    const toggle = (i) => setOpenNote((o) => (o === i ? null : i));
+    view.current?.dispatch({ effects: setNoteState.of({ list: lens === 'english' ? [] : notes, open: openNote, toggle }) });
+  }, [touch, notes, openNote, lens]);
+  useEffect(() => { if (!touch) return; const n = openNote != null ? notes[openNote] : null; cb.current.onNoteHover?.(n ? [n.from, n.to || n.from] : null); }, [touch, openNote]);
+  useEffect(() => { setOpenNote(null); setCard(null); }, [notes]);
   useLayoutEffect(() => { requestAnimationFrame(measure); }, [lens]);
 
   const lineY = (i) => geo.off + (geo.tops[i - 1] ?? (i - 1) * geo.lh);
   const showEnglish = lens === 'both';
 
   return (
-    <div className={`ed-wrap lens-${lens}`} ref={wrap}>
+    <div className={`ed-wrap lens-${lens} ${touch ? 'touch' : ''} ${reading ? 'reading' : ''}`} ref={wrap}>
       <div className="ed-code" ref={host} />
-      {lens !== 'english' && notes.length > 0 && (
+      {card && <TapCard card={card} onClose={() => { setCard(null); view.current?.dispatch({ effects: setTapped.of(null) }); }} onJump={(n) => { const v = view.current; if (!v) return; setCard(null); v.dispatch({ effects: [setTapped.of(null), EditorView.scrollIntoView(v.state.doc.line(n).from, { y: 'center' })], selection: { anchor: v.state.doc.line(n).from } }); }} />}
+      {!touch && lens !== 'english' && notes.length > 0 && (
         <div className="ed-notes" style={{ right: showEnglish ? 'calc(42% + 10px)' : 10 }}>
           {notes.map((n, i) => (
             <div key={i} className={`note-pin ${openNote === i ? 'open' : ''} c${i % 4}`} style={{ top: lineY(n.from) + 2 }}

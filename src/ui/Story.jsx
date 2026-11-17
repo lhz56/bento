@@ -1,4 +1,5 @@
 import { IDEAS } from '../ideas.js';
+import { haptic } from './touch.js';
 import PathBar from './PathBar.jsx';
 import { t, tx } from '../i18n.js';
 import { lessonHtml } from '../exportHtml.js';
@@ -39,7 +40,7 @@ function Quiz({ b, onAnswer }) {
       <div className="quiz-choices">
         {(b.choices || []).map((c, i) => (
           <button key={i} disabled={pick != null} className={`choice ${pick != null && i === b.answer ? 'right' : ''} ${pick === i && !ok ? 'wrong' : ''}`}
-            onClick={() => { setPick(i); onAnswer?.(i === b.answer); }}>{c}</button>
+            onClick={() => { setPick(i); haptic(i === b.answer ? 'success' : 'warn'); onAnswer?.(i === b.answer); }}>{c}</button>
         ))}
       </div>
       {pick != null && <div className={`quiz-why ${ok ? 'ok' : ''}`}><b>{ok ? 'Yes!' : 'Not quite.'}</b> {b.why}{!ok && <button className="link" onClick={() => setPick(null)}>try again</button>}</div>}
@@ -55,7 +56,7 @@ function QuickCheck({ c, onDone }) {
     <div className={`qcheck ${pick == null ? '' : ok ? 'ok' : 'no'}`}>
       <div className="qc-h"><span>{t('Check yourself')}</span>{pick == null && <i>{t('optional')}</i>}</div>
       <div className="qc-q">{c.q}</div>
-      <div className="qc-row">{c.choices.map((x, k) => <button key={k} disabled={pick != null} className={pick == null ? '' : k === c.answer ? 'right' : k === pick ? 'wrong' : ''} onClick={() => { setPick(k); onDone?.(k === c.answer); }}>{x}</button>)}</div>
+      <div className="qc-row">{c.choices.map((x, k) => <button key={k} disabled={pick != null} className={pick == null ? '' : k === c.answer ? 'right' : k === pick ? 'wrong' : ''} onClick={() => { setPick(k); haptic(k === c.answer ? 'success' : 'warn'); onDone?.(k === c.answer); }}>{x}</button>)}</div>
       {pick != null && <div className="qc-why">{ok ? '✓ ' : ''}{c.why}</div>}
     </div>
   );

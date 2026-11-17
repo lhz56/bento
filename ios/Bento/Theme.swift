@@ -50,13 +50,19 @@ extension View {
     func column(_ width: CGFloat = 540) -> some View { frame(maxWidth: width).frame(maxWidth: .infinity) }
 }
 
+/// The iPhone's taps under the finger. One generator of each kind, kept ready, so a quick run of them (dragging a
+/// number in a lesson's code ticks at every step) lands on time instead of a beat late.
+@MainActor
 enum Haptics {
+    private static let selection = UISelectionFeedbackGenerator()
+    private static let light = UIImpactFeedbackGenerator(style: .light)
+    private static let note = UINotificationFeedbackGenerator()
     static func play(_ kind: String) {
         switch kind {
-        case "success": UINotificationFeedbackGenerator().notificationOccurred(.success)
-        case "warn": UINotificationFeedbackGenerator().notificationOccurred(.warning)
-        case "tap": UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        default: UISelectionFeedbackGenerator().selectionChanged()
+        case "success": note.notificationOccurred(.success); note.prepare()
+        case "warn": note.notificationOccurred(.warning); note.prepare()
+        case "tap": light.impactOccurred(); light.prepare()
+        default: selection.selectionChanged(); selection.prepare()
         }
     }
 }

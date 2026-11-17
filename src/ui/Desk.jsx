@@ -1,6 +1,7 @@
 import { spotConstructs } from '../constructs.js';
 import { t, tx } from '../i18n.js';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { haptic } from './touch.js';
 import { Md } from './Story.jsx';
 import Editor from './Editor.jsx';
 import Stage from './Stage.jsx';
@@ -23,11 +24,15 @@ function addedLines(prev, cur) {
 }
 
 const Desk = forwardRef(function Desk(props, ref) {
-  const { lesson: L, onPatch, quick, model, linkRange, stepSel, onMastery, pyReady, streaming, onRemix, knownWords, onWord } = props;
+  const { lesson: L, onPatch, quick, model, linkRange, stepSel, onMastery, pyReady, streaming, onRemix, knownWords, onWord, phone } = props;
   const lang = L.lang;
+  // a phone shows code to read (a tap explains a word, a drag changes a number); Edit brings up the keyboard
+  const [editing, setEditing] = useState(false);
+  useEffect(() => { setEditing(false); }, [L.id]);
   const ed = useRef(null);
   const [code, setCode] = useState(L.work ?? L.code);
   const [lens, setLens] = useState('code');
+  useEffect(() => { if (phone && lens === 'both') setLens('english'); }, [phone, lens]);
   const [result, setResult] = useState(null);
   const [running, setRunning] = useState(false);
   const [trace, setTrace] = useState(null);
@@ -163,6 +168,7 @@ const Desk = forwardRef(function Desk(props, ref) {
     setResult(r); props.onResult?.(mine, r, src);
     if (!opts.quiet) { const S = streak.current; if (r.error) { S.n = S.err === r.error.msg ? S.n + 1 : 1; S.err = r.error.msg; if (S.n >= 3) setStuck({ why: 'error', err: r.error }); } else { S.n = 0; S.err = null; setStuck(null); } }
     if (!opts.quiet) { if (r.error) setTab((t) => (t === 'steps' || t === 'growth' || t === 'tests' ? t : 'output')); }
+    if (!opts.quiet && r.error) haptic('warn'); // (a run you asked for that stopped on an error: you feel it before you read it)
     // then the one that waited, as asked: an answer typed meanwhile keeps the answers so far (it used to start over and ask again)
     if (queued.current) { const next = queued.current; queued.current = null; doRun(codeRef.current, { quiet: true, keepAnswers: !!next.keepAnswers }); }
     onMastery?.('run');
@@ -196,8 +202,9 @@ const Desk = forwardRef(function Desk(props, ref) {
     setTab('tests'); setTesting(true);
     const r = await runCode(lang, 'tests', codeRef.current, { fn: L.tests.fn, cases: L.tests.cases });
     setTesting(false);
-    if (r.error) { setResult(r); setTests(L.tests.cases.map(() => ({ ok: false, got: r.error.msg }))); return; }
+    if (r.error) { haptic('warn'); setResult(r); setTests(L.tests.cases.map(() => ({ ok: false, got: r.error.msg }))); return; }
     setTests(r.tests);
+    haptic(r.tests?.every((x) => x.ok) ? 'success' : 'warn');
     if (r.tests?.every((x) => x.ok)) { onMastery?.('challenge'); streak.current.tests = 0; setStuck(null); }
     else if (++streak.current.tests >= 3) setStuck({ why: 'tests', failing: r.tests.map((x, i) => (x.ok ? null : { i, got: x.got })).filter(Boolean) });
   }, [L.tests, lang, onMastery]);
@@ -310,6 +317,19 @@ const Desk = forwardRef(function Desk(props, ref) {
     const up = () => { removeEventListener('mousemove', mv); removeEventListener('mouseup', up); };
     addEventListener('mousemove', mv); addEventListener('mouseup', up);
   };
+  // (with a finger: the bar follows it, and settles with a tick at the three sizes a phone wants: more code, even, more output)
+  const touchDiv = (e) => {
+    if (e.touches.length !== 1) return;
+    const el = e.currentTarget; const r = deskRef.current.getBoundingClientRect(); let y = e.touches[0].clientY;
+    el.classList.add('held'); haptic('light');
+    const mv = (ev) => { ev.preventDefault(); y = ev.touches[0].clientY; setSplit(Math.min(0.82, Math.max(0.22, (y - r.top) / r.height))); };
+    const up = () => {
+      el.classList.remove('held'); el.removeEventListener('touchmove', mv); el.removeEventListener('touchend', up); el.removeEventListener('touchcancel', up);
+      const f = (y - r.top) / r.height; const snap = [0.3, 0.56, 0.78].reduce((a, c) => (Math.abs(c - f) < Math.abs(a - f) ? c : a));
+      deskRef.current.classList.add('settling'); setSplit(snap); haptic('select'); setTimeout(() => deskRef.current?.classList.remove('settling'), 420);
+    };
+    el.addEventListener('touchmove', mv, { passive: false }); el.addEventListener('touchend', up); el.addEventListener('touchcancel', up);
+  };
 
   // A freshly written example that crashes gets one quiet repair (never for challenges, where the bug is the point).
   const repairTried = useRef(new Set());
@@ -383,16 +403,18 @@ const Desk = forwardRef(function Desk(props, ref) {
           {modified && <button className="reset" title="Back to the original" onClick={() => { const orig = stepSel != null ? L.steps[stepSel].code : L.code; edited.current = false; setCode(orig); onPatch({ work: null }); doRun(orig, { quiet: true }); }}>↺</button>}
         </div>
         <div className="lenses">
-          {LENSES.map(([k, label, short]) => <button key={k} className={`lens ${lens === k ? 'on' : ''}`} title={t(label)} onClick={() => setLens(k)}><span className="ll">{t(label)}</span><span className="ls">{t(short)}</span>{k !== 'code' && pendingEnglish && !streaming && lens === k ? <span className="lens-spin" /> : null}</button>)}
+          {/* (a phone has no room for code and words side by side: Plain already puts each line's words over its code) */}
+          {LENSES.filter(([k]) => !(phone && k === 'both')).map(([k, label, short]) => <button key={k} className={`lens ${lens === k ? 'on' : ''}`} title={t(label)} onClick={() => setLens(k)}><span className="ll">{t(label)}</span><span className="ls">{t(short)}</span>{k !== 'code' && pendingEnglish && !streaming && lens === k ? <span className="lens-spin" /> : null}</button>)}
           {runnable && L.mode !== 'code' && lang !== 'html' && <button className={`lens twin ${lens === 'twin' ? 'on' : ''}`} onClick={lens === 'twin' ? () => setLens('code') : makeTwin} title={`See this in ${LNAME[other(lang)]}`}>⇄ {other(lang) === 'python' ? 'Py' : 'JS'}</button>}
         </div>
         <div className="actions">
-          {(modified || L.scratch) && !fromRepo && <button className="act coach-act" title="Explain what I changed (plain English)" onClick={explainChange}>✦ <span className="lbl">{t(L.scratch ? 'Explain' : 'Explain change')}</span></button>}
+          {(modified || L.scratch) && !fromRepo && <button className="act coach-act" title="Explain what I changed (plain English)" aria-label={t(L.scratch ? 'Explain' : 'Explain change')} onClick={explainChange}>✦ <span className="lbl">{t(L.scratch ? 'Explain' : 'Explain change')}</span></button>}
           {runnable && <button className={`live ${live ? 'on' : ''}`} onClick={() => setLive(!live)} title="Re-run as you type">live</button>}
-          {runnable && lang !== 'html' && <button className="act" onClick={doTrace} title={`Step through: run one line at a time and watch every value change (${keys('⌘⇧↵')})`}><span className="act-i">⏵⏵</span><span className="lbl">{t('Step')}</span></button>}
+          {runnable && lang !== 'html' && <button className="act step" onClick={doTrace} title={`Step through: run one line at a time and watch every value change (${keys('⌘⇧↵')})`}><span className="act-i">⏵⏵</span><span className="lbl">{t('Step')}</span></button>}
           {lang === 'html' && window.bento?.saveWeb && <button className="act" title="Save as a real .html file on your Desktop" onClick={async () => { const f = await window.bento.saveWeb(projectBundle(codeRef.current).main, L.title); setSavedTo(f?.split('/').pop()); setTimeout(() => setSavedTo(null), 3000); }}>{savedTo ? `✓ ${savedTo}` : '⤓ ' + t('Save my page')}</button>}
           {lang === 'html' && window.bento?.publishWeb && <button className="act" title="Put this page on the web with your own GitHub account" onClick={() => setPublish({ ask: true })}>🌐 <span className="lbl">{t('Publish')}</span></button>}
-          {runnable && <button className="act run" onClick={() => { setTab((t) => (t === 'steps' ? 'output' : t)); doRun(); }} title={`Run (${keys('⌘↵')})`}><span className="act-i">▶</span>{t('Run')}</button>}
+          {phone && !streaming && <button className={`act edit ${editing ? 'on' : ''}`} aria-pressed={editing} onClick={() => setEditing(!editing)}>{editing ? t('Done') : t('Edit')}</button>}
+          {runnable && <button className="act run" onClick={() => { haptic('light'); setTab((t) => (t === 'steps' ? 'output' : t)); doRun(); }} title={`Run (${keys('⌘↵')})`}><span className="act-i">▶</span>{t('Run')}</button>}
         </div>
       </div>
 
@@ -456,7 +478,7 @@ const Desk = forwardRef(function Desk(props, ref) {
               notes={lens === 'twin' ? [] : L.notes} onNoteHover={setNoteRange}
               hoverLine={hoverLine} onLineHover={(n) => { setHoverLine(n); if (lens === 'twin') setTwinHover(n ? { main: [n, n], twin: mapTo(n, true) } : null); }}
               onEnglishHover={(n) => setNoteRange(n ? [n, n] : null)} onEnglishClick={(n) => ed.current?.setCursorLine(n)}
-              onRun={() => doRun()} onStep={doTrace} onScrub={() => {}} explain={explain} />
+              onRun={() => doRun()} onStep={doTrace} onScrub={() => {}} explain={explain} touch={!!phone} reading={!!phone && !editing} />
           </div>
           {lens === 'twin' && (
             <div className="ed-twin">
@@ -470,7 +492,7 @@ const Desk = forwardRef(function Desk(props, ref) {
           )}
         </div>
       </div>
-      {runnable && <div className="divider" onMouseDown={dragDiv}><span /></div>}
+      {runnable && <div className="divider" onMouseDown={dragDiv} onTouchStart={touchDiv}><span /></div>}
       {runnable && (
         <div className="desk-stage" style={{ height: `${(1 - split) * 100}%` }}>
           <Stage tab={tab} setTab={setTab} lesson={L} lang={lang} code={code} english={english}

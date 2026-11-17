@@ -85,7 +85,16 @@ updates, the bookmarklet. Those are hidden on the phone.
 - **The app and the page.** Bento Code shows Bento's page from your Mac, and the page can ask the app for three things
   (`native()` in `src/ui/touch.js`, `WKScriptMessageHandler` "bento" in `ios/Bento/WebShell.swift`, answered only for
   the Mac's own page): a haptic tick, the Your Macs sheet, and connecting again. If the Mac has forgotten the device,
-  the page never shows its own pairing form in the app; the app asks that Mac again with Allow.
+  the page never shows its own pairing form in the app; the app asks that Mac again with Allow. The app also passes
+  on a tap on the status bar (`window.__bentoTop`), since the page scrolls inside its own panes.
+- **Touch, not hover.** Every `:hover` rule is wrapped in `@media (hover: hover)` at build time (a PostCSS step in
+  `vite.config.js`), so a tapped button never keeps its hover look on an iPhone or iPad; the Mac is unchanged.
+  Motion uses real springs (`spring()` in `touch.js`, written out as CSS `linear()` easings): a segmented switch's
+  thumb glides, sheets rise from the bottom edge, pressed cards spring back. Press and hold a Recent row for its menu.
+- **Code you read with a finger** (`Editor.jsx`, `touch` and `reading`): on a phone the editor isn't editable until
+  you tap Edit, so a tap never raises the keyboard. Lines wrap with a hanging indent, notes sit at their line's end
+  and open under it, a tap on a word opens its card, and a sideways drag on a number changes it (re-running the code,
+  a haptic tick per step), like Alt-drag on a Mac.
 - Built for a thumb: anything you tap is at least about 36 points tall, rows across the screen light up under your
   finger as in any iPhone list, and rows of choices (kinds of project, Atlas filters, paths) scroll sideways
   instead of piling up. `src/mobile.css` holds all of it; the Mac's layout doesn't change.
