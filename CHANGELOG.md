@@ -3,9 +3,9 @@
 Each version's section becomes its GitHub release notes, which is what "What's new" in the sidebar opens.
 Write for learners, not for developers.
 
-## Unreleased
+## 0.3.0
 
-Bento on your iPhone and iPad.
+Bento on your iPhone and iPad, and steadier on your Mac.
 
 - Turn on **Settings → Your phone and iPad**, open the **Bento Code** app, and your Mac pops up on it the way people do in AirDrop. Tap it and click **Allow** on the Mac (both screens show the same number, and the phone shows you the box to look for), and you're in. Or scan the QR code with your phone, and Bento opens there. Your Mac still does the work with your own AI, and nothing is hosted: your phone talks straight to your Mac, over Tailscale from anywhere, or your Wi-Fi at home.
 - Made for a phone: tabs at the bottom, Back at the top, your recent things a swipe away. Lessons are two pages, the story and the code (which runs right on the phone). A project's Atlas fits your thumb: tap a building in the code city to see what it is, tap again to open the file.
@@ -24,9 +24,7 @@ Bento on your iPhone and iPad.
 - Every screen fits a phone. The Path is one column you scroll down, with the paths in a row you swipe. Projects in Explore and puzzles in Practice are full-width rows that light up under your finger, as in any iPhone list, and the rows of topics and filters scroll sideways instead of piling up. Small buttons and links are now big enough for a thumb, and no text is too small to read. In dark mode, the screen is never white while Bento loads.
 - Taking apart an app is made for a phone, like an iPhone app's own pages. It opens like an App Store page: the project's icon, its numbers, what it is in one sentence and what you can do with it. Then how it works as one picture: who uses it at the top, the app's own parts, where it keeps things and the outside services it talks to, with lines (and little moving dots) showing who talks to whom. Tap any box for what it does, the real word for it and where it lives in the code, or follow one thing ("when you click upgrade to Pro") through it step by step. Below that, what it's made of (a bar like iPhone Storage) and the services it uses (tap Stripe, say, for what it does here and what else would have worked). Under the hood: the code city (full screen), where it could break, its language, and its code as a file browser you open folder by folder. Everything you tap opens as a sheet from the bottom, and asking about the project reads like a chat.
 
-## 0.2.1
-
-Steadier and safer, especially when something goes wrong.
+Steadier and safer, especially when something goes wrong:
 
 - Bento opens even when your disk is full. If saving ever fails, a calm note says so, and Bento saves again by itself once there's space: nothing is lost while it stays open.
 - Big projects (thousands of files) are taken apart without Bento stopping for a moment: menus, saving and a lesson that's streaming in all keep going.
