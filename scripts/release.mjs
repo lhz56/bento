@@ -133,12 +133,17 @@ run('gh', ['release', 'create', TAG, '--repo', TARGET, '--draft', '--title', `${
 run('gh', ['release', 'edit', TAG, '--repo', TARGET, '--draft=false', '--latest']);
 
 // what an installed copy and a new visitor will now see
-const feed = quiet('curl', ['-fsSL', `https://github.com/${TARGET}/releases/latest/download/latest-mac.yml`]);
+// (GitHub's "latest" links can take a minute to reach a release that was a draft a moment ago: ask again before failing)
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const getFeed = () => quiet('curl', ['-fsSL', `https://github.com/${TARGET}/releases/latest/download/latest-mac.yml`]);
+let feed = getFeed();
+for (let i = 0; i < 10 && !(feed.ok && feed.out.includes(`version: ${VERSION}`)); i++) { await sleep(9000); feed = getFeed(); }
 if (!feed.ok || !feed.out.includes(`version: ${VERSION}`)) fail(`Published, but the live update feed doesn't say ${VERSION} yet:\n${feed.out.slice(0, 300)}`);
 console.log(`✓ the live update feed says ${VERSION}`);
 for (const a of ARCHS) {
   const url = `https://github.com/${TARGET}/releases/latest/download/${PRODUCT}-${a}.dmg`;
-  if (!quiet('curl', ['-fsSIL', '-o', '/dev/null', url]).ok) fail(`Published, but ${url} doesn't download`);
+  let ok = false; for (let i = 0; i < 10 && !(ok = quiet('curl', ['-fsSIL', '-o', '/dev/null', url]).ok); i++) await sleep(9000);
+  if (!ok) fail(`Published, but ${url} doesn't download`);
   console.log(`✓ ${url}`);
 }
 
