@@ -32,7 +32,7 @@ import { ideaById, IDEAS } from './ideas.js';
 import { PRE, loadPrebuilt } from './prebuilt.js'; // lessons that ship already written, loaded just after the first screen
 import { useDialog } from './ui/a11y.js';
 import { ALL_STOPS, tracksWith, stopSkills } from './paths.js';
-import { noAI, altOf, usableModel } from './ai.js';
+import { noAI, altOf } from './ai.js';
 import { Sidebar, modelLabel, groupOf, rememberTab, lastTab, GROUPS } from './ui/Side.jsx';
 import Icon from './ui/Icons.jsx';
 import { filesForQuestion, guessRole, projectParts, isOverviewQuestion, searchWords } from './atlas/analyze.js';
@@ -229,9 +229,8 @@ export default function App() {
   useEffect(() => {
     api.providers().then((p) => {
       setProviders(p);
-      const usable = usableModel(settings.model, p); if (usable !== settings.model) setSettings({ model: usable }); // the chosen AI isn't on this Mac: use one that is
       if (p.gh) api.ghMe().then(setUser).catch(() => {});
-    });
+    }).catch(() => setProviders({ scanFailed: true }));
     const f = (r) => setPyReady(r); pyState.listeners.add(f); warmPython();
     return () => pyState.listeners.delete(f);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -292,7 +291,7 @@ export default function App() {
         const alt = altOf(model, providersRef.current);
         const account = /usage limit|isn’t signed in|isn’t installed|can’t talk to yet|doesn’t have Copilot|no longer lets personal|isn’t set up with a key|doesn’t offer|can’t use Gemini/.test(m);
         const cur = lessonsRef.current.find((l) => l.id === L0.id);
-        if (alt && account && !o.routed && !cur?.code && !cur?.story?.length) {
+        if (settings.autoFallback && alt && account && !o.routed && !cur?.code && !cur?.story?.length) {
           setLessons((ls) => ls.filter((l) => l.id !== L0.id));
           askLesson(q, { ...o, model: alt, routed: { from: modelLabel(model), to: modelLabel(alt), why: /usage limit/.test(m) ? 'hit its usage limit' : /signed in/.test(m) ? 'isn’t signed in' : 'isn’t installed' } });
           return;
@@ -701,7 +700,7 @@ export default function App() {
         actions={[['home', 'Learn: ask anything', '✦'], ['path', 'Paths: learn it in order', '⤳'], ['explore', 'Explore code', '◈'], ['ideas', 'Clever ideas', '⬡'], ['puzzles', 'Puzzles: LeetCode, from the top down', '◇'], ['play', 'Playgrounds: SQL, Git and the terminal, designing for a billion', '▦'], ['map', 'Your map: everything you know', '✺'], ['words', 'Your words', 'Aa'], ['bug', 'Daily bug', '⚑']].map(([v, label, icon]) => ({ label, icon, run: () => setView(v) })).concat([{ label: 'Settings', icon: '⚙', run: () => setShowSettings(true) }, { label: 'Keyboard shortcuts', icon: '?', run: () => setShowKeys(true) }, { label: 'Connections & setup', icon: '⚙', run: () => setOnb(1) }, { label: 'Open a folder on this Mac', icon: '▢', run: openFolderAtlas }, { label: 'Compare two apps', icon: '⇄', run: () => openCompare() }, { label: 'Scratchpad: write your own code', icon: '✎', run: () => newScratch() }]).filter((a) => !(TOUCH && a.label === 'Keyboard shortcuts') && !(api.remote && /^(Connections|Open a folder)/.test(a.label)))}
         onAsk={(q) => onAsk(q, {})} onOpenRepo={openRepo} onLesson={openLesson} onProject={(p) => showAtlas(p.key)} onIdea={readIdea} onWord={() => setViewRaw('words')}
         builtins={builtins} />}
-      {onb != null && <Onboarding api={api} settings={settings} setSettings={setSettings} startAt={onb} onDone={(go) => { setOnb(null); if (['explore', 'ideas', 'path', 'puzzles'].includes(go)) setViewRaw(go); else setViewRaw('home'); api.providers().then(setProviders); }} />}
+      {onb != null && <Onboarding api={api} settings={settings} setSettings={setSettings} startAt={onb} onDone={(go) => { setOnb(null); if (go === 'sample') openLesson(SAMPLES.find((lesson) => lesson.id === 'sample-spiral')); else if (['explore', 'ideas', 'path', 'puzzles'].includes(go)) setViewRaw(go); else setViewRaw('home'); api.providers().then(setProviders).catch(() => setProviders({ scanFailed: true })); }} />}
       <main className={`sheet ${groupOf(view)?.views.length > 1 && groupOf(view).views.some(([v]) => v === view) ? 'has-tabs' : ''}`} id="content" tabIndex={-1}
         onScrollCapture={phone ? (e) => { const y = e.target?.scrollTop || 0; if ((y > 8) !== scrolled) setScrolled(y > 8); noteScroll(page, e.currentTarget, e.target); } : undefined}>
         <div className="titlebar-drag" />
@@ -843,14 +842,14 @@ export default function App() {
               onDepth={(dir) => { const lv = ['kid', 'student', 'engineer']; const base = current.level || settings.level; const level = lv[Math.max(0, Math.min(2, lv.indexOf(base) + (dir === 'deeper' ? 1 : -1)))]; askLesson(dir === 'deeper' ? `Go deeper on "${current.title}": what's really happening under the hood, and the trade-offs a pro would think about` : `Explain "${current.title}" again, much simpler, with an everyday analogy and a smaller example`, { prev: current, lang: current.lang, level }); }}
               onQuiz={(ok) => ok && award(current, 'quiz')} onCheck={(ok) => { if (ok) award(current, 'quiz'); setLessons((ls) => ls.map((l) => (l.id === current.id ? { ...l, checks: [...(l.checks || []), { ok, at: Date.now() }].slice(-20) } : l))); }} onConcept={(c) => askLesson(`Teach me ${c.replace(/-/g, ' ')}`, { lang: current.lang })}
               stepSel={stepSel} onStepSelect={setStepSel}
-              onWild={providers?.gh ? findWild : null} onOpenAt={openRepoAt} onOpenRepo={openRepo} altModel={altModel ? modelLabel(altModel) : null} altFor={(c) => { const m = altFor(c.by || settings.model); return m ? modelLabel(m) : null; }} onRetryWith={() => { const a = current; setSettings({ model: altModel }); setLessons((ls) => ls.filter((l) => l.id !== a.id)); setTimeout(() => askLesson(a.q, { mode: a.mode, lang: a.lang, context: a.context }), 0); }}
+              onWild={providers?.gh ? findWild : null} onOpenAt={openRepoAt} onOpenRepo={openRepo} altModel={altModel ? modelLabel(altModel) : null} altFor={(c) => { const m = altFor(c.by || settings.model); return m ? modelLabel(m) : null; }} onRetryWith={() => { const a = current; setSettings({ model: altModel }); setLessons((ls) => ls.filter((l) => l.id !== a.id)); setTimeout(() => askLesson(a.q, { model: altModel, mode: a.mode, lang: a.lang, context: a.context }), 0); }}
               article={article} onArticle={() => setArticle((a) => { localStorage.setItem('bento.article', a ? '' : '1'); return !a; })} run={runs[current.id]}
               onStop={() => { const id = current.id; cancels.current.get(id)?.(); cancels.current.delete(id); setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, status: l.code || l.story.length ? 'done' : 'error', error: l.code || l.story.length ? null : 'Stopped before anything arrived.', thinking: null } : l))); }}
               onBackToRepo={showAtlas} onOpenUrl={(u) => api.openExternal(u)} knownWords={progress.words}
               reopened={reopened?.id === current.id ? () => { const r = reopened; setReopened(null); askLesson(r.q, { ...r.o, fresh: true }); } : null}
               puzzleTop={current.puzzle ? <PuzzlePanel L={current} rec={progress.puzzles?.[current.puzzle]} getCode={() => desk.current?.getCode()} setPuzzleCode={setPuzzleCode} onResult={onPuzzleResult} pyReady={pyReady} onOpenUrl={(u) => api.openExternal(u)} /> : null}
               puzzleEnd={current.puzzle ? <PuzzleEnd L={current} rec={progress.puzzles?.[current.puzzle]} setPuzzleCode={setPuzzleCode} onIdea={readIdea} onOpenAt={openRepoAt} onOpenUrl={(u) => api.openExternal(u)} onSeen={(pid) => setProgress((p) => ({ ...p, puzzles: { ...(p.puzzles || {}), [pid]: { ...(p.puzzles?.[pid] || {}), seen: true } } }))} /> : null}
-              onRetry={() => { const a = current; setLessons((ls) => ls.filter((l) => l.id !== a.id)); askLesson(a.q, { mode: a.mode, lang: a.lang, context: a.context }); }} />
+              onRetry={() => { const a = current; setLessons((ls) => ls.filter((l) => l.id !== a.id)); askLesson(a.q, { model: altModel, mode: a.mode, lang: a.lang, context: a.context }); }} />
             <div className="vdivider" onMouseDown={dragStory} />
             <Desk ref={desk} phone={phone} lesson={current} onPatch={(p) => patch(current.id, p)} quick={api.quick} model={settings.model}
               knownWords={knownWordSet} onWord={(w) => setProgress((p) => { const k = w.term.toLowerCase(); if (p.words?.[k]) return p; return { ...p, words: { ...(p.words || {}), [k]: { ...w, from: current.id, title: current.title, at: Date.now() } } }; })}

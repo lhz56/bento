@@ -305,7 +305,7 @@ const runPatient = async (bin, args, t = 8000) => { const r = await runQuiet(bin
 const aiCtx = (id) => ({ run: (args, t) => runPatient(P.BY[id].bin, args, t), env: ENV, ghToken, ghApi, spawnJson: (args, msgs, wait) => spawnJson(P.BY[id].bin, args, msgs, wait) });
 
 // what each AI tool says about itself: installed, a version Bento can talk to, signed in (and with which plan)
-ipcMain.handle('scan', async () => {
+async function scanConnections() {
   await limitsReady;
   const bins = [...P.IDS.map((id) => P.BY[id].bin), 'gh', 'npm', 'brew'];
   const at = Object.fromEntries(await Promise.all(bins.map(async (b) => [b, await which(b)])));
@@ -326,11 +326,21 @@ ipcMain.handle('scan', async () => {
   ].filter(Boolean));
   refreshLimits().catch(() => {});
   return r;
-});
+}
+let connectionScan;
+function scanOnce() {
+  return connectionScan ??= scanConnections().finally(() => { connectionScan = null; });
+}
+ipcMain.handle('scan', scanOnce);
 ipcMain.handle('providers', async () => {
-  const has = await Promise.all(P.IDS.map((id) => which(P.BY[id].bin)));
-  const gh = await which('gh');
-  return { ...Object.fromEntries(P.IDS.map((id, i) => [id, !!has[i]])), gh: !!gh && !process.env.BENTO_NO_GH, dark: nativeTheme.shouldUseDarkColors };
+  const scan = await scanOnce();
+  const ready = {}, accounts = {};
+  for (const id of P.IDS) {
+    const state = scan[id];
+    ready[id] = !!(state.installed && state.loggedIn && !state.outdated);
+    accounts[id] = [state.method, state.plan].filter(Boolean).join(' · ');
+  }
+  return { ...ready, accounts, gh: scan.gh.loggedIn === true, dark: nativeTheme.shouldUseDarkColors };
 });
 
 // One click from the welcome: run the install, sign-in or update command for an AI in Terminal, where the person

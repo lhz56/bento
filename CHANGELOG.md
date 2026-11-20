@@ -3,6 +3,12 @@
 Each version's section becomes its GitHub release notes, which is what "What's new" in the sidebar opens.
 Write for learners, not for developers.
 
+## 0.3.1
+
+- Try a runnable spiral lesson directly from the welcome screen, even before connecting an AI.
+- See the teaching provider and its sign-in method when asking a question. Automatic retries with another provider are an option in Settings.
+- The Mac download requires macOS 13 or newer.
+
 ## 0.3.0
 
 Bento on your iPhone and iPad, and steadier on your Mac.

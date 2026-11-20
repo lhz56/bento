@@ -96,7 +96,7 @@
       "download": "https://antigravity.google",
       "signIn": "agy",
       "update": "agy update",
-      "default": "antigravity:flash-low",
+      "default": "antigravity:flash",
       "fast": "antigravity:flash-low",
       "models": [
         {
@@ -105,8 +105,7 @@
           "short": "Flash",
           "what": "Google’s Gemini on your AI Pro plan (free for students). Quick and good: a lesson in about 15 seconds.",
           "speed": 3,
-          "depth": 3,
-          "tag": "recommended"
+          "depth": 3
         },
         {
           "id": "antigravity:flash",
@@ -114,7 +113,8 @@
           "short": "Flash (careful)",
           "what": "The same Flash, taking more care. About 40 seconds a lesson.",
           "speed": 2,
-          "depth": 4
+          "depth": 4,
+          "tag": "recommended"
         },
         {
           "id": "antigravity:flash-high",

@@ -23,13 +23,14 @@ const INTERESTS = [['games', 'Games', '🎮'], ['web', 'Websites', '🌐'], ['ai
 export default function Onboarding({ api, settings, setSettings, onDone, startAt = 0 }) {
   const [step, setStep] = useState(startAt);
   const [scan, setScan] = useState(null);
+  const [scanFailed, setScanFailed] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [level, setLevel] = useState(settings.level || 'student');
   const [lang, setLang] = useState(settings.lang || 'python');
   const [interests, setInterests] = useState(settings.interests || []);
   const [voice, setVoice] = useState(settings.voice || (/^es/.test(navigator.language) ? 'Español' : /^pt/.test(navigator.language) ? 'Português' : /^fr/.test(navigator.language) ? 'Français' : /^de/.test(navigator.language) ? 'Deutsch' : /^zh/.test(navigator.language) ? '中文' : /^ja/.test(navigator.language) ? '日本語' : /^ko/.test(navigator.language) ? '한국어' : /^hi/.test(navigator.language) ? 'हिन्दी' : 'English'));
   const [copied, setCopied] = useState(null);
-  const doScan = async () => { setScanning(true); setScan(null); const t0 = Date.now(); try { const r = await api.scan(); await new Promise((ok) => setTimeout(ok, Math.max(0, 1300 - (Date.now() - t0)))); setScan(r); } catch { setScan({}); } setScanning(false); };
+  const doScan = async () => { setScanning(true); setScanFailed(false); setScan(null); const t0 = Date.now(); try { const r = await api.scan(); await new Promise((ok) => setTimeout(ok, Math.max(0, 1300 - (Date.now() - t0)))); setScan(r); } catch { setScanFailed(true); } setScanning(false); };
   useEffect(() => { if (step === 1 && !scan && !scanning) doScan(); }, [step]);
   // back from Terminal after installing something: look again by itself
   useEffect(() => {
@@ -61,7 +62,8 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
             <div><RunIt /><b>Run it</b><span>Watch code run, one line at a time.</span></div>
             <div><OwnIt /><b>Own it</b><span>Your own AI plan. Nothing hosted.</span></div>
           </div>
-          <button className="onb-go" onClick={() => setStep(1)}>Let’s set you up <span>→</span></button>
+          <button className="onb-go" onClick={() => { setSettings({ onboarded: true }); onDone('sample'); }}>Try a lesson →</button>
+          <button className="btn ghost" onClick={() => setStep(1)}>Connect my AI</button>
         </div>
       )}
 
@@ -69,9 +71,10 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
         <div className="onb-pane" key="c">
           <div className="onb-k">step 1 · your AI</div>
           <h2>Any one of these is enough.</h2>
-          <p className="onb-sub small">Bento teaches with the AI plans you already have, on this Mac. Nothing is hosted, and there are no keys to paste.</p>
+          <p className="onb-sub small">Bento teaches with the AI plans you already have, on this Mac. Choose a subscription sign-in to use your plan. API keys and cloud accounts may be billed separately.</p>
           <div className="conns ai4">
-            {CONNS.map((c, i) => {
+            {scanFailed && <p role="alert">Bento couldn’t check your connections. Try Scan again, or continue with built-in lessons.</p>}
+            {!scanFailed && CONNS.map((c, i) => {
               const r = scan?.[c.id];
               const state = !scan ? 'wait' : !r?.installed ? 'missing' : r.outdated ? 'old' : !r.loggedIn ? 'login' : 'ok';
               const how = howTo(c, state, scan); const busy = running === c.id;
@@ -102,7 +105,7 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
           </div>
           {scan && (
             <div className={`route ${anyModel ? 'ok' : 'no'}`} role="status">
-              {anyModel ? <><span className="route-dot" />Bento will teach with <b>{PROVIDERS.find((p) => p.id === model.split(':')[0])?.models.find((m) => m.id === model)?.label || readyAIs[0].name}</b>{readyAIs.length > 1 ? <>. If it runs out, it asks <b>{readyAIs.filter((p) => p.id !== model.split(':')[0]).map((p) => p.short || p.name).join(', then ')}</b>.</> : '.'} Quick answers use a faster model from the same AI.</>
+              {anyModel ? <><span className="route-dot" />Bento will teach with <b>{PROVIDERS.find((p) => p.id === model.split(':')[0])?.models.find((m) => m.id === model)?.label || readyAIs[0].name}</b>{settings.autoFallback && readyAIs.length > 1 ? <>. If it runs out, it asks <b>{readyAIs.filter((p) => p.id !== model.split(':')[0]).map((p) => p.short || p.name).join(', then ')}</b>.</> : '.'} Quick answers use a faster model from the same AI.</>
                 : <>No AI ready yet. Press <b>Install</b> on any one above, and Bento looks again when you come back. The built-in lessons work meanwhile.</>}
             </div>
           )}

@@ -42,7 +42,7 @@ export default function useLibrary({ api, settings, setProgress, setProjectRaw, 
     const onErr = (m) => {
       // this AI can't answer right now: try your other one once, before showing the first error
       const alt = altOf(model, getProviders());
-      if (!firstErr && alt && /usage limit|isn’t signed in|isn’t installed|can’t talk to yet|doesn’t have Copilot|no longer lets personal|isn’t set up with a key|doesn’t offer|can’t use Gemini/.test(m) && !atlasRef.current[key]?.narr?.gist) { parser.end(); return narrate(key, alt, m); }
+      if (settings.autoFallback && !firstErr && alt && /usage limit|isn’t signed in|isn’t installed|can’t talk to yet|doesn’t have Copilot|no longer lets personal|isn’t set up with a key|doesn’t offer|can’t use Gemini/.test(m) && !atlasRef.current[key]?.narr?.gist) { parser.end(); return narrate(key, alt, m); }
       finish('narr-error', firstErr || m);
     };
     const cancel = api.ask(model, prompt, { chunk: (t) => parser.push(t), think: (t) => patchAtlas(key, { thinking: t }), done: () => finish('done', null), error: onErr }, 'atlas');

@@ -55,6 +55,6 @@ export default defineConfig({
   base: './',
   server: { port: 5199, strictPort: true },
   worker: { format: 'es' },
-  build: { target: 'esnext', outDir: 'dist', emptyOutDir: true },
+  build: { target: 'esnext', outDir: 'dist', emptyOutDir: true, license: { fileName: 'THIRD-PARTY-LICENSES.md' } },
   optimizeDeps: { exclude: ['pyodide'] },
 });

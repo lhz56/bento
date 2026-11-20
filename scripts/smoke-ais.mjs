@@ -37,7 +37,7 @@ async function launch(settings, extra = {}) {
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1440, 900));
   return { app, p, errors, close: async () => { await app.close(); fs.rmSync(profile, { recursive: true, force: true }); } };
 }
-const ask = async (p, q) => { await p.click('.side nav button:has-text("Learn")'); await p.click('.cx textarea'); await p.keyboard.type(q); await p.keyboard.press('Enter'); };
+const ask = async (p, q) => { await p.click('.side nav button:has-text("Learn")'); await p.click('.cx textarea'); await p.keyboard.type(q); await p.waitForSelector('.cx .send:enabled'); await p.keyboard.press('Enter'); };
 const lessonArrives = async (p) => {
   await p.waitForSelector('.story-head h1:not(.sr-only):has-text("hash map")', { timeout: 30000 });
   await p.waitForFunction(() => /red coat/.test(document.querySelector('.stage-body')?.innerText || ''), null, { timeout: 60000 });
@@ -49,10 +49,10 @@ const AIS = createRequire(import.meta.url)('../electron/ai-catalog.json').provid
 {
   const { p, errors, close } = await launch({ model: 'claude:sonnet', lang: 'python' });
   await step(p, 'the welcome finds every AI, each ready', async () => {
-    await p.click('.onb-go'); await p.waitForSelector('.conn.ai.s-ok', { timeout: 30000 }); await p.waitForTimeout(500);
+    await p.getByRole('button', { name: 'Connect my AI' }).click(); await p.waitForSelector('.conn.ai.s-ok', { timeout: 30000 }); await p.waitForTimeout(500);
     const n = await p.locator('.conn.ai.s-ok').count(); if (n !== AIS.length) throw new Error(`${n} ready`);
-    const said = await p.locator('.route').innerText(); const rest = AIS.slice(1).map((x) => x.short || x.name).join(', then '); if (!/Claude Sonnet/.test(said) || !said.includes(rest)) throw new Error(`${said} (expected …${rest})`);
-    return `Claude first, then ${AIS.slice(1).map((x) => x.short || x.name).join(', ')}`;
+    const said = await p.locator('.route').innerText(); if (!/Claude Sonnet/.test(said) || said.includes('If it runs out')) throw new Error(said);
+    return 'selected provider shown';
   });
   await step(p, 'nothing went wrong on the page', async () => { if (errors.length) throw new Error(errors[0]); });
   await close();
@@ -62,7 +62,7 @@ const AIS = createRequire(import.meta.url)('../electron/ai-catalog.json').provid
 {
   const { p, errors, close } = await launch({ model: 'claude:sonnet', lang: 'python' }, { FAKE_AI_AUTH_MS: '10000' });
   await step(p, 'a slow sign-in check is waited for, not read as “not signed in”', async () => {
-    await p.click('.onb-go'); await p.waitForSelector('.conn.ai.s-ok', { timeout: 60000 });
+    await p.getByRole('button', { name: 'Connect my AI' }).click(); await p.waitForSelector('.conn.ai.s-ok', { timeout: 60000 });
     await p.waitForFunction((n) => document.querySelectorAll('.conn.ai.s-ok').length === n || document.querySelector('.conn.ai.s-login'), AIS.length, { timeout: 60000 });
     const login = await p.locator('.conn.ai.s-login').count(); if (login) throw new Error(`${login} shown as not signed in`);
     return 'Claude ready after a 10 s check';
@@ -108,9 +108,21 @@ const AIS = createRequire(import.meta.url)('../electron/ai-catalog.json').provid
   await close();
 }
 
+// A rate limit must not send the learner's question to a different provider by default.
+{
+  const { p, close } = await launch({ onboarded: true, model: 'claude:sonnet', lang: 'python' }, { BENTO_FAKE_LIMIT: 'claude' });
+  await step(p, 'a rate limit leaves the choice of another provider to the learner', async () => {
+    await ask(p, 'How does a hash map find things so fast?');
+    await p.locator('.story-err').waitFor();
+    const usage = await p.evaluate(() => window.bento.usage());
+    if (usage.by?.codex?.lessons) throw new Error('An unselected provider received a lesson request');
+  });
+  await close();
+}
+
 // ---------------------------------------------------------------- one runs out: the next one you have answers
 {
-  const { p, errors, close } = await launch({ onboarded: true, model: 'claude:sonnet', lang: 'python', level: 'student' }, { BENTO_FAKE_LIMIT: 'claude' });
+  const { p, errors, close } = await launch({ onboarded: true, model: 'claude:sonnet', lang: 'python', level: 'student', autoFallback: true }, { BENTO_FAKE_LIMIT: 'claude' });
   await p.waitForSelector('.side', { timeout: 60000 });
   await step(p, 'Claude has hit its limit, so ChatGPT writes the lesson, and says so', async () => {
     await ask(p, 'How does a hash map find things so fast?'); await lessonArrives(p);

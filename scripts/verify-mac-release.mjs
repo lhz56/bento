@@ -46,6 +46,15 @@ async function checkApp(app, arch) {
   if (arch) { const l = sh('lipo', ['-archs', bin]); ok(l.ok && l.out.trim().split(/\s+/).includes(arch), `built for ${arch}`, l.out); }
   const v = sh('plutil', ['-extract', 'CFBundleShortVersionString', 'raw', path.join(app, 'Contents/Info.plist')]);
   ok(v.out.trim() === pkg.version, `version ${pkg.version}`, `the app says ${v.out.trim()}`);
+  const advertised = pkg.build.mac.minimumSystemVersion;
+  const minimum = sh('plutil', ['-extract', 'LSMinimumSystemVersion', 'raw', path.join(app, 'Contents/Info.plist')]);
+  ok(minimum.out.trim() === advertised, `bundle advertises macOS ${advertised}`, minimum.out);
+  for (const executable of [bin, path.join(app, 'Contents/Frameworks/Electron Framework.framework/Electron Framework')]) {
+    const build = sh('xcrun', ['vtool', '-show-build', executable]);
+    const target = /^\s*minos\s+([\d.]+)/m.exec(build.out)?.[1];
+    ok(build.ok && target && target.localeCompare(advertised, 'en', { numeric: true }) <= 0,
+      `${path.basename(executable)} supports the advertised macOS minimum`, target || build.out);
+  }
   const feed = path.join(app, 'Contents/Resources/app-update.yml');
   const feedText = fs.existsSync(feed) ? fs.readFileSync(feed, 'utf8') : '';
   ok(feedText.includes('provider: github') && feedText.includes(`owner: ${pub.owner}`) && feedText.includes(`repo: ${pub.repo}`), `looks for updates at github.com/${pub.owner}/${pub.repo}`, feedText || 'no app-update.yml');

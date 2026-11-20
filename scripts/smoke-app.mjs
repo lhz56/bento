@@ -66,9 +66,9 @@ const blankPage = async (lang) => {
 const run = async () => { await p.click('.act.run'); };
 
 await step('the window opens on the welcome screen', async () => { await p.waitForSelector('.onb', { timeout: 60000 }); return (await p.title()) || 'Bento'; });
-await step('welcome can be skipped', async () => {
-  await p.evaluate(() => { const s = JSON.parse(localStorage.getItem('bento.settings') || '{}'); s.onboarded = true; localStorage.setItem('bento.settings', JSON.stringify(s)); });
-  await p.reload(); await p.waitForSelector('.side', { timeout: 30000 });
+await step('try a runnable lesson without connecting an AI', async () => {
+  await p.getByRole('button', { name: /Try a lesson/ }).click();
+  await p.getByRole('heading', { name: 'Drawing a spiral with code' }).first().waitFor();
 });
 await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 820)).catch(() => {});
 await step('shortcuts are written for this computer', async () => {

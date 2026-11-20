@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { noAI, provOf, provider, providerName, altOf, mainWindow, level, usedText, resetText } from '../ai.js';
+import { provOf, provider, providerName, altOf, mainWindow, level, usedText, resetText } from '../ai.js';
 import { usePlans, Ring as PlanRing } from './Plans.jsx';
 import { t, tx } from '../i18n.js';
 import { fmtStars, bestBuiltin, projectNames, namesALesson } from '../findProject.js';
@@ -77,9 +77,10 @@ export default function Home({ builtins = [], threads = [], skyDots = [], about,
     onAsk(q.trim(), { mode, context: mode === 'code' ? { code: q } : undefined });
     setQ('');
   };
-  const noModel = noAI(providers);
+  const checking = !providers;
+  const noModel = checking || !providers[provOf(settings.model)];
   // the plan you're teaching with is nearly full (or full): say so here, with when it resets and what happens next
-  const { limits } = usePlans(); const prov = provOf(settings?.model); const pw = mainWindow(limits[prov]); const plv = level(pw); const alt = altOf(settings?.model, providers);
+  const { limits } = usePlans(); const prov = provOf(settings?.model); const pw = mainWindow(limits[prov]); const plv = level(pw); const alt = settings.autoFallback && altOf(settings?.model, providers);
 
   const MODE_INFO = { explain: ['✦', 'Explain', 'Ask anything, get a lesson'], feature: ['⌁', 'Build a feature', 'In your own project'], code: ['❮❯', 'Explain my code', 'Paste code, read it line by line'], challenge: ['⚑', 'Challenge me', 'Practise a topic'] };
   const LANGS = [['python', 'Python'], ['javascript', 'JavaScript'], ['typescript', 'TypeScript'], ['html', 'Web page']];
@@ -147,12 +148,14 @@ export default function Home({ builtins = [], threads = [], skyDots = [], about,
                   <button className="ctx-x" aria-label={t('Not about this project')} onClick={onDropAbout}>✕</button>
                 </span>
               )}
-              <button className="send round" onClick={submit} aria-label={repoLink ? `Take apart ${repoLink}` : mode === 'challenge' ? t('Start') : t('Ask')} disabled={noModel || (mode === 'feature' && (!project || project.loading)) || (mode !== 'challenge' && !q.trim() && !repoLink)}>
+              <button className="send round" onClick={submit} aria-label={repoLink ? `Take apart ${repoLink}` : mode === 'challenge' ? t('Start') : t('Ask')} disabled={(noModel && !repoLink) || (mode === 'feature' && (!project || project.loading)) || (mode !== 'challenge' && !q.trim() && !repoLink)}>
                 {repoLink ? <>Take apart <b>{repoLink.split('/')[1]}</b></> : <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" /></svg>}
               </button>
             </div>
             {finding && <div className="finding fade-in" role="status"><span className="lens-spin" aria-hidden="true" />{t('Looking for')} <b>{finding.name}</b> {t('on this Mac and on GitHub…')}<button className="link" onClick={onCancelFinding}>{t('Just explain it')}</button></div>}
-            {noModel && <div className="warn">No AI connected yet, so questions can’t be answered. The built-in lessons still work. <button className="link" onClick={onSetup}>Connect an AI →</button></div>}
+            {!noModel && <div className="cx-account">{providerName(prov)}{providers.accounts?.[prov] ? ' · ' + providers.accounts[prov] : ''}</div>}
+            {checking && <div className="cx-account" role="status">Checking your AI connections…</div>}
+            {!checking && noModel && <div className="warn">{providers.scanFailed ? 'Bento couldn’t check your AI connections.' : 'Your selected AI is unavailable.'} Built-in lessons still work. <button className="link" onClick={onSetup}>Connect an AI →</button></div>}
             {!noModel && pw && (plv === 'high' || plv === 'out') && (
               <div className={`plan-warn lv-${plv}`} role="status">
                 <PlanRing used={pw.unlimited ? 0 : pw.used} lv={plv} size={16} />

@@ -1,7 +1,7 @@
 {
   "name": "bento",
   "productName": "Bento",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Learn how software is really built, using the AI subscription you already have.",
   "author": "Bento contributors",
   "homepage": "https://github.com/lhz56/bento-releases",
@@ -37,6 +37,7 @@
     "files": [
       "dist/**",
       "electron/**",
+      "LICENSE",
       "package.json"
     ],
     "asar": true,
@@ -103,7 +104,7 @@
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
       "notarize": true,
-      "minimumSystemVersion": "12.0",
+      "minimumSystemVersion": "13.0",
       "extendInfo": {
         "NSHumanReadableCopyright": "MIT License"
       }

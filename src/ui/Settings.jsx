@@ -27,12 +27,13 @@ export default function Settings({ packs = [], onAddPack, onRemovePack, onBackup
         <div className="set-row"><div><b>{t('Explain things in')}</b><span>Lessons, answers and pictures in your language. Code stays in English.</span></div>
           <select className="set-sel" aria-label={t('Explain things in')} value={settings.voice || 'English'} onChange={(e) => setSettings({ voice: e.target.value })}>{VOICES.map((v) => <option key={v} value={v}>{v}</option>)}</select></div>
         <div className="set-row"><div><b>{t('Programming language')}</b><span>You can switch any lesson with ⇄ later.</span></div><Seg value={settings.lang} options={[['python', 'Python'], ['javascript', 'JavaScript'], ['typescript', 'TypeScript'], ['html', 'Web page']]} onChange={(v) => setSettings({ lang: v })} /></div>
-        <div className="set-row col"><div><b>{t('Model')}</b><span>{t('Runs on your own plan. Quick answers use a fast model from the same AI, and if one runs out, Bento asks the next one you have.')}</span></div>
+        <div className="set-row col"><div><b>{t('Model')}</b><span>{t('Questions and relevant project context go to the provider you choose.')}</span></div>
           <div className="set-models">{avail.map(([k, l, p]) => <button key={k} className={settings.model === k ? 'on' : ''} aria-pressed={settings.model === k} onClick={() => setSettings({ model: k })}><AIMark id={p} size={15} />{l}</button>)}{avail.length === 0 && <span className="muted">{t('No AI found yet.')}</span>}</div>
         </div>
         <div className="set-row col"><div><b>{t('Curious about')}</b><span>Picks the idea of the day and suggestions.</span></div>
           <div className="interests">{INTERESTS.map(([k, l]) => <button key={k} className={`int ${ints.includes(k) ? 'on' : ''}`} onClick={() => setSettings({ interests: ints.includes(k) ? ints.filter((x) => x !== k) : [...ints, k] })}>{l}</button>)}</div>
         </div>
+        <label className="set-row"><span><b>{t('Retry with another AI')}</b><span>{t('If your AI is unavailable, send the question and its project context to another ready provider. Its billing applies.')}</span></span><input type="checkbox" checked={!!settings.autoFallback} onChange={(e) => setSettings({ autoFallback: e.target.checked })} /></label>
         <DevicesRow />
         {REMOTE && <ThisDeviceRow />}
         {!REMOTE && <div className="set-row"><div><b>{t('Connections')}</b><span>{t('Claude, ChatGPT, Gemini, Copilot and GitHub on this Mac.')}</span></div><button className="btn ghost" onClick={onSetup}>{t('Check again')}</button></div>}
@@ -44,7 +45,7 @@ export default function Settings({ packs = [], onAddPack, onRemovePack, onBackup
         {!REMOTE && <div className="set-row"><div><b>{t('Open in Bento from your browser')}</b><span>{t('Drag this button to your bookmarks bar. On any GitHub page or website, click it to take it apart in Bento.')}</span></div><a className="btn ghost bookmarklet" href={"javascript:location.href='bento://open?u='+encodeURIComponent(location.href)"} onClick={(e) => e.preventDefault()} draggable title={t('Drag me to your bookmarks bar')}>⤓ {t('Open in Bento')}</a></div>}
         {!REMOTE && usage?.count > 0 && <div className="set-row"><div><b>Downloaded code</b><span>{usage.count} project{usage.count > 1 ? 's' : ''} · {(usage.bytes / 1048576).toFixed(0)} MB. Bento downloads them again if you reopen one.</span></div><button className="btn ghost" onClick={async () => { if (confirm('Delete the downloaded code for all projects? Your notes and lessons stay.')) { await window.bento.reposClear(); setUsage({ bytes: 0, count: 0 }); } }}>Free up space</button></div>}
         {!REMOTE && window.bento?.update && <UpdatesRow />}
-        <div className="set-foot">{!REMOTE && <button className="link" style={{ marginLeft: 0 }} onClick={onReplayOnboarding}>{t('Replay the welcome')}</button>}<span className="muted small">Bento · open source · MIT</span></div>
+        <div className="set-foot">{!REMOTE && <button className="link" style={{ marginLeft: 0 }} onClick={onReplayOnboarding}>{t('Replay the welcome')}</button>}<span className="muted small">Bento · MIT license</span></div>
       </div>
     </div>
   );

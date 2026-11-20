@@ -9,6 +9,6 @@ export const cleanErr = (e) => String(e?.message || e).replace(/^Error invoking 
 export const saveLessons = (list) => {
   const t = Date.now();
   try { localStorage.setItem('bento.lessons', JSON.stringify(list.slice(0, 60))); localStorage.setItem('bento.savedAt', String(t)); } catch {}
-  try { const b = window.bento || mockBridge; b.storeSet?.('bento.lessons', list.slice(0, 2000)); b.storeSet?.('bento.savedAt', t); } catch {}
+  try { const b = window.bento || mockBridge; b.storeSet?.('bento.lessons', list); b.storeSet?.('bento.savedAt', t); } catch {}
 };
 

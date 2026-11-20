@@ -68,7 +68,7 @@ export function PlanRow({ id, L, today, now = Date.now() }) {
           <span className="pa-sub">{w.of && !w.unlimited ? usedText(w, t) : t(w.label)}{w.resetsAt ? ` · ${resetText(w.resetsAt, now, t)}` : ''}{old}</span>
         </> : <span className="pa-sub">{t(NO_READING[id] || NO_READING.claude)}</span>}
         {bento && <span className="pa-bento">{bento}</span>}
-        {lv === 'out' && <span className="pa-out">{t('Used up for now. Bento asks your other AI until it resets.')}</span>}
+        {lv === 'out' && <span className="pa-out">{t('This plan has reached its limit.')}</span>}
       </div>
     </div>
   );

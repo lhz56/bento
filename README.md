@@ -6,7 +6,17 @@
 
 Bento is a small Mac app that works like a patient tutor. Ask it anything and you get a lesson with real code you can run, change and step through, with every line explained in plain English. Point it at any GitHub project and it draws the whole app as one picture you can read, even if you've never programmed.
 
-It teaches with the AI you already have: **Claude** (Pro or Max), **ChatGPT** (through Codex), **Gemini** (Google AI Pro, free for students, through Antigravity), **GitHub Copilot** (free with GitHub) or the **Gemini API** (with a key). It drives their official command-line tools, signed in on your Mac. There's nothing to host and no API keys, and Bento never sees your account.
+It teaches with the AI you already have: **Claude** (Pro or Max), **ChatGPT** (through Codex), **Gemini** (Google AI Pro, free for students, through Antigravity), **GitHub Copilot** (free with GitHub) or the **Gemini API** (with a key). It drives their official command-line tools, signed in on your Mac. Bento sends lesson questions and relevant project context through the selected tool. A subscription sign-in uses the provider’s plan limits. An API key or cloud account can incur separate charges.
+
+## Get it
+
+**[Download for Mac (Apple Silicon)](https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg)** · [Intel](https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg) · macOS 13 or newer
+
+Not sure which? Apple menu → About This Mac: **Chip** (M1 or later) means Apple Silicon, **Processor** (Intel) means Intel.
+
+1. Open the downloaded `.dmg` and drag Bento into Applications.
+2. Open Bento from Applications.
+3. Choose **Try a lesson** to draw a spiral and edit its code. Choose **Connect my AI** to use a supported command-line tool signed in on your Mac. Subscription and API-key billing depend on the account you connect.
 
 ![Taking apart a real app](docs/screenshots/03-atlas-big-picture.png)
 
@@ -27,16 +37,6 @@ It teaches with the AI you already have: **Claude** (Pro or Max), **ChatGPT** (t
 </table>
 
 ---
-
-## Get it
-
-**[Download for Mac (Apple Silicon)](https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg)** · [Intel](https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg) · macOS 12 or newer
-
-Not sure which? Apple menu → About This Mac: **Chip** (M1 or later) means Apple Silicon, **Processor** (Intel) means Intel.
-
-1. Open the downloaded `.dmg` and drag Bento into Applications.
-2. Open Bento from Applications.
-3. Bento finds the AI tools you have. For any you don't, one click installs it or signs you in, in Terminal, where you see exactly what runs. Bento updates itself from then on.
 
 ## What's inside
 
@@ -109,7 +109,7 @@ On first launch Bento looks for what's already on your Mac:
 
 `gh` (GitHub) is optional: it unlocks your repos, private ones included, and gives Copilot a sign-in.
 
-Any one AI is enough. Bento teaches with the one you pick in the sidebar (quick answers use the fastest model of the same AI), and if it hits its usage limit or is signed out, Bento asks the next one you have and tells you. If something is missing, one click runs the install or sign-in in Terminal.
+Any one AI is enough. Bento teaches with the one you pick in the sidebar (quick answers use the fastest model of the same AI), and you can enable **Retry with another AI** in Settings to let a second provider receive the question and its context if the first is unavailable. If something is missing, one click runs the install or sign-in in Terminal.
 
 **How much of your plan is used.** The sidebar shows a ring for the AI you're using, filled the way that plan counts it ("54% of this week", "1 of 200 requests this month"), with when it resets. Click it for every plan, and what Bento used of each today. Claude reports its numbers with each answer; ChatGPT and Copilot can be asked any time, for free; Gemini doesn't share them, so Bento shows what it used instead. When a plan is nearly full, Home says so before you ask.
 

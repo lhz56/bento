@@ -90,7 +90,7 @@ Set in `package.json` → `build`:
 | `enableNodeOptionsEnvironmentVariable: false`, `enableNodeCliInspectArguments: false` | No `NODE_OPTIONS` or `--inspect` code injection into a shipped copy. Local test builds (`npm run app`) and CI turn the inspect switch back on so Playwright can drive the app. |
 | `resetAdHocDarwinSignature` | Flipping the switches above changes the binary. Unsigned local builds get a fresh ad-hoc signature, or macOS would refuse to open them. |
 | `electronLanguages` | Ships 26 Chromium language packs instead of ~55. Bento's own words are translated by your AI. |
-| `minimumSystemVersion: 12.0` | What Electron 45 supports. |
+| `minimumSystemVersion: 13.0` | What Electron 45 supports. |
 
 In the app itself (`electron/main.cjs`):
 

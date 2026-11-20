@@ -35,7 +35,7 @@ export default function Path({ done, onGo, onIdeas, custom = [], onMakePath, onD
                 <span className="pcard-i" aria-hidden="true">{x.icon}</span>
                 <span className="pcard-t">{x.title}</span>
                 <span className="pcard-dots" aria-hidden="true">{x.stops.map((s) => <i key={s.id} className={done[s.id] ? 'on' : ''} />)}</span>
-                <span className="sr-only">, {d2} of {x.stops.length} done</span>
+                <span className="sr-only">, {d2} of {x.stops.length} visited</span>
                 {x.own && !x.pack && <em className="track-x" title="Remove this path" onClick={(e) => { e.stopPropagation(); onDropPath(x.k); setTrack('app'); }}>×</em>}
               </button>
             );
@@ -56,8 +56,8 @@ export default function Path({ done, onGo, onIdeas, custom = [], onMakePath, onD
             {T.end && <div className="phero-end"><span>🏁</span><div><i>Where it ends</i>{T.end}</div></div>}
           </div>
           <div className="phero-side">
-            <div className="phero-prog"><Ring f={n / LIST.length} size={64} /><div><b>{n}</b><span>of {LIST.length} done</span></div></div>
-            {next ? <button className="btn" onClick={() => go(next)}>{n ? 'Continue' : 'Start'}: stop {nextI + 1} <span>→</span></button> : <span className="phero-done">Finished. Nice work.</span>}
+            <div className="phero-prog"><Ring f={n / LIST.length} size={64} /><div><b>{n}</b><span>of {LIST.length} visited</span></div></div>
+            {next ? <button className="btn" onClick={() => go(next)}>{n ? 'Continue' : 'Start'}: stop {nextI + 1} <span>→</span></button> : <span className="phero-done">You’ve visited every stop.</span>}
             {!next && after && <button className="btn ghost next-path" onClick={() => setTrack(after.k)} aria-label={`Next path: ${after.title}`}><span aria-hidden="true">{after.icon}</span>{after.title}<span aria-hidden="true">→</span></button>}
             {next && <span className="phero-next">{next.t}</span>}
           </div>
