@@ -30,6 +30,14 @@ contextBridge.exposeInMainWorld('bento', {
   onStoreChanged(fn) { const h = (_e, k, v) => fn(k, v); ipcRenderer.on('store:changed', h); return () => ipcRenderer.removeListener('store:changed', h); },
   // Settings → Your phone and iPad: serve Bento to devices you pair (host.cjs)
   host: { get: () => call('host:get'), set: (p) => call('host:set', { on: !!p?.on, wifi: !!p?.wifi, awake: p?.awake !== false }), pair: () => call('host:pair'), forget: (id) => call('host:forget', String(id)), on(fn) { const h = (_e, st) => fn(st); ipcRenderer.on('host:state', h); return () => ipcRenderer.removeListener('host:state', h); } },
+  // your own AI agent using Bento (agent.cjs): the command that connects it, and its tool calls, which the page does and answers
+  agent: {
+    info: () => call('agent:info'),
+    on(fn) {
+      const h = (_e, id, tool, args, client) => Promise.resolve().then(() => fn(tool, args, client)).then((text) => ipcRenderer.send('agent:reply', id, { text: String(text) }), (e) => ipcRenderer.send('agent:reply', id, { error: String(e?.message || e) }));
+      ipcRenderer.on('agent:call', h); return () => ipcRenderer.removeListener('agent:call', h);
+    },
+  },
   backupSave: () => call('backup:save'),
   usage: () => call('usage:get'),
   // how much of each plan is used: the last reading, or a fresh one (free) with { refresh: true }

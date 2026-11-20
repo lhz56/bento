@@ -96,8 +96,9 @@ const Desk = forwardRef(function Desk(props, ref) {
     const k = l.trim();
     if (!k || /^[}\])]+[;,)]*$/.test(k)) return '';
     if (src[i] === l && L.pseudo[i] != null && String(L.pseudo[i]).trim()) return L.pseudo[i];
-    return pmap.has(k) ? pmap.get(k) : null;
-  }); }, [code, pmap, L.code, L.pseudo]);
+    // a lesson from your own agent never has Bento ask your AI for the missing lines: they stay blank
+    return pmap.has(k) ? pmap.get(k) : L.agent ? '' : null;
+  }); }, [code, pmap, L.code, L.pseudo, L.agent]);
   const pendingEnglish = english.some((x) => x === null);
 
   // lines without plain English get it from the fast model, by line number (so a skipped or merged line can't move the
@@ -334,7 +335,7 @@ const Desk = forwardRef(function Desk(props, ref) {
   // A freshly written example that crashes gets one quiet repair (never for challenges, where the bug is the point).
   const repairTried = useRef(new Set());
   useEffect(() => {
-    if (streaming || L.status !== 'done' || !result?.error || edited.current || L.builtin || L.repaired) return;
+    if (streaming || L.status !== 'done' || !result?.error || edited.current || L.builtin || L.repaired || L.agent) return; // (your agent is told the error and fixes its own)
     if (!['explain', 'idea'].includes(L.mode) || repairTried.current.has(L.id) || !L.code) return;
     if (/^Stopped/.test(result.error.msg || '')) return;
     repairTried.current.add(L.id);
@@ -353,7 +354,7 @@ const Desk = forwardRef(function Desk(props, ref) {
   // then one small call to the fast model for the quizzes and claims). Fixes only what it can prove, and says so.
   const checkTried = useRef(new Set());
   useEffect(() => {
-    if (streaming || L.status !== 'done' || !result || result.error || result.need || L.builtin || L.check || L.scratch || edited.current) return;
+    if (streaming || L.status !== 'done' || !result || result.error || result.need || L.builtin || L.check || L.scratch || L.agent || edited.current) return;
     if (!['explain', 'idea', 'build', 'feature'].includes(L.mode) || lang === 'html' || checkTried.current.has(L.id) || !L.code) return;
     if (localStorage.getItem('bento.check') === 'off') return;
     checkTried.current.add(L.id);
@@ -475,7 +476,7 @@ const Desk = forwardRef(function Desk(props, ref) {
         <div className="ed-row" style={{ display: lens === 'english' ? 'none' : 'flex' }}>
           <div className="ed-main">
             <Editor ref={ed} value={code} lang={edLang} onChange={onChange} marks={marks} lens={lens === 'twin' ? 'code' : lens} english={english}
-              notes={lens === 'twin' ? [] : L.notes} onNoteHover={setNoteRange}
+              notes={lens === 'twin' ? [] : L.notes} onNoteHover={setNoteRange} openNoteAt={props.noteFlash}
               hoverLine={hoverLine} onLineHover={(n) => { setHoverLine(n); if (lens === 'twin') setTwinHover(n ? { main: [n, n], twin: mapTo(n, true) } : null); }}
               onEnglishHover={(n) => setNoteRange(n ? [n, n] : null)} onEnglishClick={(n) => ed.current?.setCursorLine(n)}
               onRun={() => doRun()} onStep={doTrace} onScrub={() => {}} explain={explain} touch={!!phone} reading={!!phone && !editing} />

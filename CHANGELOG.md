@@ -3,6 +3,10 @@
 Each version's section becomes its GitHub release notes, which is what "What's new" in the sidebar opens.
 Write for learners, not for developers.
 
+## Unreleased
+
+- **Use Bento from your own AI agent.** Add Bento to Claude Code, Codex, Gemini, Copilot or any agent that speaks MCP with one command (Settings → **Use Bento from your AI agent**). Then ask it to "show me in Bento": it writes the lesson and Bento puts it on your screen and runs the code. It can see the code you're editing and what it did, point at lines with a note, and try changes for you. Your agent's plan does the thinking; Bento uses none of yours.
+
 ## 0.3.1
 
 - Try a runnable spiral lesson directly from the welcome screen, even before connecting an AI.

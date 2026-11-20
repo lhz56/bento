@@ -114,6 +114,34 @@ Shortcuts go through `src/platform.js`: `mod(e)` is ⌘ on a Mac and Ctrl elsewh
 
 - `src/still.js` puts `html.still` on the page while Bento isn't focused or after 45 s without input; the stylesheet pauses only decorative animations under it (and IdeaFlow pauses its SVG motion), so an idle Home costs under 1% CPU instead of about 12%.
 
+## Your own agent uses Bento (MCP)
+
+Lessons usually go one way: Bento asks your AI and draws what comes back. `electron/agent.cjs` adds the other way: your
+own agent (Claude Code, Codex, Gemini, Copilot, Cursor…) does the thinking and uses Bento as its classroom, so Bento
+spends nothing of your plan.
+
+```
+ agent ──stdio, MCP──▶ Bento --mcp (no window, no Dock icon) ──socket──▶ the open Bento (main.cjs) ──IPC──▶ App.jsx
+```
+
+- **`Bento --mcp`** is the app itself, started by the agent with one switch. `main.cjs` sees it before anything else
+  starts (no window, no one-copy lock, a scratch folder of its own) and runs `bridge()`: MCP over standard input and
+  output (`initialize`, `tools/list`, `tools/call`), nothing else ever written to standard output. A shipped copy opens
+  Bento in the background if it isn't running; test and demo profiles never do.
+- **The socket** is `agent.sock` in Bento's data folder (a named pipe on Windows), made by `serve()` once the app is
+  ready, readable only by your user (0600). Arguments are checked in `checkArgs()` before the window sees them, and the
+  agent gets a sentence it can act on when something is wrong.
+- **The window** (`App.jsx`, with the pure parts in `src/agent.js`) does each tool: `show_lesson` turns the agent's
+  fields into Bento blocks and opens a finished lesson signed "from Claude Code" (it waits for the first run and reports
+  it), `get_learner_view` describes the page and the editor's code with line numbers, `highlight_code` sets the same
+  line highlight a `[[4-6|link]]` does and pins the note open, `run_code` runs through the desk and reports logs,
+  pictures and the error line (`describeRun()`).
+- **No quiet spending:** a lesson from an agent never triggers Bento's own AI (no plain-English fill-in, no repair, no
+  double-check); the agent is told about errors and fixes its own.
+
+`scripts/smoke-agent.mjs` drives all of it as an agent would, against a hidden Bento with no AI; `smoke-app.mjs`
+checks `--mcp` on the signed release too.
+
 ## 5. Storage
 
 Everything is local. The renderer saves to `localStorage` and mirrors to `bento-store.json` on disk (`store:set`). On launch, whichever copy is newer wins. Lessons are the exception to "same data in both": browser storage holds the newest 60 for a fast start, and the disk copy holds all of them (up to 2,000), merged back in at launch (`saveLessons` in `src/store.js`). Atlases and site results live in their own cache files.

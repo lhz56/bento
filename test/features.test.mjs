@@ -409,4 +409,24 @@ if (process.platform !== 'win32') { const { createRequire } = await import('node
   check(five === 'def f(n):\n    if n == 0:\n        return 1\n    return n * f(n - 1)\nprint(f(4))', 'code spread over many lines with real breaks is read whole, indentation kept', JSON.stringify(five));
   check(codeOf('{"t":"code","file":"a.py","code":"x = 1\tprint(x)"}') === 'x = 1\tprint(x)', 'a raw tab inside the code is kept', ''); }
 
+// your own AI agent using Bento (electron/agent.cjs, src/agent.js): arguments are checked, its lesson becomes a real
+// lesson, runs are put into words, and the setup command quotes a path with spaces
+{ const { createRequire } = await import('node:module'); const { checkArgs, TOOLS } = createRequire(import.meta.url)('../electron/agent.cjs');
+  const { lessonFromAgent, describeRun, describeView, agentCommand, agentName } = await import('../src/agent.js');
+  check(TOOLS.map((t) => t.name).join() === 'show_lesson,get_learner_view,highlight_code,run_code' && TOOLS.every((t) => t.inputSchema?.type === 'object' && t.description.length > 40), 'four tools, each with a schema and a description', TOOLS.map((t) => t.name).join());
+  check(/language must be/.test(checkArgs('show_lesson', { title: 'x', code: 'x', language: 'cobol' }).error) && /needs code/.test(checkArgs('show_lesson', { title: 'x', language: 'python', code: '  ' }).error) && /no tool/.test(checkArgs('rm_rf', {}).error), 'show_lesson refuses a made-up language or no code; unknown tools are refused', '');
+  const a = checkArgs('show_lesson', { title: 'T', language: 'python', code: 'a = 1\nb = 2\nprint(a + b)', pseudo: ['one'], quiz: { q: '?', choices: ['3'], answer: 0 }, notes: [{ from: '2', text: 'n' }, { text: 'no line' }] }).args;
+  check(a.quiz === null && a.notes.length === 1 && a.notes[0].from === 2 && a.notes[0].to === 2, 'a one-choice quiz is dropped; notes need a line (numbers written as text count)', JSON.stringify(a));
+  const L = lessonFromAgent(a, 'claude-code');
+  check(L.status === 'done' && L.agent === 'Claude Code' && L.kicker === 'from Claude Code' && L.code.startsWith('a = 1') && L.pseudo.length === 3 && L.pseudo[1] === '' && L.lang === 'python', 'its lesson is a finished Bento lesson, signed by the agent, one plain-English line per code line', JSON.stringify({ ...L, story: undefined }));
+  check(agentName('codex-mcp-client') === 'Codex' && agentName('') === 'your agent' && agentName('Zed') === 'Zed', 'agents are named the way people know them', '');
+  const d = describeRun({ logs: [{ k: 'log', s: 'hi' }], visuals: [{ type: 'bars', data: [1, 2], label: 'n' }], error: { msg: 'NameError: x', line: 4 } });
+  check(/Printed:\nhi/.test(d) && /bar chart "n": \[1, 2\]/.test(d) && /Error on line 4: NameError/.test(d), 'a run is put into words: what printed, what it drew, the error and its line', d);
+  check(/home page/.test(describeView({ view: 'home' })) && /No lesson is open/.test(describeView({ view: 'home' })), 'with no lesson open the agent is told so', '');
+  const v = describeView({ view: 'lesson', lesson: L, code: 'a = 5\nprint(a)', run: { r: { logs: [{ k: 'log', s: '5' }] }, src: 'a = 5\nprint(a)' } });
+  check(/they changed it/.test(v) && /  2  print\(a\)/.test(v) && /Printed:\n5/.test(v) && !/earlier version/.test(v), 'the learner’s own edits are shown with line numbers, with the run of that very code', v);
+  const cmd = ['/Applications/My Apps/Bento.app/Contents/MacOS/Bento', '--mcp'];
+  check(agentCommand('claude', cmd) === 'claude mcp add bento --scope user -- "/Applications/My Apps/Bento.app/Contents/MacOS/Bento" --mcp', 'the Claude Code command quotes a path with a space', agentCommand('claude', cmd));
+  check(agentCommand('gemini', ['/x/Bento', '--mcp']) === 'gemini mcp add --scope user bento /x/Bento --mcp' && JSON.parse(agentCommand('json', cmd)).mcpServers.bento.args[0] === '--mcp', 'Gemini and the plain settings shape are right too', agentCommand('gemini', ['/x/Bento', '--mcp'])); }
+
 process.exit(fail ? 1 : 0);

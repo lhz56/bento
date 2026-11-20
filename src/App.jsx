@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { SAMPLES, CHALLENGE, emptyLesson, applyBlock, ndjsonParser, buildPrompt, parseJSONLoose } from './lesson.js';
+import { lessonFromAgent, describeRun, describeView, agentName } from './agent.js';
 import { tidyLesson } from './verify.js'; // when a lesson finishes: slipped plain English is written again, slipped line links moved back
 import { projectNames, decide, mentionedProject, pointsBack, namesALesson } from './findProject.js';
 import { explainToken } from './explain.js';
@@ -541,6 +542,43 @@ export default function App() {
   const phoneTitle = view === 'lesson' ? (current?.title || current?.q || '') : view === 'atlas' ? (atlases[atlasKey]?.name || '').split('/').pop() : view === 'site' ? siteKey : view === 'compare' ? t('Compare') : t(groupOf(view)?.label || '');
   const [article, setArticle] = useState(() => !!localStorage.getItem('bento.article'));
   const [runs, setRuns] = useState({});
+  // ---------------------------------------------------------------- your own AI agent uses Bento (electron/agent.cjs)
+  // Its tool calls arrive here: show its lesson, say what's on screen, point at lines, run code. Answers are words for it.
+  const [noteFlash, setNoteFlash] = useState(null); // { from, at }: a note your agent just pinned, shown open
+  const runWaits = useRef([]); // tool calls waiting for a lesson's code to finish running
+  const agentNow = useRef({}); agentNow.current = { view, current, runs, openLesson, patch, atlasKey };
+  useEffect(() => api.agent?.on(async (tool, a, client) => {
+    const N = agentNow.current;
+    const ran = (id, ms) => new Promise((res) => { const w = { id, res }; runWaits.current.push(w); setTimeout(() => { runWaits.current = runWaits.current.filter((x) => x !== w); res(null); }, ms); });
+    const later = 'It is still running (Python takes a few seconds the first time). Call get_learner_view in a moment to see what it did.';
+    if (tool === 'show_lesson') {
+      const L = lessonFromAgent(a, client);
+      const done = ran(L.id, 30000);
+      N.openLesson(L); setShowSettings(false); setPal(false);
+      const r = await done;
+      return `Bento is showing "${L.title}" to the learner.\n\nWhen its code ran:\n${r ? describeRun(r.r) : later}`;
+    }
+    if (tool === 'get_learner_view') return describeView({ view: N.view, lesson: N.current, code: N.view === 'lesson' ? desk.current?.getCode?.() : null, run: N.current ? N.runs[N.current.id] : null, project: N.view === 'atlas' ? N.atlasKey : null });
+    const L = N.view === 'lesson' ? N.current : null;
+    if (!L || !desk.current) throw new Error('No lesson is open in Bento. Use show_lesson to open one.');
+    if (tool === 'highlight_code') {
+      const n = (desk.current.getCode() ?? L.code).split('\n').length;
+      if (a.from > n) throw new Error(`The code has ${n} lines; line ${a.from} isn’t one of them.`);
+      const to = Math.min(a.to, n);
+      setLinkRange([a.from, to]);
+      if (a.note) N.patch(L.id, { notes: [...(L.notes || []).filter((x) => x.from !== a.from), { from: a.from, to, label: a.label || agentName(client), text: a.note }].slice(-8) });
+      if (a.note) setNoteFlash({ from: a.from, at: Date.now() });
+      return `Lines ${a.from}${to > a.from ? `–${to}` : ''} are lit up in Bento${a.note ? ', with your note beside them' : ''}.`;
+    }
+    if (tool === 'run_code') {
+      if (a.code != null) desk.current.setCode(a.code);
+      const done = ran(L.id, 30000);
+      setTimeout(() => desk.current?.run(), 40);
+      const r = await done;
+      return r ? `${a.code != null ? 'Put your code in the editor and ran it.' : 'Ran the learner’s code.'}\n\n${describeRun(r.r)}` : later;
+    }
+    throw new Error(`Bento has no tool called ${tool}.`);
+  }), []);
   const [showSettings, setShowSettings] = useState(false);
   const [showKeys, setShowKeys] = useState(false);
   const [pair, setPair] = useState([null, null]);
@@ -853,8 +891,8 @@ export default function App() {
             <div className="vdivider" onMouseDown={dragStory} />
             <Desk ref={desk} phone={phone} lesson={current} onPatch={(p) => patch(current.id, p)} quick={api.quick} model={settings.model}
               knownWords={knownWordSet} onWord={(w) => setProgress((p) => { const k = w.term.toLowerCase(); if (p.words?.[k]) return p; return { ...p, words: { ...(p.words || {}), [k]: { ...w, from: current.id, title: current.title, at: Date.now() } } }; })}
-              linkRange={linkRange} stepSel={current.steps?.length ? stepSel : null} pyReady={pyReady} streaming={streaming}
-              onResult={(id, r, src) => setRuns((m) => ({ ...m, [id]: { r, src } }))}
+              linkRange={linkRange} noteFlash={noteFlash} stepSel={current.steps?.length ? stepSel : null} pyReady={pyReady} streaming={streaming}
+              onResult={(id, r, src) => { setRuns((m) => ({ ...m, [id]: { r, src } })); runWaits.current = runWaits.current.filter((w) => (w.id === id ? (w.res({ r, src }), false) : true)); }}
               onMastery={(k) => award(current, k)} onRemix={(code, lang) => newScratch(lang, { title: current.title, code, pseudo: code === current.code ? current.pseudo : [] })} />
           </div>
         )}

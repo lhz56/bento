@@ -58,6 +58,20 @@ const strList = (v, n, max) => (Array.isArray(v) && v.length <= n ? v.map((x) =>
 const sizeOf = (v) => { try { return JSON.stringify(v)?.length || 0; } catch { return Infinity; } };
 // A separate profile (fresh lessons, projects and settings), handy for demos, screenshots and tests.
 if (process.env.BENTO_USERDATA) app.setPath('userData', process.env.BENTO_USERDATA);
+// `Bento --mcp`: started by your AI agent (Claude Code, Codex…) as its tool server. No window, no Dock icon, none of
+// the app below: it passes the agent's tool calls to the Bento you have open (agent.cjs). Its own scratch data goes in
+// a folder of its own, so it never touches the open Bento's.
+if (process.argv.includes('--mcp')) {
+  const agent = require('./agent.cjs');
+  const sock = agent.socketPath(app.getPath('userData'));
+  app.setPath('userData', path.join(app.getPath('userData'), 'agent-bridge'));
+  if (process.platform === 'darwin') { try { app.setActivationPolicy('prohibited'); } catch {} app.dock?.hide(); }
+  // a shipped copy starts Bento if it isn't open (tests and development never start one on their own)
+  const bundle = process.platform === 'darwin' && app.isPackaged && !process.env.BENTO_USERDATA ? path.resolve(process.execPath, '../../..') : null; // (never for a test or demo profile)
+  const launch = () => { if (!bundle || !/\.app$/.test(bundle)) return false; try { spawn('/usr/bin/open', ['-g', bundle], { stdio: 'ignore', detached: true }).unref(); return true; } catch { return false; } };
+  agent.bridge({ sock, version: app.getVersion(), launch, onEnd: () => app.exit(0) });
+  return; // eslint-disable-line no-unreachable
+}
 const DIST = path.join(__dirname, '..', 'dist');
 // errors go to ~/Library/Logs/Bento/main.log (Help → Show Logs); test and demo profiles keep theirs inside the profile
 const LOGS = process.env.BENTO_USERDATA ? path.join(app.getPath('userData'), 'logs') : app.getPath('logs');
@@ -182,8 +196,9 @@ function anotherCopyRunning() {
     process.kill(pid, 0); return true;
   } catch (e) { return e?.code === 'EPERM'; } // no lock file (it couldn't be made), or its copy is gone
 }
+let secondCopy = false; // this copy is quitting because another is open: it must not take over that one's agent socket
 if (!app.requestSingleInstanceLock()) {
-  if (anotherCopyRunning()) app.quit();
+  if (anotherCopyRunning()) { secondCopy = true; app.quit(); }
   else logger.log('opening without the one-copy lock: it couldn’t be created (is the disk full?)');
 }
 // bento:// links ("Open in Bento" from a browser bookmark): macOS sends open-url, Windows and Linux start a second copy with the link
@@ -1035,3 +1050,32 @@ app.whenReady().then(async () => {
   if (hostPrefs.on) hostNow().start({ wifi: hostPrefs.wifi, local: testHost }).catch((e) => logger.log('host start failed', e));
 });
 app.on('will-quit', () => { host?.stop(); try { bonjour?.kill(); } catch {} if (awakeId != null) powerSaveBlocker.stop(awakeId); });
+
+// ---------------------------------------------------------------- your own AI agent uses Bento (agent.cjs)
+// Claude Code, Codex and other agents start `Bento --mcp`, which reaches this copy through a socket only your user can
+// open. Each tool call goes to the window, which does it (App.jsx) and answers in words for the agent. Showing a lesson
+// or pointing at lines brings Bento forward; looking and running don't.
+const agentApi = require('./agent.cjs');
+const AGENT_SOCK = agentApi.socketPath(app.getPath('userData'));
+const agentWaits = new Map(); let agentSeq = 0, agentServer = null;
+ipcMain.on('agent:reply', (_e, id, r) => { const w = agentWaits.get(id); if (w) { agentWaits.delete(id); w(r && typeof r === 'object' ? r : { error: 'Bento couldn’t do that.' }); } });
+function agentCall(tool, args, client) {
+  if (!win || win.isDestroyed()) return Promise.reject(new Error('Bento’s window is closed. Click Bento in the Dock, then try again.'));
+  if (['show_lesson', 'highlight_code'].includes(tool) && !OFFSCREEN) { if (win.isMinimized()) win.restore(); win.show(); if (MAC) app.focus({ steal: true }); else win.focus(); }
+  const id = ++agentSeq;
+  return new Promise((res, rej) => {
+    const t = setTimeout(() => { agentWaits.delete(id); rej(new Error('Bento took too long to answer. Is a lesson still loading? Try again.')); }, 90_000);
+    agentWaits.set(id, (r) => { clearTimeout(t); r.error ? rej(new Error(String(r.error))) : res(String(r.text ?? '')); });
+    win.webContents.send('agent:call', id, tool, args, client);
+  });
+}
+ipcMain.handle('agent:info', () => {
+  // the command an agent runs to start Bento's tool server: this very app, with --mcp
+  const cmd = app.isPackaged ? [process.execPath] : [process.execPath, path.resolve(__dirname, '..')];
+  return { cmd: [...cmd, '--mcp'], on: !!agentServer };
+});
+app.whenReady().then(() => {
+  if (process.env.BENTO_NO_AGENT || secondCopy) return;
+  try { agentServer = agentApi.serve({ sock: AGENT_SOCK, call: agentCall, log: (...a) => logger.log(...a) }); } catch (e) { logger.log('agent socket failed', e); }
+});
+app.on('will-quit', () => agentServer?.close());

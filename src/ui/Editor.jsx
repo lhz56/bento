@@ -400,6 +400,8 @@ const Editor = forwardRef(function Editor(props, ref) {
   }, [touch, notes, openNote, lens]);
   useEffect(() => { if (!touch) return; const n = openNote != null ? notes[openNote] : null; cb.current.onNoteHover?.(n ? [n.from, n.to || n.from] : null); }, [touch, openNote]);
   useEffect(() => { setOpenNote(null); setCard(null); }, [notes]);
+  // a note your agent just pinned opens by itself (after the reset above, which runs first)
+  useEffect(() => { const f = props.openNoteAt; if (!f) return; const i = notes.findIndex((n) => n.from === f.from); if (i >= 0) setOpenNote(i); }, [props.openNoteAt, notes]);
   useLayoutEffect(() => { requestAnimationFrame(measure); }, [lens]);
 
   const lineY = (i) => geo.off + (geo.tops[i - 1] ?? (i - 1) * geo.lh);

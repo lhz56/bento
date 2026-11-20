@@ -115,6 +115,22 @@ Any one AI is enough. Bento teaches with the one you pick in the sidebar (quick 
 
 Bento never stores tokens. Every request is a call to your own CLI with every tool, plugin and tool server switched off, so the model can only write text.
 
+### Or let your own agent drive Bento
+
+It works the other way round too. Bento is also a tool server (MCP) for the agent you already talk to: add it once
+from **Settings → Use Bento from your AI agent** (for Claude Code: `claude mcp add bento --scope user -- /Applications/Bento.app/Contents/MacOS/Bento --mcp`),
+then ask your agent to "show me in Bento". It gets four tools:
+
+| Tool | What it does |
+|---|---|
+| `show_lesson` | Puts its lesson on your screen (story, code, plain-English lines, notes, new words, quiz) and runs the code, then tells the agent what it printed and drew |
+| `get_learner_view` | What you're looking at: the lesson, your code with line numbers (your edits too) and its last run |
+| `highlight_code` | Lights up lines and pins a note beside them |
+| `run_code` | Runs your code, or the agent's change to it, and says what happened |
+
+The agent's plan does the thinking; Bento only shows and runs, and spends none of your plan. If Bento isn't open, it
+opens by itself in the background. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#your-own-agent-uses-bento-mcp).
+
 ## On your phone and iPad
 
 Turn on **Settings → Your phone and iPad**, scan the QR code with your phone, and Bento opens there, already
@@ -129,6 +145,7 @@ device. Your devices reach the Mac over Tailscale (from anywhere) or your Wi-Fi;
 - Code runs on your Mac. Python is real CPython compiled to WebAssembly, running in a worker.
 - Repos are shallow-cloned into `~/Library/Application Support/bento/repos` and analysed locally.
 - What leaves your machine: prompts sent to your own model CLI, GitHub and website requests you ask for, and Pyodide package downloads when lesson code imports something like numpy. No telemetry.
+- Your own agent reaches Bento through a socket in Bento's data folder that only your user account can open; nothing listens on the network for it.
 - Your phone and iPad (off unless you turn it on) talk only to your Mac, over Tailscale or your Wi-Fi, and only once paired. See [docs/PHONE.md](docs/PHONE.md#safety).
 - Repo code is only read, never run, and lesson web pages run on an isolated origin. Lesson code can reach the public internet, but never your Mac or your home network. See [Safety](docs/ARCHITECTURE.md#safety).
 

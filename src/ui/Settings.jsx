@@ -4,6 +4,7 @@ import { Seg } from './Home.jsx';
 import { MODELS } from './Side.jsx';
 import { PlanList, usePlans, AIMark } from './Plans.jsx';
 import { useDialog } from './a11y.js';
+import { agentCommand } from '../agent.js';
 import DevicesRow, { ThisDeviceRow } from './Devices.jsx';
 
 // ⌘, : everything you can change, in one calm sheet.
@@ -43,6 +44,7 @@ export default function Settings({ packs = [], onAddPack, onRemovePack, onBackup
         <CheckRow />
         {onAddPack && <PackRow packs={packs} onAddPack={onAddPack} onRemovePack={onRemovePack} />}
         {!REMOTE && <div className="set-row"><div><b>{t('Open in Bento from your browser')}</b><span>{t('Drag this button to your bookmarks bar. On any GitHub page or website, click it to take it apart in Bento.')}</span></div><a className="btn ghost bookmarklet" href={"javascript:location.href='bento://open?u='+encodeURIComponent(location.href)"} onClick={(e) => e.preventDefault()} draggable title={t('Drag me to your bookmarks bar')}>⤓ {t('Open in Bento')}</a></div>}
+        {!REMOTE && window.bento?.agent && <AgentRow />}
         {!REMOTE && usage?.count > 0 && <div className="set-row"><div><b>Downloaded code</b><span>{usage.count} project{usage.count > 1 ? 's' : ''} · {(usage.bytes / 1048576).toFixed(0)} MB. Bento downloads them again if you reopen one.</span></div><button className="btn ghost" onClick={async () => { if (confirm('Delete the downloaded code for all projects? Your notes and lessons stay.')) { await window.bento.reposClear(); setUsage({ bytes: 0, count: 0 }); } }}>Free up space</button></div>}
         {!REMOTE && window.bento?.update && <UpdatesRow />}
         <div className="set-foot">{!REMOTE && <button className="link" style={{ marginLeft: 0 }} onClick={onReplayOnboarding}>{t('Replay the welcome')}</button>}<span className="muted small">Bento · MIT license</span></div>
@@ -123,6 +125,27 @@ function UpdatesRow() {
           ? <button className="btn" onClick={() => window.bento.update.install()}>{t('Restart')}</button>
           : <button className="btn ghost" disabled={busy || st.status === 'off' || st.status === 'checking' || st.status === 'downloading'} onClick={async () => { setBusy(true); try { setSt(await window.bento.update.check()); } finally { setBusy(false); } }}>{busy ? t('Checking…') : t('Check now')}</button>}
       </div>
+    </div>
+  );
+}
+
+// Your own AI agent (Claude Code, Codex, Gemini, Copilot…) can use Bento: it writes the lessons and Bento shows and runs
+// them (electron/agent.cjs). One command adds Bento to the agent; nothing to turn on here.
+const AGENTS = [['claude', 'Claude Code'], ['codex', 'Codex'], ['gemini', 'Gemini'], ['copilot', 'Copilot'], ['json', 'Other']];
+function AgentRow() {
+  const [info, setInfo] = useState(null); const [which, setWhich] = useState('claude'); const [copied, setCopied] = useState(false);
+  useEffect(() => { window.bento.agent.info().then(setInfo, () => {}); }, []);
+  if (!info) return null;
+  const text = agentCommand(which, info.cmd);
+  const copy = () => { navigator.clipboard?.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1400); };
+  return (
+    <div className="set-row col agent-row">
+      <div><b>{t('Use Bento from your AI agent')}</b><span>{t('Ask Claude Code, Codex or another agent to “show me in Bento”: it writes the lesson and Bento shows it, runs the code and lets it see what you’re doing. Your agent’s plan does the thinking; Bento uses none of yours.')}</span></div>
+      <Seg value={which} options={AGENTS} onChange={(v) => { setWhich(v); setCopied(false); }} />
+      <button className={`cmd ${which === 'json' ? 'json' : ''}`} onClick={copy} title={t('Copy')} aria-label={`${t('Copy')}: ${text}`}>
+        {which !== 'json' && <span className="cmd-p">$</span>}<span className="cmd-t">{text}</span><span className="cmd-c">{copied ? 'copied ✓' : 'copy'}</span>
+      </button>
+      <span>{which === 'json' ? t('Add this to your agent’s MCP settings (Cursor, VS Code, Windsurf and others use this shape).') : t('Run it once in Terminal, then start a new chat with your agent. Bento opens by itself when the agent needs it.')}</span>
     </div>
   );
 }

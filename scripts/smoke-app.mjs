@@ -157,6 +157,20 @@ await step('a featured project stays on screen once it’s open', async () => {
   const back = await p.evaluate(() => new Promise((r) => { const t0 = Date.now(); const iv = setInterval(() => { const l = !!document.querySelector('.atlas-loading'); if (l || Date.now() - t0 > 5000) { clearInterval(iv); r(l); } }, 40); }));
   if (back) throw new Error('the loading steps came back after the project was on screen');
 });
+// your own AI agent (electron/agent.cjs): this very app started with --mcp, the way Claude Code or Codex starts it
+await step('an AI agent can use Bento: --mcp answers, shows its lesson and runs it', async () => {
+  const c = spawn(exe, [...(packaged ? [] : [root]), '--mcp'], { env, stdio: ['pipe', 'pipe', 'ignore'] });
+  let buf = '', n = 0; const w = new Map();
+  c.stdout.setEncoding('utf8'); c.stdout.on('data', (d) => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const m = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1); w.get(m.id)?.(m); } });
+  const rpc = (method, params) => new Promise((res, rej) => { const id = ++n; const t = setTimeout(() => rej(new Error(`${method}: no answer`)), 60000); w.set(id, (m) => { clearTimeout(t); res(m); }); c.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n'); });
+  try {
+    if ((await rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'smoke' } })).result?.serverInfo?.name !== 'bento') throw new Error('no MCP answer');
+    const r = await rpc('tools/call', { name: 'show_lesson', arguments: { title: 'Agent check', language: 'python', code: 'show([3, 1, 2])\nprint("agent ok")' } });
+    const text = r.result?.content?.[0]?.text || JSON.stringify(r);
+    if (!/agent ok/.test(text) || !/bar chart/.test(text)) throw new Error(text.slice(0, 200));
+  } finally { c.stdin.end(); c.kill(); }
+  return 'lesson shown, code ran';
+});
 await step('no errors on the page, and nothing blocked by the Content-Security-Policy', async () => { errors.push(...((await p.evaluate(() => performance.getEntriesByType('mark').filter((m) => m.name.startsWith('bento:csp')).map((m) => m.name)).catch(() => [])))); if (errors.length) throw new Error(errors.slice(0, 3).join(' | ')); });
 
 await app.close().catch(() => {});
