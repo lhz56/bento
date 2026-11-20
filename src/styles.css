@@ -399,7 +399,7 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .ldot { display: inline-block; width: 8px; height: 8px; border-radius: 3px; flex: none; }
 .ex-side { position: sticky; top: 20px; display: flex; flex-direction: column; gap: 22px; }
 .ex-proj { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; margin: 0 -8px; border-radius: 8px; font-size: 13px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ex-proj:hover { background: var(--bg-2); } .ex-proj.strong { font-weight: 600; margin-bottom: 4px; } .ex-pi { color: var(--accent-ink); width: 8px; }
+.ex-proj:hover { background: var(--bg-2); } .ex-proj.strong { font-weight: 600; margin-bottom: 4px; } .ex-pi { color: var(--accent-ink); width: 16px; display: inline-grid; place-items: center; margin-right: 4px; }
 .priv { margin-left: auto; font: 650 10px var(--round); color: var(--ink-3); background: var(--bg-2); padding: 1px 6px; border-radius: 99px; }
 .side-projects { margin: 0 -4px 12px; padding: 0 4px; }
 
@@ -725,13 +725,14 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .tc-when { margin-top: 10px; font-size: 13px; line-height: 1.45; color: var(--ink-2); min-height: 38px; } .tc-when b { color: var(--ink); }
 
 /* ------------------------------------------------------------ onboarding */
-.onb { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; background: radial-gradient(1200px 600px at 50% -10%, color-mix(in srgb, var(--accent) 10%, var(--bg)), var(--bg) 60%); animation: fadeIn .4s both; overflow: auto; }
-.onb-drag { position: fixed; top: 0; left: 0; right: 0; height: 40px; -webkit-app-region: drag; }
-.onb-dots { position: fixed; top: 22px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
+.onb { position: fixed; inset: 0; z-index: 200; display: flex; align-items: flex-start; justify-content: center; background: radial-gradient(1200px 600px at 50% -10%, color-mix(in srgb, var(--accent) 10%, var(--bg)), var(--bg) 60%); animation: fadeIn .4s both; overflow: auto; }
+.onb-drag { position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 2; -webkit-app-region: drag; background: linear-gradient(var(--bg) 55%, transparent); }
+.onb-dots { position: fixed; top: 22px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; z-index: 3; }
 .onb-dots i { width: 7px; height: 7px; border-radius: 4px; background: var(--line-2); transition: all .3s; } .onb-dots i.on { width: 22px; background: var(--accent); } .onb-dots i.past { background: var(--ink-4); }
-.onb-pane { width: min(760px, 92vw); padding: 40px 0; animation: fadeUp .45s cubic-bezier(.2, .8, .2, 1) both; }
+.onb-pane { width: min(760px, 92vw); margin: auto; padding: 64px 0 40px; animation: fadeUp .45s cubic-bezier(.2, .8, .2, 1) both; }
 .onb-pane.welcome { text-align: center; }
-.welcome .onb-go + .btn { margin-inline-start: 10px; }
+.welcome .onb-go + .btn { margin-inline-start: 10px; height: 46px; padding: 0 20px; border-radius: 14px; font-size: 15px; }
+.onb h1, .onb h2 { text-wrap: balance; }
 .onb h1 { font-family: var(--serif); font-weight: 600; font-size: 50px; letter-spacing: -1.2px; line-height: 1.05; margin: 22px 0 14px; } .onb h1 em { color: var(--accent-big); }
 .onb h2 { font-family: var(--serif); font-weight: 600; font-size: 34px; letter-spacing: -.6px; margin: 4px 0 8px; }
 .onb-sub { font-family: var(--serif); font-size: 18px; line-height: 1.55; color: var(--ink-2); max-width: 600px; margin: 0 auto 26px; } .onb-sub.small { font-size: 15.5px; margin: 0 0 22px; max-width: none; }
@@ -764,7 +765,7 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .route { margin-top: 16px; padding: 12px 16px; border-radius: 14px; font-size: 13.5px; line-height: 1.5; animation: fadeUp .3s both; }
 .route.ok { background: var(--mint-soft); color: var(--ink-2); } .route.no { background: var(--butter-soft); color: var(--ink-2); }
 .route-dot { display: inline-block; vertical-align: 1px; margin-right: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 4px color-mix(in srgb, var(--mint) 25%, transparent); }
-.onb-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 26px; }
+.onb-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 26px; position: sticky; bottom: 0; z-index: 1; padding: 14px 0 18px; background: linear-gradient(transparent, var(--bg) 40%); }
 .levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0 26px; }
 .lvl { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 18px; border-radius: 18px; background: var(--panel); box-shadow: 0 0 0 1px var(--line); text-align: left; transition: all .15s; }
 .lvl:hover { transform: translateY(-2px); } .lvl.on { box-shadow: 0 0 0 2px var(--accent), var(--shadow-2); }
@@ -2362,12 +2363,16 @@ body.mac .side-open { left: 80px; }
 .mp-connect { display: flex !important; align-items: center; gap: 8px; } .mp-marks { display: inline-flex; gap: 2px; opacity: .8; }
 .set-models button .brand-plain, .set-models button .brand-med { flex: none; }
 /* the welcome's AIs: two to a row, GitHub across the bottom */
-.conns.ai4 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.conns.ai4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .conns.ai4 .conn { align-items: flex-start; gap: 12px; padding: 14px 14px 14px 16px; }
 .conns.ai4 .conn.gh { grid-column: 1 / -1; }
 .conns.ai4 .conn-state { width: 24px; height: 24px; font-size: 12px; }
 .conns.ai4 .cmd { max-width: 100%; overflow: hidden; } .conns.ai4 .cmd-row .btn.small { height: 28px; padding: 0 12px; }
-.conns.ai4 .cmd { white-space: nowrap; text-overflow: ellipsis; }
+.conns.ai4 .cmd { white-space: nowrap; min-width: 0; }
+.cmd-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* one AI works: the others stay a tap away, without a wall of commands */
+.conns.ai4 .conn.quiet { padding-block: 12px; } .conns.ai4 .conn.quiet .cmd, .conns.ai4 .conn.quiet .conn-what { display: none; }
+.conns.ai4 .conn.quiet .cmd-row { margin-top: 6px; }
 .opt.free { color: var(--mint-ink); background: var(--mint-soft); }
 @media (max-width: 760px) { .conns.ai4 { grid-template-columns: 1fr; } }
 /* the model picker, one group per AI with how full its plan is */

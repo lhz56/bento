@@ -71,15 +71,15 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
         <div className="onb-pane" key="c">
           <div className="onb-k">step 1 · your AI</div>
           <h2>Any one of these is enough.</h2>
-          <p className="onb-sub small">Bento teaches with the AI plans you already have, on this Mac. Choose a subscription sign-in to use your plan. API keys and cloud accounts may be billed separately.</p>
+          <p className="onb-sub small">Bento teaches with an AI plan you already pay for, right on this Mac. Sign in with your subscription to use your plan; API keys and cloud accounts may be billed separately.</p>
           <div className="conns ai4">
             {scanFailed && <p role="alert">Bento couldn’t check your connections. Try Scan again, or continue with built-in lessons.</p>}
-            {!scanFailed && CONNS.map((c, i) => {
+            {!scanFailed && [...CONNS].sort((a, b) => (scan && b.ai && ready(b.id)) - (scan && a.ai && ready(a.id))).map((c, i) => {
               const r = scan?.[c.id];
               const state = !scan ? 'wait' : !r?.installed ? 'missing' : r.outdated ? 'old' : !r.loggedIn ? 'login' : 'ok';
               const how = howTo(c, state, scan); const busy = running === c.id;
               return (
-                <div key={c.id} className={`conn s-${state} ${c.ai ? 'ai' : 'gh'}`} style={{ animationDelay: `${i * 70}ms` }}>
+                <div key={c.id} className={`conn s-${state} ${c.ai ? 'ai' : 'gh'} ${anyModel && state !== 'ok' ? 'quiet' : ''}`} style={{ animationDelay: `${i * 70}ms` }}>
                   <Brand slug={c.slug} name={c.name} color={c.color} size={38} />
                   <div className="conn-main">
                     <div className="conn-top"><b>{c.name}</b>{!c.ai && <span className="opt">optional</span>}</div>
@@ -93,7 +93,7 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
                     {how && (
                       <div className="cmd-row">
                         {how.cmd && api.aiTerminal && /Mac/.test(navigator.platform) && <button className={`btn small ${c.ai ? '' : 'ghost'}`} onClick={() => act(c, how)} disabled={busy}>{busy ? 'In Terminal…' : VERB[how.action]}</button>}
-                        {how.cmd && <button className="cmd" onClick={() => copy(how.cmd)} title="Copy the command"><span className="cmd-p">$</span>{how.cmd}<span className="cmd-c">{copied === how.cmd ? 'copied ✓' : 'copy'}</span></button>}
+                        {how.cmd && <button className="cmd" onClick={() => copy(how.cmd)} title={`Copy: ${how.cmd}`} aria-label={`Copy the command: ${how.cmd}`}><span className="cmd-p">$</span><span className="cmd-t">{how.cmd}</span><span className="cmd-c">{copied === how.cmd ? 'copied ✓' : 'copy'}</span></button>}
                         {how.link && <button className="link small" onClick={() => api.openExternal?.(how.link)}>{how.need || 'Download'} ↗</button>}
                       </div>
                     )}
@@ -113,7 +113,7 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
             <span className="onb-tools">
               <button className="btn ghost" onClick={doScan} disabled={scanning}>{scanning ? 'Scanning…' : 'Scan again'}</button>
             </span>
-            <button className="onb-go small" onClick={() => setStep(2)}>{anyModel ? 'Continue' : 'Skip for now'} <span>→</span></button>
+            <button className="onb-go small" onClick={() => setStep(2)}>{anyModel ? 'Continue' : 'Continue without AI'} <span>→</span></button>
           </div>
         </div>
       )}

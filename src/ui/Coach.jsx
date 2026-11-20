@@ -4,9 +4,9 @@ import { keys, tap } from '../platform.js';
 // First-time hints: a small bubble pointing at one control at a time. Shown once per screen, ever.
 export const TIPS = {
   lesson: [
-    ['.lenses', 'Switch how you read the code: just code, side by side with plain words, or plain words first.'],
-    ['.cm-content', 'Point at any word in the code for a quick explanation. Hold ⌥ and drag a number to change it live.'],
     ['.act.run', 'Run the code, or use Step to watch it one line at a time.'],
+    ['.cm-content', 'Point at any word in the code for a quick explanation. Hold ⌥ and drag a number to change it live.'],
+    ['.lenses', 'Switch how you read the code: just code, side by side with plain words, or plain words first.'],
     ['#followup', 'Ask anything about this lesson. Enter gives a short answer here; ⌘↵ makes a whole new lesson.'],
   ],
   atlas: [

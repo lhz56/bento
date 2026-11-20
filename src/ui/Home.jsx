@@ -155,7 +155,7 @@ export default function Home({ builtins = [], threads = [], skyDots = [], about,
             {finding && <div className="finding fade-in" role="status"><span className="lens-spin" aria-hidden="true" />{t('Looking for')} <b>{finding.name}</b> {t('on this Mac and on GitHub…')}<button className="link" onClick={onCancelFinding}>{t('Just explain it')}</button></div>}
             {!noModel && <div className="cx-account">{providerName(prov)}{providers.accounts?.[prov] ? ' · ' + providers.accounts[prov] : ''}</div>}
             {checking && <div className="cx-account" role="status">Checking your AI connections…</div>}
-            {!checking && noModel && <div className="warn">{providers.scanFailed ? 'Bento couldn’t check your AI connections.' : 'Your selected AI is unavailable.'} Built-in lessons still work. <button className="link" onClick={onSetup}>Connect an AI →</button></div>}
+            {!checking && noModel && <div className="warn">{providers.scanFailed ? 'Bento couldn’t check your AI connections.' : (Object.entries(providers).some(([k, v]) => v === true && !['gh', 'dark'].includes(k)) ? 'Your selected AI isn’t ready.' : 'No AI connected yet.')} Built-in lessons still work. <button className="link" onClick={onSetup}>Connect an AI →</button></div>}
             {!noModel && pw && (plv === 'high' || plv === 'out') && (
               <div className={`plan-warn lv-${plv}`} role="status">
                 <PlanRing used={pw.unlimited ? 0 : pw.used} lv={plv} size={16} />
