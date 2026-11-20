@@ -54,7 +54,7 @@
       "maker": "OpenAI",
       "bin": "codex",
       "plan": "Your ChatGPT plan (Plus, Pro or Business), through Codex",
-      "slug": "",
+      "slug": "codexcli",
       "color": "#10A37F",
       "install": [
         {

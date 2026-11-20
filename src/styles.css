@@ -2155,7 +2155,8 @@ body.mac .side-open { left: 80px; }
 /* ---- ideas drifting across Home: two slow rows, each card with a tiny moving picture */
 .ideaflow { margin-top: 40px; margin-left: -44px; margin-right: -44px; }
 .if-h { padding: 0 44px; margin-bottom: 12px; font: 750 11px var(--round); letter-spacing: 1.2px; text-transform: uppercase; color: var(--ink-3); }
-.if-row { overflow: hidden; padding: 6px 0; -webkit-mask-image: linear-gradient(90deg, transparent, #000 13%, #000 87%, transparent); mask-image: linear-gradient(90deg, transparent, #000 13%, #000 87%, transparent); }
+.if-row { overflow: hidden; padding: 6px 0; -webkit-mask-image: linear-gradient(90deg, transparent, #000 44px, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(90deg, transparent, #000 44px, #000 calc(100% - 44px), transparent); }
+.ex-gh { padding: 4px 2px; line-height: 1.5; } .ex-gh .link { padding: 0; }
 .if-track { display: flex; gap: 12px; width: max-content; animation: flow 60s linear infinite; }
 .if-row.rev .if-track { animation-direction: reverse; animation-duration: 70s; }
 .if-row:hover .if-track, .if-row:focus-within .if-track { animation-play-state: paused; }

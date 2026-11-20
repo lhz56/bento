@@ -193,7 +193,7 @@ function RunIt() {
 function OwnIt() {
   return (
     <div className="pr-art own" aria-hidden="true">
-      <div className="pr-ais"><span><Brand slug="claude" name="Claude" size={18} plain /></span><span><Brand slug="" name="Codex" color="#111" size={18} plain /></span></div>
+      <div className="pr-ais"><span><Brand slug="claude" name="Claude" size={18} plain /></span><span><Brand slug="codexcli" name="Codex" size={18} plain /></span></div>
       <svg viewBox="0 0 60 60" className="pr-wires" aria-hidden="true"><path d="M2 16 C 30 16, 30 30, 58 30" /><path d="M2 44 C 30 44, 30 30, 58 30" /></svg>
       <div className="onb-logo mini"><span className="b1" /><span className="b2" /><span className="b3" /></div>
     </div>

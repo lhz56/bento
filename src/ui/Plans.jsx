@@ -47,7 +47,7 @@ const NO_READING = {
   codex: 'ChatGPT didn’t say how full your plan is just now. Bento asks again next time you look.',
   antigravity: 'Antigravity doesn’t share how much is left, so Bento counts its own use.',
   gemini: 'Google doesn’t share how much is left, so Bento counts its own use.',
-  copilot: 'Sign in to GitHub (gh auth login) to see your monthly allowance here.',
+  copilot: 'Connect GitHub (⌘K → Connections & setup) to see your monthly allowance here.',
 };
 // one AI: its plan, how full, when it resets, and what Bento used of it today
 export function PlanRow({ id, L, today, now = Date.now() }) {

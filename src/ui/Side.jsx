@@ -169,7 +169,7 @@ export function Sidebar({ progress = {}, onClose, closed, view, setView, lessons
         )}
         {window.bento?.limits && !noAI(providers) && <PlanMeter model={settings.model} providers={providers} />}
         <button className="side-gear" onClick={onSettings} aria-label={t('Settings')}><Icon name="gear" size={20} /></button>
-        {user ? <img className="avatar" src={user.avatar} title={`GitHub: ${user.login}`} alt={`GitHub: ${user.login}`} /> : <span className="avatar ph" title="GitHub not connected (run gh auth login)"><Icon name="folder" size={13} /></span>}
+        {user ? <img className="avatar" src={user.avatar} title={`GitHub: ${user.login}`} alt={`GitHub: ${user.login}`} /> : <span className="avatar ph" title="GitHub not connected (Connections & setup in ⌘K)"><Icon name="folder" size={13} /></span>}
       </div>
     </aside>
   );

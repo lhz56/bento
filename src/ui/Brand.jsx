@@ -1,4 +1,7 @@
-import { ICONS } from '../atlas/icons.js';
+import { ICONS as SI } from '../atlas/icons.js';
+
+// Codex has no simple-icons mark: a terminal prompt (Codex is a command-line AI), in ink like the others
+const ICONS = { ...SI, codexcli: ['111111', 'M3.3 6.7 4.7 5.3 11.4 12l-6.7 6.7-1.4-1.4L8.6 12zM12 16.5h8.5v2H12z'] };
 
 const lum = (hex) => {
   const n = parseInt(hex.replace('#', ''), 16); const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;

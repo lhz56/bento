@@ -9,6 +9,7 @@ Write for learners, not for developers.
 - See the teaching provider and its sign-in method when asking a question. Automatic retries with another provider are an option in Settings.
 - The Mac download requires macOS 13 or newer.
 - Setting up your AI fits any window size: the steps no longer slide under the dots at the top, **Continue** stays on screen, and once one AI is ready the others shrink to a single **Install** button.
+- ChatGPT (Codex) has its own mark instead of a plain letter, and Explore offers **Connect GitHub** instead of a Terminal command.
 - A first lesson's tips start with **Run**, and a Mac with no AI says so plainly, with a **Connect an AI** button in Settings too.
 
 ## 0.3.0
