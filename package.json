@@ -177,7 +177,7 @@
     "acorn-walk": "^8.3.5",
     "axe-core": "^4.14.0",
     "concurrently": "^10.0.7",
-    "electron": "^45.2.3",
+    "electron": "^45.4.1",
     "electron-builder": "^26.18.0",
     "playwright-core": "^1.65.0",
     "pyodide": "^314.0.7",
@@ -187,7 +187,7 @@
     "simple-icons": "^16.37.0",
     "sucrase": "^3.35.1",
     "typescript": "^5.9.3",
-    "vite": "^8.3.6",
+    "vite": "^8.3.8",
     "wait-on": "^9.5.1"
   }
 }

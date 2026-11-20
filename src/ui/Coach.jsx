@@ -27,7 +27,9 @@ export default function Coach({ screen, ready }) {
     const find = () => { const el = document.querySelector(step[0]); if (el) { const r = el.getBoundingClientRect(); setBox({ x: r.left, y: r.top, w: r.width, h: r.height }); } else if (tries++ < 40) raf = setTimeout(find, 150); };
     find();
     const re = () => find(); addEventListener('resize', re);
-    return () => { clearTimeout(raf); removeEventListener('resize', re); };
+    // the thing it points at can go (another Atlas tab, a closed pane): the tip waits, and comes back with it
+    const watch = setInterval(() => { const el = document.querySelector(step[0]); const r = el?.getBoundingClientRect(); setBox((b) => (!r || !r.width ? null : b && Math.abs(b.x - r.left) < 1 && Math.abs(b.y - r.top) < 1 && b.w === r.width && b.h === r.height ? b : { x: r.left, y: r.top, w: r.width, h: r.height })); }, 400);
+    return () => { clearTimeout(raf); clearInterval(watch); removeEventListener('resize', re); };
   }, [i, ready]);
   const done = () => { localStorage.setItem(`bento.coach.${screen}`, '1'); setI(-1); };
   useEffect(() => { if (!step) return; const h = (e) => e.key === 'Escape' && done(); addEventListener('keydown', h); return () => removeEventListener('keydown', h); }, [step]);
