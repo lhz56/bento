@@ -2,8 +2,10 @@
 // profile, driven like a person would (a visible pointer that glides and clicks, typing at a human pace) and filmed
 // through Chromium's own screencast. Lessons come from a pretend AI (test/fixtures), so no plan is ever used.
 //
-//   npx vite build && node scripts/record-media.mjs <scene> [--profile dir] [--out dir]
-//   scenes: see SCENES below; every clip is an H.264 .mp4 (and a .jpg poster) in --out
+//   npx vite build && node scripts/record-media.mjs <scene> [--profile dir] [--out dir] [--raw dir]
+//   scenes: see SCENES below; every clip is an H.264 .mp4 (and a .jpg poster) in --out, finished by compose-media.mjs
+//   (the window on a backdrop, a camera that follows what's happening, a caption per step). --raw keeps the unedited
+//   frames, so a clip can be finished again without filming it again: node scripts/compose-media.mjs <raw>/<name> out.mp4
 //   --profile: a copy of a Bento data folder to start from (the Atlas scenes need one where pingdotgg/t3code was
 //   taken apart; a recording never changes the original)
 import { _electron as electron } from 'playwright-core';
@@ -13,20 +15,23 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { compose } from './compose-media.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const arg = (f, d) => { const i = process.argv.indexOf(f); return i >= 0 ? process.argv[i + 1] : d; };
 const scene = process.argv[2];
 const OUT = path.resolve(arg('--out', path.join(root, 'site', 'media')));
+const RAW = arg('--raw') && path.resolve(arg('--raw'));
 const W = Number(arg('--w', 1440)), H = Number(arg('--h', 900));
 fs.mkdirSync(OUT, { recursive: true });
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bento-rec-'));
 const profile = path.join(tmp, 'p');
 const seed = arg('--profile');
-if (seed) fs.cpSync(seed, profile, { recursive: true }); else { fs.mkdirSync(profile); fs.writeFileSync(path.join(profile, 'bento-store.json'), JSON.stringify({ 'bento.settings': { onboarded: true, model: 'claude:sonnet', lang: 'python' } })); }
-const env = { ...process.env, BENTO_HIDDEN: '1', BENTO_USERDATA: profile, BENTO_NO_GH: '1', BENTO_NO_AGENT: '1',
-  BENTO_FAKE_AI: process.env.BENTO_FAKE_AI || path.join(root, 'test/fixtures/fake-ai.mjs'), BENTO_FAKE_AS: 'claude',
+if (seed) fs.cpSync(seed, profile, { recursive: true }); else if (process.argv.includes('--fresh')) fs.mkdirSync(profile); else { fs.mkdirSync(profile); fs.writeFileSync(path.join(profile, 'bento-store.json'), JSON.stringify({ 'bento.settings': { onboarded: true, model: 'claude:sonnet', lang: 'python' } })); }
+const env = { ...process.env, BENTO_HIDDEN: '1', BENTO_HOST: '1', BENTO_HOST_PORT: '4977', // the phone host, on this Mac only
+  BENTO_USERDATA: profile, BENTO_NO_GH: '1', BENTO_NO_AGENT: '1',
+  BENTO_FAKE_AI: process.env.BENTO_FAKE_AI || path.join(root, 'test/fixtures/demo-ai.mjs'), BENTO_FAKE_AS: 'claude',
   BENTO_PRETEND_MISSING: 'codex,antigravity,gemini,copilot,gh', FAKE_AI_THINK_MS: process.env.FAKE_AI_THINK_MS || '900', FAKE_AI_STEP_MS: process.env.FAKE_AI_STEP_MS || '90' };
 delete env.ELECTRON_RUN_AS_NODE; delete env.BENTO_DEV;
 const app = await electron.launch({ executablePath: createRequire(import.meta.url)('electron'), args: [root, '--force-device-scale-factor=2'], env, timeout: 90000 });
@@ -72,26 +77,31 @@ async function click(s, o) { await glide(s, o); await p.waitForTimeout(120); awa
 async function type(text, delay = 55) { for (const ch of text) { await p.keyboard.insertText(ch); await p.waitForTimeout(delay + Math.random() * 40); } }
 const wait = (ms) => p.waitForTimeout(ms);
 
-// filming: every frame Chromium paints, with its time, then made into a steady 30 fps video
+// filming: every frame Chromium paints, with its time, plus where the camera should look and what the caption says
 const cdp = await p.context().newCDPSession(p);
-let frames = [], filming = false, dir = '';
-cdp.on('Page.screencastFrame', async (f) => { cdp.send('Page.screencastFrameAck', { sessionId: f.sessionId }).catch(() => {}); if (!filming) return; const n = frames.length; const file = path.join(dir, `f${String(n).padStart(5, '0')}.jpg`); fs.writeFileSync(file, Buffer.from(f.data, 'base64')); frames.push({ file, t: f.metadata.timestamp }); });
+let frames = [], filming = false, dir = '', track = null;
+const now = () => Date.now() / 1000;
+cdp.on('Page.screencastFrame', async (f) => { cdp.send('Page.screencastFrameAck', { sessionId: f.sessionId }).catch(() => {}); if (!filming) return; const n = frames.length; const name = `f${String(n).padStart(5, '0')}.jpg`; fs.writeFileSync(path.join(dir, 'frames', name), Buffer.from(f.data, 'base64')); frames.push({ f: name, t: now() }); });
+// the camera: look at a thing (a selector, a locator or { x, y } in page pixels) at a zoom, or 'full' for the whole window
+async function cam(target, z = 1.6, { dx = 0.5, dy = 0.5 } = {}) {
+  if (!track) return;
+  if (target === 'full') { track.cam.push({ t: now(), x: W / 2, y: H / 2, z: 1 }); return; }
+  let x, y; if (target.x != null) ({ x, y } = target); else { const b = await loc(target).boundingBox(); if (!b) return; x = b.x + b.width * dx; y = b.y + b.height * dy; }
+  track.cam.push({ t: now(), x, y, z });
+}
+const cap = (text, n) => track?.caps.push({ t: now(), text, n });
+const speed = (r) => track?.speed.push({ t: now(), r });
 async function film(name, fn) {
-  dir = fs.mkdtempSync(path.join(tmp, 'frames-')); frames = []; filming = true;
-  await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 90, maxWidth: W * 2, maxHeight: H * 2, everyNthFrame: 1 });
+  dir = RAW ? path.join(RAW, name) : fs.mkdtempSync(path.join(tmp, 'raw-')); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(path.join(dir, 'frames'), { recursive: true });
+  frames = []; track = { kind: 'mac', W, H, cam: [], caps: [], speed: [] }; filming = true;
+  await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: W * 2, maxHeight: H * 2, everyNthFrame: 1 });
   // a still page sends no frames: nudge the compositor so the first and last moments are filmed too
   const keep = setInterval(() => p.evaluate(() => { document.documentElement.style.outline = document.documentElement.style.outline ? '' : '0px solid transparent'; }).catch(() => {}), 1000 / 30);
   try { await fn(); } finally { clearInterval(keep); filming = false; await cdp.send('Page.stopScreencast').catch(() => {}); }
   if (frames.length < 2) throw new Error('no frames');
-  const list = frames.map((f, i) => `file '${f.file}'\nduration ${Math.max(0.001, ((frames[i + 1]?.t ?? f.t + 1 / 30) - f.t)).toFixed(4)}`).join('\n') + `\nfile '${frames.at(-1).file}'\n`;
-  fs.writeFileSync(path.join(dir, 'list.txt'), list);
-  const mp4 = path.join(OUT, `${name}.mp4`);
-  const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', path.join(dir, 'list.txt'), '-vf', `fps=30,scale=${Math.min(W * 2, 2400)}:-2:flags=lanczos,format=yuv420p`, '-c:v', 'libx264', '-preset', 'slow', '-crf', '24', '-movflags', '+faststart', '-an', mp4], { stdio: 'inherit' });
-  if (r.status) throw new Error('ffmpeg failed');
-  spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-sseof', '-0.2', '-i', mp4, '-frames:v', '1', '-q:v', '3', path.join(OUT, `${name}.jpg`)]);
-  const secs = (frames.at(-1).t - frames[0].t).toFixed(1);
-  fs.rmSync(dir, { recursive: true, force: true });
-  console.log(`✓ ${name}.mp4 · ${secs}s · ${(fs.statSync(mp4).size / 1e6).toFixed(1)} MB`);
+  fs.writeFileSync(path.join(dir, 'track.json'), JSON.stringify({ ...track, frames }));
+  track = null;
+  await compose(dir, path.join(OUT, `${name}.mp4`));
 }
 async function shot(name) { await p.screenshot({ path: path.join(OUT, `${name}.png`) }); console.log(`✓ ${name}.png`); }
 const nav = (n) => click(`.side nav button:has-text("${n}")`);
@@ -103,48 +113,107 @@ const SCENES = {
     await nav('Practice'); await wait(800); await shot('s-practice'); await nav('Path'); await wait(800); await shot('s-path');
     await nav('You'); await wait(800); await shot('s-you'); await nav('Learn'); await wait(500);
   },
-  // Home → a question → the lesson writes itself → it runs and draws → the plain-English lens
+  // Home → a question → the lesson writes itself → it runs and draws → every line in plain English
   async ask({ film }) {
     await film('ask', async () => {
-      await wait(700); await click('.composer.cx textarea'); await type('Why is a sorted list so fast to search?');
-      await wait(300); await p.keyboard.press('Enter');
-      await p.waitForSelector('.story-head h1:not(.sr-only)', { timeout: 20000 });
+      await cam('full'); await wait(900);
+      cap('Ask anything', 1); await cam('.composer.cx', 1.9, { dy: 0.4 }); await wait(500);
+      await click('.composer.cx textarea'); await type('Why is a sorted list so fast to search?', 45);
+      await wait(350); await p.keyboard.press('Enter');
+      cap('Get a lesson, written for you', 2); await cam('full'); speed(1.8);
+      await p.waitForSelector('.story-head h1:not(.sr-only)', { timeout: 20000 }); await wait(400);
+      await cam('.story', 1.45, { dy: 0.3 });
       await p.waitForFunction(() => !document.querySelector('.writing'), null, { timeout: 30000 }).catch(() => {});
-      await wait(1200); await click('.act.run'); await wait(2600);
-      await click('.lenses button:has-text("Side by side")'); await wait(2400);
-      await click('.lenses button:has-text("Code")'); await wait(800);
+      speed(1); await wait(1600);
+      cap('Run it', 3); await cam('.stage', 1.3, { dy: 0.5 }); await wait(700); await click('.act.run'); await wait(500);
+      await cam('.stage', 1.6, { dy: 0.82 }); await wait(2600);
+      cap('Every line in plain English', 4); await cam('.lenses', 1.5, { dy: 6 }); await wait(500);
+      await click('.lenses button:has-text("Side by side")'); await wait(2800);
+      cap(null); await cam('full'); await wait(1600);
     });
   },
-  // a real open-source app taken apart: the big picture, one part up close, the code city, a journey, the toolbelt
+  // a real open-source app taken apart: paste its link, the big picture, one part up close, a journey, the toolbelt
   async atlas({ film }) {
+    await nav('Explore'); await wait(900);
     await film('atlas', async () => {
-      await wait(500); await click('.side .recent .rl-main:has-text("t3code")'); await p.waitForSelector('.bigpic', { timeout: 30000 }); await wait(3200);
-      await glide('.bigpic >> text=The local server'); await wait(500); await click('.bigpic >> text=The local server'); await wait(3000);
-      await p.keyboard.press('Escape'); await wait(600);
-      await click('.ab-nav button:has-text("Anatomy")'); await wait(2200);
-      const j = p.locator('button:has-text("When you send a task from the phone")').first(); if (await j.count()) { await click(j); await wait(5200); }
-      await click('.ab-nav button:has-text("Toolbelt")'); await wait(3000);
+      await cam('full'); await wait(700);
+      cap('Paste any GitHub link', 1); await cam('main input', 1.8); await wait(400);
+      await click('main input'); await type('github.com/pingdotgg/t3code', 38); await wait(300); await p.keyboard.press('Enter');
+      await p.waitForSelector('.bigpic', { timeout: 30000 }); cap('See the whole app as one picture', 2); await cam('full'); await wait(600);
+      await cam('.bigpic', 1.3); await wait(2600);
+      cap('Click any part', 3); await cam('.bigpic >> text=The local server', 1.8); await glide('.bigpic >> text=The local server'); await wait(400);
+      await click('.bigpic >> text=The local server'); await wait(600); await cam('full'); await wait(2600);
+      await p.keyboard.press('Escape'); await wait(500);
+      cap('Watch a request travel', 4); await click('.ab-nav button:has-text("Anatomy")'); await wait(1200);
+      const j = p.locator('button:has-text("When you send a task from the phone")').first();
+      if (await j.count()) { await cam(j, 1.7); await wait(300); await click(j); await wait(500); await cam({ x: W * 0.58, y: H * 0.55 }, 1.25); await wait(5000); }
+      cap('Every tool, and why it was picked', 5); await cam('.ab-nav', 1.6, { dy: 2 }); await click('.ab-nav button:has-text("Toolbelt")'); await wait(400);
+      await cam({ x: W * 0.58, y: H * 0.45 }, 1.3); await wait(2800);
+      cap(null); await cam('full'); await wait(1400);
     });
   },
   // a famous engineering trick you can run: Discord's ring
   async idea({ film }) {
     await nav('Explore'); await click('.gtabs button:has-text("Clever ideas")'); await wait(900);
+    const card = p.locator('.idea-card, .idea-hero').filter({ hasText: 'Discord' }).first(); await card.scrollIntoViewIfNeeded(); await wait(400);
     await film('idea', async () => {
-      await wait(600); const card = p.locator('.idea-card, .idea-hero').filter({ hasText: 'Discord' }).first(); await card.scrollIntoViewIfNeeded(); await wait(500); await click(card); await p.waitForSelector('.story-head h1:not(.sr-only)'); await wait(1800);
-      await click('.act.run'); await wait(3800);
-      await click('text=the fragile part'); await wait(2200);
-      await click('.lenses button:has-text("Plain words")'); await wait(2600);
+      await cam('full'); await wait(600);
+      cap('How Uber, Google and Discord did it', 1); await cam(card, 1.6); await wait(900); await click(card);
+      await p.waitForSelector('.story-head h1:not(.sr-only)'); await cam('full'); await wait(1500);
+      cap('Run the real idea', 2); await cam('.stage', 1.4, { dy: 0.4 }); await wait(500); await click('.act.run'); await wait(3400);
+      cap('Tap a phrase, see its code', 3); await cam('text=the fragile part', 1.7); await wait(500); await click('text=the fragile part'); await wait(400);
+      await cam('.stage', 1.45, { dy: 0.3 }); await wait(2200);
+      cap('Or read it in plain words', 4); await click('.lenses button:has-text("Plain words")'); await wait(2600);
+      cap(null); await cam('full'); await wait(1400);
     });
   },
   // practice: how long at a billion, then a live race
   async practice({ film }) {
     await nav('Practice'); await wait(900);
     await film('practice', async () => {
-      await wait(500); const r = p.locator('.puzzles input[type=range], input[aria-label="how many items"]').first(); const b = await r.boundingBox();
+      await cam('full'); await wait(600);
+      const r = p.locator('.puzzles input[type=range], input[aria-label="how many items"]').first(); const b = await r.boundingBox();
+      cap('Push it to a billion', 1); await cam({ x: b.x - b.width * 0.9, y: b.y + 75 }, 1.55); await wait(300);
       await glide(r, { dx: 0.27 }); await p.evaluate(() => window.__cur.press()); await p.mouse.down();
       for (let i = 0; i <= 30; i++) { const x = b.x + b.width * (0.27 + 0.7 * i / 30); await p.evaluate(([x, y]) => window.__cur.move(x, y, 40), [x, b.y + b.height / 2]); await p.mouse.move(x, b.y + b.height / 2); await wait(70); }
       await p.mouse.up(); await wait(1600);
-      await click('text=Sorting race'); await wait(7000);
+      cap('Watch them race', 2); await cam('full'); await click('text=Sorting race'); await wait(900);
+      await cam({ x: W * 0.6, y: H * 0.5 }, 1.3); await wait(5600);
+      cap(null); await cam('full'); await wait(1200);
+    });
+  },
+  // the first minute: Bento finds the AI you already have, asks what you know, and you start
+  async start({ film }) {
+    await film('start', async () => {
+      await cam('.onb-pane', 1.55, { dy: 0.6 }); cap('Open Bento', 1); await wait(1500);
+      await click('button:has-text("Connect my AI")'); cap('It finds the AI you already have', 2); await wait(300);
+      await cam('.conns', 1.6, { dy: 0.35 }); await wait(2600);
+      await cam('.onb-pane', 1.45, { dy: 0.6 }); await wait(300); await click('.onb-go'); await wait(300);
+      cap('Tell it what you know', 3); await cam('.levels', 1.6); await wait(800); await click('.lvl >> nth=1'); await wait(900);
+      await cam('.onb-pane', 1.45, { dy: 0.6 }); await click('.onb-go'); await wait(300); cap('Start anywhere', 4); await cam('.starts3', 1.6); await wait(800);
+      for (const i of [0, 1, 2, 3]) await glide(`.s3 >> nth=${i}`, { ms: 420 });
+      await wait(300); await click('.s3 >> nth=0'); cap(null); await cam('full'); await wait(1900);
+    });
+  },
+  // your phone: Settings → Your phone and iPad → on → a code to scan (or Allow on the Mac)
+  async pair({ film }) {
+    // the Mac's own name and address stay out of the picture
+    const mine = spawnSync('scutil', ['--get', 'ComputerName']).stdout?.toString().trim();
+    await p.evaluate((mine) => {
+      const fix = (n) => { let t = n.nodeValue; if (mine) t = t.split(mine).join('MacBook Pro'); t = t.replace(/127\.0\.0\.1:\d+/g, 'your-mac.ts.net'); if (t !== n.nodeValue) n.nodeValue = t; };
+      const walk = (r) => { const w = document.createTreeWalker(r, NodeFilter.SHOW_TEXT); while (w.nextNode()) fix(w.currentNode); };
+      walk(document.body); new MutationObserver((ms) => ms.forEach((m) => { if (m.type === 'characterData') fix(m.target); m.addedNodes.forEach((n) => (n.nodeType === 3 ? fix(n) : n.nodeType === 1 && walk(n))); })).observe(document.body, { subtree: true, childList: true, characterData: true });
+    }, mine);
+    await p.keyboard.press('Meta+Comma'); await wait(1200);
+    const dv = p.locator('.dv').first(); await dv.scrollIntoViewIfNeeded(); await wait(400);
+    if (await p.locator('.dv-head .switch.on').count()) { await p.locator('.dv-head .switch').click(); await wait(1200); }
+    await film('pair', async () => {
+      await cam('full'); await wait(700);
+      cap('Settings → Your phone and iPad', 1); await cam('.dv-head', 1.7); await wait(900);
+      await click('.dv-head .switch'); await wait(1200);
+      cap('Scan it, or tap Allow', 2); await cam('.dv-connect', 1.6); await wait(3600);
+      cap('Your Mac does the work', 3); await cam('.dv-group', 1.5); await wait(2200);
+      cap(null); await cam('full'); await wait(1200);
     });
   },
   async atlasStills() {

@@ -21,6 +21,8 @@
 
 Signed and notarized by Apple, and it updates itself.
 
+<p align="center"><img src="docs/media/start.webp" width="900" alt="Bento's first minute: it finds the AI already signed in on your Mac, asks how much code you've seen, and offers four places to start"></p>
+
 ## Ask anything. Get a lesson you can run.
 
 Real code on the right, the story on the left, every line in plain English. Run it, change a number, watch the picture change.
@@ -41,7 +43,7 @@ Paste a GitHub link. Bento draws the whole app as one picture: every part, what 
 
 ## On your iPhone and iPad
 
-<img src="docs/media/phone-atlas.webp" width="260" align="right" alt="Bento on an iPhone: an app taken apart, one part opened">
+<img src="docs/media/phone-atlas.webp" width="300" align="right" alt="Bento on an iPhone: an app taken apart, one part opened">
 
 Your Mac does the work; your phone goes anywhere.
 
@@ -52,6 +54,8 @@ Your Mac does the work; your phone goes anywhere.
 Nothing is hosted. Your phone talks only to your own Mac. More in [docs/PHONE.md](docs/PHONE.md).
 
 <br clear="right">
+
+<p align="center"><img src="docs/media/pair.webp" width="900" alt="In Settings, Your phone and iPad is switched on and a code appears to scan"></p>
 
 ## Works with the AI you already have
 
@@ -83,7 +87,7 @@ npm test         # none of the checks use an AI plan
 npm run smoke    # the real app, hidden, used end to end
 ```
 
-You need Node 20+ and at least one of `claude`, `codex`, `gemini` or `copilot` signed in. How it fits together: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Shipping a release: [docs/RELEASING.md](docs/RELEASING.md). The pictures above come from `scripts/record-media.mjs` and `scripts/record-phone.mjs`, which film the real app with a pretend AI.
+You need Node 20+ and at least one of `claude`, `codex`, `gemini` or `copilot` signed in. How it fits together: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Shipping a release: [docs/RELEASING.md](docs/RELEASING.md). The clips above come from `scripts/record-media.mjs` and `scripts/record-phone.mjs`, which film the real app with a pretend AI, and `scripts/compose-media.mjs`, which adds the camera moves and captions.
 
 ## Contributing
 

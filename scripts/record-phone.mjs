@@ -3,13 +3,15 @@
 // time is stepped by hand: every frame, the page's clock and every animation move on 1/30 s, then a picture is taken.
 // The result is smooth however slow the pictures are.
 //
-//   npx vite build && node scripts/record-phone.mjs <scene> [--profile dir] [--out dir] [--dark]
+//   npx vite build && node scripts/record-phone.mjs <scene> [--profile dir] [--out dir] [--raw dir] [--dark]
+//   finished like the Mac clips by compose-media.mjs: an iPhone on the backdrop, the camera, a caption per step
 //   --profile: a copy of a Bento data folder to start from (the Atlas scenes need one where pingdotgg/t3code was
 //   taken apart; a recording never changes the original)
 import { _electron as electron, webkit, devices } from 'playwright-core';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path';
 import { fileURLToPath } from 'node:url'; import { createRequire } from 'node:module';
+import { compose } from './compose-media.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const arg = (f, d) => { const i = process.argv.indexOf(f); return i >= 0 ? process.argv[i + 1] : d; };
@@ -20,7 +22,7 @@ const profile = path.join(tmp, 'p');
 if (arg('--profile')) fs.cpSync(arg('--profile'), profile, { recursive: true }); else { fs.mkdirSync(profile); fs.writeFileSync(path.join(profile, 'bento-store.json'), JSON.stringify({ 'bento.settings': { onboarded: true, model: 'claude:sonnet', lang: 'python' } })); }
 const PORT = 4947;
 const env = { ...process.env, BENTO_HIDDEN: '1', BENTO_USERDATA: profile, BENTO_HOST: '1', BENTO_HOST_PORT: String(PORT), BENTO_NO_AGENT: '1',
-  BENTO_FAKE_AI: process.env.BENTO_FAKE_AI || path.join(root, 'test/fixtures/fake-ai.mjs'), BENTO_FAKE_AS: 'claude', BENTO_PRETEND_MISSING: 'codex,antigravity,gemini,copilot,gh', BENTO_NO_GH: '1' };
+  BENTO_FAKE_AI: process.env.BENTO_FAKE_AI || path.join(root, 'test/fixtures/demo-ai.mjs'), BENTO_FAKE_AS: 'claude', BENTO_PRETEND_MISSING: 'codex,antigravity,gemini,copilot,gh', BENTO_NO_GH: '1' };
 delete env.ELECTRON_RUN_AS_NODE; delete env.BENTO_DEV;
 const app = await electron.launch({ executablePath: createRequire(import.meta.url)('electron'), args: [root], env, timeout: 90000 });
 const mac = await app.firstWindow();
@@ -41,11 +43,18 @@ const FINGER = () => { if (window.__dot) return; const st = document.createEleme
 // stepped time: the page's clock (timers, requestAnimationFrame) and every animation and transition, frame by frame
 await p.clock.install();
 const FRAME = 1000 / 30;
-let frames = 0, filming = false, dir = '';
+let frames = 0, filming = false, dir = '', track = null;
+const RAW = arg('--raw') && path.resolve(arg('--raw'));
+const cap = (text, n) => track?.caps.push({ t: frames / 30, text, n });
+async function cam(target, z = 1.4, { dx = 0.5, dy = 0.5 } = {}) {
+  if (!track) return; if (target === 'full') { track.cam.push({ t: frames / 30, x: 196, y: 426, z: 1 }); return; }
+  let x, y; if (target.x != null) ({ x, y } = target); else { const b = await (typeof target === 'string' ? p.locator(target).first() : target).boundingBox(); if (!b) return; x = b.x + b.width * dx; y = b.y + b.height * dy; }
+  track.cam.push({ t: frames / 30, x, y, z });
+}
 async function frame() {
   await p.clock.runFor(FRAME);
   await p.evaluate((dt) => { window.__vt = (window.__vt || 0) + dt; for (const a of document.getAnimations()) { if (a.__s == null) { a.__s = window.__vt - (Number(a.currentTime) || 0); a.pause(); } const d = a.effect?.getComputedTiming?.().endTime; let t = window.__vt - a.__s; if (Number.isFinite(d) && t > d) t = d; a.currentTime = t; } }, FRAME);
-  if (filming) await p.screenshot({ path: path.join(dir, `f${String(frames++).padStart(5, '0')}.jpg`), type: 'jpeg', quality: 88 });
+  if (filming) await p.screenshot({ path: path.join(dir, 'frames', `f${String(frames++).padStart(5, '0')}.jpg`), type: 'jpeg', quality: 90 });
 }
 const wait = async (ms) => { for (let i = 0; i < Math.round(ms / FRAME); i++) await frame(); };
 async function tap(sel, { hold = 160 } = {}) {
@@ -62,14 +71,12 @@ async function swipe(x, y, dy, ms = 500) {
   await el.evaluate((e) => { delete e.__st; }); await p.evaluate(() => { window.__dot.style.opacity = '0'; }); await wait(150);
 }
 async function film(name, fn) {
-  dir = fs.mkdtempSync(path.join(tmp, 'frames-')); frames = 0; filming = true;
+  dir = RAW ? path.join(RAW, name) : fs.mkdtempSync(path.join(tmp, 'raw-')); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(path.join(dir, 'frames'), { recursive: true });
+  frames = 0; track = { kind: 'phone', W: 393, H: 852, cam: [], caps: [], speed: [] }; filming = true;
   try { await fn(); } finally { filming = false; }
-  const mp4 = path.join(OUT, `${name}.mp4`);
-  const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', '30', '-i', path.join(dir, 'f%05d.jpg'), '-vf', 'scale=786:-2:flags=lanczos,format=yuv420p', '-c:v', 'libx264', '-preset', 'slow', '-crf', '23', '-movflags', '+faststart', '-an', mp4], { stdio: 'inherit' });
-  if (r.status) throw new Error('ffmpeg failed');
-  spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', path.join(dir, 'f00010.jpg'), '-vf', 'scale=786:-2', '-q:v', '3', path.join(OUT, `${name}.jpg`)]);
-  console.log(`✓ ${name}.mp4 · ${(frames / 30).toFixed(1)}s · ${(fs.statSync(mp4).size / 1e6).toFixed(1)} MB`);
-  fs.rmSync(dir, { recursive: true, force: true });
+  const list = Array.from({ length: frames }, (_, i) => ({ f: `f${String(i).padStart(5, '0')}.jpg`, t: i / 30 }));
+  fs.writeFileSync(path.join(dir, 'track.json'), JSON.stringify({ ...track, frames: list })); track = null;
+  await compose(dir, path.join(OUT, `${name}.mp4`));
 }
 const shot = async (name) => { await wait(300); await p.screenshot({ path: path.join(OUT, `${name}.png`) }); console.log(`✓ ${name}.png`); };
 
@@ -77,12 +84,11 @@ const SCENES = {
   // the iPhone: take apart a real app with a thumb
   async atlas({ film }) {
     await film('phone-atlas', async () => {
-      await wait(900); await tap(p.getByRole('button', { name: 'Explore' }).last()); await wait(1300);
-      await tap(p.locator('text=pingdotgg/t3code').first()); await wait(2600);
-      await swipe(196, 640, 420, 650); await wait(900); await swipe(196, 640, 420, 650); await wait(1400);
-      await tap(p.locator('text=The local server').first()); await wait(3200);
-      await p.keyboard.press('Escape'); await wait(900);
-      await swipe(196, 640, 520, 700); await wait(1800);
+      await wait(700); cap('Explore on your phone', 1); await wait(500); await tap(p.getByRole('button', { name: 'Explore' }).last()); await wait(1100);
+      cap('Pick any app', 2); await p.locator('text=pingdotgg/t3code').first().scrollIntoViewIfNeeded(); await wait(200); await cam('text=pingdotgg/t3code', 1.35); await wait(500); await tap(p.locator('text=pingdotgg/t3code').first()); await cam('full'); await wait(2200);
+      cap('Scroll through how it works', 3); await swipe(196, 640, 420, 650); await wait(700); await swipe(196, 640, 420, 650); await wait(1100);
+      cap('Tap any part', 4); await p.locator('text=The local server').first().scrollIntoViewIfNeeded(); await cam('text=The local server', 1.4); await wait(400); await tap(p.locator('text=The local server').first()); await cam('full'); await wait(3000);
+      await p.keyboard.press('Escape'); await wait(700); cap(null); await wait(900);
     });
   },
   async atlasTry() {
