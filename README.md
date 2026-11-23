@@ -19,6 +19,8 @@
   <img src="https://img.shields.io/badge/signed%20%26%20notarized-Apple-121212?style=flat-square" alt="Signed and notarized by Apple">
 </p>
 
+<p align="center"><sub>🤖 <b>Using an AI agent?</b> Paste this into Claude Code, Codex or Cursor: <code>Install Bento from github.com/lhz56/bento</code>. It follows <a href="AGENTS.md">AGENTS.md</a>.</sub></p>
+
 <p align="center">
   <a href="#learn">Learn</a> ·
   <a href="#take-apart">Take apart</a> ·
@@ -107,7 +109,7 @@ npm test         # no check ever spends an AI plan
 npm run smoke    # the real app, hidden, end to end
 ```
 
-Node 20+ and one signed-in AI CLI. How it fits together: [ARCHITECTURE](docs/ARCHITECTURE.md) · Shipping: [RELEASING](docs/RELEASING.md) · Help out: [CONTRIBUTING](CONTRIBUTING.md) · Problems: [issues](https://github.com/lhz56/bento/issues) · Security: [SECURITY](SECURITY.md)
+Node 20+ and one signed-in AI CLI. Working with an AI agent? Point it at [AGENTS.md](AGENTS.md). How it fits together: [ARCHITECTURE](docs/ARCHITECTURE.md) · Shipping: [RELEASING](docs/RELEASING.md) · Help out: [CONTRIBUTING](CONTRIBUTING.md) · Problems: [issues](https://github.com/lhz56/bento/issues) · Security: [SECURITY](SECURITY.md)
 
 <sub>Every clip here is the real app, filmed by <code>scripts/record-media.mjs</code> with a pretend AI and finished by <code>scripts/compose-media.mjs</code>.</sub>
 

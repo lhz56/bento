@@ -202,7 +202,7 @@
       "name": "Gemini API",
       "maker": "Google",
       "bin": "gemini",
-      "plan": "A Gemini API key (free from Google AI Studio, Flash only) or a Google Cloud project. Personal Google sign-in now goes through Antigravity instead.",
+      "plan": "A free Gemini API key from Google AI Studio, or a Google Cloud project",
       "slug": "googlegemini",
       "color": "#8E75B2",
       "install": [

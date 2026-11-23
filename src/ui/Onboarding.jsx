@@ -51,35 +51,50 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
   const act = async (c, how) => { if (await api.aiTerminal?.(c.id, how.action, { ...scan?.tools, brewInstalled: !!scan?.[c.id]?.brew })) setRunning(c.id); else copy(how.cmd); };
   const copy = (t) => { navigator.clipboard?.writeText(t); setCopied(t); setTimeout(() => setCopied(null), 1400); };
   const finish = (go) => { setSettings({ onboarded: true, level, lang, interests, model, voice }); onDone(go); };
+  const [more, setMore] = useState(false); // step 1: the other AIs, folded away once one is ready
+  // step 3: the door that suits this person best, marked "for you" and the one Enter opens
+  const pick = level === 'kid' ? 'path' : interests.includes('systems') || level === 'engineer' ? 'explore' : interests.some((x) => ['ai', 'data'].includes(x)) ? 'ideas' : level === 'student' ? 'explore' : 'path';
+  useEffect(() => {
+    const key = (e) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target?.tagName || '')) return;
+      if (e.key === 'Enter' && !/^(BUTTON|A)$/.test(e.target?.tagName || '')) { e.preventDefault(); if (step === 0) setStep(1); else if (step === 1 || step === 2) setStep(step + 1); else finish(pick); }
+      if (e.key === 'Escape' && step > 0) { e.preventDefault(); setStep(step - 1); }
+    };
+    addEventListener('keydown', key); return () => removeEventListener('keydown', key);
+  }, [step, pick, level, lang, interests, model, voice]);
+  const teacher = PROVIDERS.find((p) => p.id === model.split(':')[0])?.models.find((m) => m.id === model)?.label || readyAIs[0]?.name;
+  const lvlName = LEVELS.find(([k]) => k === level)?.[1];
 
   return (
     <div className="onb" role="dialog" aria-modal="true" aria-label="Welcome to Bento">
       <div className="onb-drag" />
-      <div className="onb-dots">{[0, 1, 2, 3].map((i) => <i key={i} className={i === step ? 'on' : i < step ? 'past' : ''} />)}</div>
+      <nav className="onb-dots" aria-label="Setup steps">{['Welcome', 'Your AI', 'About you', 'Start'].map((n, i) => <button key={i} className={i === step ? 'on' : i < step ? 'past' : ''} onClick={() => i < step && setStep(i)} disabled={i >= step} aria-current={i === step ? 'step' : undefined} aria-label={n} title={i < step ? `Back to ${n.toLowerCase()}` : n} />)}</nav>
 
       {step === 0 && (
         <div className="onb-pane welcome" key="w">
           <div className="onb-logo"><span className="b1" /><span className="b2" /><span className="b3" /></div>
           <h1>Learn how software is <em>really</em> built.</h1>
-          <p className="onb-sub">The AI you already pay for, turned into a patient tutor. Real code, run in front of you, explained in plain words.</p>
+          <p className="onb-sub">The AI you already pay for, turned into a patient tutor.<br />Real code, run in front of you, in plain words.</p>
           <div className="onb-promises">
-            <div><SeeIt /><b>See it</b><span>Any app, pulled apart into a picture.</span></div>
-            <div><RunIt /><b>Run it</b><span>Watch code run, one line at a time.</span></div>
-            <div><OwnIt /><b>Own it</b><span>Your own AI plan. Nothing hosted.</span></div>
+            <div><SeeIt /><b>See it</b><span>Any app, as one picture.</span></div>
+            <div><RunIt /><b>Run it</b><span>Code runs, line by line.</span></div>
+            <div><OwnIt /><b>Own it</b><span>Your AI plan. No account.</span></div>
           </div>
-          <button className="onb-go" onClick={() => { setSettings({ onboarded: true }); onDone('sample'); }}>Try a lesson →</button>
-          <button className="btn ghost" onClick={() => setStep(1)}>Connect my AI</button>
+          <button className="onb-go" onClick={() => setStep(1)} autoFocus>Get started <span>→</span></button>
+          <div className="onb-peek"><button className="link" onClick={() => { setSettings({ onboarded: true }); onDone('sample'); }}>or peek at a lesson first</button><span className="onb-kbd"><kbd>↵</kbd> to start</span></div>
         </div>
       )}
 
       {step === 1 && (
         <div className="onb-pane" key="c">
           <div className="onb-k">step 1 · your AI</div>
-          <h2>Any one of these is enough.</h2>
-          <p className="onb-sub small">Bento teaches with an AI plan you already pay for, right on this Mac. Sign in with your subscription to use your plan; API keys and cloud accounts may be billed separately.</p>
-          <div className="conns ai4">
+          {!scan && !scanFailed && <><h2>Looking for your AI…</h2><p className="onb-sub small">Checking this {WIN ? 'PC' : 'Mac'} for Claude, ChatGPT, Gemini and Copilot.</p></>}
+          {scanFailed && <h2>Couldn’t look for your AI.</h2>}
+          {scan && anyModel && <><h2>{readyAIs.length === 1 ? <>Found <em>{readyAIs[0].short || readyAIs[0].name}</em>. You’re ready.</> : <>Found {readyAIs.length} AIs. You’re ready.</>}</h2><p className="onb-sub small">Bento teaches with the plan you already pay for. Nothing to set up.</p></>}
+          {scan && !anyModel && <><h2>Pick an AI to teach with.</h2><p className="onb-sub small">Any one is enough. Bento uses the plan you already pay for: no API key, no new account.</p></>}
+          <div className={`conns ai4 ${scan && anyModel ? 'found' : ''}`}>
             {scanFailed && <p role="alert">Bento couldn’t check your connections. Try Scan again, or continue with built-in lessons.</p>}
-            {!scanFailed && [...CONNS].sort((a, b) => (scan && b.ai && ready(b.id)) - (scan && a.ai && ready(a.id))).map((c, i) => {
+            {!scanFailed && [...CONNS].sort((a, b) => (scan && b.ai && ready(b.id)) - (scan && a.ai && ready(a.id))).filter((c) => !(scan && anyModel) || (c.ai && ready(c.id)) || more).map((c, i) => {
               const r = scan?.[c.id];
               const state = !scan ? 'wait' : !r?.installed ? 'missing' : r.outdated ? 'old' : !r.loggedIn ? 'login' : 'ok';
               const how = howTo(c, state, scan); const busy = running === c.id;
@@ -98,25 +113,28 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
                     {how && (
                       <div className="cmd-row">
                         {how.cmd && api.aiTerminal && /Mac|Win/.test(navigator.platform) && <button className={`btn small ${c.ai ? '' : 'ghost'}`} onClick={() => act(c, how)} disabled={busy}>{busy ? `In ${SHELL}…` : VERB[how.action]}</button>}
-                        {how.cmd && <button className="cmd" onClick={() => copy(how.cmd)} title={`Copy: ${how.cmd}`} aria-label={`Copy the command: ${how.cmd}`}><span className="cmd-p">$</span><span className="cmd-t">{how.cmd}</span><span className="cmd-c">{copied === how.cmd ? 'copied ✓' : 'copy'}</span></button>}
+                        {how.cmd && <button className="cmd-copy" onClick={() => copy(how.cmd)} title={how.cmd} aria-label={`Copy the command: ${how.cmd}`}>{copied === how.cmd ? 'Copied ✓' : 'or copy the command'}</button>}
                         {how.link && <button className="link small" onClick={() => api.openExternal?.(how.link)}>{how.need || 'Download'} ↗</button>}
                       </div>
                     )}
                   </div>
-                  <span className={`conn-state ${state}`} aria-hidden="true">{state === 'wait' ? <span className="lens-spin" /> : state === 'ok' ? '✓' : state === 'login' || state === 'old' ? '!' : '+'}</span>
+                  {state !== 'missing' && <span className={`conn-state ${state}`} aria-hidden="true">{state === 'wait' ? <span className="lens-spin" /> : state === 'ok' ? '✓' : '!'}</span>}
                 </div>
               );
             })}
           </div>
+          {scan && anyModel && <button className="onb-more" onClick={() => setMore((m) => !m)} aria-expanded={more}>{more ? 'Hide the others' : <>Add another AI <span className="muted">(optional, for when one runs out)</span></>}<span className="onb-more-marks" aria-hidden="true">{!more && CONNS.filter((c) => !(c.ai && ready(c.id))).map((c) => <Brand key={c.id} slug={c.slug} name={c.name} color={c.color} size={20} plain />)}</span></button>}
           {scan && (
             <div className={`route ${anyModel ? 'ok' : 'no'}`} role="status">
               {anyModel ? <><span className="route-dot" />Bento will teach with <b>{PROVIDERS.find((p) => p.id === model.split(':')[0])?.models.find((m) => m.id === model)?.label || readyAIs[0].name}</b>{settings.autoFallback && readyAIs.length > 1 ? <>. If it runs out, it asks <b>{readyAIs.filter((p) => p.id !== model.split(':')[0]).map((p) => p.short || p.name).join(', then ')}</b>.</> : '.'} Quick answers use a faster model from the same AI.</>
-                : <>No AI ready yet. Press <b>Install</b> on any one above, and Bento looks again when you come back. The built-in lessons work meanwhile.</>}
+                : <>Press <b>Install</b> on any one. Bento opens {SHELL} so you can watch, and looks again when you come back. The built-in lessons work meanwhile.</>}
             </div>
           )}
+          {scan && <p className="onb-fine">Signing in with a subscription uses that plan. An API key is billed by its provider.</p>}
           <div className="onb-nav">
             <span className="onb-tools">
-              <button className="btn ghost" onClick={doScan} disabled={scanning}>{scanning ? 'Scanning…' : 'Scan again'}</button>
+              <button className="btn ghost" onClick={() => setStep(0)}>Back</button>
+              <button className="btn ghost" onClick={doScan} disabled={scanning}>{scanning ? 'Looking…' : 'Look again'}</button>
             </span>
             <button className="onb-go small" onClick={() => setStep(2)}>{anyModel ? 'Continue' : 'Continue without AI'} <span>→</span></button>
           </div>
@@ -158,13 +176,14 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
         <div className="onb-pane" key="r">
           <div className="onb-k">all set</div>
           <h2>Where do you want to start?</h2>
+          <p className="onb-recap">{anyModel ? <>Teaching with <b>{teacher}</b></> : <>Built-in lessons for now</>}<i /> {lvlName}<i /> {lang === 'python' ? 'Python' : 'JavaScript'}{voice !== 'English' ? <><i /> {voice}</> : null}<button className="link" onClick={() => setStep(2)}>change</button></p>
           <div className="starts3">
-            <button className="s3" onClick={() => finish('explore')}><Art kind="city" /><b>Take apart a real app</b><span>Pick any open-source project and see how it’s built, as a picture.</span></button>
-            <button className="s3" onClick={() => finish('ideas')}><Art kind="hex" /><b>Read a clever idea</b><span>How Uber, Google and Discord solved hard problems, with code you can run.</span></button>
-            {level === 'engineer'
-              ? <button className="s3" onClick={() => finish('home')}><Art kind="code" /><b>Ask anything</b><span>“How does consistent hashing work?” Get a lesson with live code.</span></button>
-              : <button className="s3" onClick={() => finish('path')}><Art kind="code" /><b>Start from zero</b><span>Eleven short stops from “what is a program?” to your first app.</span></button>}
-            <button className="s3" onClick={() => finish('puzzles')}><Art kind="puzzle" /><b>Solve a puzzle</b><span>Interview puzzles from the top down, raced from 10 items to a billion.</span></button>
+            {[['explore', 'city', 'Take apart a real app', 'Pick any open-source project and see how it’s built, as a picture.'],
+              ['ideas', 'hex', 'Read a clever idea', 'How Uber, Google and Discord solved hard problems, with code you can run.'],
+              level === 'engineer' ? ['home', 'code', 'Ask anything', '“How does consistent hashing work?” Get a lesson with live code.'] : ['path', 'code', 'Start from zero', 'Eleven short stops from “what is a program?” to your first app.'],
+              ['puzzles', 'puzzle', 'Solve a puzzle', 'Interview puzzles from the top down, raced from 10 items to a billion.']].map(([go, art, t, d]) => (
+              <button key={go} className={`s3 ${go === pick ? 'fy' : ''}`} onClick={() => finish(go)}>{go === pick && <span className="s3-pick">For you · <kbd>↵</kbd></span>}<Art kind={art} /><b>{t}</b><span>{d}</span></button>
+            ))}
           </div>
           {level !== 'engineer' && <button className="onb-ask" onClick={() => finish('home')}>or just ask anything <span>→</span></button>}
         </div>
@@ -198,8 +217,8 @@ function RunIt() {
 function OwnIt() {
   return (
     <div className="pr-art own" aria-hidden="true">
-      <div className="pr-ais"><span><Brand slug="claude" name="Claude" size={18} plain /></span><span><Brand slug="codexcli" name="Codex" size={18} plain /></span></div>
-      <svg viewBox="0 0 60 60" className="pr-wires" aria-hidden="true"><path d="M2 16 C 30 16, 30 30, 58 30" /><path d="M2 44 C 30 44, 30 30, 58 30" /></svg>
+      <div className="pr-ais four">{PROVIDERS.filter((p) => p.id !== 'gemini').slice(0, 4).map((p) => <span key={p.id}><Brand slug={p.slug} name={p.name} size={14} plain /></span>)}</div>
+      <svg viewBox="0 0 60 60" className="pr-wires" aria-hidden="true"><path d="M2 8 C 30 8, 30 30, 58 30" /><path d="M2 23 C 30 23, 30 30, 58 30" /><path d="M2 38 C 30 38, 30 30, 58 30" /><path d="M2 53 C 30 53, 30 30, 58 30" /></svg>
       <div className="onb-logo mini"><span className="b1" /><span className="b2" /><span className="b3" /></div>
     </div>
   );

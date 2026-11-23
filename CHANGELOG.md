@@ -5,6 +5,7 @@ Write for learners, not for developers.
 
 ## Unreleased
 
+- **A friendlier first minute.** Bento looks for your AI and says what it found ("Found Claude. You're ready.") instead of showing a wall of install buttons; the others fold into "Add another AI". The last step suggests where to start for you, and Enter moves you along.
 - **Use Bento from your own AI agent.** Add Bento to Claude Code, Codex, Gemini, Copilot or any agent that speaks MCP with one command (Settings → **Use Bento from your AI agent**). Then ask it to "show me in Bento": it writes the lesson and Bento puts it on your screen and runs the code. It can see the code you're editing and what it did, point at lines with a note, and try changes for you. Your agent's plan does the thinking; Bento uses none of yours.
 - First-time tips step aside when you switch to a part of the screen they don't point at.
 - **Find on the page** with ⌘F: every match is marked, with "3 of 8"; Enter for the next one.

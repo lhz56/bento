@@ -187,7 +187,7 @@ const SCENES = {
   async start({ film }) {
     await film('start', async () => {
       await cam('.onb-pane', 1.55, { dy: 0.6 }); cap('Open Bento', 1); await wait(1500);
-      await click('button:has-text("Connect my AI")'); cap('It finds the AI you already have', 2); await wait(300);
+      await click('button:has-text("Get started")'); cap('It finds the AI you already have', 2); await wait(300);
       await cam('.conns', 1.6, { dy: 0.35 }); await wait(2600);
       await cam('.onb-pane', 1.45, { dy: 0.6 }); await wait(300); await click('.onb-go'); await wait(300);
       cap('Tell it what you know', 3); await cam('.levels', 1.6); await wait(800); await click('.lvl >> nth=1'); await wait(900);

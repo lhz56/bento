@@ -49,7 +49,7 @@ const AIS = createRequire(import.meta.url)('../electron/ai-catalog.json').provid
 {
   const { p, errors, close } = await launch({ model: 'claude:sonnet', lang: 'python' });
   await step(p, 'the welcome finds every AI, each ready', async () => {
-    await p.getByRole('button', { name: 'Connect my AI' }).click(); await p.waitForSelector('.conn.ai.s-ok', { timeout: 30000 }); await p.waitForTimeout(500);
+    await p.getByRole('button', { name: 'Get started' }).click(); await p.waitForSelector('.conn.ai.s-ok', { timeout: 30000 }); await p.waitForTimeout(500);
     const n = await p.locator('.conn.ai.s-ok').count(); if (n !== AIS.length) throw new Error(`${n} ready`);
     const said = await p.locator('.route').innerText(); if (!/Claude Sonnet/.test(said) || said.includes('If it runs out')) throw new Error(said);
     return 'selected provider shown';
@@ -62,7 +62,7 @@ const AIS = createRequire(import.meta.url)('../electron/ai-catalog.json').provid
 {
   const { p, errors, close } = await launch({ model: 'claude:sonnet', lang: 'python' }, { FAKE_AI_AUTH_MS: '10000' });
   await step(p, 'a slow sign-in check is waited for, not read as “not signed in”', async () => {
-    await p.getByRole('button', { name: 'Connect my AI' }).click(); await p.waitForSelector('.conn.ai.s-ok', { timeout: 60000 });
+    await p.getByRole('button', { name: 'Get started' }).click(); await p.waitForSelector('.conn.ai.s-ok', { timeout: 60000 });
     await p.waitForFunction((n) => document.querySelectorAll('.conn.ai.s-ok').length === n || document.querySelector('.conn.ai.s-login'), AIS.length, { timeout: 60000 });
     const login = await p.locator('.conn.ai.s-login').count(); if (login) throw new Error(`${login} shown as not signed in`);
     return 'Claude ready after a 10 s check';
