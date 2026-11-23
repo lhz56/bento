@@ -69,6 +69,7 @@ const POINTER = () => {
 await p.evaluate(POINTER);
 const loc = (s) => (typeof s === 'string' ? p.locator(s).first() : s);
 async function glide(s, { ms = 750, dx = 0.5, dy = 0.5 } = {}) {
+  if (s && s.x != null && typeof s.boundingBox !== 'function') { await p.evaluate(POINTER); await p.evaluate(([x, y, ms]) => window.__cur.move(x, y, ms), [s.x, s.y, ms]); await p.mouse.move(s.x, s.y); return s; }
   const l = loc(s); await l.scrollIntoViewIfNeeded().catch(() => {}); const b = await l.boundingBox(); if (!b) throw new Error(`can’t see ${s}`);
   const x = b.x + b.width * dx, y = b.y + b.height * dy; await p.evaluate(POINTER);
   await p.evaluate(([x, y, ms]) => window.__cur.move(x, y, ms), [x, y, ms]); await p.mouse.move(x, y); return { x, y };
@@ -97,7 +98,7 @@ async function film(name, fn) {
   await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: W * 2, maxHeight: H * 2, everyNthFrame: 1 });
   // a still page sends no frames: nudge the compositor so the first and last moments are filmed too
   const keep = setInterval(() => p.evaluate(() => { document.documentElement.style.outline = document.documentElement.style.outline ? '' : '0px solid transparent'; }).catch(() => {}), 1000 / 30);
-  try { await fn(); } finally { clearInterval(keep); filming = false; await cdp.send('Page.stopScreencast').catch(() => {}); }
+  try { await fn(); } finally { track.end = now(); clearInterval(keep); filming = false; await cdp.send('Page.stopScreencast').catch(() => {}); }
   if (frames.length < 2) throw new Error('no frames');
   fs.writeFileSync(path.join(dir, 'track.json'), JSON.stringify({ ...track, frames }));
   track = null;
@@ -214,6 +215,45 @@ const SCENES = {
       cap('Scan it, or tap Allow', 2); await cam('.dv-connect', 1.6); await wait(3600);
       cap('Your Mac does the work', 3); await cam('.dv-group', 1.5); await wait(2200);
       cap(null); await cam('full'); await wait(1200);
+    });
+  },
+  // the box on the website: four short close-ups of one feature each
+  async box({ film }) {
+    const open = async () => { await click('.side .recent .rl-main:has-text("t3code")'); await p.waitForSelector('.ab-nav', { timeout: 30000 }); await wait(1200); };
+    const tab = async (t) => { await click(`.ab-nav button:has-text("${t}")`); await wait(1300); };
+    // the first match for some text that's on screen right now
+    const seen = async (t) => { const all = p.getByText(t, { exact: true }); for (let i = 0; i < await all.count(); i++) { const b = await all.nth(i).boundingBox(); if (b && b.y > 60 && b.y < H - 40 && b.width > 0) return all.nth(i); } throw new Error(`can’t see ${t}`); };
+    await open(); await tab('Toolbelt');
+    await film('toolbelt', async () => {
+      cap('Every tool it’s built with', 1); await cam({ x: 470, y: 330 }, 1.45); await wait(2000);
+      await glide(await seen('Electron')); cap('Why this one', 2); await cam({ x: 1150, y: 330 }, 1.6); await wait(2800);
+      cap('And what else it could have been', 3); await cam({ x: 1110, y: 450 }, 1.7); await glide({ x: 1115, y: 455 }); await wait(2800);
+      cap(null); await cam({ x: 720, y: 400 }, 1.15); await wait(1200);
+    });
+    await tab('Hot spots');
+    await film('hotspots', async () => {
+      cap('Where it could break', 1); await cam({ x: 560, y: 225 }, 1.6); await wait(2200);
+      cap('Why, in plain words', 2); await cam({ x: 760, y: 320 }, 1.55); await glide({ x: 700, y: 318 }); await wait(2600);
+      cap('Down to the file', 3); await cam({ x: 600, y: 360 }, 1.7); await wait(2800);
+      cap(null); await cam('full'); await wait(1200);
+    });
+    await tab('Files');
+    await film('files', async () => {
+      cap('Every file of the app', 1); await cam({ x: 830, y: 520 }, 1.15); await wait(1800);
+      cap('Sorted by what it does', 2); await cam({ x: 560, y: 220 }, 1.7); await wait(400);
+      for (const c of ['The brains', 'What you see', 'All']) { await click(`main button:has-text("${c}")`); await wait(1000); await cam({ x: 830, y: 520 }, 1.15); await wait(800); await cam({ x: 560, y: 220 }, 1.7); }
+      cap('Find any file', 3); const f = p.locator('main input[placeholder*="Find a file"]').first(); await cam(f, 1.8); await click(f); await type('database', 70); await wait(900);
+      await cam({ x: 830, y: 480 }, 1.2); await wait(2400);
+      cap(null); await cam('full'); await wait(1000);
+    });
+    await nav('Path'); await wait(1200);
+    await film('path', async () => {
+      cap('Pick a path', 1); await cam({ x: 830, y: 245 }, 1.55); await wait(400);
+      for (let i = 0; i < 4; i++) await glide(`.pcard >> nth=${i}`, { ms: 450 });
+      await wait(400);
+      cap('Short stops, in order', 2); await p.mouse.wheel(0, 360); await wait(300); await cam({ x: 720, y: 500 }, 1.35); await wait(2400);
+      cap('Start where you are', 3); const st = p.locator('.stop-card button:has-text("Start"), button:has-text("Start: stop 1")').first(); await cam(st, 1.7); await glide(st); await wait(2000);
+      cap(null); await cam('full'); await wait(1000);
     });
   },
   async atlasStills() {

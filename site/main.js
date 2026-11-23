@@ -17,7 +17,7 @@ const once = new IntersectionObserver((es) => es.forEach((e) => {
   if (!e.isIntersecting) return; const el = e.target; once.unobserve(el);
   el.classList.add('in'); el.dispatchEvent(new Event('arrive'));
 }), { threshold: 0.2 });
-$$('.parts, .prompt-sec, .sheet-copy, .sheet > .specimen, .link-up, .bp-in > *, .box, .term, .last > h2').forEach((el) => { el.classList.add('rv'); once.observe(el); });
+$$('.parts, .prompt-sec, .sheet-copy, .sheet > .specimen, .soon-art, .bp-in > *, .bench, .promise, .term, .last > h2').forEach((el) => { el.classList.add('rv'); once.observe(el); });
 
 // the bar marks the section you're in
 const marks = $$('.links a').map((a) => [a, document.querySelector(a.getAttribute('href'))]).filter(([, s]) => s);
@@ -74,6 +74,26 @@ if (typed) {
   const run = async () => { for (;;) { bar.classList.remove('done'); typed.textContent = ''; await sleep(500); for (const ch of text) { typed.textContent += ch; await sleep(60 + Math.random() * 60); } await sleep(300); bar.classList.add('done'); await sleep(4200); } };
   if (still) { typed.textContent = text; bar.classList.add('done'); } else bar.addEventListener('arrive', run, { once: true });
   bar.classList.add('rv'); once.observe(bar);
+}
+
+// the bench: each drawer opens its recording; the open one fills as it plays, then the next one opens
+const stage = $('.stage');
+if (stage) {
+  const v = $('video', stage); const tabs = $$('.drawers button'); let cur = 0;
+  const show = async (i, play = true) => {
+    cur = (i + tabs.length) % tabs.length; const name = tabs[cur].dataset.clip;
+    tabs.forEach((t, j) => { t.setAttribute('aria-selected', String(j === cur)); t.style.setProperty('--p', 0); });
+    $('[data-fig]').textContent = tabs[cur].querySelector('i').textContent;
+    stage.classList.add('swap'); await sleep(200);
+    v.poster = `media/${name}.jpg`; v.src = `media/${name}.mp4`; v.load();
+    stage.classList.remove('swap');
+    if (play && !still) v.play().catch(() => {});
+  };
+  tabs.forEach((t, i) => t.addEventListener('click', () => show(i)));
+  v.addEventListener('timeupdate', () => { if (v.duration) tabs[cur].style.setProperty('--p', (v.currentTime / v.duration).toFixed(3)); });
+  v.addEventListener('ended', () => show(cur + 1));
+  // the next drawer's recording waits in the cache
+  v.addEventListener('playing', () => { const n = tabs[(cur + 1) % tabs.length].dataset.clip; const l = document.createElement('link'); l.rel = 'prefetch'; l.href = `media/${n}.mp4`; document.head.appendChild(l); });
 }
 
 // a terminal builds Bento

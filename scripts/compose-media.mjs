@@ -16,7 +16,7 @@ export async function compose(raw, out, { W, H, fps = 30, crf = 25 } = {}) {
   const tr = JSON.parse(fs.readFileSync(path.join(raw, 'track.json'), 'utf8'));
   const phone = tr.kind === 'phone';
   const OW = W || (phone ? 1080 : 1920), OH = H || (phone ? 1350 : 1200); // a phone films upright, 4:5
-  const t0 = tr.frames[0].t, tEnd = tr.frames.at(-1).t;
+  const t0 = tr.frames[0].t, tEnd = Math.max(tr.frames.at(-1).t, tr.end ?? 0); // a still screen sends no frames: hold the last one until filming stopped
   // where the window sits on the backdrop at z = 1: a little high, leaving room for the caption underneath
   // a phone gets a status bar above its page (the page itself starts at the very top)
   const SB = phone ? 50 : 0, EH = tr.H + SB;

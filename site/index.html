@@ -22,7 +22,7 @@
     <a href="#learn"><i>01</i>Learn</a>
     <a href="#apart"><i>02</i>Take apart</a>
     <a href="#box"><i>03</i>In the box</a>
-    <a href="#phone"><i>04</i>Phone</a>
+    <a href="#phone"><i>04</i>Phone <small>soon</small></a>
     <a href="#open"><i>05</i>Source</a>
   </nav>
   <div class="bar-end">
@@ -117,107 +117,41 @@
     </div>
   </section>
 
-  <!-- 03 in the box: drawn compartments, each one moves when you reach it -->
+  <!-- 03 in the box: one bench, five real recordings; pick a tab or let it play through -->
   <section class="box-sec" id="box">
     <div class="sheet-copy wide">
       <p class="mono label"><b>03</b> In the box</p>
       <h2>Everything else,<br>packed in.</h2>
     </div>
-    <div class="box">
-      <article class="cell c-pr">
-        <span class="slot mono">A1</span>
-        <figure><video src="media/practice.mp4" poster="media/practice.jpg" muted loop playsinline preload="none" aria-label="Screen recording: a slider pushes a puzzle from a thousand items to a billion, then a sorting race"></video></figure>
-        <div class="cap"><b>Puzzles that scale</b><span>Push one to a billion. Watch them race.</span></div>
-      </article>
-
-      <article class="cell c-tb">
-        <span class="slot mono">A2</span>
-        <div class="art tools">
-          <span style="--i:0"><img src="img/t-react.svg" alt="React"><em>UI</em></span>
-          <span style="--i:1"><img src="img/t-electron.svg" alt="Electron"><em>Desktop</em></span>
-          <span style="--i:2"><img src="img/t-expo.svg" alt="Expo"><em>Mobile</em></span>
-          <span style="--i:3"><img src="img/t-typescript.svg" alt="TypeScript"><em>Types</em></span>
-          <span style="--i:4"><img src="img/t-vite.svg" alt="Vite"><em>Build</em></span>
-          <span style="--i:5"><img src="img/t-tailwindcss.svg" alt="Tailwind"><em>Style</em></span>
-          <span style="--i:6"><img src="img/t-sqlite.svg" alt="SQLite"><em>Data</em></span>
-          <span style="--i:7"><img src="img/t-astro.svg" alt="Astro"><em>Site</em></span>
-        </div>
-        <div class="cap"><b>The toolbelt</b><span>Every tool an app uses, and why it was picked.</span></div>
-      </article>
-
-      <article class="cell c-hs">
-        <span class="slot mono">B1</span>
-        <div class="art heat mono">
-          <p style="--w:96%;--i:0"><span>server/session.ts</span><i></i></p>
-          <p style="--w:71%;--i:1"><span>ws/router.ts</span><i></i></p>
-          <p style="--w:52%;--i:2"><span>db/schema.ts</span><i></i></p>
-          <p style="--w:30%;--i:3"><span>ui/Chat.tsx</span><i></i></p>
-        </div>
-        <div class="cap"><b>Hot spots</b><span>Where it could break.</span></div>
-      </article>
-
-      <article class="cell c-ai">
-        <span class="slot mono">B2</span>
-        <div class="art orbit" aria-hidden="true">
-          <img src="img/logo.svg" alt="" class="core">
-          <span class="sat s1"><img src="img/claude.svg" alt="" class="c-claude"></span>
-          <span class="sat s2"><svg viewBox="0 0 24 24"><path d="M3.3 6.7 4.7 5.3 11.4 12l-6.7 6.7-1.4-1.4L8.6 12zM12 16.5h8.5v2H12z"/></svg></span>
-          <span class="sat s3"><img src="img/googlegemini.svg" alt="" class="c-gemini"></span>
-          <span class="sat s4"><img src="img/githubcopilot.svg" alt=""></span>
-        </div>
-        <div class="cap"><b>Your AI</b><span>Any one is enough.</span></div>
-      </article>
-
-      <article class="cell c-pa">
-        <span class="slot mono">C1</span>
-        <div class="art path" aria-hidden="true">
-          <svg viewBox="0 0 300 90" preserveAspectRatio="none"><path class="track" d="M10 70 C 60 70, 70 20, 120 20 S 190 70, 230 50 S 280 15, 292 18"/><path class="run" pathLength="1" d="M10 70 C 60 70, 70 20, 120 20 S 190 70, 230 50 S 280 15, 292 18"/></svg>
-          <i style="--x:3%;--y:78%;--i:0"></i><i style="--x:38%;--y:22%;--i:1"></i><i style="--x:62%;--y:62%;--i:2"></i><i style="--x:77%;--y:55%;--i:3"></i><i class="end" style="--x:97%;--y:20%;--i:4"></i>
-        </div>
-        <div class="cap"><b>Paths</b><span>Zero to a real app, in order.</span></div>
-      </article>
-
-      <article class="cell c-fi">
-        <span class="slot mono">C2</span>
-        <div class="art map" aria-hidden="true">
-          <i style="--c:#ff6b3d;grid-area:1/1/3/3"></i><i style="--c:#7c5cff;grid-area:1/3/2/5"></i><i style="--c:#12a37a;grid-area:2/3/4/4"></i><i style="--c:#2b4bff;grid-area:2/4/3/5"></i><i style="--c:#f5b400;grid-area:3/1/5/2"></i><i style="--c:#ff6b3d;grid-area:3/2/4/3"></i><i style="--c:#7c5cff;grid-area:3/4/5/5"></i><i style="--c:#12a37a;grid-area:4/2/5/4"></i>
-        </div>
-        <div class="cap"><b>Files</b><span>Every file, sized by its code.</span></div>
-      </article>
-
-      <article class="cell c-pv">
-        <span class="slot mono">C3</span>
-        <div class="art lock" aria-hidden="true"><svg viewBox="0 0 64 64"><path class="shackle" d="M21 28v-7a11 11 0 0 1 22 0v7" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><rect x="12" y="28" width="40" height="28" rx="5" fill="#ff6b3d"/><circle cx="32" cy="42" r="4" fill="#111"/></svg></div>
-        <div class="cap"><b>Runs on your Mac</b><span>No account. No telemetry. No server.</span></div>
-      </article>
+    <div class="bench">
+      <ol class="drawers" role="tablist" aria-label="Features">
+        <li><button role="tab" aria-selected="true" data-clip="practice"><i class="mono">A</i><b>Puzzles that scale</b><span>Push one to a billion. Watch them race.</span><em class="bar"></em></button></li>
+        <li><button role="tab" aria-selected="false" data-clip="toolbelt"><i class="mono">B</i><b>The toolbelt</b><span>Every tool an app uses, and why.</span><em class="bar"></em></button></li>
+        <li><button role="tab" aria-selected="false" data-clip="hotspots"><i class="mono">C</i><b>Hot spots</b><span>Where it could break, in plain words.</span><em class="bar"></em></button></li>
+        <li><button role="tab" aria-selected="false" data-clip="files"><i class="mono">D</i><b>Every file</b><span>Sorted by what it does. Find any one.</span><em class="bar"></em></button></li>
+        <li><button role="tab" aria-selected="false" data-clip="path"><i class="mono">E</i><b>Paths</b><span>Zero to a real app, in order.</span><em class="bar"></em></button></li>
+      </ol>
+      <figure class="specimen stage" role="tabpanel">
+        <span class="crop tl"></span><span class="crop tr"></span><span class="crop bl"></span><span class="crop br"></span>
+        <video src="media/practice.mp4" poster="media/practice.jpg" muted playsinline preload="none" aria-label="Screen recording of the chosen feature"></video>
+        <figcaption class="mono">Fig. 3<span data-fig>A</span> — recorded in the app, not mocked up.</figcaption>
+      </figure>
     </div>
+    <p class="mono promise"><span>■</span> Runs on your Mac <span>■</span> No account <span>■</span> No telemetry <span>■</span> No server</p>
   </section>
 
-  <!-- 04 phone -->
+  <!-- 04 phone: not ready yet -->
   <section class="sheet phone-sheet" id="phone">
     <div class="sheet-copy">
       <p class="mono label"><b>04</b> Phone</p>
-      <h2>Your Mac thinks.<br>Your phone <mark>goes</mark>.</h2>
-      <ul class="ticks mono">
-        <li>Settings → Your phone and iPad</li>
-        <li>Scan the code</li>
-        <li>Learn from anywhere</li>
-      </ul>
-      <p class="mono fine">Over Tailscale or your Wi-Fi. Nothing in the cloud.</p>
+      <h2>Your phone,<br><mark>coming soon</mark>.</h2>
+      <p class="lede soon">Your Mac does the thinking. Your phone takes it anywhere. We’re still building it.</p>
+      <div class="ctas"><a class="key ghost" href="https://github.com/lhz56/bento">Watch it on GitHub</a></div>
     </div>
-    <div class="link-up">
-      <figure class="specimen">
-        <span class="crop tl"></span><span class="crop tr"></span><span class="crop bl"></span><span class="crop br"></span>
-        <video src="media/pair.mp4" poster="media/pair.jpg" muted loop playsinline preload="none" aria-label="Screen recording: in Settings, Your phone and iPad is switched on and a code appears to scan"></video>
-        <figcaption class="mono">Fig. 4a — Mac</figcaption>
-      </figure>
-      <svg class="wire" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 50 H100"/></svg>
-      <figure class="specimen tall">
-        <span class="crop tl"></span><span class="crop tr"></span><span class="crop bl"></span><span class="crop br"></span>
-        <video src="media/phone-atlas.mp4" poster="media/phone-atlas.jpg" muted loop playsinline preload="none" aria-label="Screen recording on an iPhone: Explore, T3 Code taken apart, scrolled, and one part opened"></video>
-        <figcaption class="mono">Fig. 4b — iPhone</figcaption>
-      </figure>
-    </div>
+    <figure class="soon-art" aria-hidden="true">
+      <img src="media/phone-atlas.jpg" alt="">
+      <div class="stamp mono">COMING<br>SOON</div>
+    </figure>
   </section>
 
   <!-- 05 set up + open source -->
@@ -260,7 +194,7 @@
       <a class="key big" href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg" data-dl>Download for Mac</a>
     </div>
     <p class="mono fine">Apple Silicon · <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg">Intel</a> · signed and notarized by Apple</p>
-    <div class="stamp mono" aria-hidden="true">FREE<br>MIT<br>LOCAL</div>
+    <div class="stamp mono end-stamp" aria-hidden="true">FREE<br>MIT<br>LOCAL</div>
   </section>
 </main>
 
@@ -268,10 +202,9 @@
   <span><img src="img/logo.svg" alt="" width="16" height="16"> Bento field guide</span>
   <a href="https://github.com/lhz56/bento">GitHub</a>
   <a href="https://github.com/lhz56/bento-releases/releases">Releases</a>
-  <a href="https://github.com/lhz56/bento/blob/main/docs/PHONE.md">Phone</a>
-  <a href="https://github.com/lhz56/bento/blob/main/SECURITY.md">Security</a>
+    <a href="https://github.com/lhz56/bento/blob/main/SECURITY.md">Security</a>
   <a href="https://github.com/lhz56/bento-releases/issues">Report a problem</a>
-  <span class="end">MIT</span>
+  <span class="end">Made by <a href="https://github.com/lhz56">Lin Zaw</a> · MIT</span>
 </footer>
 
 <script src="main.js" defer></script>

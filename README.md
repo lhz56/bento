@@ -41,21 +41,9 @@ Paste a GitHub link. Bento draws the whole app as one picture: every part, what 
 
 <p align="center"><img src="docs/media/practice.webp" width="900" alt="How long an algorithm takes at a billion items, then a live sorting race"></p>
 
-## On your iPhone and iPad
+## On your iPhone and iPad: coming soon
 
-<img src="docs/media/phone-atlas.webp" width="300" align="right" alt="Bento on an iPhone: an app taken apart, one part opened">
-
-Your Mac does the work; your phone goes anywhere.
-
-1. On your Mac: **Settings → Your phone and iPad**.
-2. On your phone: scan the code, or open the Bento Code app and tap **Allow** on your Mac.
-3. Learn from the couch or the train, over [Tailscale](https://tailscale.com) or your Wi-Fi.
-
-Nothing is hosted. Your phone talks only to your own Mac. More in [docs/PHONE.md](docs/PHONE.md).
-
-<br clear="right">
-
-<p align="center"><img src="docs/media/pair.webp" width="900" alt="In Settings, Your phone and iPad is switched on and a code appears to scan"></p>
+Your Mac does the work; your phone takes it anywhere. It's still being built. The early pieces are in the code if you want to try them: see [docs/PHONE.md](docs/PHONE.md).
 
 ## Works with the AI you already have
 
