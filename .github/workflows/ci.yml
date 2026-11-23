@@ -1,5 +1,10 @@
 name: ci
-on: [push, pull_request]
+# Not on every push (the full suites run on the Mac before each commit): only when asked (Actions → ci → Run workflow,
+# or `gh workflow run ci --ref <branch>`) and for a release tag, where Windows and Linux get their real test.
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
 
 # Every change is tested on all three systems Bento ships for: the logic tests, then the real app is packaged,
 # opened and used (Python, JavaScript, input(), SQL, the terminal, shortcuts, the network guard), and a lesson is asked
