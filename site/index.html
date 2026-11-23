@@ -3,228 +3,275 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bento: learn how software is really built</title>
-<meta name="description" content="Ask anything and get a lesson you can run. Take apart any app. A free, open-source Mac app that teaches with the AI you already pay for.">
-<meta property="og:title" content="Bento: learn how software is really built">
+<title>Bento: take software apart</title>
+<meta name="description" content="Ask anything and get a lesson you can run. Take apart any app on GitHub. A free, open-source Mac app that teaches with the AI you already pay for.">
+<meta property="og:title" content="Bento: take software apart">
 <meta property="og:description" content="Ask anything and get a lesson you can run. Take apart any app. Free and open source, for Mac.">
 <meta property="og:image" content="media/atlas.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#fbf8f3">
+<meta name="theme-color" content="#f2efe8">
 <link rel="icon" href="img/logo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<header class="nav">
-  <a class="brand" href="#top" aria-label="Bento, back to top"><img src="img/logo.svg" alt="" width="26" height="26"><span>bento</span></a>
+<header class="bar">
+  <a class="brand" href="#top" aria-label="Bento, back to top"><img src="img/logo.svg" alt="" width="22" height="22"><b>bento</b><span class="doc">/ field guide</span></a>
   <nav class="links" aria-label="Sections">
-    <a href="#learn">Learn</a>
-    <a href="#apart">Take apart</a>
-    <a href="#box">Practice</a>
-    <a href="#phone">Phone</a>
-    <a href="#open">Open source</a>
+    <a href="#learn"><i>01</i>Learn</a>
+    <a href="#apart"><i>02</i>Take apart</a>
+    <a href="#box"><i>03</i>In the box</a>
+    <a href="#phone"><i>04</i>Phone</a>
+    <a href="#open"><i>05</i>Source</a>
   </nav>
-  <div class="nav-end">
-    <a class="gh" href="https://github.com/lhz56/bento" aria-label="Bento on GitHub"><img src="img/github.svg" alt="" width="18" height="18"><span class="stars" data-stars></span></a>
-    <a class="btn dark sm" href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg" data-dl>Download</a>
+  <div class="bar-end">
+    <a class="gh" href="https://github.com/lhz56/bento" aria-label="Bento on GitHub"><img src="img/github.svg" alt="" width="16" height="16"><span data-stars>★</span></a>
+    <a class="key" href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg" data-dl>Download</a>
   </div>
 </header>
 
 <main id="top">
-  <!-- hero -->
+  <!-- hero: the headline, then the recording pinned to the page like a specimen with notes around it -->
   <section class="hero">
-    <p class="pill"><span class="dot"></span>Free · Open source · for Mac</p>
-    <h1>Learn how <span class="rot" aria-live="off"><span class="rot-w" data-words="software|Discord|Uber|Shazam|T3&nbsp;Code|Google&nbsp;search">software</span></span><br>is <em>really</em> built.</h1>
-    <p class="lede">Ask anything. Get a lesson you can run.<br>With the AI you already pay for.</p>
-    <div class="ctas">
-      <a class="btn dark lg" href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg" data-dl><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9s-2-.9-3.4-.9c-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.4.8c1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-4.1zM13.9 5c.7-.9 1.2-2.1 1.1-3.3-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.1.1 2.3-.6 3-1.5z"/></svg>Download for Mac</a>
-      <a class="btn line lg" href="https://github.com/lhz56/bento"><img src="img/github.svg" alt="" width="17" height="17">Star on GitHub</a>
+    <div class="hero-top">
+      <p class="mono kicker"><span class="blink"></span>Free · open source · macOS 13+</p>
+      <h1>Take <span class="swap" aria-live="off"><span class="swap-w" data-words="software|Discord|Uber|Shazam|T3&nbsp;Code|Google">software</span></span><br>apart.</h1>
+      <div class="hero-side">
+        <p class="lede">Ask anything. Get a lesson you can run.<br>Open any app and see how it’s built.<br><b>With the AI you already pay for.</b></p>
+        <div class="ctas">
+          <a class="key big" href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg" data-dl><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9s-2-.9-3.4-.9c-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.4.8c1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-4.1zM13.9 5c.7-.9 1.2-2.1 1.1-3.3-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.1.1 2.3-.6 3-1.5z"/></svg>Download for Mac</a>
+          <a class="key ghost big" href="https://github.com/lhz56/bento"><img src="img/github.svg" alt="" width="16" height="16">Source</a>
+        </div>
+        <p class="mono fine">Apple Silicon · <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg">Intel</a> <span data-version></span></p>
+      </div>
     </div>
-    <p class="fine">Apple Silicon · <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg">Intel</a> · macOS 13+ <span data-version></span></p>
-  </section>
 
-  <div class="hero-stage">
-    <figure class="clip tilt">
+    <figure class="specimen hero-spec">
+      <span class="crop tl"></span><span class="crop tr"></span><span class="crop bl"></span><span class="crop br"></span>
       <video src="media/ask.mp4" poster="media/ask.jpg" muted loop playsinline preload="metadata" aria-label="Screen recording: a question typed into Bento becomes a lesson that writes itself, runs, and explains every line in plain English"></video>
-    </figure>
-    <div class="sticker s1" aria-hidden="true"><b>✓</b> Ran it · found in 10 looks</div>
-    <div class="sticker s2" aria-hidden="true"><span class="chip">binary search</span> a new word</div>
-    <div class="sticker s3" aria-hidden="true"><span class="big">O(log n)</span></div>
-  </div>
-
-  <!-- the AIs -->
-  <section class="works">
-    <p class="eyebrow">Works with the plan you already have</p>
-    <ul class="ais">
-      <li><img src="img/claude.svg" alt="" width="22" height="22" class="c-claude">Claude</li>
-      <li><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.3 6.7 4.7 5.3 11.4 12l-6.7 6.7-1.4-1.4L8.6 12zM12 16.5h8.5v2H12z"/></svg>ChatGPT</li>
-      <li><img src="img/googlegemini.svg" alt="" width="22" height="22" class="c-gemini">Gemini</li>
-      <li><img src="img/githubcopilot.svg" alt="" width="22" height="22">Copilot</li>
-    </ul>
-    <p class="fine">No API keys. No account. No extra bill.</p>
-  </section>
-
-  <!-- questions -->
-  <section class="ask-wall" id="learn" aria-label="Questions people ask Bento">
-    <h2 class="center">Ask it anything.</h2>
-    <div class="marquee" aria-hidden="true">
-      <div class="row"><span>How does Uber find a driver?</span><span>Why is a sorted list so fast?</span><span>How does Shazam name a song?</span><span>What happens when I type a URL?</span><span>How does Git remember everything?</span><span>Why do hash maps feel instant?</span><span>How does Discord add servers without chaos?</span></div>
-      <div class="row rev"><span>How does a neural network learn?</span><span>Draw a sunflower with math</span><span>What is recursion, really?</span><span>How does Google rank pages?</span><span>Why do traffic jams appear from nowhere?</span><span>How does a database find a row?</span><span>How do passwords stay secret?</span></div>
-    </div>
-  </section>
-
-  <!-- 01 setup -->
-  <section class="split">
-    <div class="copy">
-      <p class="tag"><b>01</b>Set up</p>
-      <h2>Running in<br>a minute.</h2>
-      <ol class="chips">
-        <li><i>1</i>Download</li>
-        <li><i>2</i>Open</li>
-        <li><i>3</i>Bento finds your AI</li>
+      <ol class="notes" aria-hidden="true">
+        <li class="n1"><b>A</b>Your question</li>
+        <li class="n2"><b>B</b>A lesson, written for you</li>
+        <li class="n3"><b>C</b>It runs, right here</li>
+        <li class="n4"><b>D</b>Every line in plain English</li>
       </ol>
-      <p class="sub">That’s it. Signed by Apple, updates itself.</p>
-    </div>
-    <figure class="clip">
-      <video src="media/start.mp4" poster="media/start.jpg" muted loop playsinline preload="none" aria-label="Screen recording: Bento's first minute. It finds Claude already signed in, asks how much code you've seen, and offers four places to start"></video>
+      <figcaption class="mono">Fig. 0 — “Why is a sorted list so fast to search?”</figcaption>
     </figure>
   </section>
 
-  <!-- 02 learn -->
-  <section class="split flip">
-    <div class="copy">
-      <p class="tag"><b>02</b>Learn</p>
-      <h2>Every answer<br>is a lesson<br>you can <em>run</em>.</h2>
-      <ol class="chips">
-        <li><i>▶</i>Run it</li>
-        <li><i>↔</i>Code beside plain English</li>
-        <li><i>★</i>How Uber, Google and Discord did it</li>
-      </ol>
-    </div>
-    <figure class="clip">
-      <video src="media/idea.mp4" poster="media/idea.jpg" muted loop playsinline preload="none" aria-label="Screen recording: Discord's hash ring as a lesson. It runs, a phrase is tapped to show its code, then the plain-words view"></video>
-    </figure>
+  <!-- what you need: a parts list, not a logo strip -->
+  <section class="parts" aria-label="What you need">
+    <table>
+      <thead><tr><th>Part</th><th>You need</th><th class="qty">Qty</th></tr></thead>
+      <tbody>
+        <tr><td>An AI you already use</td><td class="ai-row"><span><img src="img/claude.svg" alt="" class="c-claude">Claude</span><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.3 6.7 4.7 5.3 11.4 12l-6.7 6.7-1.4-1.4L8.6 12zM12 16.5h8.5v2H12z"/></svg>ChatGPT</span><span><img src="img/googlegemini.svg" alt="" class="c-gemini">Gemini</span><span><img src="img/githubcopilot.svg" alt="">Copilot</span></td><td class="qty">any 1</td></tr>
+        <tr><td>API keys</td><td class="dim">none</td><td class="qty">0</td></tr>
+        <tr><td>Accounts</td><td class="dim">none</td><td class="qty">0</td></tr>
+        <tr><td>Extra bill</td><td class="dim">none</td><td class="qty">$0</td></tr>
+      </tbody>
+    </table>
   </section>
 
-  <!-- 03 take apart -->
-  <section class="apart" id="apart">
-    <div class="apart-in">
-      <p class="tag light"><b>03</b>Take apart</p>
-      <h2>Any app on GitHub,<br>as one picture.</h2>
-      <div class="urlbar" aria-hidden="true"><span class="lock">⌕</span><span class="typed" data-type="github.com/pingdotgg/t3code"></span><span class="caret"></span><span class="go">↵</span></div>
-      <figure class="clip big">
-        <video src="media/atlas.mp4" poster="media/atlas.jpg" muted loop playsinline preload="none" aria-label="Screen recording: a GitHub link pasted into Bento. T3 Code appears as one picture, a part is opened, a request travels through a code city, then the toolbelt"></video>
-      </figure>
-      <ul class="trio">
-        <li><b>The big picture</b>Every part, and the real word for it.</li>
-        <li><b>A code city</b>Watch a request travel.</li>
-        <li><b>The toolbelt</b>Every tool, and why.</li>
+  <!-- the prompt: questions type themselves -->
+  <section class="prompt-sec" id="learn" aria-label="Questions people ask Bento">
+    <p class="mono label">Try asking</p>
+    <p class="prompt"><span class="gt">›</span><span class="q" data-qs="How does Uber find a driver?|Why do hash maps feel instant?|How does Shazam name a song?|What happens when I type a URL?|How does Git remember everything?|How does Discord grow without chaos?|How does a neural network learn?|How does Google rank pages?">How does Uber find a driver?</span><span class="cur"></span></p>
+  </section>
+
+  <!-- 01 learn -->
+  <section class="sheet" data-fig="01">
+    <div class="sheet-copy">
+      <p class="mono label"><b>01</b> Learn</p>
+      <h2>Every answer is a lesson you can <mark>run</mark>.</h2>
+      <ul class="ticks mono">
+        <li>Run the real idea</li>
+        <li>Tap a phrase, see its code</li>
+        <li>How Uber, Google and Discord did it</li>
       </ul>
     </div>
+    <figure class="specimen">
+      <span class="crop tl"></span><span class="crop tr"></span><span class="crop bl"></span><span class="crop br"></span>
+      <video src="media/idea.mp4" poster="media/idea.jpg" muted loop playsinline preload="none" aria-label="Screen recording: Discord's hash ring as a lesson. It runs, a phrase is tapped to show its code, then the plain-words view"></video>
+      <figcaption class="mono">Fig. 1 — Discord’s hash ring, run live.</figcaption>
+    </figure>
   </section>
 
-  <!-- 04 the box -->
+  <!-- 02 take apart: a blueprint -->
+  <section class="blueprint" id="apart">
+    <div class="bp-in">
+      <p class="mono label light"><b>02</b> Take apart</p>
+      <h2>Paste a link.<br>Get the blueprint.</h2>
+      <div class="urlbar mono" aria-hidden="true"><span class="pre">github.com/</span><span class="typed" data-type="pingdotgg/t3code"></span><span class="caret"></span><span class="go">Take apart ↵</span></div>
+      <figure class="specimen dark big">
+        <span class="crop tl"></span><span class="crop tr"></span><span class="crop bl"></span><span class="crop br"></span>
+        <video src="media/atlas.mp4" poster="media/atlas.jpg" muted loop playsinline preload="none" aria-label="Screen recording: a GitHub link pasted into Bento. T3 Code appears as one picture, a part is opened, a request travels through a code city, then the toolbelt"></video>
+        <figcaption class="mono">Fig. 2 — T3 Code, taken apart.</figcaption>
+      </figure>
+      <ol class="legend mono">
+        <li><b>1</b>The whole app as one picture</li>
+        <li><b>2</b>Click any part</li>
+        <li><b>3</b>Watch a request travel</li>
+        <li><b>4</b>Every tool, and why</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 03 in the box: drawn compartments, each one moves when you reach it -->
   <section class="box-sec" id="box">
-    <div class="head">
-      <p class="tag"><b>04</b>Practice</p>
-      <h2>Everything else,<br>in one box.</h2>
+    <div class="sheet-copy wide">
+      <p class="mono label"><b>03</b> In the box</p>
+      <h2>Everything else,<br>packed in.</h2>
     </div>
     <div class="box">
-      <div class="lid" aria-hidden="true"><img src="img/logo.svg" alt="" width="64" height="64"><span>bento</span></div>
       <article class="cell c-pr">
+        <span class="slot mono">A1</span>
         <figure><video src="media/practice.mp4" poster="media/practice.jpg" muted loop playsinline preload="none" aria-label="Screen recording: a slider pushes a puzzle from a thousand items to a billion, then a sorting race"></video></figure>
-        <div class="cap"><b>Puzzles that scale</b><span>34 of them, raced to a billion.</span></div>
+        <div class="cap"><b>Puzzles that scale</b><span>Push one to a billion. Watch them race.</span></div>
       </article>
+
       <article class="cell c-tb">
-        <figure><img src="img/a-toolbelt.jpg" alt="The toolbelt for T3 Code: every tool with its logo" loading="lazy"></figure>
-        <div class="cap"><b>The toolbelt</b><span>Real logos. Real reasons.</span></div>
+        <span class="slot mono">A2</span>
+        <div class="art tools">
+          <span style="--i:0"><img src="img/t-react.svg" alt="React"><em>UI</em></span>
+          <span style="--i:1"><img src="img/t-electron.svg" alt="Electron"><em>Desktop</em></span>
+          <span style="--i:2"><img src="img/t-expo.svg" alt="Expo"><em>Mobile</em></span>
+          <span style="--i:3"><img src="img/t-typescript.svg" alt="TypeScript"><em>Types</em></span>
+          <span style="--i:4"><img src="img/t-vite.svg" alt="Vite"><em>Build</em></span>
+          <span style="--i:5"><img src="img/t-tailwindcss.svg" alt="Tailwind"><em>Style</em></span>
+          <span style="--i:6"><img src="img/t-sqlite.svg" alt="SQLite"><em>Data</em></span>
+          <span style="--i:7"><img src="img/t-astro.svg" alt="Astro"><em>Site</em></span>
+        </div>
+        <div class="cap"><b>The toolbelt</b><span>Every tool an app uses, and why it was picked.</span></div>
       </article>
+
       <article class="cell c-hs">
-        <figure><img src="img/a-hotspots.jpg" alt="Hot spots: fragile hubs and giant files" loading="lazy"></figure>
-        <div class="cap"><b>Hot spots</b><span>Where code is fragile.</span></div>
+        <span class="slot mono">B1</span>
+        <div class="art heat mono">
+          <p style="--w:96%;--i:0"><span>server/session.ts</span><i></i></p>
+          <p style="--w:71%;--i:1"><span>ws/router.ts</span><i></i></p>
+          <p style="--w:52%;--i:2"><span>db/schema.ts</span><i></i></p>
+          <p style="--w:30%;--i:3"><span>ui/Chat.tsx</span><i></i></p>
+        </div>
+        <div class="cap"><b>Hot spots</b><span>Where it could break.</span></div>
       </article>
-      <article class="cell c-ai solid">
-        <div class="logos"><img src="img/claude.svg" alt="Claude" class="c-claude"><svg viewBox="0 0 24 24" role="img" aria-label="ChatGPT"><path d="M3.3 6.7 4.7 5.3 11.4 12l-6.7 6.7-1.4-1.4L8.6 12zM12 16.5h8.5v2H12z"/></svg><img src="img/googlegemini.svg" alt="Gemini" class="c-gemini"><img src="img/githubcopilot.svg" alt="Copilot"></div>
+
+      <article class="cell c-ai">
+        <span class="slot mono">B2</span>
+        <div class="art orbit" aria-hidden="true">
+          <img src="img/logo.svg" alt="" class="core">
+          <span class="sat s1"><img src="img/claude.svg" alt="" class="c-claude"></span>
+          <span class="sat s2"><svg viewBox="0 0 24 24"><path d="M3.3 6.7 4.7 5.3 11.4 12l-6.7 6.7-1.4-1.4L8.6 12zM12 16.5h8.5v2H12z"/></svg></span>
+          <span class="sat s3"><img src="img/googlegemini.svg" alt="" class="c-gemini"></span>
+          <span class="sat s4"><img src="img/githubcopilot.svg" alt=""></span>
+        </div>
         <div class="cap"><b>Your AI</b><span>Any one is enough.</span></div>
       </article>
+
       <article class="cell c-pa">
-        <figure><img src="img/s-path.jpg" alt="Seven learning paths, each stop a dot" loading="lazy"></figure>
-        <div class="cap"><b>Paths</b><span>Zero to a real app.</span></div>
+        <span class="slot mono">C1</span>
+        <div class="art path" aria-hidden="true">
+          <svg viewBox="0 0 300 90" preserveAspectRatio="none"><path class="track" d="M10 70 C 60 70, 70 20, 120 20 S 190 70, 230 50 S 280 15, 292 18"/><path class="run" pathLength="1" d="M10 70 C 60 70, 70 20, 120 20 S 190 70, 230 50 S 280 15, 292 18"/></svg>
+          <i style="--x:3%;--y:78%;--i:0"></i><i style="--x:38%;--y:22%;--i:1"></i><i style="--x:62%;--y:62%;--i:2"></i><i style="--x:77%;--y:55%;--i:3"></i><i class="end" style="--x:97%;--y:20%;--i:4"></i>
+        </div>
+        <div class="cap"><b>Paths</b><span>Zero to a real app, in order.</span></div>
       </article>
+
       <article class="cell c-fi">
-        <figure><img src="img/a-files.jpg" alt="Every file of an app, sized by its code" loading="lazy"></figure>
-        <div class="cap"><b>Files</b><span>Every file, one line each.</span></div>
+        <span class="slot mono">C2</span>
+        <div class="art map" aria-hidden="true">
+          <i style="--c:#ff6b3d;grid-area:1/1/3/3"></i><i style="--c:#7c5cff;grid-area:1/3/2/5"></i><i style="--c:#12a37a;grid-area:2/3/4/4"></i><i style="--c:#2b4bff;grid-area:2/4/3/5"></i><i style="--c:#f5b400;grid-area:3/1/5/2"></i><i style="--c:#ff6b3d;grid-area:3/2/4/3"></i><i style="--c:#7c5cff;grid-area:3/4/5/5"></i><i style="--c:#12a37a;grid-area:4/2/5/4"></i>
+        </div>
+        <div class="cap"><b>Files</b><span>Every file, sized by its code.</span></div>
       </article>
-      <article class="cell c-pv solid dark">
-        <div class="lock-art" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="12" y="28" width="40" height="28" rx="7" fill="#ff6b3d"/><path d="M21 28v-7a11 11 0 0 1 22 0v7" fill="none" stroke="#f3efe9" stroke-width="5" stroke-linecap="round"/><circle cx="32" cy="42" r="4" fill="#1d1b20"/></svg></div>
+
+      <article class="cell c-pv">
+        <span class="slot mono">C3</span>
+        <div class="art lock" aria-hidden="true"><svg viewBox="0 0 64 64"><path class="shackle" d="M21 28v-7a11 11 0 0 1 22 0v7" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><rect x="12" y="28" width="40" height="28" rx="5" fill="#ff6b3d"/><circle cx="32" cy="42" r="4" fill="#111"/></svg></div>
         <div class="cap"><b>Runs on your Mac</b><span>No account. No telemetry. No server.</span></div>
       </article>
     </div>
   </section>
 
-  <!-- 05 phone -->
-  <section class="phone-sec" id="phone">
-    <div class="head">
-      <p class="tag light"><b>05</b>On your phone</p>
-      <h2>Your Mac does the work.<br>Your phone goes anywhere.</h2>
+  <!-- 04 phone -->
+  <section class="sheet phone-sheet" id="phone">
+    <div class="sheet-copy">
+      <p class="mono label"><b>04</b> Phone</p>
+      <h2>Your Mac thinks.<br>Your phone <mark>goes</mark>.</h2>
+      <ul class="ticks mono">
+        <li>Settings → Your phone and iPad</li>
+        <li>Scan the code</li>
+        <li>Learn from anywhere</li>
+      </ul>
+      <p class="mono fine">Over Tailscale or your Wi-Fi. Nothing in the cloud.</p>
     </div>
-    <div class="duo">
-      <figure class="clip">
+    <div class="link-up">
+      <figure class="specimen">
+        <span class="crop tl"></span><span class="crop tr"></span><span class="crop bl"></span><span class="crop br"></span>
         <video src="media/pair.mp4" poster="media/pair.jpg" muted loop playsinline preload="none" aria-label="Screen recording: in Settings, Your phone and iPad is switched on and a code appears to scan"></video>
+        <figcaption class="mono">Fig. 4a — Mac</figcaption>
       </figure>
-      <svg class="wire" viewBox="0 0 120 40" aria-hidden="true"><path d="M4 20 H116" /><circle r="4" cx="0" cy="20"><animate attributeName="cx" from="4" to="116" dur="1.6s" repeatCount="indefinite"/></circle><circle r="4" cx="0" cy="20"><animate attributeName="cx" from="4" to="116" dur="1.6s" begin=".8s" repeatCount="indefinite"/></circle></svg>
-      <figure class="clip tall">
+      <svg class="wire" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 50 H100"/></svg>
+      <figure class="specimen tall">
+        <span class="crop tl"></span><span class="crop tr"></span><span class="crop bl"></span><span class="crop br"></span>
         <video src="media/phone-atlas.mp4" poster="media/phone-atlas.jpg" muted loop playsinline preload="none" aria-label="Screen recording on an iPhone: Explore, T3 Code taken apart, scrolled, and one part opened"></video>
+        <figcaption class="mono">Fig. 4b — iPhone</figcaption>
       </figure>
     </div>
-    <ol class="chips light center">
-      <li><i>1</i>Settings → Your phone and iPad</li>
-      <li><i>2</i>Scan the code</li>
-      <li><i>3</i>Learn anywhere</li>
-    </ol>
-    <p class="fine light center">Over Tailscale or your Wi-Fi. Nothing in the cloud.</p>
   </section>
 
-  <!-- 06 open source -->
-  <section class="open" id="open">
-    <div class="copy">
-      <p class="tag"><b>06</b>Open source</p>
-      <h2>Free. Open.<br>Yours.</h2>
-      <ul class="facts">
-        <li><b>MIT</b>Read it, fork it, change it.</li>
-        <li><b>Local</b>Your code runs on your Mac.</li>
-        <li><b>Private</b>No telemetry, no sign-up.</li>
-      </ul>
-      <div class="ctas left">
-        <a class="btn dark" href="https://github.com/lhz56/bento"><img src="img/github.svg" alt="" width="16" height="16" class="inv">Star on GitHub</a>
-        <a class="btn line" href="https://github.com/lhz56/bento/blob/main/CONTRIBUTING.md">Contribute</a>
+  <!-- 05 set up + open source -->
+  <section class="sheet flip" id="open">
+    <div class="sheet-copy">
+      <p class="mono label"><b>05</b> Source</p>
+      <h2>Free. Open.<br>Yours to <mark>take apart</mark> too.</h2>
+      <dl class="spec mono">
+        <dt>License</dt><dd>MIT</dd>
+        <dt>Runs</dt><dd>On your Mac</dd>
+        <dt>Telemetry</dt><dd>None</dd>
+        <dt>Setup</dt><dd>About a minute</dd>
+      </dl>
+      <div class="ctas">
+        <a class="key" href="https://github.com/lhz56/bento"><img src="img/github.svg" alt="" width="15" height="15" class="inv">Read the source</a>
+        <a class="key ghost" href="https://github.com/lhz56/bento/blob/main/CONTRIBUTING.md">Contribute</a>
       </div>
     </div>
     <div class="term" aria-label="Build Bento yourself: git clone https://github.com/lhz56/bento, then npm install, then npm run dev">
-      <div class="term-bar"><i></i><i></i><i></i><span>Terminal</span></div>
+      <div class="term-bar mono"><i></i><i></i><i></i><span>~/code</span></div>
       <pre aria-hidden="true"><code data-term></code></pre>
     </div>
   </section>
 
-  <section class="last">
-    <div class="last-logo"><img src="img/logo.svg" alt="" width="72" height="72"></div>
-    <h2>Start with one question.</h2>
-    <div class="ctas">
-      <a class="btn dark lg" href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg" data-dl>Download for Mac</a>
+  <section class="setup sheet" aria-label="The first minute">
+    <div class="sheet-copy">
+      <p class="mono label"><b>→</b> First minute</p>
+      <h2>Open it. It finds your AI. Start.</h2>
     </div>
-    <p class="fine">Apple Silicon · <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg">Intel</a> · signed and notarized by Apple</p>
+    <figure class="specimen">
+      <span class="crop tl"></span><span class="crop tr"></span><span class="crop bl"></span><span class="crop br"></span>
+      <video src="media/start.mp4" poster="media/start.jpg" muted loop playsinline preload="none" aria-label="Screen recording: Bento's first minute. It finds Claude already signed in, asks how much code you've seen, and offers four places to start"></video>
+      <figcaption class="mono">Fig. 5 — The first minute, uncut.</figcaption>
+    </figure>
+  </section>
+
+  <section class="last">
+    <h2>What will you<br>take apart <mark>first</mark>?</h2>
+    <div class="ctas center">
+      <a class="key big" href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg" data-dl>Download for Mac</a>
+    </div>
+    <p class="mono fine">Apple Silicon · <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg">Intel</a> · signed and notarized by Apple</p>
+    <div class="stamp mono" aria-hidden="true">FREE<br>MIT<br>LOCAL</div>
   </section>
 </main>
 
-<footer class="foot">
-  <span><img src="img/logo.svg" alt="" width="18" height="18"> Bento</span>
+<footer class="foot mono">
+  <span><img src="img/logo.svg" alt="" width="16" height="16"> Bento field guide</span>
   <a href="https://github.com/lhz56/bento">GitHub</a>
   <a href="https://github.com/lhz56/bento-releases/releases">Releases</a>
   <a href="https://github.com/lhz56/bento/blob/main/docs/PHONE.md">Phone</a>
   <a href="https://github.com/lhz56/bento/blob/main/SECURITY.md">Security</a>
   <a href="https://github.com/lhz56/bento-releases/issues">Report a problem</a>
-  <span class="mit">MIT</span>
+  <span class="end">MIT</span>
 </footer>
 
 <script src="main.js" defer></script>

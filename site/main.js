@@ -1,11 +1,12 @@
-// The page's motion: videos play only while you can see them, sections arrive as you reach them, the hero recording
-// tilts flat as you scroll, the headline names what you could learn, a link types itself, the box's lid lifts off,
-// a terminal builds Bento. The latest version and the star count come from GitHub when it answers.
+// The page's motion: recordings play only while you can see them, things arrive as you reach them, the headline names
+// what you could take apart, the hero's notes light up with the recording, questions type themselves, a link types
+// itself into the blueprint, the box's drawings move, a terminal builds Bento. Version and stars come from GitHub.
 const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// videos: play in view, pause out of it
+// recordings: play in view, pause out of it
 const vids = new IntersectionObserver((es) => es.forEach((e) => {
   if (e.isIntersecting && !still) e.target.play().catch(() => {}); else e.target.pause();
 }), { threshold: 0.2 });
@@ -15,56 +16,68 @@ $$('video').forEach((v) => vids.observe(v));
 const once = new IntersectionObserver((es) => es.forEach((e) => {
   if (!e.isIntersecting) return; const el = e.target; once.unobserve(el);
   el.classList.add('in'); el.dispatchEvent(new Event('arrive'));
-}), { threshold: 0.18 });
-$$('.works, .ask-wall h2, .split .copy, .split .clip, .apart-in > *, .head, .box, .duo, .phone-sec .chips, .open .copy, .term, .last > *').forEach((el) => { el.classList.add('rv'); once.observe(el); });
+}), { threshold: 0.2 });
+$$('.parts, .prompt-sec, .sheet-copy, .sheet > .specimen, .link-up, .bp-in > *, .box, .term, .last > h2').forEach((el) => { el.classList.add('rv'); once.observe(el); });
 
-// the hero recording lies back, then stands up as you scroll
-const tilt = document.querySelector('.tilt');
-let ticking = false;
+// the bar marks the section you're in
+const marks = $$('.links a').map((a) => [a, document.querySelector(a.getAttribute('href'))]).filter(([, s]) => s);
 const onScroll = () => {
-  if (ticking) return; ticking = true;
-  requestAnimationFrame(() => {
-    ticking = false;
-    if (tilt && !still) { const r = tilt.getBoundingClientRect(); const k = Math.min(1, Math.max(0, (r.top - innerHeight * 0.18) / (innerHeight * 0.62))); tilt.parentElement.style.setProperty('--t', k.toFixed(3)); }
-    // the nav turns dark over the dark sections
-    const y = 40; const dark = $$('.apart, .phone-sec').some((s) => { const b = s.getBoundingClientRect(); return b.top < y && b.bottom > y; });
-    document.querySelector('.nav').classList.toggle('on-dark', dark);
-  });
+  const y = innerHeight * 0.35; let cur = null;
+  for (const [a, s] of marks) { const b = s.getBoundingClientRect(); if (b.top < y && b.bottom > y) cur = a; }
+  marks.forEach(([a]) => a.classList.toggle('on', a === cur));
 };
-addEventListener('scroll', onScroll, { passive: true }); addEventListener('resize', onScroll); onScroll();
+addEventListener('scroll', onScroll, { passive: true }); onScroll();
 
-// the headline: software, Discord, Uber…
-const rotW = document.querySelector('.rot-w');
-if (rotW && !still) {
-  const box = rotW.parentElement; const words = rotW.dataset.words.split('|').map((w) => w.replace(/&nbsp;/g, ' '));
-  const size = () => { box.style.width = `${rotW.getBoundingClientRect().width + parseFloat(getComputedStyle(box).paddingLeft) * 2}px`; };
+// the headline: software, Discord, Uber… with the highlighter wiping across each new word
+const w = $('.swap-w');
+if (w && !still) {
+  const box = w.parentElement; const words = w.dataset.words.split('|').map((x) => x.replace(/&nbsp;/g, ' '));
+  const size = () => { box.style.width = `${w.getBoundingClientRect().width}px`; };
   document.fonts?.ready.then(size); size();
   let i = 0;
   setInterval(async () => {
-    rotW.classList.add('out'); await sleep(360);
-    i = (i + 1) % words.length; rotW.textContent = words[i]; rotW.classList.remove('out'); size();
-    rotW.classList.add('in'); await sleep(520); rotW.classList.remove('in');
+    box.classList.add('wipe'); w.classList.add('out'); await sleep(330);
+    i = (i + 1) % words.length; w.textContent = words[i]; w.classList.remove('out'); size();
+    w.classList.add('in'); await sleep(120); box.classList.remove('wipe'); await sleep(400); w.classList.remove('in');
   }, 2600);
 }
 
-// the question wall loops seamlessly: each row carries a copy of itself
-$$('.marquee .row').forEach((r) => { r.innerHTML += r.innerHTML; });
-
-// a GitHub link types itself into the bar
-const typed = document.querySelector('[data-type]');
-if (typed) {
-  const bar = typed.closest('.urlbar'); const text = typed.dataset.type;
-  const run = async () => { for (;;) { bar.classList.remove('done'); typed.textContent = ''; for (const ch of text) { typed.textContent += ch; await sleep(55 + Math.random() * 50); } bar.classList.add('done'); await sleep(4200); } };
-  if (still) { typed.textContent = text; bar.classList.add('done'); } else bar.closest('.apart-in').addEventListener('arrive', run, { once: true });
-  once.observe(bar.closest('.apart-in'));
+// the hero's notes (A–D) light up as the recording reaches each step
+const hv = $('.hero-spec video'); const notes = $$('.notes li');
+if (hv && notes.length) {
+  hv.addEventListener('timeupdate', () => {
+    if (!hv.duration) return; const k = Math.min(notes.length - 1, Math.floor((hv.currentTime / hv.duration) * notes.length));
+    notes.forEach((n, j) => n.classList.toggle('on', j === k));
+  });
 }
 
-// the lid lifts off the box
-const bx = document.querySelector('.box');
-bx?.addEventListener('arrive', () => setTimeout(() => bx.classList.add('lifted'), 250), { once: true });
+// questions type themselves
+const q = $('[data-qs]');
+if (q && !still) {
+  const qs = q.dataset.qs.split('|');
+  const run = async () => {
+    for (let i = 0; ; i = (i + 1) % qs.length) {
+      const t = qs[i];
+      for (let j = 0; j <= t.length; j++) { q.textContent = t.slice(0, j); await sleep(38 + Math.random() * 40); }
+      await sleep(1700);
+      for (let j = t.length; j >= 0; j -= 2) { q.textContent = t.slice(0, j); await sleep(14); }
+      await sleep(250);
+    }
+  };
+  q.textContent = ''; $('.prompt-sec').addEventListener('arrive', run, { once: true });
+}
+
+// a GitHub link types itself into the blueprint
+const typed = $('[data-type]');
+if (typed) {
+  const bar = typed.closest('.urlbar'); const text = typed.dataset.type;
+  const run = async () => { for (;;) { bar.classList.remove('done'); typed.textContent = ''; await sleep(500); for (const ch of text) { typed.textContent += ch; await sleep(60 + Math.random() * 60); } await sleep(300); bar.classList.add('done'); await sleep(4200); } };
+  if (still) { typed.textContent = text; bar.classList.add('done'); } else bar.addEventListener('arrive', run, { once: true });
+  bar.classList.add('rv'); once.observe(bar);
+}
 
 // a terminal builds Bento
-const term = document.querySelector('[data-term]');
+const term = $('[data-term]');
 if (term) {
   const lines = [
     ['cmd', 'git clone https://github.com/lhz56/bento'], ['dim', 'Cloning into ‘bento’… done.'],
@@ -77,14 +90,13 @@ if (term) {
     for (;;) {
       for (let n = 0; n < lines.length; n++) {
         const [k, t] = lines[n];
-        if (k === 'cmd') { for (let j = 0; j <= t.length; j++) { term.innerHTML = html(n, t.slice(0, j)); await sleep(28 + Math.random() * 30); } await sleep(350); }
-        else { await sleep(500); }
+        if (k === 'cmd') { for (let j = 0; j <= t.length; j++) { term.innerHTML = html(n, t.slice(0, j)); await sleep(28 + Math.random() * 30); } await sleep(350); } else await sleep(500);
         term.innerHTML = html(n + 1);
       }
       await sleep(5000);
     }
   };
-  if (still) term.innerHTML = html(lines.length); else document.querySelector('.term').addEventListener('arrive', run, { once: true });
+  if (still) term.innerHTML = html(lines.length); else $('.term').addEventListener('arrive', run, { once: true });
 }
 
 // an Intel Mac says so only in some browsers; when it does, its buttons get the Intel build
