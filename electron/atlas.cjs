@@ -54,7 +54,7 @@ function downloadTrouble(full, said) {
   if (/Repository not found|not found|does not exist|Could not read from remote/i.test(m) && !/resolve host/i.test(m)) return `Couldn’t find ${full} on GitHub. Is the name right, and is it public (or yours)?`;
   if (/resolve host|Failed to connect|unable to access|Could not connect|timed out|Network is unreachable|Connection refused|Connection reset|proxy|SSL|TLS|early EOF|RPC failed|ENOTFOUND|ECONNREFUSED|ETIMEDOUT/i.test(m)) return `Couldn’t reach GitHub to download ${full}. Check your internet connection, then try again.`;
   if (/No space left|ENOSPC/i.test(m)) return `Your disk is full, so ${full} couldn’t be downloaded. Free up some space, then try again.`;
-  if (/ENOENT|command not found|spawn git/i.test(m)) return 'Downloading projects needs git, which isn’t on this Mac yet. Install it with: xcode-select --install';
+  if (/ENOENT|command not found|spawn git/i.test(m)) return process.platform === 'win32' ? 'Downloading projects needs git, which isn’t on this PC yet. Install it from git-scm.com, then open Bento again.' : process.platform === 'darwin' ? 'Downloading projects needs git, which isn’t on this Mac yet. Install it with: xcode-select --install' : 'Downloading projects needs git. Install it with your package manager, then open Bento again.';
   if (/Authentication|could not read Username|terminal prompts disabled|403/i.test(m)) return `GitHub wouldn’t let Bento download ${full}. If it’s private, sign in with gh auth login in Terminal.`;
   return `Couldn’t download ${full}. Try again in a moment.`;
 }

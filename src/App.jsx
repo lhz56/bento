@@ -465,6 +465,8 @@ export default function App() {
   useEffect(() => {
     const h = (e) => {
       if (mod(e) && e.key === 'n') { e.preventDefault(); setViewRaw('home'); }
+      if (mod(e) && e.key === 'f' && !TOUCH && !document.activeElement?.closest?.('.cm-editor')) { e.preventDefault(); setFindOpen(true); }
+      if (mod(e) && (e.key === '[' || e.key === ']') && !document.activeElement?.closest?.('.cm-editor')) { e.preventDefault(); e.key === '[' ? history.back() : history.forward(); }
       if (mod(e) && e.key === '\\') { e.preventDefault(); setSideOpen((x) => !x); }
       if (mod(e) && e.key === 'k') { e.preventDefault(); setPal((x) => !x); }
       if (mod(e) && e.key === ',') { e.preventDefault(); setShowSettings(true); }
@@ -493,8 +495,14 @@ export default function App() {
       if (a === 'search') setPal((x) => !x);
       if (a === 'sidebar') setSideOpen((x) => !x);
       if (a === 'keys') setShowKeys(true);
+      if (a === 'find') setFindOpen(true);
+      if (a === 'back') history.back();
+      if (a === 'forward') history.forward();
     });
-    return () => { removeEventListener('keydown', k, true); off?.(); };
+    // a mouse's side buttons
+    const side = (e) => { if (e.button === 3) { e.preventDefault(); history.back(); } else if (e.button === 4) { e.preventDefault(); history.forward(); } };
+    addEventListener('mouseup', side);
+    return () => { removeEventListener('keydown', k, true); removeEventListener('mouseup', side); off?.(); };
   }, []);
 
   const loadRepos = () => { if (repos === null && providers?.gh) api.ghRepos().then(setRepos).catch(() => setRepos([])); else if (!providers?.gh) setRepos([]); };
@@ -507,9 +515,9 @@ export default function App() {
   const [pane, setPane] = useState('story'); // a lesson on a phone: its story, or its code and what it does
   useEffect(() => { setPane('story'); }, [currentId]);
   useEffect(() => { setDrawer(false); setScrolled(false); }, [view, currentId, atlasKey, siteKey]);
-  // on a phone or iPad, each screen is a step in the browser's history: Back (and Safari's swipe back) returns to the last one
+  // each screen is a step in the page's history: Back returns to the last one (Safari's swipe back on a phone or iPad;
+  // ⌘[ and ⌘], the mouse's side buttons and the menu on the Mac)
   useEffect(() => {
-    if (!api.remote) return;
     const st = { bento: 1, view, currentId, atlasKey, siteKey }; const cur = history.state;
     if (cur?.bento && cur.view === view && cur.currentId === currentId && cur.atlasKey === atlasKey && cur.siteKey === siteKey) return;
     if (!cur?.bento) history.replaceState({ ...st, depth: 0 }, ''); else history.pushState({ ...st, depth: (cur.depth || 0) + 1 }, '');
@@ -517,7 +525,6 @@ export default function App() {
   // which way the next page arrives (Phone.jsx: enter): set by Back; Safari's own swipe back has animated already
   const navDir = useRef(null);
   useEffect(() => {
-    if (!api.remote) return undefined;
     const back = (e) => {
       const s = e.state; if (!s?.bento) return;
       if (navDir.current !== 'pop') navDir.current = STANDALONE ? 'pop' : 'none';
@@ -581,6 +588,7 @@ export default function App() {
   }), []);
   const [showSettings, setShowSettings] = useState(false);
   const [showKeys, setShowKeys] = useState(false);
+  const [findOpen, setFindOpen] = useState(false);
   const [pair, setPair] = useState([null, null]);
   // a phone or iPad uses the Mac's AIs, which the Mac already set up: no welcome there
   const [onb, setOnb] = useState(() => (api.remote || load('bento.settings', {}).onboarded ? null : 0));
@@ -733,6 +741,7 @@ export default function App() {
       {onb == null && !phone && view === 'atlas' && <Coach key="atlas" screen="atlas" ready={!!atlases[atlasKey]?.facts} />}
       {dropping && <div className="drop-veil"><div className="drop-card"><span>⤓</span><b>Drop to take it apart</b><i>A folder becomes a picture of the project. A code file gets explained line by line.</i></div></div>}
       {showKeys && <KeySheet onClose={() => setShowKeys(false)} />}
+      {findOpen && <FindBar onClose={() => setFindOpen(false)} />}
       {showSettings && <Settings settings={settings} setSettings={setSettings} providers={providers} onClose={() => setShowSettings(false)} onSetup={() => { setShowSettings(false); setOnb(1); }} onOpenData={() => api.openData?.()} packs={packs} onRemovePack={(id) => setPacks((ps) => ps.filter((p) => p.id !== id))} onAddPack={(json) => { const { errors, pack } = validatePack(json); if (errors.length) return { errors }; setPacks((ps) => [...ps.filter((p) => p.id !== pack.id), pack]); return { pack }; }} onBackup={() => api.backupSave?.()} onRestore={async () => { const d = await api.backupLoad?.(); return d ? restoreBackup(d) : null; }} onReplayOnboarding={() => { setShowSettings(false); setOnb(0); }} wordsCount={Object.keys(progress.words || {}).length} lessonsCount={lessons.filter((l) => !l.builtin).length} />}
       {pal && <Palette onOpenAt={openRepoAt} onOpenSite={openSite} onClose={() => setPal(false)} lessons={lessons} projects={projects} words={progress.words || {}}
         actions={[['home', 'Learn: ask anything', <Icon name="learn" size={15} />], ['path', 'Paths: learn it in order', <Icon name="path" size={15} />], ['explore', 'Explore code', <Icon name="explore" size={15} />], ['ideas', 'Clever ideas', '⬡'], ['puzzles', 'Puzzles: LeetCode, from the top down', <Icon name="practice" size={15} />], ['play', 'Playgrounds: SQL, Git and the terminal, designing for a billion', '▦'], ['map', 'Your map: everything you know', '✺'], ['words', 'Your words', 'Aa'], ['bug', 'Daily bug', '⚑']].map(([v, label, icon]) => ({ label, icon, run: () => setView(v) })).concat([{ label: 'Settings', icon: <Icon name="gear" size={15} />, run: () => setShowSettings(true) }, { label: 'Keyboard shortcuts', icon: '?', run: () => setShowKeys(true) }, { label: 'Connections & setup', icon: <Icon name="plus" size={15} />, run: () => setOnb(1) }, { label: 'Open a folder on this Mac', icon: <Icon name="folder" size={15} />, run: openFolderAtlas }, { label: 'Compare two apps', icon: '⇄', run: () => openCompare() }, { label: 'Scratchpad: write your own code', icon: '✎', run: () => newScratch() }]).filter((a) => !(TOUCH && a.label === 'Keyboard shortcuts') && !(api.remote && /^(Connections|Open a folder)/.test(a.label)))}
@@ -916,7 +925,40 @@ export default function App() {
 }
 
 // ⌘/ : every shortcut on one card
-const KEYS = [['⌘K', 'Search everything, ask, or paste a repo'], ['⌘N', 'New question'], ['⌘\\', 'Show or hide the sidebar'], ['⌘,', 'Settings'], ['⌘/', 'This list'], ['⌘L', 'Jump to the ask box'], ['⌘↵', 'Run the code'], ['⌘⇧↵', 'Step through it'], ['↵ / ⌘↵', 'In a lesson: quick answer / full lesson'], ['⌥ drag', 'Scrub any number in the code'], ['select text', 'Explain anything you highlight'], ['Esc', 'Close panels'], ['?', 'This sheet']];
+const KEYS = [['⌘K', 'Search everything, ask, or paste a repo'], ['⌘N', 'New question'], ['⌘[ / ⌘]', 'Back / forward'], ['⌘F', 'Find on this page'], ['⌘\\', 'Show or hide the sidebar'], ['⌘,', 'Settings'], ['⌘/', 'This list'], ['⌘L', 'Jump to the ask box'], ['⌘↵', 'Run the code'], ['⌘⇧↵', 'Step through it'], ['↵ / ⌘↵', 'In a lesson: quick answer / full lesson'], ['⌥ drag', 'Scrub any number in the code'], ['select text', 'Explain anything you highlight'], ['Esc', 'Close panels'], ['?', 'This sheet']];
+// ⌘F: find words on the page. Every match is marked (the CSS highlight API: no change to the page itself), the current
+// one in orange and scrolled into view; Enter for the next, ⇧Enter for the one before, Esc to close.
+function findRanges(q) {
+  const out = []; const needle = q.toLowerCase(); const root = document.querySelector('.app') || document.body;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (n.parentElement?.closest('.findbar, script, style, [aria-hidden="true"]') || !n.parentElement?.getClientRects().length ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
+  for (let n = w.nextNode(); n && out.length < 2000; n = w.nextNode()) {
+    const t = n.nodeValue.toLowerCase(); let i = t.indexOf(needle);
+    while (i >= 0 && out.length < 2000) { const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + needle.length); out.push(r); i = t.indexOf(needle, i + needle.length); }
+  }
+  return out;
+}
+function FindBar({ onClose }) {
+  const [q, setQ] = useState(''); const [at, setAt] = useState(0); const [hits, setHits] = useState([]); const box = useRef(null);
+  const HL = typeof CSS !== 'undefined' && CSS.highlights && typeof Highlight !== 'undefined';
+  useEffect(() => { box.current?.focus(); return () => { if (HL) { CSS.highlights.delete('bento-find'); CSS.highlights.delete('bento-find-now'); } }; }, []);
+  useEffect(() => { const t = setTimeout(() => { const r = q.trim().length >= 2 || (q.trim() && /\S/.test(q)) ? findRanges(q.trim()) : []; setHits(r); setAt(0); }, 120); return () => clearTimeout(t); }, [q]);
+  useEffect(() => {
+    if (!HL) return;
+    CSS.highlights.set('bento-find', new Highlight(...hits));
+    const cur = hits[at]; if (cur) { CSS.highlights.set('bento-find-now', new Highlight(cur)); cur.startContainer.parentElement?.scrollIntoView({ block: 'center', behavior: 'smooth' }); } else CSS.highlights.delete('bento-find-now');
+  }, [hits, at]);
+  const step = (d) => { if (hits.length) setAt((x) => (x + d + hits.length) % hits.length); };
+  return (
+    <div className="findbar" role="search">
+      <input ref={box} value={q} placeholder="Find on this page" aria-label="Find on this page" onChange={(e) => setQ(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); step(e.shiftKey ? -1 : 1); } if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose(); } }} />
+      <span className="findbar-n" aria-live="polite">{q.trim() ? (hits.length ? `${at + 1} of ${hits.length}` : 'No matches') : ''}</span>
+      <button className="btn tiny ghost" aria-label="Previous match" onClick={() => step(-1)}>↑</button>
+      <button className="btn tiny ghost" aria-label="Next match" onClick={() => step(1)}>↓</button>
+      <button className="btn tiny ghost" aria-label="Close find" onClick={onClose}>✕</button>
+    </div>
+  );
+}
 function KeySheet({ onClose }) {
   const box = useDialog(onClose);
   return (

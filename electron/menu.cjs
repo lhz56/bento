@@ -46,6 +46,7 @@ function build({ dev, send, checkForUpdates, logsDir }) {
       submenu: [
         { role: 'undo' }, { role: 'redo' }, { type: 'separator' },
         { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'pasteAndMatchStyle' }, { role: 'delete' }, { role: 'selectAll' },
+        { type: 'separator' }, { label: 'Find…', accelerator: 'CmdOrCtrl+F', click: act('find') },
         ...(mac ? [{ type: 'separator' }, { label: 'Speech', submenu: [{ role: 'startSpeaking' }, { role: 'stopSpeaking' }] }] : []),
       ],
     },
@@ -54,6 +55,9 @@ function build({ dev, send, checkForUpdates, logsDir }) {
       submenu: [
         { label: 'Search Everything', accelerator: 'CmdOrCtrl+K', click: act('search') },
         { label: 'Show or Hide the Sidebar', accelerator: 'CmdOrCtrl+\\', click: act('sidebar') },
+        { type: 'separator' },
+        { label: 'Back', accelerator: 'CmdOrCtrl+[', click: act('back') },
+        { label: 'Forward', accelerator: 'CmdOrCtrl+]', click: act('forward') },
         { type: 'separator' },
         { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' },
         { type: 'separator' },

@@ -142,13 +142,16 @@ const OFFSCREEN = !process.env.BENTO_SHOW && (!!process.env.BENTO_HIDDEN || proc
 const WIN_FILE = path.join(app.getPath('userData'), 'window.json');
 // read while Electron starts up, so the window can open in its old place without waiting on the disk
 const savedPlace = OFFSCREEN ? Promise.resolve(null) : fsp.readFile(WIN_FILE, 'utf8').then(JSON.parse).catch(() => null);
+// Windows and Linux draw their own window buttons over Bento's top bar: in Bento's colours, light or dark like the page
+const overlayColors = () => (nativeTheme.shouldUseDarkColors ? { color: '#222027', symbolColor: '#cfc8bf' } : { color: '#f3eee6', symbolColor: '#4f4841' });
+if (!MAC) nativeTheme.on('updated', () => { try { if (win && !win.isDestroyed()) { win.setTitleBarOverlay?.({ ...overlayColors(), height: 40 }); win.setBackgroundColor(overlayColors().color); } } catch {} });
 function createWindow(saved) {
   if (OFFSCREEN && process.platform === 'darwin') app.setActivationPolicy?.('accessory');
   const place = OFFSCREEN ? { width: 1440, height: 900 } : winstate.place(saved, require('electron').screen.getAllDisplays(), { width: 1440, height: 900, minWidth: 1080, minHeight: 680 });
   win = new BrowserWindow({
     width: place.width, height: place.height, ...(place.x != null ? { x: place.x, y: place.y } : {}), minWidth: 1080, minHeight: 680,
     ...(MAC ? { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 18, y: 18 }, vibrancy: 'sidebar', visualEffectState: 'active', backgroundColor: '#00000000' }
-      : { titleBarStyle: 'hidden', titleBarOverlay: { color: '#f3eee6', symbolColor: '#4f4841', height: 40 }, backgroundColor: '#f3eee6' }),
+      : { titleBarStyle: 'hidden', titleBarOverlay: { ...overlayColors(), height: 40 }, backgroundColor: overlayColors().color }),
     show: false,
     // the page gets Bento's narrow bridge (preload.cjs) and nothing else: no Node.js, its own isolated world, Chromium's sandbox
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, nodeIntegrationInSubFrames: false, sandbox: true, webSecurity: true, allowRunningInsecureContent: false, webviewTag: false, navigateOnDragDrop: false, spellcheck: false },
@@ -252,6 +255,17 @@ app.whenReady().then(async () => {
 app.on('web-contents-created', (_e, wc) => {
   wc.on('will-attach-webview', (e) => e.preventDefault());
   wc.setWindowOpenHandler(({ url }) => { openOutside(url); return { action: 'deny' }; });
+  // right-click: the usual Copy, Paste and friends (Electron has no menu of its own), Look Up on a Mac, and a link's address
+  wc.on('context-menu', (_e, p) => {
+    const { Menu, clipboard } = require('electron'); const f = p.editFlags || {}; const sel = String(p.selectionText || '').trim();
+    const items = [];
+    if (MAC && sel && !p.isEditable) items.push({ label: `Look Up “${sel.length > 24 ? `${sel.slice(0, 24)}…` : sel}”`, click: () => wc.showDefinitionForSelection() }, { type: 'separator' });
+    if (p.isEditable) items.push({ role: 'undo', enabled: f.canUndo }, { role: 'redo', enabled: f.canRedo }, { type: 'separator' }, { role: 'cut', enabled: f.canCut }, { role: 'copy', enabled: f.canCopy }, { role: 'paste', enabled: f.canPaste }, { role: 'selectAll', enabled: f.canSelectAll });
+    else if (sel) items.push({ role: 'copy' });
+    if (/^https?:/i.test(p.linkURL || '')) items.push(...(items.length ? [{ type: 'separator' }] : []), { label: 'Open Link in Browser', click: () => openOutside(p.linkURL) }, { label: 'Copy Link', click: () => clipboard.writeText(p.linkURL) });
+    if (!items.length) return;
+    const owner = BrowserWindow.fromWebContents(wc) || win; Menu.buildFromTemplate(items).popup({ window: owner || undefined });
+  });
   const stay = (e, url) => { if (!isAppUrl(url)) { e.preventDefault(); openOutside(url); } };
   wc.on('will-navigate', stay);
   wc.on('will-redirect', (e, url, _inPlace, isMainFrame) => { if (isMainFrame && !isAppUrl(url)) e.preventDefault(); });
