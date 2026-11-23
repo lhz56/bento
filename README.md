@@ -1,5 +1,10 @@
 <p align="center"><img src="docs/media/banner.png" width="100%" alt="Bento: take software apart. Ask anything, get a lesson you can run, with the AI you already pay for."></p>
 
+<h3 align="center">Ask anything, get a lesson you can run.<br>Paste any GitHub repo, get its blueprint.</h3>
+
+<p align="center">A free, open-source Mac app that teaches how real software is built, using the Claude, ChatGPT, Gemini or Copilot plan you already have. No API key, no account.</p>
+
+
 <p align="center">
   <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg"><img src="https://img.shields.io/badge/Download-for%20Mac-121212?style=for-the-badge&logo=apple&logoColor=white" alt="Download for Mac"></a>
   <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg"><img src="https://img.shields.io/badge/Intel-Mac-f2efe8?style=for-the-badge&logo=intel&logoColor=121212&labelColor=f2efe8" alt="Intel Mac"></a>
@@ -28,6 +33,8 @@
 <p align="center"><img src="docs/media/ask.webp" width="900" alt="A question typed into Bento becomes a lesson that writes itself, runs its code, and explains every line in plain English"></p>
 
 <br>
+
+> **Why not just ask ChatGPT?** ChatGPT tells you. Bento shows you: the code runs, the picture moves, every line has plain words, and you can take apart real apps, not just toy examples.
 
 ## ▍Learn
 
@@ -100,12 +107,14 @@ npm test         # no check ever spends an AI plan
 npm run smoke    # the real app, hidden, end to end
 ```
 
-Node 20+ and one signed-in AI CLI. How it fits together: [ARCHITECTURE](docs/ARCHITECTURE.md) · Shipping: [RELEASING](docs/RELEASING.md) · Help out: [CONTRIBUTING](CONTRIBUTING.md) · Problems: [issues](https://github.com/lhz56/bento-releases/issues) · Security: [SECURITY](SECURITY.md)
+Node 20+ and one signed-in AI CLI. How it fits together: [ARCHITECTURE](docs/ARCHITECTURE.md) · Shipping: [RELEASING](docs/RELEASING.md) · Help out: [CONTRIBUTING](CONTRIBUTING.md) · Problems: [issues](https://github.com/lhz56/bento/issues) · Security: [SECURITY](SECURITY.md)
 
 <sub>Every clip here is the real app, filmed by <code>scripts/record-media.mjs</code> with a pretend AI and finished by <code>scripts/compose-media.mjs</code>.</sub>
 
 <br>
 
 <p align="center"><a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg"><img src="docs/media/end.png" width="100%" alt="What will you take apart first? Download Bento for Mac."></a></p>
+
+<p align="center"><b>⭐ Star the repo to follow along.</b> New lessons, new puzzles, and Windows and iPhone on the way.</p>
 
 <p align="center"><sub>Made by <a href="https://github.com/lhz56">Lin Zaw</a> · MIT</sub></p>

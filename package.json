@@ -2,15 +2,15 @@
   "name": "bento",
   "productName": "Bento",
   "version": "0.3.1",
-  "description": "Learn how software is really built, using the AI subscription you already have.",
+  "description": "Ask anything, get a lesson you can run. Paste any GitHub repo, get its blueprint. Uses the AI plan you already have.",
   "author": "Bento contributors",
-  "homepage": "https://github.com/lhz56/bento-releases",
+  "homepage": "https://github.com/lhz56/bento",
   "repository": {
     "type": "git",
     "url": "https://github.com/lhz56/bento.git"
   },
   "bugs": {
-    "url": "https://github.com/lhz56/bento-releases/issues"
+    "url": "https://github.com/lhz56/bento/issues"
   },
   "license": "MIT",
   "main": "electron/main.cjs",

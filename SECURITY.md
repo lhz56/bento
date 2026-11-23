@@ -16,7 +16,7 @@ few days, and you'll be credited in the release notes unless you'd rather not be
 - Phone access (`electron/host.cjs`): pairing, device keys, reaching the Mac without being paired.
 - Your own agent's tool server (`electron/agent.cjs`).
 - The Bento Code iPhone app (`ios/`).
-- Signed releases and updates from [lhz56/bento-releases](https://github.com/lhz56/bento-releases).
+- Source at [lhz56/bento](https://github.com/lhz56/bento); signed releases and updates from [lhz56/bento-releases](https://github.com/lhz56/bento-releases).
 
 How Bento keeps each of these safe is written up in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#safety) and
 [docs/PHONE.md](docs/PHONE.md#safety).
