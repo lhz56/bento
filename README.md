@@ -1,84 +1,111 @@
-<p align="center"><img src="docs/logo.svg" width="72" alt="Bento"></p>
-
-<h1 align="center">Bento</h1>
-
-<p align="center"><b>Learn how software is really built.</b><br>Ask anything and get a lesson you can run. Take apart any app.<br>With the AI you already pay for.</p>
+<p align="center"><img src="docs/media/banner.png" width="100%" alt="Bento: take software apart. Ask anything, get a lesson you can run, with the AI you already pay for."></p>
 
 <p align="center">
-  <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg"><b>Download for Mac</b></a> ·
-  <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg">Intel</a> ·
-  <a href="docs/FEATURES.md">Everything it does</a> ·
-  <a href="LICENSE">MIT</a>
+  <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg"><img src="https://img.shields.io/badge/Download-for%20Mac-121212?style=for-the-badge&logo=apple&logoColor=white" alt="Download for Mac"></a>
+  <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg"><img src="https://img.shields.io/badge/Intel-Mac-f2efe8?style=for-the-badge&logo=intel&logoColor=121212&labelColor=f2efe8" alt="Intel Mac"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-ff6b3d?style=for-the-badge" alt="MIT license"></a>
 </p>
 
-<p align="center"><img src="docs/media/ask.webp" width="900" alt="A question typed into Bento becomes a lesson that writes itself, runs its code and draws a chart"></p>
+<p align="center">
+  <img src="https://img.shields.io/badge/macOS-13%2B-121212?style=flat-square" alt="macOS 13+">
+  <img src="https://img.shields.io/badge/API%20keys-0-121212?style=flat-square" alt="No API keys">
+  <img src="https://img.shields.io/badge/accounts-0-121212?style=flat-square" alt="No accounts">
+  <img src="https://img.shields.io/badge/telemetry-none-121212?style=flat-square" alt="No telemetry">
+  <img src="https://img.shields.io/badge/signed%20%26%20notarized-Apple-121212?style=flat-square" alt="Signed and notarized by Apple">
+</p>
 
-## Get started
+<p align="center">
+  <a href="#learn">Learn</a> ·
+  <a href="#take-apart">Take apart</a> ·
+  <a href="#in-the-box">In the box</a> ·
+  <a href="#your-ai">Your AI</a> ·
+  <a href="#build-it-yourself">Build it</a> ·
+  <a href="docs/FEATURES.md">Everything it does</a>
+</p>
 
-1. **[Download Bento](https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg)** (Apple Silicon) or the [Intel version](https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg). macOS 13 or newer.
-2. Drag it into Applications and open it.
-3. Pick the AI you already use. That's it.
+<br>
 
-Signed and notarized by Apple, and it updates itself.
+<p align="center"><img src="docs/media/ask.webp" width="900" alt="A question typed into Bento becomes a lesson that writes itself, runs its code, and explains every line in plain English"></p>
 
-<p align="center"><img src="docs/media/start.webp" width="900" alt="Bento's first minute: it finds the AI already signed in on your Mac, asks how much code you've seen, and offers four places to start"></p>
+<br>
 
-## Ask anything. Get a lesson you can run.
+## ▍Learn
 
-Real code on the right, the story on the left, every line in plain English. Run it, change a number, watch the picture change.
+### Every answer is a lesson you can **run**.
 
-<p align="center"><img src="docs/media/idea.webp" width="900" alt="Discord's hash ring as a lesson you can run"></p>
+Ask *“How does Uber find a driver?”* and get the real idea: code you can run, a picture that moves, every line in plain English. Plus 32 famous engineering tricks from Uber, Discord and Google.
 
-## Take apart any app
+<p align="center"><img src="docs/media/idea.webp" width="900" alt="Discord's hash ring as a lesson: it runs, a phrase is tapped to show its code, then the plain-words view"></p>
 
-Paste a GitHub link. Bento draws the whole app as one picture: every part, what it does, how the parts talk, and the real word for each. Then a code city, the tools it uses (and why), and where it's fragile.
+<p align="center"><img src="docs/media/how.png" width="900" alt="How it works: you ask, the AI already signed in on your Mac writes a lesson, Bento runs it in a sandbox. All on your Mac."></p>
 
-<p align="center"><img src="docs/media/atlas.webp" width="900" alt="T3 Code taken apart: the big picture, a code city with a request travelling through it, and its toolbelt"></p>
+## ▍Take apart
 
-## Practice by doing
+### Paste a GitHub link. Get the blueprint.
 
-34 interview puzzles raced from ten items to a billion, 32 famous engineering tricks you can run (Uber, Discord, Google…), seven learning paths, and playgrounds for SQL, Git and system design.
+The whole app as one picture. Click any part for the real word. Watch a request travel through a code city.
+
+<p align="center"><img src="docs/media/atlas.webp" width="900" alt="T3 Code taken apart: the big picture, one part opened, a request travelling through a code city, then the toolbelt"></p>
+
+## ▍In the box
+
+<table>
+  <tr>
+    <td width="50%" valign="top"><img src="docs/media/toolbelt.webp" alt="The toolbelt: every tool T3 Code uses, why Electron was picked, and what else it could have been"><br><b>The toolbelt</b><br><sub>Every tool an app uses, and why it was picked.</sub></td>
+    <td width="50%" valign="top"><img src="docs/media/hotspots.webp" alt="Hot spots: where T3 Code could break, in plain words, down to the file"><br><b>Hot spots</b><br><sub>Where it could break, in plain words.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top"><img src="docs/media/files.webp" alt="Every file of T3 Code, sorted by what it does, then a search"><br><b>Every file</b><br><sub>Sorted by what it does. Find any one.</sub></td>
+    <td width="50%" valign="top"><img src="docs/media/path.webp" alt="Learning paths: pick one, then short stops in order"><br><b>Paths</b><br><sub>Seven of them. Zero to a real app, in order.</sub></td>
+  </tr>
+</table>
+
+**Puzzles that scale.** 34 interview puzzles, pushed from ten items to a billion, raced live.
 
 <p align="center"><img src="docs/media/practice.webp" width="900" alt="How long an algorithm takes at a billion items, then a live sorting race"></p>
 
-## On your iPhone and iPad: coming soon
+## ▍Your AI
 
-Your Mac does the work; your phone takes it anywhere. It's still being built. The early pieces are in the code if you want to try them: see [docs/PHONE.md](docs/PHONE.md).
+Any one is enough. Bento drives the official tool already signed in on your Mac, with its tools switched off, so the model can only write text.
 
-## Works with the AI you already have
-
-| AI | What Bento uses | Plan |
+| | Uses | Plan you already have |
 |---|---|---|
-| Claude | Claude Code (`claude`) | Claude Pro or Max |
-| ChatGPT | Codex (`codex`) | ChatGPT Plus, Pro or Business |
-| Gemini | Antigravity (`agy`) or Gemini CLI (`gemini`) | Google AI Pro (free for students), or a Gemini API key |
-| GitHub Copilot | Copilot CLI (`copilot`) | Free with GitHub |
+| <img src="site/img/claude.svg" width="16"> **Claude** | `claude` | Pro or Max |
+| **ChatGPT** | `codex` | Plus, Pro or Business |
+| <img src="site/img/googlegemini.svg" width="16"> **Gemini** | `agy` or `gemini` | AI Pro (free for students), or an API key |
+| <img src="site/img/githubcopilot.svg" width="16"> **Copilot** | `copilot` | Free with GitHub |
 
-Any one is enough. No API keys and no account: Bento drives the official tool already signed in on your Mac, with all of its tools switched off, so the model can only write text. Missing one? Bento installs it for you in Terminal, where you can see every step. A meter in the sidebar shows how much of your plan you've used.
+Missing one? Bento installs it in Terminal, where you can watch every step.
 
-**Or let your own agent drive Bento** (next release). Add Bento to Claude Code, Codex, Gemini or Copilot from **Settings → Use Bento from your AI agent**, then say *"show me in Bento"*. Your agent gets four tools: show a lesson, see what you're looking at, point at lines, run code. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#your-own-agent-uses-bento-mcp).
+<p align="center"><img src="docs/media/start.webp" width="900" alt="Bento's first minute: it finds the AI already signed in, asks how much code you've seen, and offers four places to start"></p>
 
-## Private by design
+## ▍Private by design
 
-- Your code runs on your Mac. Python is real CPython in WebAssembly, in a sandbox.
-- Apps you take apart are only read, never run.
-- What leaves your Mac: questions to your own AI, and the GitHub pages or websites you ask for. No telemetry, no analytics, no account.
-- Phone access is off until you turn it on, and only paired devices get in. See [Safety](docs/PHONE.md#safety) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#safety).
+| | |
+|---|---|
+| **Your code** | Runs on your Mac. Python is real CPython in WebAssembly, in a sandbox. |
+| **Apps you take apart** | Only read, never run. |
+| **What leaves your Mac** | Your questions, to your own AI. The pages you ask for. Nothing else. |
+| **Telemetry** | None. No analytics, no account. |
 
-## Build it yourself
+**On your iPhone and iPad:** coming soon.
+
+## ▍Build it yourself
 
 ```bash
 git clone https://github.com/lhz56/bento && cd bento
 npm install
 npm run dev      # the app, with hot reload
-npm test         # none of the checks use an AI plan
-npm run smoke    # the real app, hidden, used end to end
+npm test         # no check ever spends an AI plan
+npm run smoke    # the real app, hidden, end to end
 ```
 
-You need Node 20+ and at least one of `claude`, `codex`, `gemini` or `copilot` signed in. How it fits together: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Shipping a release: [docs/RELEASING.md](docs/RELEASING.md). The clips above come from `scripts/record-media.mjs` and `scripts/record-phone.mjs`, which film the real app with a pretend AI, and `scripts/compose-media.mjs`, which adds the camera moves and captions.
+Node 20+ and one signed-in AI CLI. How it fits together: [ARCHITECTURE](docs/ARCHITECTURE.md) · Shipping: [RELEASING](docs/RELEASING.md) · Help out: [CONTRIBUTING](CONTRIBUTING.md) · Problems: [issues](https://github.com/lhz56/bento-releases/issues) · Security: [SECURITY](SECURITY.md)
 
-## Contributing
+<sub>Every clip here is the real app, filmed by <code>scripts/record-media.mjs</code> with a pretend AI and finished by <code>scripts/compose-media.mjs</code>.</sub>
 
-Ideas, puzzles, tools for the catalog and fixes are all welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md). Found a problem? [Open an issue](https://github.com/lhz56/bento-releases/issues).
+<br>
 
-MIT licensed. Made to be read, forked and learned from.
+<p align="center"><a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg"><img src="docs/media/end.png" width="100%" alt="What will you take apart first? Download Bento for Mac."></a></p>
+
+<p align="center"><sub>Made by <a href="https://github.com/lhz56">Lin Zaw</a> · MIT</sub></p>
