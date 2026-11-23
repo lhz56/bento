@@ -133,6 +133,27 @@ const AIS = createRequire(import.meta.url)('../electron/ai-catalog.json').provid
   await close();
 }
 
+// ---------------------------------------------------------------- "Retry with another AI" off: no other AI's plan is ever used
+{
+  const { p, errors, close } = await launch({ onboarded: true, model: 'claude:sonnet', lang: 'python', level: 'student', autoFallback: false }, { BENTO_FAKE_LIMIT: 'claude' });
+  await p.waitForSelector('.side', { timeout: 60000 });
+  await step(p, 'Claude has hit its limit and Retry is off: a quick answer says so, and no other AI is asked', async () => {
+    await p.waitForTimeout(400); // the page has told the app its settings
+    const r = await p.evaluate(() => window.bento.quick('claude:sonnet', 'In one sentence, what is a variable? (fallback check)').then(() => 'answered', (e) => e.message));
+    if (r === 'answered') throw new Error('an answer came from another AI');
+    const u = await p.evaluate(() => window.bento.usage()); if (Object.keys(u.by || {}).some((k) => k !== 'claude')) throw new Error(JSON.stringify(u.by));
+    return r.slice(0, 70);
+  });
+  await step(p, 'turned on, the next AI answers and the page says which', async () => {
+    await p.evaluate(() => { const s = JSON.parse(localStorage.getItem('bento.settings')); window.bento.setPrefs({ voice: 'English', fallback: true }); return s; });
+    const r = await p.evaluate(() => window.bento.quick('claude:sonnet', 'In one sentence, what is a loop? (fallback check)').then(() => 'answered', (e) => e.message));
+    if (r !== 'answered') throw new Error(r);
+    await p.waitForSelector('.fellback', { timeout: 5000 }); return (await p.locator('.fellback').innerText()).slice(0, 70);
+  });
+  await step(p, 'nothing went wrong on the page', async () => { if (errors.length) throw new Error(errors[0]); });
+  await close();
+}
+
 // ---------------------------------------------------------------- plain English that slipped off its lines is written again, by line number
 {
   const { p, errors, close } = await launch({ onboarded: true, model: 'antigravity:flash-low', lang: 'python', level: 'student' }, { FAKE_AI_SLIP: '1' });

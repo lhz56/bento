@@ -7,6 +7,14 @@ Write for learners, not for developers.
 
 - **Use Bento from your own AI agent.** Add Bento to Claude Code, Codex, Gemini, Copilot or any agent that speaks MCP with one command (Settings → **Use Bento from your AI agent**). Then ask it to "show me in Bento": it writes the lesson and Bento puts it on your screen and runs the code. It can see the code you're editing and what it did, point at lines with a note, and try changes for you. Your agent's plan does the thinking; Bento uses none of yours.
 - First-time tips step aside when you switch to a part of the screen they don't point at.
+- **Find on the page** with ⌘F: every match is marked, with "3 of 8"; Enter for the next one.
+- **Back and Forward**: ⌘[ and ⌘], your mouse's side buttons, or View → Back.
+- **Right-click** works: Copy, Paste, Look Up a word, and Open or Copy a link.
+- After an update, **What's new** opens right in Bento.
+- **Retry with another AI** is respected everywhere: when it's off, no other AI's plan is ever used, and when it's on, Bento says which AI answered.
+- GitHub Copilot gets its request privately (not on the command line, where other programs can read it).
+- Your phone can no longer publish pages or fork projects on your GitHub account; do that on your Mac. Settings says plainly that the Wi-Fi option isn't encrypted.
+- Windows: setup offers Windows commands in PowerShell (winget and npm), the window's top bar follows dark mode, and Bento says "PC" where it means your computer.
 - Security: the newest Electron 45, with the latest Chromium fixes.
 
 ## 0.3.1

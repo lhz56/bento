@@ -123,7 +123,7 @@ export default function DevicesRow() {
             </div>
             <div className="dv-line">
               <span className={`dv-tile ${wifi ? 'ok' : ''}`}>{ICON.wifi}</span>
-              <span className="dv-what"><b>{t('At home, on this Wi-Fi')}</b><span>{wifi ? <code>{bare(wifi.url)}</code> : t('Lets your phone connect without Tailscale when it’s on the same Wi-Fi.')}</span></span>
+              <span className="dv-what"><b>{t('At home, on this Wi-Fi')}</b><span>{wifi ? <><code>{bare(wifi.url)}</code> <em className="dv-warn">{t('Not encrypted: use it only on a Wi-Fi you trust, like home. Tailscale is encrypted.')}</em></> : t('Lets your phone connect without Tailscale when it’s on the same Wi-Fi. Not encrypted, so only on a Wi-Fi you trust.')}</span></span>
               <button className={`switch ${st.wifi ? 'on' : ''}`} role="switch" aria-checked={st.wifi} aria-label={t('At home, on this Wi-Fi')} disabled={busy} onClick={() => set({ wifi: !st.wifi })}><i /></button>
             </div>
             <div className="dv-line">

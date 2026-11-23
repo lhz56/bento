@@ -96,12 +96,12 @@ export default function App() {
 
   const setSettings = (p) => setSettingsRaw((s) => { const n = { ...s, ...p }; save('bento.settings', n); return n; });
   useEffect(() => {
-    api.setPrefs?.({ voice: settings.voice || 'English' });
+    api.setPrefs?.({ voice: settings.voice || 'English', fallback: !!settings.autoFallback });
     const CODES = { English: 'en', Español: 'es', Português: 'pt', Français: 'fr', Deutsch: 'de', Italiano: 'it', Nederlands: 'nl', Polski: 'pl', Türkçe: 'tr', Русский: 'ru', Українська: 'uk', العربية: 'ar', हिन्दी: 'hi', বাংলা: 'bn', 'Bahasa Indonesia': 'id', 'Tiếng Việt': 'vi', ไทย: 'th', Filipino: 'fil', 中文: 'zh', 日本語: 'ja', 한국어: 'ko', Kiswahili: 'sw' };
     document.documentElement.lang = CODES[settings.voice] || 'en'; // read-aloud picks a matching voice
     // menus and buttons in the same language: translated once by your own AI, then kept on this Mac
     setUILanguage(settings.voice || 'English', async (strings, language) => parseJSONLoose(await api.quick(settings.model, `Translate these short labels from a friendly app that teaches coding into ${language}. They are buttons, menu items and headings, so keep each one about as short as the English. Keep words wrapped in *stars* wrapped in stars (they are emphasised). Keep product and technical names as they are: Bento, Python, JavaScript, TypeScript, LeetCode, GitHub, Big-O, O(n), ⌘ and other symbols.\nReply with only a JSON object mapping each English string exactly to its translation.\n${JSON.stringify(strings)}`)));
-  }, [settings.voice]);
+  }, [settings.voice, settings.autoFallback]);
   const lib = useLibrary({ api, settings, setProgress, setProjectRaw, setViewRaw, getProviders: () => providersRef.current });
   const { atlases, setAtlases, atlasKey, setAtlasKey, atlasRef, projects, setProjects, sites, setSites, siteKey, setSiteKey,
     stopReading, patchAtlas, asProject, narrate, openAtlas, openRepo, openRepoAt, openSite, openFolderAtlas, openProject, showAtlas, setProject, ensureProject,
@@ -589,6 +589,8 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showKeys, setShowKeys] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
+  const [fellBack, setFellBack] = useState(null); // { from, to }: another AI answered (Retry with another AI)
+  useEffect(() => { let t; const off = api.onFallback?.((x) => { setFellBack(x); clearTimeout(t); t = setTimeout(() => setFellBack(null), 7000); }); return () => { off?.(); clearTimeout(t); }; }, []);
   const [pair, setPair] = useState([null, null]);
   // a phone or iPad uses the Mac's AIs, which the Mac already set up: no welcome there
   const [onb, setOnb] = useState(() => (api.remote || load('bento.settings', {}).onboarded ? null : 0));
@@ -741,6 +743,7 @@ export default function App() {
       {onb == null && !phone && view === 'atlas' && <Coach key="atlas" screen="atlas" ready={!!atlases[atlasKey]?.facts} />}
       {dropping && <div className="drop-veil"><div className="drop-card"><span>⤓</span><b>Drop to take it apart</b><i>A folder becomes a picture of the project. A code file gets explained line by line.</i></div></div>}
       {showKeys && <KeySheet onClose={() => setShowKeys(false)} />}
+      {fellBack && <div className="fellback" role="status">{fellBack.from} couldn’t answer, so {fellBack.to} did (its plan pays). <button className="link small" onClick={() => setFellBack(null)}>OK</button></div>}
       {findOpen && <FindBar onClose={() => setFindOpen(false)} />}
       {showSettings && <Settings settings={settings} setSettings={setSettings} providers={providers} onClose={() => setShowSettings(false)} onSetup={() => { setShowSettings(false); setOnb(1); }} onOpenData={() => api.openData?.()} packs={packs} onRemovePack={(id) => setPacks((ps) => ps.filter((p) => p.id !== id))} onAddPack={(json) => { const { errors, pack } = validatePack(json); if (errors.length) return { errors }; setPacks((ps) => [...ps.filter((p) => p.id !== pack.id), pack]); return { pack }; }} onBackup={() => api.backupSave?.()} onRestore={async () => { const d = await api.backupLoad?.(); return d ? restoreBackup(d) : null; }} onReplayOnboarding={() => { setShowSettings(false); setOnb(0); }} wordsCount={Object.keys(progress.words || {}).length} lessonsCount={lessons.filter((l) => !l.builtin).length} />}
       {pal && <Palette onOpenAt={openRepoAt} onOpenSite={openSite} onClose={() => setPal(false)} lessons={lessons} projects={projects} words={progress.words || {}}

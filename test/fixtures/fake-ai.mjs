@@ -102,7 +102,8 @@ else if (as === 'copilot') {
   if (a[0] === '--version') { console.log('GitHub Copilot CLI 1.0.109.'); process.exit(0); }
   if (a[0] === '--help') { console.log(help(['--output-format', '--stream', '--available-tools', '--disable-builtin-mcps', '--no-custom-instructions', '--no-ask-user', '--model'])); process.exit(0); }
   if (!has('--available-tools') || !has('--disable-builtin-mcps') || !has('--no-custom-instructions') || process.env.COPILOT_ALLOW_ALL) refuse('its tools, tool servers or your instructions were left on');
-  const prompt = val('-p') || '';
+  const prompt = val('-p') || (await readStdin()); // the real one reads stdin when no -p is given
+  if (!prompt.trim()) refuse('No prompt provided');
   const id = 'm1';
   out({ type: 'session.start', data: { sessionId: 'pretend', selectedModel: val('--model') || 'auto' } });
   out({ type: 'assistant.message_start', data: { messageId: id, phase: 'final_answer' } });

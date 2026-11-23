@@ -168,8 +168,10 @@ const copilot = {
     const env = { COPILOT_ALLOW_ALL: undefined }; // a personal "allow everything" must never apply here
     if (token) { env.GH_TOKEN = token; env.COPILOT_HOME = files.copilotHome; }
     return {
-      args: ['-p', `${system}\n\n---\n\n${prompt}`, '--output-format', 'json', '--stream', 'on', '--model', name, '--available-tools', 'bento-text-only', '--disable-builtin-mcps', '--no-custom-instructions', '--no-ask-user', '--no-auto-update', '--disallow-temp-dir'],
-      stdin: null, env,
+      // the request goes in on standard input (Copilot reads it there when no -p is given): never on the command line,
+      // where other programs could read it, Windows would refuse its line breaks and long requests wouldn't fit
+      args: ['--output-format', 'json', '--stream', 'on', '--model', name, '--available-tools', 'bento-text-only', '--disable-builtin-mcps', '--no-custom-instructions', '--no-ask-user', '--no-auto-update', '--disallow-temp-dir'],
+      stdin: `${system}\n\n---\n\n${prompt}`, env,
     };
   },
   parse(o, s) {

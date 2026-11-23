@@ -347,10 +347,8 @@ if (process.platform !== 'win32') { const { createRequire } = await import('node
     for (const line of r.stdout.split('\n')) { let o; try { o = JSON.parse(line); } catch { continue; } P.ADAPTERS[id].parse(o, sink); }
     const kinds = full.split('\n').map((l) => { try { return JSON.parse(l).t; } catch { return null; } }).filter(Boolean);
     check(r.status === 0 && kinds[0] === 'title' && kinds.includes('code') && !err, `${P.label(id)}: runs as a writer only, and its stream becomes the whole lesson`, (r.stderr || err).slice(0, 160) || kinds.join(','));
-    if (id !== 'copilot') { // Copilot shares no token counts (Bento estimates them) and takes its request only as -p
-      check(!!tokens, `${P.label(id)}: token counts are read`, '');
-      check(!b.args.some((x) => /hash map work/.test(x)), `${P.label(id)}: the request never goes on the command line`, b.args.join(' ').slice(0, 120));
-    }
+    if (id !== 'copilot') check(!!tokens, `${P.label(id)}: token counts are read`, ''); // Copilot shares no token counts (Bento estimates them)
+    check(!b.args.some((x) => /hash map work/.test(x)), `${P.label(id)}: the request never goes on the command line`, b.args.join(' ').slice(0, 120));
   }
   // a name Codex doesn't know is never passed (a real one stops with an error)
   P._resetCodexFeatures(['shell_tool']); const cx = P.ADAPTERS.codex.build({ name: 'default', system: 's', prompt: 'p' });
@@ -428,5 +426,24 @@ if (process.platform !== 'win32') { const { createRequire } = await import('node
   const cmd = ['/Applications/My Apps/Bento.app/Contents/MacOS/Bento', '--mcp'];
   check(agentCommand('claude', cmd) === 'claude mcp add bento --scope user -- "/Applications/My Apps/Bento.app/Contents/MacOS/Bento" --mcp', 'the Claude Code command quotes a path with a space', agentCommand('claude', cmd));
   check(agentCommand('gemini', ['/x/Bento', '--mcp']) === 'gemini mcp add --scope user bento /x/Bento --mcp' && JSON.parse(agentCommand('json', cmd)).mcpServers.bento.args[0] === '--mcp', 'Gemini and the plain settings shape are right too', agentCommand('gemini', ['/x/Bento', '--mcp'])); }
+
+
+// ---------------------------------------------------------------- Windows, and "What's new"
+{
+  const { createRequire } = await import('node:module'); const req = createRequire(import.meta.url);
+  const W = req('../electron/wincmd.cjs'); const CAT = req('../electron/ai-catalog.json');
+  const claude = CAT.providers.find((p) => p.id === 'claude');
+  check(W.forPlatform(claude, 'win32').install[0].cmd.startsWith('irm ') && W.forPlatform(claude, 'darwin').install[0].cmd.startsWith('curl '), 'Windows: Claude installs with PowerShell there, curl on the Mac', '');
+  check(CAT.providers.every((p) => !(W.forPlatform(p, 'win32').install || []).some((i) => /\bbrew\b|\| bash/.test(i.cmd))) && !/brew/.test(W.forPlatform(CAT.github, 'win32').update), 'Windows: no Homebrew or bash commands are offered', '');
+  const [exe, args] = W.powershellWindow('irm https://claude.ai/install.ps1 | iex');
+  check(exe === 'powershell.exe' && args.at(-1) === "Start-Process powershell.exe -ArgumentList '-NoExit -Command irm https://claude.ai/install.ps1 | iex'", 'Windows: a setup command opens in its own PowerShell window', args.at(-1));
+  check(W.psQuote("it's") === "'it''s'", 'Windows: a quote inside a PowerShell string is doubled', W.psQuote("it's"));
+  let threw = false; try { W.powershellWindow('a\nb'); } catch { threw = true; } check(threw, 'Windows: a command with a line break is refused', '');
+  const { swapMacWords } = await import('../src/winwords.js');
+  check(swapMacWords('Open a folder on this Mac') === 'Open a folder on this PC' && swapMacWords('MacBook and macOS') === 'MacBook and macOS' && swapMacWords('your Mac’s name') === 'your PC’s name', 'Windows: Bento’s own words say PC, and MacBook or macOS stay as they are', swapMacWords('Open a folder on this Mac'));
+  const { notesFor } = await import('../src/notes.js'); const fs = await import('node:fs');
+  const log = fs.readFileSync(new URL('../CHANGELOG.md', import.meta.url), 'utf8'); const n = notesFor('0.3.1', log);
+  check(n && n.items.length >= 3 && /spiral/.test(n.items[0]) && !notesFor('9.9.9', log), 'What’s new: a version’s notes come from CHANGELOG.md', n ? `${n.items.length} items` : 'none');
+}
 
 process.exit(fail ? 1 : 0);

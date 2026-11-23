@@ -126,6 +126,6 @@ await step('with Bento closed, the agent hears “open Bento” instead of hangi
 });
 
 await app.close();
-fs.rmSync(tmp, { recursive: true, force: true });
+fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); // the agent bridge may still be closing its files
 console.log(fail ? `\n${fail} failed` : '\nall passed');
 process.exit(fail ? 1 : 0);

@@ -10,8 +10,11 @@ import './mobile.css';
 import { IS_MAC } from './platform.js';
 import { startStill } from './still.js';
 import Hosted from './ui/Hosted.jsx';
+import { winWords } from './winwords.js';
 // macOS draws its window buttons over the top-left corner: pages leave room for them when the sidebar is closed
 if (IS_MAC) document.body.classList.add('mac');
+// Windows: Bento's own screens say "PC" where they'd say "Mac" (winwords.js)
+if (window.bento && !window.bentoRemote && /Win/.test(navigator.platform || '')) winWords();
 
 if (!window.bento) document.body.classList.add('browser');
 // a phone or iPad using Bento on a Mac; and anything driven by touch gets bigger targets and no hover-only details

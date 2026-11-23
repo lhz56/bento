@@ -336,10 +336,10 @@ const aiCtx = (id) => ({ run: (args, t) => runPatient(P.BY[id].bin, args, t), en
 // what each AI tool says about itself: installed, a version Bento can talk to, signed in (and with which plan)
 async function scanConnections() {
   await limitsReady;
-  const bins = [...P.IDS.map((id) => P.BY[id].bin), 'gh', 'npm', 'brew'];
+  const bins = [...P.IDS.map((id) => P.BY[id].bin), 'gh', 'npm', 'brew', ...(WIN ? ['winget'] : [])];
   const at = Object.fromEntries(await Promise.all(bins.map(async (b) => [b, await which(b)])));
   // which installers this Mac already has, so the welcome only suggests commands that will work here
-  const r = { tools: { npm: !!at.npm, brew: !!at.brew }, gh: { installed: !!at.gh } };
+  const r = { tools: { npm: !!at.npm, brew: !!at.brew, winget: !!at.winget }, gh: { installed: !!at.gh } };
   await Promise.all([
     ...P.IDS.map(async (id) => {
       const A = P.ADAPTERS[id], bin = P.BY[id].bin, x = (r[id] = { installed: !!at[bin] });
@@ -374,11 +374,13 @@ ipcMain.handle('providers', async () => {
 
 // One click from the welcome: run the install, sign-in or update command for an AI in Terminal, where the person
 // sees exactly what runs. Only commands from ai-catalog.json can be run this way.
+const wincmd = require('./wincmd.cjs');
 ipcMain.handle('ai:terminal', async (_e, id, action, tools = {}) => {
-  if (!MAC) return false;
-  const p = id === 'gh' ? P.CAT.github : P.BY[id]; if (!p || !['install', 'signIn', 'update'].includes(action)) return false;
+  if (!MAC && !WIN) return false;
+  const p = wincmd.forPlatform(id === 'gh' ? P.CAT.github : P.BY[id]); if (!p || !['install', 'signIn', 'update'].includes(action)) return false;
   const cmd = action === 'install' ? (p.install.find((i) => !i.needs || tools[i.needs]) || {}).cmd : action === 'update' ? (tools.brewInstalled && p.updateBrew) || p.update : p.signIn;
   if (!cmd) return false;
+  if (WIN) { let c, a; try { [c, a] = wincmd.powershellWindow(cmd); } catch { return false; } return new Promise((res) => execFile(c, a, { windowsHide: true }, (e) => res(!e))); }
   const esc = cmd.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   return new Promise((res) => execFile('osascript', ['-e', 'tell application "Terminal" to activate', '-e', `tell application "Terminal" to do script "${esc}"`], (e) => res(!e)));
 });
@@ -414,7 +416,9 @@ ipcMain.handle('limits:get', async (_e, o) => { await limitsReady; return o?.ref
 
 // The learner's language for explanations (code stays in English so it runs everywhere).
 let VOICE = '';
-ipcMain.on('prefs', (_e, p) => { VOICE = typeof p?.voice === 'string' && /^[\p{L}\p{M} ()-]{2,30}$/u.test(p.voice) ? p.voice : ''; });
+// "Retry with another AI" (Settings, off unless you turn it on): only then may an answer come from another AI's plan
+let FALLBACK = false;
+ipcMain.on('prefs', (_e, p) => { VOICE = typeof p?.voice === 'string' && /^[\p{L}\p{M} ()-]{2,30}$/u.test(p.voice) ? p.voice : ''; FALLBACK = p?.fallback === true; });
 const withVoice = (system) => (VOICE && VOICE !== 'English' ? `${system}\n\nLANGUAGE: Write every human-readable string (titles, paragraphs, pseudocode, notes, labels, quiz, hints, terms, answers) in ${VOICE}. Keep code, identifiers, file paths and JSON keys exactly as they are, in English. Technical terms may keep their common English name with the ${VOICE} word next to it.` : system);
 
 // Streams text deltas to onText. Returns {promise, kill}.
@@ -540,12 +544,13 @@ ipcMain.handle('quick', async (_e, req) => {
   const keep = (a) => { quickCache()[key] = { a, at: Date.now() }; saveQuick(); return a; };
   try { return keep(await runModel(fast, QUICK_SYSTEM, prompt).promise); }
   catch (err) {
-    // this AI can't answer right now (limit, signed out, missing): quietly try the next one you have, in order
-    if (!ACCOUNT_TROUBLE.test(err.message)) throw err;
+    // this AI can't answer right now (limit, signed out, missing): with "Retry with another AI" on, try the next one you
+    // have, in order, and say which one answered (its plan pays). Off, the answer is the honest error.
+    if (!FALLBACK || !ACCOUNT_TROUBLE.test(err.message)) throw err;
     const mine = P.parseModel(fast).prov;
     for (const id of P.IDS.filter((x) => x !== mine)) {
       if (!(await which(P.BY[id].bin))) continue;
-      try { return keep(await runModel(P.BY[id].fast, QUICK_SYSTEM, prompt).promise); } catch (e2) { if (!ACCOUNT_TROUBLE.test(e2.message)) throw err; }
+      try { const a = keep(await runModel(P.BY[id].fast, QUICK_SYSTEM, prompt).promise); _e.sender?.send?.('ai:fallback', { from: P.label(mine), to: P.label(id) }); return a; } catch (e2) { if (!ACCOUNT_TROUBLE.test(e2.message)) throw err; }
     }
     throw err;
   }
@@ -690,7 +695,7 @@ ipcMain.handle('repos:usage', async () => { const es = await fsp.readdir(REPOS).
 ipcMain.handle('repos:clear', async () => { await work('remove', [REPOS]).catch(() => {}); await fsp.mkdir(REPOS, { recursive: true }).catch(() => {}); return true; });
 ipcMain.handle('open:data', () => shell.openPath(app.getPath('userData')));
 // the welcome's "Open Terminal": to paste an install command (Bento never runs installers itself)
-ipcMain.handle('open:terminal', () => (MAC ? shell.openPath('/System/Applications/Utilities/Terminal.app') : false));
+ipcMain.handle('open:terminal', () => (MAC ? shell.openPath('/System/Applications/Utilities/Terminal.app') : WIN ? new Promise((res) => execFile('powershell.exe', ['-NoProfile', '-Command', 'Start-Process powershell.exe'], { windowsHide: true }, (e) => res(!e))) : false));
 ipcMain.handle('open:external', (_e, url) => openOutside(str(url, 4000)));
 
 // ---------------------------------------------------------------- Atlas: bring a repo in and take it apart
@@ -948,7 +953,8 @@ ipcMain.handle('gh:fork', async (_e, full) => {
 // (Terminal, Finder, file dialogs, updates, backups); those tell the person to use the Mac.
 const REMOTE_CALLS = new Set(['providers', 'scan', 'limits:get', 'usage:get', 'usage:clearSaved', 'quick', 'store:get', 'store:set', 'folder:read', 'gh:me', 'gh:repos', 'gh:tree', 'gh:file',
   'atlas:fetch', 'atlas:history', 'gh:issues', 'atlas:refresh', 'atlas:analyze', 'atlas:meta', 'atlas:list', 'atlas:reopen', 'atlas:cache:get', 'atlas:cache:put', 'atlas:search',
-  'gh:search', 'project:find', 'project:openLocal', 'gh:code', 'site:inspect', 'gh:fork', 'web:publish', 'play:put', 'update:get', 'repos:usage']);
+  'gh:search', 'project:find', 'project:openLocal', 'gh:code', 'site:inspect', 'play:put', 'update:get', 'repos:usage']);
+// (not from a phone: publishing a page or forking a repo acts on your GitHub account in public, so it's done at the Mac)
 const REMOTE_SENDS = new Set(['ask:start', 'ask:cancel', 'prefs']);
 const HOST_FILE = path.join(app.getPath('userData'), 'host.json');
 let hostPrefs = { on: false, wifi: false, awake: true }, macName = os.hostname();

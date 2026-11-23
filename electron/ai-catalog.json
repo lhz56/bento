@@ -1,5 +1,5 @@
 {
-  "about": "Every AI Bento can teach with. Read by the app (electron/providers.cjs) and by its screens (src/ai.js). Order is the order Bento prefers them in, and the order it falls back through when one can't answer. A model name like \"antigravity:flash\" can stand for whatever that tool's newest matching model is (see the adapter).",
+  "about": "Every AI Bento can teach with. Read by the app (electron/providers.cjs) and by its screens (src/ai.js). Order is the order Bento prefers them in, and the order it falls back through when one can't answer. A model name like \"antigravity:flash\" can stand for whatever that tool's newest matching model is (see the adapter). \"win\" holds what differs on Windows (PowerShell, winget, npm instead of Homebrew).",
   "providers": [
     {
       "id": "claude",
@@ -45,7 +45,15 @@
           "speed": 3,
           "depth": 2
         }
-      ]
+      ],
+      "win": {
+        "install": [
+          {
+            "needs": null,
+            "cmd": "irm https://claude.ai/install.ps1 | iex"
+          }
+        ]
+      }
     },
     {
       "id": "codex",
@@ -80,7 +88,16 @@
           "speed": 2,
           "depth": 3
         }
-      ]
+      ],
+      "win": {
+        "install": [
+          {
+            "needs": "npm",
+            "cmd": "npm install -g @openai/codex"
+          }
+        ],
+        "update": "npm install -g @openai/codex@latest"
+      }
     },
     {
       "id": "antigravity",
@@ -166,7 +183,19 @@
           "speed": 2,
           "depth": 3
         }
-      ]
+      ],
+      "win": {
+        "install": [
+          {
+            "needs": "winget",
+            "cmd": "winget install --id GitHub.Copilot"
+          },
+          {
+            "needs": "npm",
+            "cmd": "npm install -g @github/copilot"
+          }
+        ]
+      }
     },
     {
       "id": "gemini",
@@ -218,7 +247,16 @@
         }
       ],
       "short": "Gemini API",
-      "via": "Gemini CLI"
+      "via": "Gemini CLI",
+      "win": {
+        "install": [
+          {
+            "needs": "npm",
+            "cmd": "npm install -g @google/gemini-cli"
+          }
+        ],
+        "updateBrew": null
+      }
     }
   ],
   "github": {
@@ -235,6 +273,15 @@
     ],
     "download": "https://cli.github.com",
     "signIn": "gh auth login",
-    "update": "brew upgrade gh"
+    "update": "brew upgrade gh",
+    "win": {
+      "install": [
+        {
+          "needs": "winget",
+          "cmd": "winget install --id GitHub.cli"
+        }
+      ],
+      "update": "winget upgrade --id GitHub.cli"
+    }
   }
 }

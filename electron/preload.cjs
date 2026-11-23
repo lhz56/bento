@@ -15,7 +15,7 @@ contextBridge.exposeInMainWorld('bento', {
   scan: () => call('scan'),
   openTerminal: () => call('open:terminal'),
   // install, sign in to or update an AI in Terminal, where the person sees what runs (only commands Bento knows)
-  aiTerminal: (id, action, tools) => call('ai:terminal', String(id), String(action), { brew: !!tools?.brew, npm: !!tools?.npm, brewInstalled: !!tools?.brewInstalled }),
+  aiTerminal: (id, action, tools) => call('ai:terminal', String(id), String(action), { brew: !!tools?.brew, npm: !!tools?.npm, winget: !!tools?.winget, brewInstalled: !!tools?.brewInstalled }),
   exportLesson: (l) => call('lesson:export', l),
   saveWeb: (html, title) => call('web:save', html, title),
   publishWeb: (html, title) => call('web:publish', html, title),
@@ -43,6 +43,8 @@ contextBridge.exposeInMainWorld('bento', {
   // how much of each plan is used: the last reading, or a fresh one (free) with { refresh: true }
   limits: { get: (o) => call('limits:get', { refresh: !!o?.refresh }), on(fn) { const h = (_e, x) => fn(x); ipcRenderer.on('limits', h); return () => ipcRenderer.removeListener('limits', h); } },
   clearSavedAnswers: () => call('usage:clearSaved'),
+  // "Retry with another AI" answered with a different AI than yours: which one
+  onFallback(fn) { const h = (_e, x) => fn(x); ipcRenderer.on('ai:fallback', h); return () => ipcRenderer.removeListener('ai:fallback', h); },
   pendingLink: () => call('deeplink:pending'),
   update: { get: () => call('update:get'), install: () => call('update:install'), check: () => call('update:check'), setAuto: (on) => call('update:auto', on), on(fn) { const h = (_e, st) => fn(st); ipcRenderer.on('update:state', h); return () => ipcRenderer.removeListener('update:state', h); } },
   onMenu(fn) { const h = (_e, a) => fn(a); ipcRenderer.on('menu', h); return () => ipcRenderer.removeListener('menu', h); },

@@ -100,7 +100,7 @@ export function createRemote() {
     backupSave: onMac, backupLoad: onMac, reposClear: onMac,
     exportLesson: async (l) => download(fileName(l?.title || 'lesson', 'bento'), JSON.stringify({ bento: 1, exported: new Date().toISOString(), lesson: l }, null, 1), 'application/json'),
     saveWeb: async (html, title) => download(fileName(title || 'my page', 'html'), String(html), 'text/html'),
-    publishWeb: (html, title) => call('web:publish', html, title),
+    // (publishing a page acts on your GitHub account in public: only at the Mac, so no button for it here)
     playPut: (html, key2) => call('play:put', html, key2),
     // lesson web pages come from the next port on the Mac: their own origin, as play:// is in the app
     playUrl: (id, v) => `${location.protocol}//${location.hostname}:${Number(location.port || 80) + 1}/p/${encodeURIComponent(id)}/?v=${v || 0}`,
@@ -140,7 +140,7 @@ export function createRemote() {
     cacheGet: (k) => call('atlas:cache:get', k), cachePut: (k, v) => call('atlas:cache:put', k, v),
     onAtlasProgress: (fn) => listen('atlas:progress', fn),
     ghSearch: (q, opts) => call('gh:search', q, opts), findProject: (names) => call('project:find', names), atlasSearch: (root, words, paths) => call('atlas:search', root, words, paths),
-    openLocalProject: (root) => call('project:openLocal', root), ghCode: (q, lang) => call('gh:code', q, lang), siteInspect: (url) => call('site:inspect', url), ghFork: (full) => call('gh:fork', full),
+    openLocalProject: (root) => call('project:openLocal', root), ghCode: (q, lang) => call('gh:code', q, lang), siteInspect: (url) => call('site:inspect', url),
   };
 
   async function pair(code, name) {

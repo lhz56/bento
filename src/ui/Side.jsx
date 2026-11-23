@@ -8,6 +8,7 @@ import Brand from './Brand.jsx';
 import { ideaById } from '../ideas.js';
 import { IS_MAC, keys } from '../platform.js';
 import Icon from './Icons.jsx';
+import WhatsNew from './WhatsNew.jsx';
 import { MODELS as ALL_MODELS, PROVIDERS, provOf, modelInfo, modelLabel as aiModelLabel, noAI, fastModel, mainWindow, level, usedText } from '../ai.js';
 import { PlanMeter, AIMark, Ring, usePlans } from './Plans.jsx';
 import { IN_APP, native } from './touch.js';
@@ -189,11 +190,13 @@ function UpdatePill() {
     }).catch(() => {});
     return u.on((x) => setSt((o) => ({ ...o, ...x })));
   }, []);
+  const [notes, setNotes] = useState(null); // the version whose notes are open
   const seenIt = () => { localStorage.setItem('bento.seenVersion', fresh); setFresh(null); };
+  if (notes) return <WhatsNew version={notes} onClose={() => setNotes(null)} />;
   if (fresh && st?.status !== 'ready') return (
     <div className="upd-pill fresh">
       <span className="upd-dot" aria-hidden="true" />
-      <button className="upd-main" onClick={() => { window.bento.openExternal(`https://github.com/lhz56/bento-releases/releases/tag/v${fresh}`); seenIt(); }} title={`${t('Bento updated itself to')} ${fresh}`}><b>{t('What’s new in')} {fresh}</b> ↗</button>
+      <button className="upd-main" onClick={() => { setNotes(fresh); seenIt(); }} title={`${t('Bento updated itself to')} ${fresh}`}><b>{t('What’s new in')} {fresh}</b></button>
       <button className="upd-x" aria-label={t('Dismiss')} onClick={seenIt}><Icon name="close" size={11} /></button>
     </div>
   );

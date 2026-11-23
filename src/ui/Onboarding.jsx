@@ -2,12 +2,16 @@ import { useEffect, useState } from 'react';
 import Brand from './Brand.jsx';
 import { PROVIDERS, GITHUB } from '../ai.js';
 
+const WIN = typeof navigator !== 'undefined' && /Win/.test(navigator.platform || navigator.userAgent || '');
+const SHELL = WIN ? 'PowerShell' : 'Terminal';
+
 // First run: say what Bento is, find the AI subscriptions already on this Mac, learn a little about the person.
 // Nothing gets installed or signed in for them; we only look, and show the exact command when something is missing.
 
 // Every AI Bento can teach with (electron/ai-catalog.json), then GitHub. Install commands that work on this Mac:
 // Homebrew or npm when you have them (scan.tools says which); Claude Code's own installer needs nothing else.
-const CONNS = [...PROVIDERS.map((p) => ({ ...p, ai: true })), { ...GITHUB, ai: false }];
+// (on Windows, the catalog's "win" commands: PowerShell, winget and npm)
+const CONNS = [...PROVIDERS.map((p) => ({ ...p, ai: true })), { ...GITHUB, ai: false }].map((c) => (WIN && c.win ? { ...c, ...c.win } : c));
 const howTo = (c, state, scan) => {
   const tl = scan?.tools || {}; const r = scan?.[c.id] || {};
   if (state === 'missing') { const i = c.install.find((x) => !x.needs || tl[x.needs]); return i ? { action: 'install', cmd: i.cmd } : { link: c.download || 'https://nodejs.org/en/download', need: c.download ? null : 'Needs Node.js first' }; }
@@ -16,7 +20,8 @@ const howTo = (c, state, scan) => {
   return null;
 };
 const VERB = { install: 'Install', update: 'Update', signIn: 'Sign in' };
-const HINT = { claude: 'Opens Claude Code in Terminal. Type /login if it asks, then sign in with your Claude account.', codex: 'Signs in with your ChatGPT account in the browser.', antigravity: 'Opens Antigravity in Terminal: sign in with the Google account that has your AI Pro plan, then close Terminal.', gemini: 'Opens Gemini in Terminal. Use a Gemini API key (free from Google AI Studio) or a Google Cloud project: Google no longer lets personal accounts sign in here.', copilot: 'Signs in with your GitHub account in the browser. Copilot Free is included with GitHub.', gh: 'Lets Bento read your repos, and gives Copilot a sign-in.' };
+const HINT_MAC = { claude: 'Opens Claude Code in Terminal. Type /login if it asks, then sign in with your Claude account.', codex: 'Signs in with your ChatGPT account in the browser.', antigravity: 'Opens Antigravity in Terminal: sign in with the Google account that has your AI Pro plan, then close Terminal.', gemini: 'Opens Gemini in Terminal. Use a Gemini API key (free from Google AI Studio) or a Google Cloud project: Google no longer lets personal accounts sign in here.', copilot: 'Signs in with your GitHub account in the browser. Copilot Free is included with GitHub.', gh: 'Lets Bento read your repos, and gives Copilot a sign-in.' };
+const HINT = Object.fromEntries(Object.entries(HINT_MAC).map(([k, v]) => [k, WIN ? v.replace(/Terminal/g, 'PowerShell') : v]));
 const LEVELS = [['kid', 'Totally new', 'I’ve never written code. Explain everything with everyday examples.', '🌱'], ['student', 'I know a little', 'I’ve seen some code. Teach me the real words as we go.', '🌿'], ['engineer', 'I write code', 'Skip the basics, show me trade-offs and how pros do it.', '🌳']];
 const INTERESTS = [['games', 'Games', '🎮'], ['web', 'Websites', '🌐'], ['ai', 'AI', '✳'], ['data', 'Data', '📊'], ['bots', 'Bots', '🤖'], ['apps', 'Phone apps', '📱'], ['art', 'Art & visuals', '🎨'], ['systems', 'How big apps scale', '🏙']];
 
@@ -86,13 +91,13 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
                     <div className="conn-what">
                       {state === 'wait' && <span className="scan-line">checking…</span>}
                       {state === 'ok' && <>{c.id === 'gh' ? <>Signed in as <b>{r.user}</b></> : <>Ready{r.plan ? <> · <b>{r.plan}</b></> : r.method && r.method !== c.name && r.method !== 'test' ? <> · {r.method}</> : null}</>}{r.version ? <span className="ver">v{r.version}</span> : null}</>}
-                      {state === 'login' && (busy ? 'Finish signing in in Terminal, then come back here.' : HINT[c.id])}
-                      {state === 'old' && (busy ? 'Updating in Terminal… come back when it’s done.' : <>Version {r.version || '?'} can’t do everything Bento needs yet.</>)}
-                      {state === 'missing' && (busy ? 'Installing in Terminal… come back when it’s done.' : c.ai ? c.plan : c.what)}
+                      {state === 'login' && (busy ? `Finish signing in in ${SHELL}, then come back here.` : HINT[c.id])}
+                      {state === 'old' && (busy ? `Updating in ${SHELL}… come back when it’s done.` : <>Version {r.version || '?'} can’t do everything Bento needs yet.</>)}
+                      {state === 'missing' && (busy ? `Installing in ${SHELL}… come back when it’s done.` : c.ai ? c.plan : c.what)}
                     </div>
                     {how && (
                       <div className="cmd-row">
-                        {how.cmd && api.aiTerminal && /Mac/.test(navigator.platform) && <button className={`btn small ${c.ai ? '' : 'ghost'}`} onClick={() => act(c, how)} disabled={busy}>{busy ? 'In Terminal…' : VERB[how.action]}</button>}
+                        {how.cmd && api.aiTerminal && /Mac|Win/.test(navigator.platform) && <button className={`btn small ${c.ai ? '' : 'ghost'}`} onClick={() => act(c, how)} disabled={busy}>{busy ? `In ${SHELL}…` : VERB[how.action]}</button>}
                         {how.cmd && <button className="cmd" onClick={() => copy(how.cmd)} title={`Copy: ${how.cmd}`} aria-label={`Copy the command: ${how.cmd}`}><span className="cmd-p">$</span><span className="cmd-t">{how.cmd}</span><span className="cmd-c">{copied === how.cmd ? 'copied ✓' : 'copy'}</span></button>}
                         {how.link && <button className="link small" onClick={() => api.openExternal?.(how.link)}>{how.need || 'Download'} ↗</button>}
                       </div>
