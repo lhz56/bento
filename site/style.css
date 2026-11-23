@@ -147,8 +147,8 @@ h1 { font-size: clamp(64px, 10.5vw, 168px); line-height: .86; letter-spacing: -.
 .cap b { font-size: 21px; font-weight: 750; letter-spacing: -.03em; }
 .cap span { color: var(--ink-3); font-size: 15px; }
 .c-pv .cap span { color: #a7a29a; }
-.c-pr figure { margin: 0; flex: 1; position: relative; border-bottom: 1.5px dashed var(--rule); background: var(--paper-2); }
-.c-pr video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.c-pr figure { margin: 0; flex: 1; display: grid; place-items: center; padding: 18px 18px 0; border-bottom: 1.5px dashed var(--rule); }
+.c-pr video { width: 100%; height: auto; aspect-ratio: 16 / 10; border: 1.5px solid var(--ink); }
 .c-pr .cap b { font-size: 30px; }
 .art { flex: 1; position: relative; min-height: 140px; }
 
