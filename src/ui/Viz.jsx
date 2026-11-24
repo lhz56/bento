@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { WEB, playDoc } from '../web.js';
 
 const PAL = ['#ff8a5b', '#a78bfa', '#4cc9a0', '#5aa9ff', '#ffc94d', '#ff6f91'];
 
@@ -63,7 +64,9 @@ function WebViz({ id, v }) {
   return (
     <div className="webviz">
       <div className="wv-bar"><span /><span /><span /><i>your page · point at anything to find its code</i></div>
-      <iframe ref={frame} title="Your page" src={window.bento?.playUrl ? window.bento.playUrl(id, v) : `play://${id}/?v=${v || 0}`} sandbox="allow-scripts allow-modals allow-forms allow-same-origin" />
+      {WEB && !window.bento
+        ? <iframe key={`${id}-${v}`} ref={frame} title="Your page" src="web-play.html" sandbox="allow-scripts allow-modals allow-forms" onLoad={(e) => e.currentTarget.contentWindow?.postMessage({ bentoDoc: playDoc(id) }, '*')} />
+        : <iframe ref={frame} title="Your page" src={window.bento?.playUrl ? window.bento.playUrl(id, v) : `play://${id}/?v=${v || 0}`} sandbox="allow-scripts allow-modals allow-forms allow-same-origin" />}
       {logs.length > 0 && <div className="console small">{logs.map((l, i) => <div key={i} className={`log ${l.k === 'error' ? 'err' : l.k === 'warn' ? 'warn' : ''}`}>{l.s}</div>)}</div>}
     </div>
   );

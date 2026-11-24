@@ -31,6 +31,15 @@ const devCsp = {
     .replace("worker-src 'self'", "worker-src 'self' blob:"),
 };
 
+// The web version (src/web.js, takeitapart.app/try) reads a featured project's files and searches repos straight from
+// GitHub, so its page may also connect there; and a lesson's web page runs in a sandboxed frame of its own (public/web-play.html). Only that build gets this.
+const WEB = process.env.VITE_BENTO_WEB === '1';
+const webCsp = {
+  name: 'bento-web-csp',
+  apply: 'build',
+  transformIndexHtml: (html) => (WEB ? html.replace("connect-src 'self'", "connect-src 'self' https://raw.githubusercontent.com https://api.github.com").replace('frame-src play:', "frame-src 'self'") : html),
+};
+
 // A finger has no hover. On an iPhone or iPad a tapped button takes its :hover look and keeps it until you tap
 // something else, so every :hover rule only counts where there's a pointer that hovers (a Mac's mouse or trackpad).
 // (A rule that also names another state, like `.alt:hover, .alt.on`, keeps that state everywhere.)
@@ -50,11 +59,11 @@ const hoverWhereHover = {
 };
 
 export default defineConfig({
-  plugins: [react(), devNet, devCsp],
+  plugins: [react(), devNet, devCsp, webCsp],
   css: { postcss: { plugins: [hoverWhereHover] } },
   base: './',
   server: { port: 5199, strictPort: true },
   worker: { format: 'es' },
-  build: { target: 'esnext', outDir: 'dist', emptyOutDir: true, license: { fileName: 'THIRD-PARTY-LICENSES.md' } },
+  build: { target: 'esnext', outDir: WEB ? 'dist-web' : 'dist', emptyOutDir: true, license: { fileName: 'THIRD-PARTY-LICENSES.md' } },
   optimizeDeps: { exclude: ['pyodide'] },
 });

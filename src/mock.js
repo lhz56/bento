@@ -1,5 +1,6 @@
 // Browser-only stand-in for the Electron bridge (used when you open the Vite page in a browser).
 import { SAMPLES } from './lesson.js';
+import { WEB, webBridge } from './web.js';
 
 function toNdjson(L) {
   const out = [{ t: 'title', title: L.title, kicker: L.kicker, lang: L.lang, concepts: L.concepts }, L.story[0], { t: 'code', file: L.file, code: L.code }, { t: 'pseudo', lines: L.pseudo }, { t: 'notes', items: L.notes }, ...L.story.slice(1)];
@@ -26,3 +27,6 @@ export const mockBridge = {
   },
   openFolder: async () => null, readFile: async () => '', ghMe: async () => null, ghRepos: async () => [], ghTree: async () => null, ghFile: async () => '', openExternal: async () => {},
 };
+
+// takeitapart.app/try: no AI behind the page, so anything that needs one asks for the Mac app (web.js)
+if (WEB) Object.assign(mockBridge, webBridge);

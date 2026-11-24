@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<!-- Bento on the web (src/web.js): a lesson's web page runs here, in a sandboxed frame with its own (empty) origin.
+     The page itself arrives from Bento by postMessage, because a frame made from text (srcdoc, data:) would inherit
+     Bento's own script rules and block the lesson's scripts. -->
+<script>
+addEventListener('message', function (e) {
+  if (e.source !== parent || !e.data || typeof e.data.bentoDoc !== 'string') return;
+  document.open(); document.write(e.data.bentoDoc); document.close();
+}, { once: true });
+</script>

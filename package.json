@@ -18,6 +18,7 @@
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on tcp:5199 && env -u ELECTRON_RUN_AS_NODE BENTO_DEV=1 electron .\"",
     "build": "vite build",
+    "build:web": "VITE_BENTO_WEB=1 vite build",
     "start": "vite build && env -u ELECTRON_RUN_AS_NODE electron .",
     "app": "vite build && electron-builder --mac dir --publish never -c.mac.identity=null -c.electronFuses.enableNodeCliInspectArguments=true -c.extraMetadata.bentoTestBuild=true",
     "dist": "vite build && electron-builder --mac dmg zip --arm64 --x64 --publish never && node scripts/notarize-dmg.mjs",

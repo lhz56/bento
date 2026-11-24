@@ -11,12 +11,16 @@ import { IS_MAC } from './platform.js';
 import { startStill } from './still.js';
 import Hosted from './ui/Hosted.jsx';
 import { winWords } from './winwords.js';
+import { WEB } from './web.js';
+import WebBar from './ui/WebBar.jsx';
 // macOS draws its window buttons over the top-left corner: pages leave room for them when the sidebar is closed
 if (IS_MAC) document.body.classList.add('mac');
 // Windows: Bento's own screens say "PC" where they'd say "Mac" (winwords.js)
 if (window.bento && !window.bentoRemote && /Win/.test(navigator.platform || '')) winWords();
 
 if (!window.bento) document.body.classList.add('browser');
+// takeitapart.app/try: the app in any browser, with what ships already written (web.js)
+if (WEB) document.body.classList.add('web');
 // a phone or iPad using Bento on a Mac; and anything driven by touch gets bigger targets and no hover-only details
 if (window.bentoRemote) document.body.classList.add('remote');
 const coarse = matchMedia('(pointer: coarse)'); const touch = () => document.body.classList.toggle('touch', coarse.matches); touch(); coarse.addEventListener?.('change', touch);
@@ -55,4 +59,4 @@ class Safety extends Component {
   }
 }
 
-createRoot(document.getElementById('root')).render(<Safety>{window.bentoRemote ? <Hosted><App /></Hosted> : <App />}</Safety>);
+createRoot(document.getElementById('root')).render(<Safety>{window.bentoRemote ? <Hosted><App /></Hosted> : <App />}{WEB && <WebBar />}</Safety>);

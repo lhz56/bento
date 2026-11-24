@@ -1,6 +1,7 @@
 // Main-thread side of the code runners. One worker per language, restarted on timeout.
 import JsWorker from './jsWorker.js?worker';
 import PyWorker from './pyWorker.js?worker';
+import { WEB, webBridge } from '../web.js';
 // TypeScript runs as JavaScript once its types are stripped. Sucrase keeps every line where it was,
 // so step-through, errors and line links still point at the right place. It loads the first time TypeScript runs.
 let sucrase = null;
@@ -49,7 +50,7 @@ function tagLines(html) {
   }).join('\n');
 }
 export async function runWeb(code, key) {
-  const api = window.bento;
+  const api = window.bento || (WEB ? webBridge : null);
   if (!api?.playPut) return { logs: [], visuals: [], error: { msg: 'Web pages run in the Bento app.', line: null } };
   const id = await api.playPut(tagLines(code), key);
   return { logs: [], visuals: [{ type: 'web', id, v: ++playV }], web: true };

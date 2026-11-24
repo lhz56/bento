@@ -38,6 +38,7 @@ import { Sidebar, modelLabel, groupOf, rememberTab, lastTab, GROUPS } from './ui
 import Icon from './ui/Icons.jsx';
 import { filesForQuestion, guessRole, projectParts, isOverviewQuestion, searchWords } from './atlas/analyze.js';
 import { mockBridge } from './mock.js';
+import { WEB, needsMac } from './web.js';
 import useLibrary, { FEATURED } from './hooks/useLibrary.js';
 import { load, save, saveLessons, cleanErr } from './store.js';
 import { mergeLessons } from './sync.js';
@@ -262,6 +263,7 @@ export default function App() {
 
   // ---------------------------------------------------------------- asking
   const askLesson = useCallback((q, o = {}) => {
+    if (WEB) { needsMac('lesson'); return null; } // the web version has no AI: new lessons are the Mac app's
     const model = o.model || settings.model;
     const lang = o.lang || settings.lang;
     const level = o.level || settings.level;
@@ -593,7 +595,8 @@ export default function App() {
   useEffect(() => { let t; const off = api.onFallback?.((x) => { setFellBack(x); clearTimeout(t); t = setTimeout(() => setFellBack(null), 7000); }); return () => { off?.(); clearTimeout(t); }; }, []);
   const [pair, setPair] = useState([null, null]);
   // a phone or iPad uses the Mac's AIs, which the Mac already set up: no welcome there
-  const [onb, setOnb] = useState(() => (api.remote || load('bento.settings', {}).onboarded ? null : 0));
+  // and on the web there's no AI to set up: straight in
+  const [onb, setOnb] = useState(() => (WEB || api.remote || load('bento.settings', {}).onboarded ? null : 0));
   const readIdea = (I) => {
     if (!PRE.ready) { loadPrebuilt().then(() => readIdea(I)); return null; }
     const pre = PRE.ideas[I.id];
