@@ -7,8 +7,8 @@
 
 <p align="center">
   <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg"><img src="https://img.shields.io/badge/Download-for%20Mac-121212?style=for-the-badge&logo=apple&logoColor=white" alt="Download for Mac"></a>
-  <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg"><img src="https://img.shields.io/badge/Intel-Mac-f2efe8?style=for-the-badge&logo=intel&logoColor=121212&labelColor=f2efe8" alt="Intel Mac"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-ff6b3d?style=for-the-badge" alt="MIT license"></a>
+  <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg"><img src="https://img.shields.io/badge/Intel-Mac-ffffff?style=for-the-badge&logo=intel&logoColor=121212&labelColor=ffffff" alt="Intel Mac"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-121212?style=for-the-badge" alt="MIT license"></a>
 </p>
 
 <p align="center">

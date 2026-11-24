@@ -1,0 +1,11 @@
+name: An idea
+description: Something Bento should teach or do
+labels: [idea]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: A lesson you wish existed, a repo that should work better, or a feature.
+    validations:
+      required: true
