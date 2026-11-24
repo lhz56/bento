@@ -4,7 +4,7 @@
   "version": "0.3.1",
   "description": "Ask anything, get a lesson you can run. Paste any GitHub repo, get its blueprint. Uses the AI plan you already have.",
   "author": "Bento contributors",
-  "homepage": "https://github.com/lhz56/bento",
+  "homepage": "https://takeitapart.app",
   "repository": {
     "type": "git",
     "url": "https://github.com/lhz56/bento.git"

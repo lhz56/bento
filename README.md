@@ -22,6 +22,7 @@
 <p align="center"><sub>🤖 <b>Using an AI agent?</b> Paste this into Claude Code, Codex or Cursor: <code>Install Bento from github.com/lhz56/bento</code>. It follows <a href="AGENTS.md">AGENTS.md</a>.</sub></p>
 
 <p align="center">
+  <a href="https://takeitapart.app"><b>takeitapart.app</b></a> ·
   <a href="#learn">Learn</a> ·
   <a href="#take-apart">Take apart</a> ·
   <a href="#in-the-box">In the box</a> ·
