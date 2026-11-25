@@ -11,7 +11,7 @@ import { IS_MAC } from './platform.js';
 import { startStill } from './still.js';
 import Hosted from './ui/Hosted.jsx';
 import { winWords } from './winwords.js';
-import { WEB } from './web.js';
+import { WEB, count } from './web.js';
 import WebBar from './ui/WebBar.jsx';
 // macOS draws its window buttons over the top-left corner: pages leave room for them when the sidebar is closed
 if (IS_MAC) document.body.classList.add('mac');
@@ -20,7 +20,7 @@ if (window.bento && !window.bentoRemote && /Win/.test(navigator.platform || ''))
 
 if (!window.bento) document.body.classList.add('browser');
 // takeitapart.app/try: the app in any browser, with what ships already written (web.js)
-if (WEB) document.body.classList.add('web');
+if (WEB) { document.body.classList.add('web'); count('try_open'); }
 // a phone or iPad using Bento on a Mac; and anything driven by touch gets bigger targets and no hover-only details
 if (window.bentoRemote) document.body.classList.add('remote');
 const coarse = matchMedia('(pointer: coarse)'); const touch = () => document.body.classList.toggle('touch', coarse.matches); touch(); coarse.addEventListener?.('change', touch);

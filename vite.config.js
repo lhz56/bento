@@ -37,7 +37,7 @@ const WEB = process.env.VITE_BENTO_WEB === '1';
 const webCsp = {
   name: 'bento-web-csp',
   apply: 'build',
-  transformIndexHtml: (html) => (WEB ? html.replace("connect-src 'self'", "connect-src 'self' https://raw.githubusercontent.com https://api.github.com").replace('frame-src play:', "frame-src 'self'") : html),
+  transformIndexHtml: (html) => (WEB ? html.replace("connect-src 'self'", "connect-src 'self' https://raw.githubusercontent.com https://api.github.com https://yngmegperhdsjxnmamtn.supabase.co").replace('frame-src play:', "frame-src 'self'") : html),
 };
 
 // A finger has no hover. On an iPhone or iPad a tapped button takes its :hover look and keeps it until you tap

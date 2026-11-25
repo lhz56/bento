@@ -73,3 +73,24 @@ fetch('https://api.github.com/repos/lhz56/bento').then((r) => (r.ok ? r.json() :
   const n = j?.stargazers_count; if (n == null) return;
   $$('[data-stars]').forEach((s) => { s.textContent = n < 10 ? 'Star' : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n); });
 }).catch(() => {});
+
+// visit and click counts for Lin's dashboard: one anonymous row per event (no cookies, no IP, no ID), sent to a small
+// counter that only adds rows. Where a visit came from is just the other site's name (x.com, news.ycombinator.com).
+const COUNT = 'https://yngmegperhdsjxnmamtn.supabase.co/rest/v1/rpc/bento_hit';
+const KEY = 'sb_publishable_SD2YnsphnqtARoCDCf39Vg_3OMHB4Ke';
+const from = (() => {
+  try {
+    const q = new URLSearchParams(location.search).get('ref') || new URLSearchParams(location.search).get('utm_source');
+    if (q) return q.slice(0, 40);
+    const h = document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, '') : '';
+    return h && h !== location.hostname ? h : null;
+  } catch { return null; }
+})();
+const dev = matchMedia('(max-width: 700px)').matches ? 'phone' : 'computer';
+const count = (ev, detail) => { try { fetch(COUNT, { method: 'POST', keepalive: true, headers: { apikey: KEY, 'content-type': 'application/json' }, body: JSON.stringify({ ev, detail: detail || null, ref: from, dev }) }).catch(() => {}); } catch {} };
+count('view');
+document.addEventListener('click', (e) => {
+  const a = e.target.closest && e.target.closest('a'); if (!a) return;
+  const h = a.getAttribute('href') || '';
+  if (/\.dmg$/.test(h)) count('click', 'download'); else if (/^try\/?$/.test(h)) count('click', 'try'); else if (/github\.com\/lhz56\/bento(\/|$)/.test(h)) count('click', 'github');
+}, true);
