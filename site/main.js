@@ -76,8 +76,8 @@ fetch('https://api.github.com/repos/lhz56/bento').then((r) => (r.ok ? r.json() :
 
 // visit and click counts for Lin's dashboard: one anonymous row per event (no cookies, no IP, no ID), sent to a small
 // counter that only adds rows. Where a visit came from is just the other site's name (x.com, news.ycombinator.com).
-const COUNT = 'https://yngmegperhdsjxnmamtn.supabase.co/rest/v1/rpc/bento_hit';
-const KEY = 'sb_publishable_SD2YnsphnqtARoCDCf39Vg_3OMHB4Ke';
+const COUNT = 'https://cykxdotlcscwrnwgdtwl.supabase.co/rest/v1/rpc/bento_hit';
+const KEY = 'sb_publishable_Q4Eu-Gj2XdubpQpz8YiQxg_s3LBYemA';
 const from = (() => {
   try {
     const q = new URLSearchParams(location.search).get('ref') || new URLSearchParams(location.search).get('utm_source');

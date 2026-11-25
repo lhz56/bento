@@ -9,8 +9,8 @@ export const DOWNLOAD = 'https://takeitapart.app/';
 
 // anonymous counts for Lin's dashboard, the same counter as the website's (site/main.js): one row per event, no cookies,
 // no IP, no ID. Only the web version counts; the Mac app never does.
-const COUNT = 'https://yngmegperhdsjxnmamtn.supabase.co/rest/v1/rpc/bento_hit';
-const KEY = 'sb_publishable_SD2YnsphnqtARoCDCf39Vg_3OMHB4Ke';
+const COUNT = 'https://cykxdotlcscwrnwgdtwl.supabase.co/rest/v1/rpc/bento_hit';
+const KEY = 'sb_publishable_Q4Eu-Gj2XdubpQpz8YiQxg_s3LBYemA';
 const from = (() => { try { const h = document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, '') : ''; return h && h !== location.hostname ? h : (h ? 'site' : null); } catch { return null; } })();
 export const count = (ev, detail) => {
   if (!WEB) return;
