@@ -38,7 +38,7 @@ import { Sidebar, modelLabel, groupOf, rememberTab, lastTab, GROUPS } from './ui
 import Icon from './ui/Icons.jsx';
 import { filesForQuestion, guessRole, projectParts, isOverviewQuestion, searchWords } from './atlas/analyze.js';
 import { mockBridge } from './mock.js';
-import { WEB, needsMac, countOnce } from './web.js';
+import { WEB, needsMac } from './web.js';
 import useLibrary, { FEATURED } from './hooks/useLibrary.js';
 import { load, save, saveLessons, cleanErr } from './store.js';
 import { mergeLessons } from './sync.js';
@@ -247,7 +247,6 @@ export default function App() {
     setViewRaw(v);
   };
   const openLesson = (l) => {
-    if (WEB) countOnce('lesson', l.id);
     setLessons((ls) => (ls.some((x) => x.id === l.id) ? ls : [{ ...l, touched: true }, ...ls]));
     setCurrentId(l.id); setViewRaw('lesson'); setLinkRange(null); setPop(null);
     setStepSel(l.steps?.length ? l.steps.length - 1 : null);

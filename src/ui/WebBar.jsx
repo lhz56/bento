@@ -1,7 +1,7 @@
 // The web version's two additions (web.js): a small pill saying this is Bento in a browser, and the sheet that
 // opens when you try something only the Mac app can do (a new question, another repo, a website).
 import { useEffect, useState } from 'react';
-import { DOWNLOAD, count } from '../web.js';
+import { DOWNLOAD } from '../web.js';
 
 const WHY = {
   lesson: 'Asking your own questions',
@@ -25,7 +25,7 @@ export default function WebBar() {
   }, [why]);
   return (
     <>
-      <a className="web-pill" href={DOWNLOAD} target="_top" onClick={() => count('get_mac', 'pill')}>
+      <a className="web-pill" href={DOWNLOAD} target="_top">
         <span><span className="web-dot" aria-hidden="true" />Web preview</span><b>Get the Mac app</b>
       </a>
       {why && (
@@ -35,7 +35,7 @@ export default function WebBar() {
             <h2 id="web-sheet-h">{why} needs the Mac app.</h2>
             <p>It uses the AI you already have (Claude, ChatGPT, Gemini or Copilot) to write new lessons. Free, no account.</p>
             <div className="web-acts">
-              <a className="btn" href={DOWNLOAD} target="_top" onClick={() => count('get_mac', 'sheet')}>Get Bento for Mac</a>
+              <a className="btn" href={DOWNLOAD} target="_top">Get Bento for Mac</a>
               <button className="btn ghost" type="button" onClick={() => setWhy(null)} autoFocus>Keep exploring</button>
             </div>
           </div>
