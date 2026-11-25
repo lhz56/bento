@@ -7,8 +7,20 @@ export const WEB = import.meta.env.VITE_BENTO_WEB === '1';
 export const MAC_ONLY = 'That needs the free Mac app: it uses the AI you already have.';
 export const DOWNLOAD = 'https://takeitapart.app/';
 
+// anonymous counts for Lin's dashboard, the same counter as the website's (site/main.js): one row per event, no cookies,
+// no IP, no ID. Only the web version counts; the Mac app never does.
+const COUNT = 'https://yngmegperhdsjxnmamtn.supabase.co/rest/v1/rpc/bento_hit';
+const KEY = 'sb_publishable_SD2YnsphnqtARoCDCf39Vg_3OMHB4Ke';
+const from = (() => { try { const h = document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, '') : ''; return h && h !== location.hostname ? h : (h ? 'site' : null); } catch { return null; } })();
+export const count = (ev, detail) => {
+  if (!WEB) return;
+  try { fetch(COUNT, { method: 'POST', keepalive: true, headers: { apikey: KEY, 'content-type': 'application/json' }, body: JSON.stringify({ ev, detail: detail || null, ref: from, dev: matchMedia('(max-width: 700px)').matches ? 'phone' : 'computer' }) }).catch(() => {}); } catch {}
+};
+const seen = new Set();
+export const countOnce = (ev, key, detail) => { if (seen.has(ev + key)) return; seen.add(ev + key); count(ev, detail); };
+
 // ask the page to show the "get the Mac app" sheet (ui/WebBar.jsx listens)
-export const needsMac = (what) => { try { window.dispatchEvent(new CustomEvent('bento:needs-mac', { detail: what || null })); } catch {} };
+export const needsMac = (what) => { count('needs_mac', what); try { window.dispatchEvent(new CustomEvent('bento:needs-mac', { detail: what || null })); } catch {} };
 const refuse = (what) => { needsMac(what); return Promise.reject(new Error(MAC_ONLY)); };
 
 // a featured repo's files come straight from GitHub, read-only
@@ -39,7 +51,7 @@ export const webBridge = {
   cachePut: async () => {},
   atlasReopen: async () => false,
   atlasList: async () => [],
-  atlasFetch: async (full) => ({ kind: 'github', full, root: `gh:${full}` }),
+  atlasFetch: async (full) => { countOnce('repo', full, full); return { kind: 'github', full, root: `gh:${full}` }; },
   async readFile(root, p) {
     const full = gh(root); if (!full) throw new Error(MAC_ONLY);
     const r = await fetch(`${RAW}/${full}/HEAD/${String(p).split('/').map(encodeURIComponent).join('/')}`);
