@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { detectSite } from '../atlas/site.js';
-import { mergeTools, Toolbelt } from './Atlas.jsx';
+import { Toolbelt } from './atlas/Toolbelt.jsx';
+import { mergeTools } from './atlas/toolModel.js';
 import BigPicture from './BigPicture.jsx';
 import { Md } from './Story.jsx';
 

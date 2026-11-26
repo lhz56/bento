@@ -1,6 +1,6 @@
 import { addWord } from '../progress.js';
 
-import { useTutor } from '../hooks/index.js';
+import { useStoryWidth, useTutor } from '../hooks/index.js';
 import Desk from '../ui/Desk.jsx';
 import { PuzzleEnd, PuzzlePanel } from '../ui/Puzzles.jsx';
 import { modelLabel } from '../ui/Side.jsx';
@@ -17,7 +17,6 @@ export default function LessonScreen({
   cancels,
   current,
   desk,
-  dragStory,
   findWild,
   goStop,
   knownWordSet,
@@ -54,9 +53,9 @@ export default function LessonScreen({
   settings,
   showAtlas,
   stepSel,
-  storyW,
   streaming,
 }) {
+  const { storyW, dragStory } = useStoryWidth();
   const { quickAsk, secondOpinion, teachBack } = useTutor({
     api,
     lesson: current,

@@ -125,10 +125,6 @@ export default function App() {
     WEB || api.remote || load('bento.settings', {}).onboarded ? null : 0,
   );
   const [pop, setPop] = useState(null);
-  const [storyW, setStoryW] = useState(() => {
-    const w = load('bento.storyW', 0.47);
-    return w === 0.4 ? 0.47 : w;
-  });
   // the sidebar can close (⌘\ or its button) to give the page the whole window
   const [sideOpen, setSideOpen] = useState(() => load('bento.side', true));
   useEffect(() => save('bento.side', sideOpen), [sideOpen]);
@@ -197,7 +193,6 @@ export default function App() {
     setSettingsRaw,
   });
   const knownWordSet = useMemo(() => new Set(Object.keys(progress.words || {})), [progress.words]);
-  useEffect(() => save('bento.storyW', storyW), [storyW]);
 
   const {
     askLesson,
@@ -395,19 +390,6 @@ export default function App() {
     setPair,
     setViewRaw,
   });
-
-  const dragStory = (e) => {
-    e.preventDefault();
-    const main = e.currentTarget.parentElement.getBoundingClientRect();
-    const mv = (ev) =>
-      setStoryW(Math.min(0.6, Math.max(0.26, (ev.clientX - main.left) / main.width)));
-    const up = () => {
-      removeEventListener('mousemove', mv);
-      removeEventListener('mouseup', up);
-    };
-    addEventListener('mousemove', mv);
-    addEventListener('mouseup', up);
-  };
 
   const streaming = current?.status === 'streaming';
   return (
@@ -982,7 +964,6 @@ export default function App() {
               cancels,
               current,
               desk,
-              dragStory,
               findWild,
               goStop,
               knownWordSet,
@@ -1019,7 +1000,6 @@ export default function App() {
               settings,
               showAtlas,
               stepSel,
-              storyW,
               streaming,
             }}
           />

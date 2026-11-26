@@ -18,3 +18,4 @@ export { default as useFallbackNotice } from './useFallbackNotice.js';
 export { default as useScriptHooks } from './useScriptHooks.js';
 export { default as useAtlasQuestions } from './useAtlasQuestions.js';
 export { default as useTutor } from './useTutor.js';
+export { default as useStoryWidth } from './useStoryWidth.js';
