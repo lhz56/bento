@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ndjsonParser } from '../lesson.js';
 import { detectStack, buildAtlasPrompt, emptyNarr, applyNarr } from '../atlas/analyze.js';
+import { addWord } from '../progress.js';
 import { detectSite, buildSitePrompt } from '../atlas/site.js';
 import { load, save, cleanErr } from '../store.js';
 import FEATURED from '../atlas-featured.json';
@@ -64,24 +65,15 @@ export default function useLibrary({
     const parser = ndjsonParser((block) => {
       patchAtlas(key, (a) => ({ narr: applyNarr(a.narr || emptyNarr(), block) }));
       if (block.t === 'term' && block.term)
-        setProgress((prev) => {
-          const key = String(block.term).toLowerCase();
-          if (prev.words?.[key]) return prev;
-          return {
-            ...prev,
-            words: {
-              ...(prev.words || {}),
-              [key]: {
-                term: block.term,
-                plain: block.plain,
-                like: block.like,
-                from: null,
-                title: atlas.name,
-                at: Date.now(),
-              },
-            },
-          };
-        });
+        setProgress((prev) =>
+          addWord(prev, {
+            term: block.term,
+            plain: block.plain,
+            like: block.like,
+            from: null,
+            title: atlas.name,
+          }),
+        );
     });
     const prompt = buildAtlasPrompt(
       atlas.facts,
@@ -302,24 +294,15 @@ export default function useLibrary({
       const parser = ndjsonParser((block) => {
         put((x) => ({ narr: applyNarr(x.narr || emptyNarr(), block) }));
         if (block.t === 'term' && block.term)
-          setProgress((prev) => {
-            const key = String(block.term).toLowerCase();
-            if (prev.words?.[key]) return prev;
-            return {
-              ...prev,
-              words: {
-                ...(prev.words || {}),
-                [key]: {
-                  term: block.term,
-                  plain: block.plain,
-                  like: block.like,
-                  from: null,
-                  title: host,
-                  at: Date.now(),
-                },
-              },
-            };
-          });
+          setProgress((prev) =>
+            addWord(prev, {
+              term: block.term,
+              plain: block.plain,
+              like: block.like,
+              from: null,
+              title: host,
+            }),
+          );
       });
       setProjects((ps) => [
         { key: `site:${host}`, name: host, kind: 'site', url, at: Date.now() },
@@ -433,13 +416,21 @@ export default function useLibrary({
         { quiet: true },
       );
   };
+  // take a project apart again from scratch (after a refresh, a failed reading, or to read all of a big one)
+  const reopenAtlas = (key, src, opts) => {
+    setAtlases((m) => {
+      const next = { ...m };
+      delete next[key];
+      atlasRef.current = next;
+      return next;
+    });
+    setTimeout(() => openAtlas(src, opts), 0);
+  };
 
   return {
     atlases,
-    setAtlases,
     atlasKey,
     setAtlasKey,
-    atlasRef,
     projects,
     setProjects,
     sites,
@@ -451,6 +442,7 @@ export default function useLibrary({
     asProject,
     narrate,
     openAtlas,
+    reopenAtlas,
     openRepo,
     openRepoAt,
     openSite,

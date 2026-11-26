@@ -28,8 +28,7 @@ export const save = (key, value) => {
     b.storeSet?.('bento.savedAt', start);
   } catch {}
 };
-export const cleanErr = (e) =>
-  String(e?.message || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
+export { cleanErr } from './bridgeError.js';
 // Lessons: the newest 60 in browser storage (fast start), every lesson on disk (nothing is ever dropped).
 export const saveLessons = (list) => {
   const start = Date.now();

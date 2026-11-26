@@ -6,6 +6,7 @@ import { useT, t } from './i18n.js';
 import { SAMPLES, CHALLENGE, parseJSONLoose } from './lesson.js';
 import { loadPacks, savePacks, validatePack, applyPacks } from './packs.js';
 import { keys, TOUCH } from './platform.js';
+import { addWord } from './progress.js';
 import { PRE, loadPrebuilt } from './prebuilt.js'; // lessons that ship already written, loaded just after the first screen
 import { SKILLS } from './skills.js';
 import { load, save } from './store.js';
@@ -144,10 +145,8 @@ export default function App() {
   });
   const {
     atlases,
-    setAtlases,
     atlasKey,
     setAtlasKey,
-    atlasRef,
     projects,
     setProjects,
     sites,
@@ -158,6 +157,7 @@ export default function App() {
     asProject,
     narrate,
     openAtlas,
+    reopenAtlas,
     openRepo,
     openRepoAt,
     openSite,
@@ -912,13 +912,7 @@ export default function App() {
         )}
         {view === 'words' && (
           <Words
-            onAdd={(w) =>
-              setProgress((p) => {
-                const k = w.term.toLowerCase();
-                if (p.words?.[k]) return p;
-                return { ...p, words: { ...(p.words || {}), [k]: { ...w, at: Date.now() } } };
-              })
-            }
+            onAdd={(w) => setProgress((prev) => addWord(prev, w))}
             onGrade={(term, g) =>
               setProgress((p) => {
                 const k = String(term).toLowerCase();
@@ -959,18 +953,16 @@ export default function App() {
               askRepo,
               atlasKey,
               atlasQ,
-              atlasRef,
               atlases,
               buildContext,
               makePath,
               narrate,
-              openAtlas,
+              reopenAtlas,
               openCompare,
               pendingFile,
               phone,
               providers,
               setAtlasQ,
-              setAtlases,
               setPendingFile,
               setViewRaw,
               settings,

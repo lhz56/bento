@@ -10,6 +10,7 @@ import {
   applyBlock,
 } from '../lesson.js';
 import { PRE, loadPrebuilt } from '../prebuilt.js';
+import { addWord } from '../progress.js';
 import { RACES } from '../races.js';
 import { puzzleLesson, codeParts, codeOf, englishMap } from '../puzzles.js';
 import { modelLabel } from '../ui/Side.jsx';
@@ -182,24 +183,15 @@ export default function useLessons({
       const parser = ndjsonParser((block) => {
         setLessons((ls) => ls.map((l) => (l.id === L0.id ? applyBlock(l, block) : l)));
         if (block.t === 'term' && block.term)
-          setProgress((prev) => {
-            const key = String(block.term).toLowerCase();
-            if (prev.words?.[key]) return prev;
-            return {
-              ...prev,
-              words: {
-                ...(prev.words || {}),
-                [key]: {
-                  term: block.term,
-                  plain: block.plain,
-                  like: block.like,
-                  from: L0.id,
-                  title: question,
-                  at: Date.now(),
-                },
-              },
-            };
-          });
+          setProgress((prev) =>
+            addWord(prev, {
+              term: block.term,
+              plain: block.plain,
+              like: block.like,
+              from: L0.id,
+              title: question,
+            }),
+          );
         if (block.t === 'step') setStepSel((s) => (s == null ? 0 : s + 1));
       });
       const prompt = buildPrompt({

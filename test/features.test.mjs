@@ -1764,4 +1764,81 @@ if (process.platform !== 'win32') {
   );
 }
 
+// tutoring: a quick question, a second opinion and teach-back, each from one AI call (a stand-in here)
+{
+  const { askQuickQuestion, askSecondOpinion, assessTeachBack, validCheck } =
+    await import('../src/tutoring.js');
+  const lesson = {
+    id: 'l1',
+    title: 'Loops',
+    lang: 'python',
+    code: 'for x in [1, 2]:\n    print(x)',
+  };
+  const says = (reply) => async (_model, prompt) => {
+    says.prompt = prompt;
+    return typeof reply === 'string' ? reply : JSON.stringify(reply);
+  };
+  const { entry, word } = await askQuickQuestion({
+    quick: says({
+      answer: 'It repeats for each item.',
+      term: 'iteration',
+      plain: 'one pass of a loop',
+      next: ['What is range?', '', 42, 'Why x?', 'extra'],
+      check: { q: 'How many passes?', choices: ['1', '2'], answer: 5 },
+    }),
+    model: 'claude:sonnet',
+    level: 'student',
+    lesson,
+    question: 'what does the loop do?',
+  });
+  check(
+    entry.a === 'It repeats for each item.' &&
+      entry.by === 'claude:sonnet' &&
+      entry.next.join('|') === 'What is range?|Why x?' &&
+      entry.check === null &&
+      word?.term === 'iteration' &&
+      /1\| for x in \[1, 2\]/.test(says.prompt),
+    'a quick answer keeps two real follow-ups, drops a malformed check, and sees numbered code',
+    JSON.stringify(entry),
+  );
+  const failed = await askQuickQuestion({
+    quick: async () => {
+      throw new Error('offline');
+    },
+    model: 'm',
+    level: 'student',
+    lesson,
+    question: 'q',
+  });
+  check(
+    /didn’t answer/.test(failed.entry.a) && !failed.word,
+    'a failed call becomes an answer, not an error',
+  );
+  check(
+    validCheck({ q: 'x', choices: ['a', 'b', 'c'], answer: 2 }) &&
+      !validCheck({ choices: ['a'], answer: 0 }),
+    'a multiple-choice check needs 2+ choices and an answer among them',
+  );
+  const second = await askSecondOpinion({
+    quick: says('not json at all'),
+    model: 'm',
+    level: 'student',
+    lesson,
+    entry: { q: 'q', a: 'a' },
+  });
+  check(second === 'No answer this time.', 'a second opinion that can’t be read says so');
+  const teach = await assessTeachBack({
+    quick: says({ score: 9, got: ['the idea'] }),
+    model: 'm',
+    level: 'student',
+    lesson,
+    said: 'it goes through the list',
+  });
+  check(
+    teach.score === 3 && teach.got[0] === 'the idea' && teach.missing.length === 0 && teach.said,
+    'teach-back scores stay between 0 and 3',
+    JSON.stringify(teach),
+  );
+}
+
 process.exit(fail ? 1 : 0);

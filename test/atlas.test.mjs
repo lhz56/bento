@@ -125,4 +125,60 @@ fs.rmSync(root, { recursive: true, force: true });
   );
   check('real tools are not set aside', !st.find((x) => x.id === 'stripe')?.side);
 }
+// asking about a project: which files get read, and what the tutor is shown
+{
+  const { pickFiles, excerpt, lessonLanguage, buildLanguage, answerAboutProject, definedNames } =
+    await import('../src/atlas/questions.js');
+  const picked = pickFiles([
+    { p: 'src/a/one.js', score: 5, words: ['claude'] },
+    { p: 'src/a/two.js', score: 4.9, words: ['claude'] },
+    { p: 'src/a/three.js', score: 4.8, words: ['claude'] },
+    { p: 'src/b/codex.js', score: 2, words: ['codex'] },
+  ]).map((x) => x.p);
+  check(
+    'a question naming two things reads a file for each, and at most 2 from one folder',
+    picked.join() === 'src/a/one.js,src/b/codex.js,src/a/two.js',
+    picked.join(),
+  );
+  const long = 'some line\n'.repeat(400) + 'THE MATCH\n' + 'more\n'.repeat(10);
+  check(
+    'a file excerpt starts near where the words were found',
+    /from character/.test(excerpt('f.js', long, 4000)) &&
+      excerpt('f.js', long, 4000).includes('THE MATCH'),
+  );
+  check(
+    'lessons about a project pick its language',
+    lessonLanguage({ langs: { Python: 9 }, files: [] }) === 'python' &&
+      lessonLanguage({ langs: { Python: 9, TypeScript: 1 }, files: [] }) === 'javascript' &&
+      buildLanguage({ langs: { TypeScript: 9 }, files: [] }) === 'typescript',
+  );
+  check(
+    'the telling names in a file leave out ones every project has',
+    definedNames('a.py', 'def main():\n  pass\ndef parse_rows(x):\n  pass').join() === 'parse_rows',
+  );
+  const atlas = {
+    key: 'me/demo',
+    name: 'me/demo',
+    src: { root: '/tmp/demo' },
+    facts: { files: [{ p: 'src/pay.js', lang: 'JavaScript' }], langs: { JavaScript: 1 } },
+  };
+  let prompt = '';
+  const answer = await answerAboutProject({
+    quick: async (_model, p) => ((prompt = p), JSON.stringify({ answer: 'It charges cards.' })),
+    model: 'm',
+    level: 'student',
+    atlas,
+    question: 'how does paying work?',
+    readFile: async () => 'export function charge() {}',
+    search: async () => [{ p: 'src/pay.js', score: 3, words: ['paying'], at: 0 }],
+    noAnswer: 'none',
+  });
+  check(
+    'a project question is answered from the files that matched, shown to the tutor',
+    answer.a === 'It charges cards.' &&
+      answer.files.join() === 'src/pay.js' &&
+      prompt.includes('--- src/pay.js ---\nexport function charge() {}'),
+    JSON.stringify(answer),
+  );
+}
 process.exit(fail ? 1 : 0);
