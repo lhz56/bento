@@ -1,50 +1,138 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { t, tx } from '../i18n.js';
 
-const bucket = (t) => { if (!t) return 'Earlier'; const d = new Date(t), n = new Date(); const days = Math.floor((new Date(n.toDateString()) - new Date(d.toDateString())) / 864e5); return days <= 0 ? 'Today' : days === 1 ? 'Yesterday' : days < 7 ? 'This week' : 'Earlier'; };
-const dayLabel = (l, prev) => { const b = bucket(l.createdAt); return !prev || bucket(prev.createdAt) !== b ? b : null; };
+const bucket = (t) => {
+  if (!t) return 'Earlier';
+  const d = new Date(t),
+    n = new Date();
+  const days = Math.floor((new Date(n.toDateString()) - new Date(d.toDateString())) / 864e5);
+  return days <= 0 ? 'Today' : days === 1 ? 'Yesterday' : days < 7 ? 'This week' : 'Earlier';
+};
+const dayLabel = (l, prev) => {
+  const b = bucket(l.createdAt);
+  return !prev || bucket(prev.createdAt) !== b ? b : null;
+};
 import { langColor } from '../atlas/analyze.js';
 import Brand from './Brand.jsx';
 import { ideaById } from '../ideas.js';
 import { IS_MAC, keys } from '../platform.js';
 import Icon from './Icons.jsx';
 import WhatsNew from './WhatsNew.jsx';
-import { MODELS as ALL_MODELS, PROVIDERS, provOf, modelInfo, modelLabel as aiModelLabel, noAI, fastModel, mainWindow, level, usedText } from '../ai.js';
+import {
+  MODELS as ALL_MODELS,
+  PROVIDERS,
+  provOf,
+  modelInfo,
+  modelLabel as aiModelLabel,
+  noAI,
+  fastModel,
+  mainWindow,
+  level,
+  usedText,
+} from '../ai.js';
 import { PlanMeter, AIMark, Ring, usePlans } from './Plans.jsx';
 import { IN_APP, native } from './touch.js';
 
 // What each model is good at, in plain words, with two small meters. Grouped by AI; the ones this Mac doesn't have
 // yet say so, with a way to connect them.
-const Meter = ({ n, max = 4, label }) => <span className="mm" aria-label={`${label}: ${n} of ${max}`}><em>{label}</em>{Array.from({ length: max }, (_, i) => <i key={i} className={i < n ? 'on' : ''} />)}</span>;
+const Meter = ({ n, max = 4, label }) => (
+  <span className="mm" aria-label={`${label}: ${n} of ${max}`}>
+    <em>{label}</em>
+    {Array.from({ length: max }, (_, i) => (
+      <i key={i} className={i < n ? 'on' : ''} />
+    ))}
+  </span>
+);
 
 function ModelPicker({ settings, setSettings, providers, onClose, onSettings, onSetup }) {
   const box = useRef(null);
   const { limits } = usePlans();
-  useEffect(() => { box.current?.querySelector('.mc.on, .mc:not(:disabled)')?.focus(); }, []);
+  useEffect(() => {
+    box.current?.querySelector('.mc.on, .mc:not(:disabled)')?.focus();
+  }, []);
   const key = (e) => {
-    const items = [...box.current.querySelectorAll('.mc:not(:disabled), .mp-connect, .mp-row')]; const i = items.indexOf(document.activeElement);
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus(); }
-    if (e.key === 'Escape') { e.stopPropagation(); onClose(); }
+    const items = [...box.current.querySelectorAll('.mc:not(:disabled), .mp-connect, .mp-row')];
+    const i = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus();
+    }
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      onClose();
+    }
   };
   const fast = modelInfo(fastModel(settings.model))?.label;
-  const have = PROVIDERS.filter((p) => !providers || providers[p.id]); const missing = PROVIDERS.filter((p) => providers && !providers[p.id]);
+  const have = PROVIDERS.filter((p) => !providers || providers[p.id]);
+  const missing = PROVIDERS.filter((p) => providers && !providers[p.id]);
   return (
-    <div className="menu up mpick" role="menu" aria-label={t('Choose your AI')} ref={box} onKeyDown={key} onClick={(e) => e.stopPropagation()}>
-      <div className="mp-h"><b>{t('Your AI')}</b><span>{t('Runs on your own plan. No keys.')}</span></div>
+    <div
+      className="menu up mpick"
+      role="menu"
+      aria-label={t('Choose your AI')}
+      ref={box}
+      onKeyDown={key}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="mp-h">
+        <b>{t('Your AI')}</b>
+        <span>{t('Runs on your own plan. No keys.')}</span>
+      </div>
       <div className="mp-list">
         {have.map((p) => {
-          const w = mainWindow(limits[p.id]); const lv = level(w);
+          const w = mainWindow(limits[p.id]);
+          const lv = level(w);
           return (
             <div key={p.id} className="mp-group" role="group" aria-label={p.name}>
               {/* each AI: its mark, its name, and how full its plan is */}
-              <div className="mp-ai" aria-hidden="true"><AIMark id={p.id} size={16} /><b>{p.short || p.name}</b>{w && <span className={`mp-used lv-${lv}`} title={usedText(w)}><Ring used={w.unlimited ? 0 : w.used} lv={lv} size={13} />{w.unlimited ? '∞' : `${w.used}%`}</span>}</div>
+              <div className="mp-ai" aria-hidden="true">
+                <AIMark id={p.id} size={16} />
+                <b>{p.short || p.name}</b>
+                {w && (
+                  <span className={`mp-used lv-${lv}`} title={usedText(w)}>
+                    <Ring used={w.unlimited ? 0 : w.used} lv={lv} size={13} />
+                    {w.unlimited ? '∞' : `${w.used}%`}
+                  </span>
+                )}
+              </div>
               {p.models.map((m) => {
                 const on = settings.model === m.id;
                 return (
-                  <button key={m.id} data-model={m.id} role="menuitemradio" aria-checked={on} className={`mc ${on ? 'on' : ''}`} title={t(m.what || '')} onClick={() => { setSettings({ model: m.id }); onClose(); }}>
-                    <span className="mc-t"><b>{m.short || m.label}{m.tag === 'recommended' ? <span className="mc-star" title={t('Recommended')} aria-label={t('recommended')}>★</span> : m.tag && <em>{t(m.tag)}</em>}</b></span>
-                    <span className="mc-m"><Meter n={m.speed || 2} max={3} label={t('speed')} /><Meter n={m.depth || 2} max={4} label={t('depth')} /></span>
-                    <span className="mc-tick" aria-hidden="true">{on ? '✓' : ''}</span>
+                  <button
+                    key={m.id}
+                    data-model={m.id}
+                    role="menuitemradio"
+                    aria-checked={on}
+                    className={`mc ${on ? 'on' : ''}`}
+                    title={t(m.what || '')}
+                    onClick={() => {
+                      setSettings({ model: m.id });
+                      onClose();
+                    }}
+                  >
+                    <span className="mc-t">
+                      <b>
+                        {m.short || m.label}
+                        {m.tag === 'recommended' ? (
+                          <span
+                            className="mc-star"
+                            title={t('Recommended')}
+                            aria-label={t('recommended')}
+                          >
+                            ★
+                          </span>
+                        ) : (
+                          m.tag && <em>{t(m.tag)}</em>
+                        )}
+                      </b>
+                    </span>
+                    <span className="mc-m">
+                      <Meter n={m.speed || 2} max={3} label={t('speed')} />
+                      <Meter n={m.depth || 2} max={4} label={t('depth')} />
+                    </span>
+                    <span className="mc-tick" aria-hidden="true">
+                      {on ? '✓' : ''}
+                    </span>
                     {on && <span className="mc-d">{t(m.what || '')}</span>}
                   </button>
                 );
@@ -53,10 +141,42 @@ function ModelPicker({ settings, setSettings, providers, onClose, onSettings, on
           );
         })}
       </div>
-      {missing.length > 0 && <button role="menuitem" className="mp-connect" onClick={() => { onClose(); onSetup?.(); }}><span className="mp-marks" aria-hidden="true">{missing.map((p) => <AIMark key={p.id} id={p.id} size={15} />)}</span>{t('Connect')} {missing.map((p) => p.short || p.name).join(', ')} →</button>}
-      {fast && <div className="mp-note">⚡ {t('Quick answers use')} <b>{fast}</b>{t(', the fastest model of the same kind.')}</div>}
+      {missing.length > 0 && (
+        <button
+          role="menuitem"
+          className="mp-connect"
+          onClick={() => {
+            onClose();
+            onSetup?.();
+          }}
+        >
+          <span className="mp-marks" aria-hidden="true">
+            {missing.map((p) => (
+              <AIMark key={p.id} id={p.id} size={15} />
+            ))}
+          </span>
+          {t('Connect')} {missing.map((p) => p.short || p.name).join(', ')} →
+        </button>
+      )}
+      {fast && (
+        <div className="mp-note">
+          ⚡ {t('Quick answers use')} <b>{fast}</b>
+          {t(', the fastest model of the same kind.')}
+        </div>
+      )}
       <div className="menu-sep" />
-      <button role="menuitem" className="mp-row" onClick={() => { onClose(); onSettings?.(); }}><Icon name="gear" size={15} />{t('Settings…')}<span>{keys('⌘,')}</span></button>
+      <button
+        role="menuitem"
+        className="mp-row"
+        onClick={() => {
+          onClose();
+          onSettings?.();
+        }}
+      >
+        <Icon name="gear" size={15} />
+        {t('Settings…')}
+        <span>{keys('⌘,')}</span>
+      </button>
     </div>
   );
 }
@@ -68,14 +188,56 @@ export const modelLabel = aiModelLabel;
 // Five places, one list of what you've been doing, one footer. Pages that belong together are tabs on the page.
 export const GROUPS = [
   { id: 'learn', label: 'Learn', icon: 'learn', views: [['home', 'Learn']] },
-  { id: 'explore', label: 'Explore', icon: 'explore', views: [['explore', 'Code'], ['ideas', 'Clever ideas']] },
-  { id: 'practice', label: 'Practice', icon: 'practice', views: [['puzzles', 'Puzzles'], ['play', 'Playgrounds']], extra: ['bug', 'Daily bug'] },
+  {
+    id: 'explore',
+    label: 'Explore',
+    icon: 'explore',
+    views: [
+      ['explore', 'Code'],
+      ['ideas', 'Clever ideas'],
+    ],
+  },
+  {
+    id: 'practice',
+    label: 'Practice',
+    icon: 'practice',
+    views: [
+      ['puzzles', 'Puzzles'],
+      ['play', 'Playgrounds'],
+    ],
+    extra: ['bug', 'Daily bug'],
+  },
   { id: 'path', label: 'Path', icon: 'path', views: [['path', 'The path']] },
-  { id: 'you', label: 'You', icon: 'you', views: [['map', 'Your map'], ['words', 'Your words']] },
+  {
+    id: 'you',
+    label: 'You',
+    icon: 'you',
+    views: [
+      ['map', 'Your map'],
+      ['words', 'Your words'],
+    ],
+  },
 ];
-export const groupOf = (view) => GROUPS.find((g) => g.views.some(([v]) => v === view)) || (['atlas', 'site', 'compare'].includes(view) ? GROUPS[1] : null);
-export const lastTab = (g) => { try { const v = JSON.parse(localStorage.getItem('bento.lastTab') || '{}')[g.id]; return g.views.some(([x]) => x === v) ? v : g.views[0][0]; } catch { return g.views[0][0]; } };
-export const rememberTab = (view) => { const g = GROUPS.find((x) => x.views.some(([v]) => v === view)); if (!g || g.views.length < 2) return; try { const m = JSON.parse(localStorage.getItem('bento.lastTab') || '{}'); m[g.id] = view; localStorage.setItem('bento.lastTab', JSON.stringify(m)); } catch {} };
+export const groupOf = (view) =>
+  GROUPS.find((g) => g.views.some(([v]) => v === view)) ||
+  (['atlas', 'site', 'compare'].includes(view) ? GROUPS[1] : null);
+export const lastTab = (g) => {
+  try {
+    const v = JSON.parse(localStorage.getItem('bento.lastTab') || '{}')[g.id];
+    return g.views.some(([x]) => x === v) ? v : g.views[0][0];
+  } catch {
+    return g.views[0][0];
+  }
+};
+export const rememberTab = (view) => {
+  const g = GROUPS.find((x) => x.views.some(([v]) => v === view));
+  if (!g || g.views.length < 2) return;
+  try {
+    const m = JSON.parse(localStorage.getItem('bento.lastTab') || '{}');
+    m[g.id] = view;
+    localStorage.setItem('bento.lastTab', JSON.stringify(m));
+  } catch {}
+};
 
 // On a phone or iPad: the Mac this device is using, and whether it can reach it. In Bento Code, a tap opens the app's
 // own list of your Macs (switch, add another, forget one); in Safari, Settings, where This iPhone uses Bento on… lives.
@@ -83,20 +245,75 @@ function MacCard({ model, onSettings }) {
   const R = window.bentoRemote;
   const [st, setSt] = useState(() => ({ state: R.state, host: R.host }));
   // (read it again once listening: Bento can come online between the first render and this effect)
-  useEffect(() => { const off = R.on((state, host) => setSt({ state, host })); setSt({ state: R.state, host: R.host }); return off; }, [R]);
+  useEffect(() => {
+    const off = R.on((state, host) => setSt({ state, host }));
+    setSt({ state: R.state, host: R.host });
+    return off;
+  }, [R]);
   const on = st.state === 'online';
   const ai = modelInfo(model)?.short || aiModelLabel(model);
   return (
-    <button className={`mac-card ${on ? 'on' : 'off'}`} onClick={() => (IN_APP ? native('macs') : onSettings?.())}
-      aria-label={`${st.host?.name || t('Your Mac')}: ${on ? t('connected') : t('can’t reach it right now')}. ${IN_APP ? t('Your Macs') : t('Settings')}`}>
-      <span className="mc-ic" aria-hidden="true"><svg width="26" height="22" viewBox="0 0 26 22"><rect x="1.2" y="1.2" width="23.6" height="15" rx="2.6" fill="none" stroke="currentColor" strokeWidth="1.8" /><path d="M9 21h8M13 16.5V21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg></span>
-      <span className="mc-t"><b>{st.host?.name || t('Your Mac')}</b><span><i className="mc-dot" />{on ? `${t('Connected')}${ai ? ` · ${ai}` : ''}` : t('Can’t reach it right now')}</span></span>
+    <button
+      className={`mac-card ${on ? 'on' : 'off'}`}
+      onClick={() => (IN_APP ? native('macs') : onSettings?.())}
+      aria-label={`${st.host?.name || t('Your Mac')}: ${on ? t('connected') : t('can’t reach it right now')}. ${IN_APP ? t('Your Macs') : t('Settings')}`}
+    >
+      <span className="mc-ic" aria-hidden="true">
+        <svg width="26" height="22" viewBox="0 0 26 22">
+          <rect
+            x="1.2"
+            y="1.2"
+            width="23.6"
+            height="15"
+            rx="2.6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          />
+          <path
+            d="M9 21h8M13 16.5V21"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+        </svg>
+      </span>
+      <span className="mc-t">
+        <b>{st.host?.name || t('Your Mac')}</b>
+        <span>
+          <i className="mc-dot" />
+          {on ? `${t('Connected')}${ai ? ` · ${ai}` : ''}` : t('Can’t reach it right now')}
+        </span>
+      </span>
       <Icon name="chevron" size={15} className="mc-chev" />
     </button>
   );
 }
 
-export function Sidebar({ progress = {}, onClose, closed, view, setView, lessons, current, onOpen, onNew, onDelete, settings, setSettings, providers, user, projects = [], atlasKey, atlases = {}, onOpenProject, onForgetProject, onSetup, onSettings, siteKey }) {
+export function Sidebar({
+  progress = {},
+  onClose,
+  closed,
+  view,
+  setView,
+  lessons,
+  current,
+  onOpen,
+  onNew,
+  onDelete,
+  settings,
+  setSettings,
+  providers,
+  user,
+  projects = [],
+  atlasKey,
+  atlases = {},
+  onOpenProject,
+  onForgetProject,
+  onSetup,
+  onSettings,
+  siteKey,
+}) {
   const [menu, setMenu] = useState(false);
   const [more, setMore] = useState(false);
   const mine = lessons.filter((l) => !l.builtin || l.touched);
@@ -109,68 +326,218 @@ export function Sidebar({ progress = {}, onClose, closed, view, setView, lessons
   const avail = MODELS.filter((m) => !providers || providers[m[2]]);
   const active = groupOf(view)?.id || null;
   const ai = GROUPS.findIndex((g) => g.id === active);
-  const search = () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: IS_MAC, ctrlKey: !IS_MAC }));
-  useEffect(() => { if (!menu) return undefined; const close = () => setMenu(false); addEventListener('click', close); return () => removeEventListener('click', close); }, [menu]);
+  const search = () =>
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'k', metaKey: IS_MAC, ctrlKey: !IS_MAC }),
+    );
+  useEffect(() => {
+    if (!menu) return undefined;
+    const close = () => setMenu(false);
+    addEventListener('click', close);
+    return () => removeEventListener('click', close);
+  }, [menu]);
   return (
-    <aside className="side" aria-label={t('Sidebar')} inert={closed || undefined} aria-hidden={closed || undefined}>
+    <aside
+      className="side"
+      aria-label={t('Sidebar')}
+      inert={closed || undefined}
+      aria-hidden={closed || undefined}
+    >
       <div className="side-drag" />
-      <div className="brand"><Logo /> <span>bento</span>
-        <button className="side-search" onClick={onClose} aria-label={`${t('Hide the sidebar')} (${keys('⌘\\')})`} title={`${t('Hide the sidebar')}  ${keys('⌘\\')}`}><Icon name="sidebar" size={16} /></button>
-        <button className="side-search" onClick={search} aria-label={`${t('Search everything')} (${keys('⌘K')})`} title={`${t('Search everything')}  ${keys('⌘K')}`}><Icon name="search" size={16} /></button>
+      <div className="brand">
+        <Logo /> <span>bento</span>
+        <button
+          className="side-search"
+          onClick={onClose}
+          aria-label={`${t('Hide the sidebar')} (${keys('⌘\\')})`}
+          title={`${t('Hide the sidebar')}  ${keys('⌘\\')}`}
+        >
+          <Icon name="sidebar" size={16} />
+        </button>
+        <button
+          className="side-search"
+          onClick={search}
+          aria-label={`${t('Search everything')} (${keys('⌘K')})`}
+          title={`${t('Search everything')}  ${keys('⌘K')}`}
+        >
+          <Icon name="search" size={16} />
+        </button>
       </div>
       {window.bentoRemote && <MacCard model={settings.model} onSettings={onSettings} />}
-      <button className="new" onClick={onNew}><Icon name="plus" size={16} />{t('New question')}<kbd>{keys('⌘N')}</kbd></button>
+      <button className="new" onClick={onNew}>
+        <Icon name="plus" size={16} />
+        {t('New question')}
+        <kbd>{keys('⌘N')}</kbd>
+      </button>
       <nav aria-label={t('Main')}>
-        <span className="nav-pill" aria-hidden="true" style={{ transform: `translateY(${Math.max(0, ai) * 34}px)`, opacity: ai >= 0 ? 1 : 0 }} />
+        <span
+          className="nav-pill"
+          aria-hidden="true"
+          style={{ transform: `translateY(${Math.max(0, ai) * 34}px)`, opacity: ai >= 0 ? 1 : 0 }}
+        />
         {GROUPS.map((g) => (
-          <button key={g.id} className={active === g.id ? 'on' : ''} aria-current={active === g.id ? 'page' : undefined} onClick={() => setView(active === g.id && g.views.some(([v]) => v === view) ? view : lastTab(g))}>
-            <Icon name={g.icon} />{t(g.label)}
+          <button
+            key={g.id}
+            className={active === g.id ? 'on' : ''}
+            aria-current={active === g.id ? 'page' : undefined}
+            onClick={() =>
+              setView(active === g.id && g.views.some(([v]) => v === view) ? view : lastTab(g))
+            }
+          >
+            <Icon name={g.icon} />
+            {t(g.label)}
           </button>
         ))}
       </nav>
       <div className="side-h">{t('Recent')}</div>
       <div className="recent shelf-list">
-        {shown.length === 0 && <div className="side-empty">{t('What you ask and open shows up here.')}</div>}
-        {shown.map((it, idx) => <Fragment key={`g${it.key}`}>{(idx === 0 || bucket(it.at) !== bucket(shown[idx - 1].at)) && <div className="rl-day">{t(bucket(it.at))}</div>}{it.kind === 'project' ? (() => {
-          const p = it.p; const st = atlases[p.key]?.status;
-          const on = (view === 'atlas' && atlasKey === p.key) || (p.kind === 'site' && view === 'site' && siteKey === p.name);
-          return (
-            <div key={it.key} className={`rl ${on ? 'on' : ''}`}>
-              <button className="rl-main" aria-current={on ? 'page' : undefined} onClick={() => onOpenProject(p)}>
-                {p.kind === 'github' ? <img className="rl-av" src={`https://avatars.githubusercontent.com/${(p.full || p.key).split('/')[0]}?size=32`} alt="" /> : <span className="rl-ic"><Icon name={p.kind === 'site' ? 'globe' : 'folder'} size={13} /></span>}
-                <span className="rl-t">{p.kind === 'github' ? (p.full || p.name).split('/').pop() : p.name}</span>
-                {['cloning', 'reading', 'narrating'].includes(st) && <span className="rl-live" />}
-              </button>
-              <button className="rl-x" aria-label={t('Remove')} onClick={(e) => { e.stopPropagation(); onForgetProject(p.key); }}><Icon name="close" size={12} /></button>
-            </div>
-          );
-        })() : (
-          <div key={it.key} className={`rl ${current === it.l.id && view === 'lesson' ? 'on' : ''}`}>
-            <button className="rl-main" aria-current={current === it.l.id && view === 'lesson' ? 'page' : undefined} onClick={() => onOpen(it.l)}>
-              <LessonIcon l={it.l} path={Object.values(progress.path || {}).includes(it.l.id)} />
-              <span className="rl-t">{it.l.title || it.l.q || 'Untitled'}</span>
-              {it.l.status === 'streaming' && <span className="rl-live" />}
-            </button>
-            <button className="rl-x" aria-label={t('Remove')} onClick={(e) => { e.stopPropagation(); onDelete(it.l.id); }}><Icon name="close" size={12} /></button>
-          </div>
-        )}</Fragment>)}
-        {items.length > 9 && <button className="side-more" onClick={() => setMore(!more)}>{more ? t('Show fewer') : `${t('Show more')} · ${items.length - 9}`}</button>}
+        {shown.length === 0 && (
+          <div className="side-empty">{t('What you ask and open shows up here.')}</div>
+        )}
+        {shown.map((it, idx) => (
+          <Fragment key={`g${it.key}`}>
+            {(idx === 0 || bucket(it.at) !== bucket(shown[idx - 1].at)) && (
+              <div className="rl-day">{t(bucket(it.at))}</div>
+            )}
+            {it.kind === 'project' ? (
+              (() => {
+                const p = it.p;
+                const st = atlases[p.key]?.status;
+                const on =
+                  (view === 'atlas' && atlasKey === p.key) ||
+                  (p.kind === 'site' && view === 'site' && siteKey === p.name);
+                return (
+                  <div key={it.key} className={`rl ${on ? 'on' : ''}`}>
+                    <button
+                      className="rl-main"
+                      aria-current={on ? 'page' : undefined}
+                      onClick={() => onOpenProject(p)}
+                    >
+                      {p.kind === 'github' ? (
+                        <img
+                          className="rl-av"
+                          src={`https://avatars.githubusercontent.com/${(p.full || p.key).split('/')[0]}?size=32`}
+                          alt=""
+                        />
+                      ) : (
+                        <span className="rl-ic">
+                          <Icon name={p.kind === 'site' ? 'globe' : 'folder'} size={13} />
+                        </span>
+                      )}
+                      <span className="rl-t">
+                        {p.kind === 'github' ? (p.full || p.name).split('/').pop() : p.name}
+                      </span>
+                      {['cloning', 'reading', 'narrating'].includes(st) && (
+                        <span className="rl-live" />
+                      )}
+                    </button>
+                    <button
+                      className="rl-x"
+                      aria-label={t('Remove')}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onForgetProject(p.key);
+                      }}
+                    >
+                      <Icon name="close" size={12} />
+                    </button>
+                  </div>
+                );
+              })()
+            ) : (
+              <div
+                key={it.key}
+                className={`rl ${current === it.l.id && view === 'lesson' ? 'on' : ''}`}
+              >
+                <button
+                  className="rl-main"
+                  aria-current={current === it.l.id && view === 'lesson' ? 'page' : undefined}
+                  onClick={() => onOpen(it.l)}
+                >
+                  <LessonIcon
+                    l={it.l}
+                    path={Object.values(progress.path || {}).includes(it.l.id)}
+                  />
+                  <span className="rl-t">{it.l.title || it.l.q || 'Untitled'}</span>
+                  {it.l.status === 'streaming' && <span className="rl-live" />}
+                </button>
+                <button
+                  className="rl-x"
+                  aria-label={t('Remove')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(it.l.id);
+                  }}
+                >
+                  <Icon name="close" size={12} />
+                </button>
+              </div>
+            )}
+          </Fragment>
+        ))}
+        {items.length > 9 && (
+          <button className="side-more" onClick={() => setMore(!more)}>
+            {more ? t('Show fewer') : `${t('Show more')} · ${items.length - 9}`}
+          </button>
+        )}
       </div>
       <UpdatePill />
       <div className="side-foot">
         {noAI(providers) ? (
-          <button className="model-pick none" onClick={() => onSetup?.()}><span className="mdot off" /><span>{t('Connect an AI')}</span><Icon name="chevron" size={14} /></button>
+          <button className="model-pick none" onClick={() => onSetup?.()}>
+            <span className="mdot off" />
+            <span>{t('Connect an AI')}</span>
+            <Icon name="chevron" size={14} />
+          </button>
         ) : (
           <div className="model-wrap">
-            <button className="model-pick" aria-haspopup="menu" aria-expanded={menu} onClick={(e) => { e.stopPropagation(); setMenu(!menu); }}>
-              <span className="mp-mark" aria-hidden="true"><AIMark id={provOf(settings.model)} size={15} /></span><span className="mp-name" title={modelLabel(settings.model)}>{modelInfo(settings.model)?.short || modelLabel(settings.model)}</span><Icon name="up" size={14} className="caret" />
+            <button
+              className="model-pick"
+              aria-haspopup="menu"
+              aria-expanded={menu}
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenu(!menu);
+              }}
+            >
+              <span className="mp-mark" aria-hidden="true">
+                <AIMark id={provOf(settings.model)} size={15} />
+              </span>
+              <span className="mp-name" title={modelLabel(settings.model)}>
+                {modelInfo(settings.model)?.short || modelLabel(settings.model)}
+              </span>
+              <Icon name="up" size={14} className="caret" />
             </button>
-            {menu && <ModelPicker settings={settings} setSettings={setSettings} providers={providers} onClose={() => setMenu(false)} onSettings={onSettings} onSetup={onSetup} />}
+            {menu && (
+              <ModelPicker
+                settings={settings}
+                setSettings={setSettings}
+                providers={providers}
+                onClose={() => setMenu(false)}
+                onSettings={onSettings}
+                onSetup={onSetup}
+              />
+            )}
           </div>
         )}
-        {window.bento?.limits && !noAI(providers) && <PlanMeter model={settings.model} providers={providers} />}
-        <button className="side-gear" onClick={onSettings} aria-label={t('Settings')}><Icon name="gear" size={20} /></button>
-        {user ? <img className="avatar" src={user.avatar} title={`GitHub: ${user.login}`} alt={`GitHub: ${user.login}`} /> : <span className="avatar ph" title="GitHub not connected (Connections & setup in ⌘K)"><Icon name="folder" size={13} /></span>}
+        {window.bento?.limits && !noAI(providers) && (
+          <PlanMeter model={settings.model} providers={providers} />
+        )}
+        <button className="side-gear" onClick={onSettings} aria-label={t('Settings')}>
+          <Icon name="gear" size={20} />
+        </button>
+        {user ? (
+          <img
+            className="avatar"
+            src={user.avatar}
+            title={`GitHub: ${user.login}`}
+            alt={`GitHub: ${user.login}`}
+          />
+        ) : (
+          <span className="avatar ph" title="GitHub not connected (Connections & setup in ⌘K)">
+            <Icon name="folder" size={13} />
+          </span>
+        )}
       </div>
     </aside>
   );
@@ -181,38 +548,86 @@ function UpdatePill() {
   const [st, setSt] = useState(null);
   const [fresh, setFresh] = useState(null); // just updated: say so once
   useEffect(() => {
-    const u = window.bento?.update; if (!u) return;
-    u.get().then((x) => {
-      setSt(x);
-      const seen = localStorage.getItem('bento.seenVersion');
-      if (!seen) localStorage.setItem('bento.seenVersion', x.current); // first run: nothing to announce
-      else if (x.current && seen !== x.current) setFresh(x.current);
-    }).catch(() => {});
+    const u = window.bento?.update;
+    if (!u) return;
+    u.get()
+      .then((x) => {
+        setSt(x);
+        const seen = localStorage.getItem('bento.seenVersion');
+        if (!seen)
+          localStorage.setItem('bento.seenVersion', x.current); // first run: nothing to announce
+        else if (x.current && seen !== x.current) setFresh(x.current);
+      })
+      .catch(() => {});
     return u.on((x) => setSt((o) => ({ ...o, ...x })));
   }, []);
   const [notes, setNotes] = useState(null); // the version whose notes are open
-  const seenIt = () => { localStorage.setItem('bento.seenVersion', fresh); setFresh(null); };
+  const seenIt = () => {
+    localStorage.setItem('bento.seenVersion', fresh);
+    setFresh(null);
+  };
   if (notes) return <WhatsNew version={notes} onClose={() => setNotes(null)} />;
-  if (fresh && st?.status !== 'ready') return (
-    <div className="upd-pill fresh">
-      <span className="upd-dot" aria-hidden="true" />
-      <button className="upd-main" onClick={() => { setNotes(fresh); seenIt(); }} title={`${t('Bento updated itself to')} ${fresh}`}><b>{t('What’s new in')} {fresh}</b></button>
-      <button className="upd-x" aria-label={t('Dismiss')} onClick={seenIt}><Icon name="close" size={11} /></button>
-    </div>
-  );
+  if (fresh && st?.status !== 'ready')
+    return (
+      <div className="upd-pill fresh">
+        <span className="upd-dot" aria-hidden="true" />
+        <button
+          className="upd-main"
+          onClick={() => {
+            setNotes(fresh);
+            seenIt();
+          }}
+          title={`${t('Bento updated itself to')} ${fresh}`}
+        >
+          <b>
+            {t('What’s new in')} {fresh}
+          </b>
+        </button>
+        <button className="upd-x" aria-label={t('Dismiss')} onClick={seenIt}>
+          <Icon name="close" size={11} />
+        </button>
+      </div>
+    );
   if (st?.status !== 'ready') return null;
   return (
-    <button className="upd-pill" onClick={() => window.bento.update.install()} title={`${st.version ? `Bento ${st.version}. ` : ''}${t('Bento restarts with the new version. Your lessons are saved.')}`}>
-      <span className="upd-dot" aria-hidden="true" /><span>{t('Update ready')}</span><b>{t('Restart')}</b>
+    <button
+      className="upd-pill"
+      onClick={() => window.bento.update.install()}
+      title={`${st.version ? `Bento ${st.version}. ` : ''}${t('Bento restarts with the new version. Your lessons are saved.')}`}
+    >
+      <span className="upd-dot" aria-hidden="true" />
+      <span>{t('Update ready')}</span>
+      <b>{t('Restart')}</b>
     </button>
   );
 }
 
 function LessonIcon({ l, path }) {
   const idea = l.mode === 'idea' && ideaById[l.context?.ideaId];
-  if (idea) return <span className="rl-tile brand"><Brand slug={idea.slug} name={idea.company} size={12} plain /></span>;
-  const g = path ? '⤳' : l.scratch ? '✎' : l.mode === 'challenge' ? '⚑' : l.mode === 'compare' ? '⇄' : l.mode === 'build' ? '⚒' : l.race ? '↗' : null;
-  return <span className={`rl-tile ${g ? 'g' : `mono ${l.lang || ''}`}`} aria-hidden="true">{g || ((l.title || l.q || '?').replace(/^[^A-Za-z0-9]+/, '')[0] || '•').toUpperCase()}</span>;
+  if (idea)
+    return (
+      <span className="rl-tile brand">
+        <Brand slug={idea.slug} name={idea.company} size={12} plain />
+      </span>
+    );
+  const g = path
+    ? '⤳'
+    : l.scratch
+      ? '✎'
+      : l.mode === 'challenge'
+        ? '⚑'
+        : l.mode === 'compare'
+          ? '⇄'
+          : l.mode === 'build'
+            ? '⚒'
+            : l.race
+              ? '↗'
+              : null;
+  return (
+    <span className={`rl-tile ${g ? 'g' : `mono ${l.lang || ''}`}`} aria-hidden="true">
+      {g || ((l.title || l.q || '?').replace(/^[^A-Za-z0-9]+/, '')[0] || '•').toUpperCase()}
+    </span>
+  );
 }
 
 export function Logo({ size = 18 }) {

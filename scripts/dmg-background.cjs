@@ -16,14 +16,23 @@ if (process.platform === 'darwin') app.dock?.hide(); // no Dock icon while it dr
 const ROOT = path.join(__dirname, '..');
 const OUT = path.join(ROOT, 'build');
 const dmg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).build.dmg;
-const W = dmg.window.width, H = dmg.window.height, TITLE_BAR = 32, SEEN = H - TITLE_BAR;
+const W = dmg.window.width,
+  H = dmg.window.height,
+  TITLE_BAR = 32,
+  SEEN = H - TITLE_BAR;
 const ICON = dmg.iconSize || 80;
-const appAt = dmg.contents.find((c) => c.type === 'file'), appsAt = dmg.contents.find((c) => c.type === 'link');
-const previewTo = process.argv.includes('--preview') ? path.resolve(process.argv[process.argv.indexOf('--preview') + 1]) : null;
+const appAt = dmg.contents.find((c) => c.type === 'file'),
+  appsAt = dmg.contents.find((c) => c.type === 'link');
+const previewTo = process.argv.includes('--preview')
+  ? path.resolve(process.argv[process.argv.indexOf('--preview') + 1])
+  : null;
 
 // The arrow runs between the two icons, a little above their middles, with room on both ends.
 const gap = ICON / 2 + 22;
-const x1 = appAt.x + gap, x2 = appsAt.x - gap, y = appAt.y - 6, lift = 34;
+const x1 = appAt.x + gap,
+  x2 = appsAt.x - gap,
+  y = appAt.y - 6,
+  lift = 34;
 
 const design = `<!doctype html><html><head><meta charset="utf-8"><style>
   html, body { margin: 0; width: ${W}px; height: ${H}px; overflow: hidden; }
@@ -58,7 +67,13 @@ const design = `<!doctype html><html><head><meta charset="utf-8"><style>
 </body></html>`;
 
 // What Finder will show: a title bar, then the picture with both icons and their names on top.
-const finder = (bg1, bg2, appIcon, appsIcon, alias) => `<!doctype html><html><head><meta charset="utf-8"><style>
+const finder = (
+  bg1,
+  bg2,
+  appIcon,
+  appsIcon,
+  alias,
+) => `<!doctype html><html><head><meta charset="utf-8"><style>
   html, body { margin: 0; background: #1e1e1e; }
   .win { position: relative; width: ${W}px; height: ${H}px; margin: 24px; border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 .5px rgba(255,255,255,.18), 0 18px 50px rgba(0,0,0,.55); }
   .bar { height: ${TITLE_BAR}px; background: #2c2b2e; display: flex; align-items: center; justify-content: center; position: relative; font: 600 13px -apple-system, sans-serif; color: #e8e6e3; }
@@ -81,31 +96,73 @@ app.whenReady().then(async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bento-dmg-'));
   try {
     const shot = async (file, w, h, scale) => {
-      const win = new BrowserWindow({ show: false, width: w * scale, height: h * scale, useContentSize: true, frame: false, webPreferences: { offscreen: true } });
+      const win = new BrowserWindow({
+        show: false,
+        width: w * scale,
+        height: h * scale,
+        useContentSize: true,
+        frame: false,
+        webPreferences: { offscreen: true },
+      });
       await win.loadFile(file);
       await win.webContents.executeJavaScript(`document.documentElement.style.zoom = '${scale}'`); // 2×: the same design, twice the pixels
       await new Promise((r) => setTimeout(r, 500));
-      const img = await win.webContents.capturePage({ x: 0, y: 0, width: w * scale, height: h * scale });
+      const img = await win.webContents.capturePage({
+        x: 0,
+        y: 0,
+        width: w * scale,
+        height: h * scale,
+      });
       win.destroy();
       return img.resize({ width: w * scale, height: h * scale }).toPNG();
     };
     const page = path.join(tmp, 'design.html');
     fs.writeFileSync(page, design);
-    const one = path.join(tmp, 'background.png'), two = path.join(tmp, 'background@2x.png');
-    fs.writeFileSync(one, await shot(page, W, H, 1)); fs.writeFileSync(two, await shot(page, W, H, 2));
+    const one = path.join(tmp, 'background.png'),
+      two = path.join(tmp, 'background@2x.png');
+    fs.writeFileSync(one, await shot(page, W, H, 1));
+    fs.writeFileSync(two, await shot(page, W, H, 2));
     // one TIFF holding both sizes: sharp on Retina screens, right-sized on the rest
-    execFileSync('/usr/bin/tiffutil', ['-cathidpicheck', one, two, '-out', path.join(OUT, 'background.tiff')]);
+    execFileSync('/usr/bin/tiffutil', [
+      '-cathidpicheck',
+      one,
+      two,
+      '-out',
+      path.join(OUT, 'background.tiff'),
+    ]);
     console.log(`wrote build/background.tiff (${W}×${H}, 1× and 2×)`);
 
     if (previewTo) {
       const res = '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources';
-      const png = (icns, name) => { const p = path.join(tmp, name); try { execFileSync('/usr/bin/sips', ['-s', 'format', 'png', '-Z', '256', icns, '--out', p], { stdio: 'ignore' }); return 'file://' + p; } catch { return ''; } };
+      const png = (icns, name) => {
+        const p = path.join(tmp, name);
+        try {
+          execFileSync('/usr/bin/sips', ['-s', 'format', 'png', '-Z', '256', icns, '--out', p], {
+            stdio: 'ignore',
+          });
+          return 'file://' + p;
+        } catch {
+          return '';
+        }
+      };
       const view = path.join(tmp, 'finder.html');
-      fs.writeFileSync(view, finder('file://' + one, 'file://' + two, 'file://' + path.join(OUT, 'icon.png'), png(`${res}/ApplicationsFolderIcon.icns`, 'apps.png'), png(`${res}/AliasBadgeIcon.icns`, 'alias.png')));
+      fs.writeFileSync(
+        view,
+        finder(
+          'file://' + one,
+          'file://' + two,
+          'file://' + path.join(OUT, 'icon.png'),
+          png(`${res}/ApplicationsFolderIcon.icns`, 'apps.png'),
+          png(`${res}/AliasBadgeIcon.icns`, 'alias.png'),
+        ),
+      );
       fs.writeFileSync(previewTo, await shot(view, W + 48, H + 48, 2));
       console.log('wrote', previewTo);
     }
-  } catch (e) { console.error('failed:', e); process.exitCode = 1; }
+  } catch (e) {
+    console.error('failed:', e);
+    process.exitCode = 1;
+  }
   fs.rmSync(tmp, { recursive: true, force: true });
   app.quit();
 });

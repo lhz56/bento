@@ -2,62 +2,267 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../i18n.js';
 
-const fmtDate = (ms) => new Date(ms).toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
-const COLORS = ['#ff8a5b', '#7c5cff', '#12a37a', '#2f80ed', '#e5484d', '#d4a017', '#0c7c73', '#a855f7', '#f97316', '#64748b'];
+const fmtDate = (ms) =>
+  new Date(ms).toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
+const COLORS = [
+  '#ff8a5b',
+  '#7c5cff',
+  '#12a37a',
+  '#2f80ed',
+  '#e5484d',
+  '#d4a017',
+  '#0c7c73',
+  '#a855f7',
+  '#f97316',
+  '#64748b',
+];
 
 export default function Grow({ full }) {
   const [st, setSt] = useState(null); // null | { loading, p } | { err } | history
-  const [i, setI] = useState(0); const [playing, setPlaying] = useState(false);
+  const [i, setI] = useState(0);
+  const [playing, setPlaying] = useState(false);
   const timer = useRef(null);
   const load = async () => {
     setSt({ loading: true, p: null });
-    const off = window.bento?.onAtlasProgress?.((who, p) => { if (who === `history:${full}`) setSt((s) => (s?.loading ? { loading: true, p } : s)); });
-    try { const h = await window.bento.atlasHistory(full); setSt(h); setI(0); setPlaying(true); }
-    catch (e) { setSt({ err: String(e.message).replace(/^Error invoking remote method '[^']+': (Error: )?/, '') }); }
-    finally { off?.(); }
+    const off = window.bento?.onAtlasProgress?.((who, p) => {
+      if (who === `history:${full}`) setSt((s) => (s?.loading ? { loading: true, p } : s));
+    });
+    try {
+      const h = await window.bento.atlasHistory(full);
+      setSt(h);
+      setI(0);
+      setPlaying(true);
+    } catch (e) {
+      setSt({
+        err: String(e.message).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''),
+      });
+    } finally {
+      off?.();
+    }
   };
   const frames = st?.frames || [];
-  useEffect(() => { clearTimeout(timer.current); if (!playing || !frames.length) return; if (i >= frames.length - 1) { setPlaying(false); return; } timer.current = setTimeout(() => setI(i + 1), Math.max(60, 11000 / frames.length)); return () => clearTimeout(timer.current); }, [playing, i, frames.length]);
-  const dirs = useMemo(() => { const last = frames[frames.length - 1]?.dirs || {}; return Object.entries(last).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k]) => k); }, [frames]);
+  useEffect(() => {
+    clearTimeout(timer.current);
+    if (!playing || !frames.length) return;
+    if (i >= frames.length - 1) {
+      setPlaying(false);
+      return;
+    }
+    timer.current = setTimeout(() => setI(i + 1), Math.max(60, 11000 / frames.length));
+    return () => clearTimeout(timer.current);
+  }, [playing, i, frames.length]);
+  const dirs = useMemo(() => {
+    const last = frames[frames.length - 1]?.dirs || {};
+    return Object.entries(last)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([k]) => k);
+  }, [frames]);
   if (!window.bento?.atlasHistory || !full) return null;
-  const F = frames[i]; const max = Math.max(1, ...frames.map((f) => f.total)); const dmax = Math.max(1, ...dirs.map((d) => frames[frames.length - 1]?.dirs[d] || 0));
-  const W = 860, H = 150, P = 10;
-  const X = (k) => P + (k / Math.max(1, frames.length - 1)) * (W - 2 * P), Y = (v) => H - 22 - (v / max) * (H - 40);
-  const momentAt = (m) => frames.reduce((best, f, k) => (Math.abs(f.n - m.n) < Math.abs(frames[best].n - m.n) ? k : best), 0);
+  const F = frames[i];
+  const max = Math.max(1, ...frames.map((f) => f.total));
+  const dmax = Math.max(1, ...dirs.map((d) => frames[frames.length - 1]?.dirs[d] || 0));
+  const W = 860,
+    H = 150,
+    P = 10;
+  const X = (k) => P + (k / Math.max(1, frames.length - 1)) * (W - 2 * P),
+    Y = (v) => H - 22 - (v / max) * (H - 40);
+  const momentAt = (m) =>
+    frames.reduce(
+      (best, f, k) => (Math.abs(f.n - m.n) < Math.abs(frames[best].n - m.n) ? k : best),
+      0,
+    );
   return (
     <section className="asec" id="sec-grow">
-      <div className="sec-head"><div>
-        <div className="kicker">{t('watch it grow')}</div>
-        <h2>{t('It wasn’t written. It grew.')}</h2>
-        <p className="sec-sub">{t('Replay the project’s history: every saved change (commit), from the first file to today.')}</p>
-      </div></div>
-      {!st && <button className="btn" onClick={load}>▶ {t('Watch it grow')}</button>}
-      {st?.loading && <div className="grow-load"><span className="lens-spin" /> {st.p?.phase === 'reading' ? `${t('Reading')} ${st.p.commits?.toLocaleString()} ${t('commits')}…` : `${t('Downloading the history')} ${st.p?.pct != null ? `${st.p.pct}%` : ''}…`} <span className="muted small">{t('(just the list of changes, not the files: quick)')}</span></div>}
-      {st?.err && <div className="err-card"><span className="err-msg">{st.err}</span></div>}
+      <div className="sec-head">
+        <div>
+          <div className="kicker">{t('watch it grow')}</div>
+          <h2>{t('It wasn’t written. It grew.')}</h2>
+          <p className="sec-sub">
+            {t(
+              'Replay the project’s history: every saved change (commit), from the first file to today.',
+            )}
+          </p>
+        </div>
+      </div>
+      {!st && (
+        <button className="btn" onClick={load}>
+          ▶ {t('Watch it grow')}
+        </button>
+      )}
+      {st?.loading && (
+        <div className="grow-load">
+          <span className="lens-spin" />{' '}
+          {st.p?.phase === 'reading'
+            ? `${t('Reading')} ${st.p.commits?.toLocaleString()} ${t('commits')}…`
+            : `${t('Downloading the history')} ${st.p?.pct != null ? `${st.p.pct}%` : ''}…`}{' '}
+          <span className="muted small">
+            {t('(just the list of changes, not the files: quick)')}
+          </span>
+        </div>
+      )}
+      {st?.err && (
+        <div className="err-card">
+          <span className="err-msg">{st.err}</span>
+        </div>
+      )}
       {F && (
         <div className="grow">
           <div className="grow-top">
             <div className="gt-date">{fmtDate(F.at)}</div>
-            <div className="gt-stats"><span><b>{F.total.toLocaleString()}</b> {t('files')}</span><span><b>{F.n.toLocaleString()}</b> {t('commits')}</span><span><b>{F.people}</b> {F.people === 1 ? t('person') : t('people')}</span></div>
-            <button className="btn" onClick={() => { if (i >= frames.length - 1) setI(0); setPlaying(!playing); }}>{playing ? '❚❚' : '▶'} {playing ? t('Pause') : i >= frames.length - 1 ? t('Replay') : t('Play')}</button>
+            <div className="gt-stats">
+              <span>
+                <b>{F.total.toLocaleString()}</b> {t('files')}
+              </span>
+              <span>
+                <b>{F.n.toLocaleString()}</b> {t('commits')}
+              </span>
+              <span>
+                <b>{F.people}</b> {F.people === 1 ? t('person') : t('people')}
+              </span>
+            </div>
+            <button
+              className="btn"
+              onClick={() => {
+                if (i >= frames.length - 1) setI(0);
+                setPlaying(!playing);
+              }}
+            >
+              {playing ? '❚❚' : '▶'}{' '}
+              {playing ? t('Pause') : i >= frames.length - 1 ? t('Replay') : t('Play')}
+            </button>
           </div>
-          <div className="gt-msg">“{F.msg}” <span>· {F.author}</span></div>
-          <svg viewBox={`0 0 ${W} ${H}`} className="grow-chart" tabIndex={0} role="slider" aria-label={t('Project history')} aria-valuemin={0} aria-valuemax={frames.length - 1} aria-valuenow={i} aria-valuetext={`${fmtDate(F.at)}: ${F.total} ${t('files')}, ${F.n} ${t('commits')}. ${F.msg}`}
-            onKeyDown={(e) => { const d = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 10, PageDown: -10 }[e.key]; if (d) { e.preventDefault(); setPlaying(false); setI(Math.max(0, Math.min(frames.length - 1, i + d))); } else if (e.key === 'Home' || e.key === 'End') { e.preventDefault(); setPlaying(false); setI(e.key === 'Home' ? 0 : frames.length - 1); } }}
-            onMouseMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); const k = Math.round(((e.clientX - r.left) / r.width * W - P) / (W - 2 * P) * (frames.length - 1)); if (!playing && k >= 0 && k < frames.length) setI(k); }}>
-            <path d={`M${X(0)},${Y(0)} ${frames.map((f, k) => `L${X(k)},${Y(f.total)}`).join(' ')} L${X(frames.length - 1)},${Y(0)} Z`} className="gc-area" />
-            <path d={frames.slice(0, i + 1).map((f, k) => `${k ? 'L' : 'M'}${X(k)},${Y(f.total)}`).join(' ')} className="gc-line" />
-            {[...new Set(frames.map((f) => new Date(f.at).getFullYear()))].map((y) => { const k = frames.findIndex((f) => new Date(f.at).getFullYear() === y); return <text key={y} x={X(k)} y={H - 6} className="gc-year">{y}</text>; })}
-            {st.moments.map((m, j) => { const k = momentAt(m); return <g key={j} aria-hidden="true" className={`gc-moment ${k <= i ? 'on' : ''}`} onClick={() => { setPlaying(false); setI(k); }}><circle cx={X(k)} cy={Y(frames[k].total)} r="5" /><title>{`${fmtDate(m.at)}: ${m.msg} (+${m.add} −${m.del} files)`}</title></g>; })}
+          <div className="gt-msg">
+            “{F.msg}” <span>· {F.author}</span>
+          </div>
+          <svg
+            viewBox={`0 0 ${W} ${H}`}
+            className="grow-chart"
+            tabIndex={0}
+            role="slider"
+            aria-label={t('Project history')}
+            aria-valuemin={0}
+            aria-valuemax={frames.length - 1}
+            aria-valuenow={i}
+            aria-valuetext={`${fmtDate(F.at)}: ${F.total} ${t('files')}, ${F.n} ${t('commits')}. ${F.msg}`}
+            onKeyDown={(e) => {
+              const d = {
+                ArrowRight: 1,
+                ArrowUp: 1,
+                ArrowLeft: -1,
+                ArrowDown: -1,
+                PageUp: 10,
+                PageDown: -10,
+              }[e.key];
+              if (d) {
+                e.preventDefault();
+                setPlaying(false);
+                setI(Math.max(0, Math.min(frames.length - 1, i + d)));
+              } else if (e.key === 'Home' || e.key === 'End') {
+                e.preventDefault();
+                setPlaying(false);
+                setI(e.key === 'Home' ? 0 : frames.length - 1);
+              }
+            }}
+            onMouseMove={(e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              const k = Math.round(
+                ((((e.clientX - r.left) / r.width) * W - P) / (W - 2 * P)) * (frames.length - 1),
+              );
+              if (!playing && k >= 0 && k < frames.length) setI(k);
+            }}
+          >
+            <path
+              d={`M${X(0)},${Y(0)} ${frames.map((f, k) => `L${X(k)},${Y(f.total)}`).join(' ')} L${X(frames.length - 1)},${Y(0)} Z`}
+              className="gc-area"
+            />
+            <path
+              d={frames
+                .slice(0, i + 1)
+                .map((f, k) => `${k ? 'L' : 'M'}${X(k)},${Y(f.total)}`)
+                .join(' ')}
+              className="gc-line"
+            />
+            {[...new Set(frames.map((f) => new Date(f.at).getFullYear()))].map((y) => {
+              const k = frames.findIndex((f) => new Date(f.at).getFullYear() === y);
+              return (
+                <text key={y} x={X(k)} y={H - 6} className="gc-year">
+                  {y}
+                </text>
+              );
+            })}
+            {st.moments.map((m, j) => {
+              const k = momentAt(m);
+              return (
+                <g
+                  key={j}
+                  aria-hidden="true"
+                  className={`gc-moment ${k <= i ? 'on' : ''}`}
+                  onClick={() => {
+                    setPlaying(false);
+                    setI(k);
+                  }}
+                >
+                  <circle cx={X(k)} cy={Y(frames[k].total)} r="5" />
+                  <title>{`${fmtDate(m.at)}: ${m.msg} (+${m.add} −${m.del} files)`}</title>
+                </g>
+              );
+            })}
             <line x1={X(i)} x2={X(i)} y1={8} y2={H - 22} className="gc-now" />
           </svg>
-          <div className="grow-moments">{st.moments.map((m, j) => { const k = momentAt(m); return <button key={j} className={`gm ${k <= i ? 'on' : ''}`} onClick={() => { setPlaying(false); setI(k); }}><b>{fmtDate(m.at)}</b><span>{m.first ? `🌱 ${t('The very first commit')}` : m.msg}</span><em>{m.add ? `+${m.add}` : ''}{m.del ? ` −${m.del}` : ''} {t('files')}</em></button>; })}</div>
-          <div className="grow-dirs">
-            {dirs.map((d, k) => { const n = F.dirs[d] || 0; return (
-              <div key={d} className={`gd ${n ? '' : 'none'}`}><span className="gd-name">{d}</span><span className="gd-bar"><i style={{ width: `${(n / dmax) * 100}%`, background: COLORS[k % COLORS.length] }} /></span><span className="gd-n">{n || ''}</span></div>
-            ); })}
+          <div className="grow-moments">
+            {st.moments.map((m, j) => {
+              const k = momentAt(m);
+              return (
+                <button
+                  key={j}
+                  className={`gm ${k <= i ? 'on' : ''}`}
+                  onClick={() => {
+                    setPlaying(false);
+                    setI(k);
+                  }}
+                >
+                  <b>{fmtDate(m.at)}</b>
+                  <span>{m.first ? `🌱 ${t('The very first commit')}` : m.msg}</span>
+                  <em>
+                    {m.add ? `+${m.add}` : ''}
+                    {m.del ? ` −${m.del}` : ''} {t('files')}
+                  </em>
+                </button>
+              );
+            })}
           </div>
-          <input type="range" min="0" max={frames.length - 1} value={i} onChange={(e) => { setPlaying(false); setI(+e.target.value); }} className="grow-scrub" aria-label="when" />
+          <div className="grow-dirs">
+            {dirs.map((d, k) => {
+              const n = F.dirs[d] || 0;
+              return (
+                <div key={d} className={`gd ${n ? '' : 'none'}`}>
+                  <span className="gd-name">{d}</span>
+                  <span className="gd-bar">
+                    <i
+                      style={{
+                        width: `${(n / dmax) * 100}%`,
+                        background: COLORS[k % COLORS.length],
+                      }}
+                    />
+                  </span>
+                  <span className="gd-n">{n || ''}</span>
+                </div>
+              );
+            })}
+          </div>
+          <input
+            type="range"
+            min="0"
+            max={frames.length - 1}
+            value={i}
+            onChange={(e) => {
+              setPlaying(false);
+              setI(+e.target.value);
+            }}
+            className="grow-scrub"
+            aria-label="when"
+          />
         </div>
       )}
     </section>

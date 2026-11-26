@@ -26,43 +26,149 @@ export const TABLES = [
 
 // [id, title, goal, reference answer, hint, idea it teaches]
 export const CHALLENGES = [
-  ['all', 'See everything', 'Show every customer.', 'SELECT * FROM customers;', '`SELECT *` means “every column”. `FROM` says which table.', 'SELECT … FROM'],
-  ['cols', 'Just two columns', 'Show only the name and city of every customer.', 'SELECT name, city FROM customers;', 'List the columns you want after SELECT, separated by commas.', 'choosing columns'],
-  ['where', 'Only Paris', 'Show the customers who live in Paris.', "SELECT * FROM customers WHERE city = 'Paris';", "`WHERE city = 'Paris'` keeps only matching rows. Text goes in 'single quotes'.", 'WHERE'],
-  ['order', 'Cheapest first', 'Show every product, cheapest first.', 'SELECT * FROM products ORDER BY price;', '`ORDER BY price` sorts small to big. Add `DESC` for big to small.', 'ORDER BY'],
-  ['count', 'How many orders?', 'Count the orders.', 'SELECT COUNT(*) FROM orders;', '`COUNT(*)` counts rows instead of showing them.', 'COUNT'],
-  ['group', 'Customers per city', 'For each city, how many customers live there?', 'SELECT city, COUNT(*) FROM customers GROUP BY city;', '`GROUP BY city` makes one pile per city; `COUNT(*)` then counts each pile.', 'GROUP BY'],
-  ['join', 'Who ordered?', 'Show each order’s customer name next to its quantity.', 'SELECT customers.name, orders.qty FROM orders JOIN customers ON customers.id = orders.customer_id;', 'Orders only store `customer_id`. `JOIN customers ON customers.id = orders.customer_id` looks up the matching customer.', 'JOIN'],
-  ['boss', 'Biggest spender', 'Total money each customer spent (qty × price), biggest spender first.', 'SELECT customers.name, SUM(orders.qty * products.price) AS spent FROM orders JOIN customers ON customers.id = orders.customer_id JOIN products ON products.id = orders.product_id GROUP BY customers.name ORDER BY spent DESC;', 'Join orders to both customers and products, `GROUP BY customers.name`, add up `SUM(orders.qty * products.price)`, then `ORDER BY` it `DESC`.', 'JOIN + GROUP BY + SUM'],
+  [
+    'all',
+    'See everything',
+    'Show every customer.',
+    'SELECT * FROM customers;',
+    '`SELECT *` means “every column”. `FROM` says which table.',
+    'SELECT … FROM',
+  ],
+  [
+    'cols',
+    'Just two columns',
+    'Show only the name and city of every customer.',
+    'SELECT name, city FROM customers;',
+    'List the columns you want after SELECT, separated by commas.',
+    'choosing columns',
+  ],
+  [
+    'where',
+    'Only Paris',
+    'Show the customers who live in Paris.',
+    "SELECT * FROM customers WHERE city = 'Paris';",
+    "`WHERE city = 'Paris'` keeps only matching rows. Text goes in 'single quotes'.",
+    'WHERE',
+  ],
+  [
+    'order',
+    'Cheapest first',
+    'Show every product, cheapest first.',
+    'SELECT * FROM products ORDER BY price;',
+    '`ORDER BY price` sorts small to big. Add `DESC` for big to small.',
+    'ORDER BY',
+  ],
+  [
+    'count',
+    'How many orders?',
+    'Count the orders.',
+    'SELECT COUNT(*) FROM orders;',
+    '`COUNT(*)` counts rows instead of showing them.',
+    'COUNT',
+  ],
+  [
+    'group',
+    'Customers per city',
+    'For each city, how many customers live there?',
+    'SELECT city, COUNT(*) FROM customers GROUP BY city;',
+    '`GROUP BY city` makes one pile per city; `COUNT(*)` then counts each pile.',
+    'GROUP BY',
+  ],
+  [
+    'join',
+    'Who ordered?',
+    'Show each order’s customer name next to its quantity.',
+    'SELECT customers.name, orders.qty FROM orders JOIN customers ON customers.id = orders.customer_id;',
+    'Orders only store `customer_id`. `JOIN customers ON customers.id = orders.customer_id` looks up the matching customer.',
+    'JOIN',
+  ],
+  [
+    'boss',
+    'Biggest spender',
+    'Total money each customer spent (qty × price), biggest spender first.',
+    'SELECT customers.name, SUM(orders.qty * products.price) AS spent FROM orders JOIN customers ON customers.id = orders.customer_id JOIN products ON products.id = orders.product_id GROUP BY customers.name ORDER BY spent DESC;',
+    'Join orders to both customers and products, `GROUP BY customers.name`, add up `SUM(orders.qty * products.price)`, then `ORDER BY` it `DESC`.',
+    'JOIN + GROUP BY + SUM',
+  ],
 ];
 
 // Split a simple SELECT into its clauses (top level only; anything fancier just skips the picture)
 const KW = ['SELECT', 'FROM', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY', 'LIMIT'];
 export function clauses(q) {
-  const s = String(q || '').trim().replace(/;\s*$/, '');
-  if (!/^select\b/i.test(s) || /\(\s*select\b/i.test(s) || /;\s*\S/.test(s) || /\bunion\b/i.test(s)) return null;
+  const s = String(q || '')
+    .trim()
+    .replace(/;\s*$/, '');
+  if (!/^select\b/i.test(s) || /\(\s*select\b/i.test(s) || /;\s*\S/.test(s) || /\bunion\b/i.test(s))
+    return null;
   const marks = [];
-  const re = /\b(SELECT|FROM|WHERE|GROUP\s+BY|HAVING|ORDER\s+BY|LIMIT)\b/gi; let m; let depth = 0;
+  const re = /\b(SELECT|FROM|WHERE|GROUP\s+BY|HAVING|ORDER\s+BY|LIMIT)\b/gi;
+  let m;
+  let depth = 0;
   // ignore keywords inside quotes or parentheses
-  const masked = s.replace(/'[^']*'/g, (x) => ' '.repeat(x.length)).split('').map((c) => { if (c === '(') depth++; if (c === ')') depth--; return depth > 0 && c !== '(' ? ' ' : c; }).join('');
-  while ((m = re.exec(masked))) marks.push([m.index, m[1].toUpperCase().replace(/\s+/g, ' '), m[0].length]);
-  const out = {}; marks.forEach(([i, k, len], j) => { out[k] = s.slice(i + len, j + 1 < marks.length ? marks[j + 1][0] : s.length).trim(); });
+  const masked = s
+    .replace(/'[^']*'/g, (x) => ' '.repeat(x.length))
+    .split('')
+    .map((c) => {
+      if (c === '(') depth++;
+      if (c === ')') depth--;
+      return depth > 0 && c !== '(' ? ' ' : c;
+    })
+    .join('');
+  while ((m = re.exec(masked)))
+    marks.push([m.index, m[1].toUpperCase().replace(/\s+/g, ' '), m[0].length]);
+  const out = {};
+  marks.forEach(([i, k, len], j) => {
+    out[k] = s.slice(i + len, j + 1 < marks.length ? marks[j + 1][0] : s.length).trim();
+  });
   return out.FROM ? out : null;
 }
 
 // What to count at each step, and how to say each step in plain words
 export function pipeline(q) {
-  const c = clauses(q); if (!c) return null;
-  const steps = []; const from = c.FROM;
+  const c = clauses(q);
+  if (!c) return null;
+  const steps = [];
+  const from = c.FROM;
   const joins = [...from.matchAll(/\bjoin\s+(\w+)/gi)].map((m) => m[1]);
-  const base = from.split(/\bjoin\b/i)[0].trim().split(/\s+/)[0];
-  steps.push({ k: 'FROM', say: `Start with every row of ${base}`, count: `SELECT COUNT(*) FROM ${from.split(/\bjoin\b/i)[0]}` });
-  if (joins.length) steps.push({ k: 'JOIN', say: `Match each row with its ${joins.join(' and ')}`, count: `SELECT COUNT(*) FROM ${from}` });
-  if (c.WHERE) steps.push({ k: 'WHERE', say: `Keep only rows where ${c.WHERE}`, count: `SELECT COUNT(*) FROM ${from} WHERE ${c.WHERE}` });
-  if (c['GROUP BY']) steps.push({ k: 'GROUP BY', say: `Make one pile per ${c['GROUP BY']}`, count: `SELECT COUNT(*) FROM (SELECT 1 FROM ${from}${c.WHERE ? ` WHERE ${c.WHERE}` : ''} GROUP BY ${c['GROUP BY']}${c.HAVING ? ` HAVING ${c.HAVING}` : ''})` });
+  const base = from
+    .split(/\bjoin\b/i)[0]
+    .trim()
+    .split(/\s+/)[0];
+  steps.push({
+    k: 'FROM',
+    say: `Start with every row of ${base}`,
+    count: `SELECT COUNT(*) FROM ${from.split(/\bjoin\b/i)[0]}`,
+  });
+  if (joins.length)
+    steps.push({
+      k: 'JOIN',
+      say: `Match each row with its ${joins.join(' and ')}`,
+      count: `SELECT COUNT(*) FROM ${from}`,
+    });
+  if (c.WHERE)
+    steps.push({
+      k: 'WHERE',
+      say: `Keep only rows where ${c.WHERE}`,
+      count: `SELECT COUNT(*) FROM ${from} WHERE ${c.WHERE}`,
+    });
+  if (c['GROUP BY'])
+    steps.push({
+      k: 'GROUP BY',
+      say: `Make one pile per ${c['GROUP BY']}`,
+      count: `SELECT COUNT(*) FROM (SELECT 1 FROM ${from}${c.WHERE ? ` WHERE ${c.WHERE}` : ''} GROUP BY ${c['GROUP BY']}${c.HAVING ? ` HAVING ${c.HAVING}` : ''})`,
+    });
   if (c.HAVING) steps.push({ k: 'HAVING', say: `Keep only piles where ${c.HAVING}`, count: null });
-  steps.push({ k: 'SELECT', say: c.SELECT === '*' ? 'Show every column' : `Show ${c.SELECT}`, count: null });
-  if (c['ORDER BY']) steps.push({ k: 'ORDER BY', say: `Sort by ${c['ORDER BY'].replace(/\s+desc\b/i, '')}, ${/\bdesc\b/i.test(c['ORDER BY']) ? 'biggest first' : 'smallest first'}`, count: null });
+  steps.push({
+    k: 'SELECT',
+    say: c.SELECT === '*' ? 'Show every column' : `Show ${c.SELECT}`,
+    count: null,
+  });
+  if (c['ORDER BY'])
+    steps.push({
+      k: 'ORDER BY',
+      say: `Sort by ${c['ORDER BY'].replace(/\s+desc\b/i, '')}, ${/\bdesc\b/i.test(c['ORDER BY']) ? 'biggest first' : 'smallest first'}`,
+      count: null,
+    });
   if (c.LIMIT) steps.push({ k: 'LIMIT', say: `Keep only the first ${c.LIMIT}`, count: null });
   return steps;
 }
@@ -96,8 +202,10 @@ print("__SQL__" + json.dumps(out, default=str))
 // Same answer? Values only (column names may differ); order matters only when the reference sorts.
 export function sameResult(a, b, ordered) {
   if (!a || !b || a.error || b.error) return false;
-  const key = (r) => JSON.stringify(r.map((v) => (typeof v === 'number' ? Math.round(v * 100) / 100 : v)));
-  const A = a.rows.map(key), B = b.rows.map(key);
+  const key = (r) =>
+    JSON.stringify(r.map((v) => (typeof v === 'number' ? Math.round(v * 100) / 100 : v)));
+  const A = a.rows.map(key),
+    B = b.rows.map(key);
   if (A.length !== B.length || a.cols.length !== b.cols.length) return false;
   if (ordered) return A.every((x, i) => x === B[i]);
   return JSON.stringify([...A].sort()) === JSON.stringify([...B].sort());

@@ -9,7 +9,9 @@ function testHooks({ packaged, testBuild, offscreen, env = {} }) {
   const fakeAI = allowed && env.BENTO_FAKE_AI ? env.BENTO_FAKE_AI : null;
   return {
     fakeAI,
-    fakeAs: String(env.BENTO_FAKE_AS || 'claude').split(',').filter(Boolean),
+    fakeAs: String(env.BENTO_FAKE_AS || 'claude')
+      .split(',')
+      .filter(Boolean),
     fakeLimit: allowed ? String(env.BENTO_FAKE_LIMIT || '') : '',
     dryPublish: allowed && !!env.BENTO_DRY_PUBLISH,
     hideAllAIs: !!env.BENTO_FAKE_AI && !fakeAI,

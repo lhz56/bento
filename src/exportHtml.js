@@ -1,12 +1,17 @@
 // Turn a lesson into one self-contained web page: a readable blog post whose code you can run in any browser.
 // JavaScript runs directly; Python loads Pyodide from a CDN the first time you press Run.
-const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-const inline = (md) => esc(md)
-  .replace(/\[\[[^|\]]*\|([^\]]+)\]\]/g, '<mark>$1</mark>')
-  .replace(/\[\[([^\]]+)\]\]/g, '$1')
-  .replace(/`([^`]+)`/g, '<code>$1</code>')
-  .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
-  .replace(/(^|[\s(])\*([^*\s][^*]*)\*/g, '$1<i>$2</i>');
+const esc = (s) =>
+  String(s ?? '').replace(
+    /[&<>"]/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c],
+  );
+const inline = (md) =>
+  esc(md)
+    .replace(/\[\[[^|\]]*\|([^\]]+)\]\]/g, '<mark>$1</mark>')
+    .replace(/\[\[([^\]]+)\]\]/g, '$1')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/(^|[\s(])\*([^*\s][^*]*)\*/g, '$1<i>$2</i>');
 
 export function lessonHtml(L) {
   const code = L.work ?? L.code ?? '';
@@ -16,15 +21,24 @@ export function lessonHtml(L) {
   let codeDone = false;
   const codeBlock = () => {
     codeDone = true;
-    if (L.lang === 'html') return `<figure class="code"><figcaption>${esc(L.file || 'page.html')}</figcaption><iframe sandbox="allow-scripts" srcdoc="${esc(code)}"></iframe><details><summary>See the code</summary><pre>${esc(code)}</pre></details></figure>`;
+    if (L.lang === 'html')
+      return `<figure class="code"><figcaption>${esc(L.file || 'page.html')}</figcaption><iframe sandbox="allow-scripts" srcdoc="${esc(code)}"></iframe><details><summary>See the code</summary><pre>${esc(code)}</pre></details></figure>`;
     return `<figure class="code"><figcaption>${esc(L.file || (lang === 'python' ? 'main.py' : 'main.js'))}${runnable ? `<button onclick="run()">▶ Run</button>` : ''}</figcaption><pre id="src" contenteditable="true" spellcheck="false">${esc(code)}</pre><pre id="out" hidden></pre><div id="vis"></div></figure>`;
   };
   for (const b of L.story || []) {
     if (b.t === 'p') parts.push(`<p>${inline(b.md)}</p>`);
     else if (b.t === 'h') parts.push(`<h2>${esc(b.text)}</h2>`);
-    else if (b.t === 'term') parts.push(`<aside class="term"><b>${esc(b.term)}</b> ${inline(b.plain || '')}${b.like ? `<span>${inline(b.like)}</span>` : ''}</aside>`);
-    else if (b.t === 'step' && L.steps?.[b.i]) { const st = L.steps[b.i]; parts.push(`<h3>${b.i + 1}. ${esc(st.title)}</h3><p>${inline(st.md || '')}</p>`); }
-    else if (b.t === 'quiz') parts.push(`<div class="quiz"><b>Check yourself:</b> ${inline(b.q)}<ol>${b.choices.map((c, i) => `<li><button onclick="this.parentNode.parentNode.querySelectorAll('button').forEach(x=>x.disabled=true);this.className='${i === b.answer ? 'yes' : 'no'}';this.closest('.quiz').querySelector('.why').hidden=false">${inline(c)}</button></li>`).join('')}</ol><p class="why" hidden>${inline(b.why || '')}</p></div>`);
+    else if (b.t === 'term')
+      parts.push(
+        `<aside class="term"><b>${esc(b.term)}</b> ${inline(b.plain || '')}${b.like ? `<span>${inline(b.like)}</span>` : ''}</aside>`,
+      );
+    else if (b.t === 'step' && L.steps?.[b.i]) {
+      const st = L.steps[b.i];
+      parts.push(`<h3>${b.i + 1}. ${esc(st.title)}</h3><p>${inline(st.md || '')}</p>`);
+    } else if (b.t === 'quiz')
+      parts.push(
+        `<div class="quiz"><b>Check yourself:</b> ${inline(b.q)}<ol>${b.choices.map((c, i) => `<li><button onclick="this.parentNode.parentNode.querySelectorAll('button').forEach(x=>x.disabled=true);this.className='${i === b.answer ? 'yes' : 'no'}';this.closest('.quiz').querySelector('.why').hidden=false">${inline(c)}</button></li>`).join('')}</ol><p class="why" hidden>${inline(b.why || '')}</p></div>`,
+      );
     if (!codeDone && code && b.t === 'p' && parts.length >= 2) parts.push(codeBlock());
   }
   if (!codeDone && code) parts.push(codeBlock());
@@ -36,7 +50,9 @@ const W=v.type==='canvas'?v.w:Math.max(240,v.data.length*28),H=v.type==='canvas'
 if(v.type==='canvas'){for(const m of v.cmds){const k=m[0];if(k==='bg'){x.fillStyle=m[1];x.fillRect(0,0,W,H)}else if(k==='circle'){x.fillStyle=m[4]||'#222';x.beginPath();x.arc(m[1],m[2],Math.max(0,m[3]),0,7);x.fill()}else if(k==='rect'){x.fillStyle=m[5]||'#222';x.fillRect(m[1],m[2],m[3],m[4])}else if(k==='line'){x.strokeStyle=m[5]||'#222';x.lineWidth=m[6]||1;x.beginPath();x.moveTo(m[1],m[2]);x.lineTo(m[3],m[4]);x.stroke()}else if(k==='text'){x.fillStyle=m[4]||'#222';x.font='14px system-ui';x.fillText(m[1],m[2],m[3])}}}
 else{const P=['#ff8a5b','#5aa9ff','#a78bfa','#4cc9a0','#ffc94d'];const mx=Math.max(...v.data.map(Math.abs),1);const bw=(W-8)/v.data.length;v.data.forEach((n,i)=>{const h=Math.max(2,Math.abs(n)/mx*(H-30));x.fillStyle=P[i%5];x.fillRect(4+i*bw+2,H-6-h,bw-4,h);x.fillStyle='#888';x.font='10px system-ui';if(v.data.length<=24)x.fillText(String(Math.round(n*100)/100),4+i*bw+2,H-10-h)})}
 if(v.label){const l=document.createElement('figcaption');l.textContent=v.label;f.appendChild(l)}}}`;
-  const runner = lang === 'python' ? `${common}
+  const runner =
+    lang === 'python'
+      ? `${common}
 const PRE=\`_V=[]
 _C=None
 def _cv():
@@ -64,7 +80,8 @@ try{if(!py){const s=document.createElement('script');s.src='https://cdn.jsdelivr
 let buf='';py.setStdout({batched:(t)=>{buf+=t+'\\n'}});py.setStderr({batched:(t)=>{buf+=t+'\\n'}});
 try{await py.runPythonAsync(PRE+'\\n'+document.getElementById('src').innerText);}finally{const V=py.globals.get('_V');if(V)draw(V.toJs({dict_converter:Object.fromEntries}));}
 o.textContent=buf||'(nothing printed)';}
-catch(e){o.textContent=String(e.message||e).split('\\n').slice(-3).join('\\n')}}` : `${common}
+catch(e){o.textContent=String(e.message||e).split('\\n').slice(-3).join('\\n')}}`
+      : `${common}
 function run(){const o=document.getElementById('out');o.hidden=false;const lines=[];const vis=[];let cv=null;const fmt=(a)=>a.map(x=>typeof x==='string'?x:JSON.stringify(x)).join(' ');
 const con={log:(...a)=>lines.push(fmt(a)),error:(...a)=>lines.push(fmt(a)),warn:(...a)=>lines.push(fmt(a))};
 const show=(x,l)=>{if(Array.isArray(x)&&x.length&&x.every(n=>typeof n==='number'))vis.push({type:'bars',data:x,label:l||''});else lines.push((l?l+': ':'')+JSON.stringify(x))};

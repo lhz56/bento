@@ -9,52 +9,112 @@ const HOURS = 4;
 let state = { status: 'off', version: null, reason: null };
 let send = () => {};
 let updater = null;
-let auto = true; let prefFile = null; let save = null;
+let auto = true;
+let prefFile = null;
+let save = null;
 
-function set(next) { state = { ...state, ...next }; send(state); }
+function set(next) {
+  state = { ...state, ...next };
+  send(state);
+}
 
 // Squirrel (the Mac installer underneath) refuses to update an app that isn't signed by a developer.
 function isDeveloperSigned(app) {
   if (process.platform !== 'darwin') return Promise.resolve(true);
   const bundle = path.resolve(app.getPath('exe'), '..', '..', '..');
-  return new Promise((res) => execFile('/usr/bin/codesign', ['-dv', '--verbose=2', bundle], { timeout: 5000 }, (_e, _o, err) => res(/Authority=Developer ID Application/.test(String(err || '')))));
+  return new Promise((res) =>
+    execFile(
+      '/usr/bin/codesign',
+      ['-dv', '--verbose=2', bundle],
+      { timeout: 5000 },
+      (_e, _o, err) => res(/Authority=Developer ID Application/.test(String(err || ''))),
+    ),
+  );
 }
 
 async function start(app, { onState, disabled, prefs, writeSafe }) {
   send = onState || send;
   // "Update automatically" (Settings): off means no checks in the background; Check now still works
-  prefFile = prefs; save = writeSafe;
-  auto = await fs.promises.readFile(prefFile, 'utf8').then((t) => JSON.parse(t).auto !== false, () => true);
+  prefFile = prefs;
+  save = writeSafe;
+  auto = await fs.promises.readFile(prefFile, 'utf8').then(
+    (t) => JSON.parse(t).auto !== false,
+    () => true,
+  );
   set({ auto });
   const feed = path.join(process.resourcesPath || '', 'app-update.yml');
-  const why = !app.isPackaged ? 'development copy'
-    : disabled ? 'turned off'
-    : process.env.BENTO_DISABLE_UPDATES ? 'BENTO_DISABLE_UPDATES is set'
-    : !(await fs.promises.access(feed).then(() => true, () => false)) ? 'no release feed in this build'
-    : !(await isDeveloperSigned(app)) ? 'this copy isn’t signed, so it can’t update itself'
-    : null;
+  const why = !app.isPackaged
+    ? 'development copy'
+    : disabled
+      ? 'turned off'
+      : process.env.BENTO_DISABLE_UPDATES
+        ? 'BENTO_DISABLE_UPDATES is set'
+        : !(await fs.promises.access(feed).then(
+              () => true,
+              () => false,
+            ))
+          ? 'no release feed in this build'
+          : !(await isDeveloperSigned(app))
+            ? 'this copy isn’t signed, so it can’t update itself'
+            : null;
   if (why) return set({ status: 'off', reason: why });
-  try { ({ autoUpdater: updater } = require('electron-updater')); } catch (e) { return set({ status: 'off', reason: e.message }); }
+  try {
+    ({ autoUpdater: updater } = require('electron-updater'));
+  } catch (e) {
+    return set({ status: 'off', reason: e.message });
+  }
   updater.autoDownload = true;
   updater.autoInstallOnAppQuit = true;
   updater.allowPrerelease = false;
   updater.logger = null;
   updater.on('checking-for-update', () => set({ status: 'checking' }));
   updater.on('update-not-available', () => set({ status: 'current' }));
-  updater.on('update-available', (i) => set({ status: 'downloading', version: i?.version || null }));
-  updater.on('download-progress', (p) => set({ status: 'downloading', percent: Math.round(p?.percent || 0) }));
-  updater.on('update-downloaded', (i) => set({ status: 'ready', version: i?.version || state.version }));
-  updater.on('error', (e) => set({ status: 'error', reason: String(e?.message || e).split('\n')[0].slice(0, 160) }));
-  const background = () => { if (auto) updater.checkForUpdates().catch(() => {}); };
+  updater.on('update-available', (i) =>
+    set({ status: 'downloading', version: i?.version || null }),
+  );
+  updater.on('download-progress', (p) =>
+    set({ status: 'downloading', percent: Math.round(p?.percent || 0) }),
+  );
+  updater.on('update-downloaded', (i) =>
+    set({ status: 'ready', version: i?.version || state.version }),
+  );
+  updater.on('error', (e) =>
+    set({
+      status: 'error',
+      reason: String(e?.message || e)
+        .split('\n')[0]
+        .slice(0, 160),
+    }),
+  );
+  const background = () => {
+    if (auto) updater.checkForUpdates().catch(() => {});
+  };
   setTimeout(background, 15_000); // not during launch: let Bento open first
   setInterval(background, HOURS * 3600_000).unref?.();
 }
 
 const getState = () => state;
-const check = () => updater ? updater.checkForUpdates().then(() => true, () => false) : Promise.resolve(false);
+const check = () =>
+  updater
+    ? updater.checkForUpdates().then(
+        () => true,
+        () => false,
+      )
+    : Promise.resolve(false);
 // quit and install now; lessons in progress are saved by the usual quit path first
-function install() { if (state.status === 'ready' && updater) { setImmediate(() => updater.quitAndInstall(false, true)); return true; } return false; }
+function install() {
+  if (state.status === 'ready' && updater) {
+    setImmediate(() => updater.quitAndInstall(false, true));
+    return true;
+  }
+  return false;
+}
 
-function setAuto(on) { auto = !!on; if (prefFile && save) save(prefFile, JSON.stringify({ auto })); set({ auto }); return auto; }
+function setAuto(on) {
+  auto = !!on;
+  if (prefFile && save) save(prefFile, JSON.stringify({ auto }));
+  set({ auto });
+  return auto;
+}
 
 module.exports = { start, getState, check, install, setAuto, isDeveloperSigned };

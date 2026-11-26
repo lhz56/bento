@@ -6,73 +6,144 @@ import { useEffect, useRef } from 'react';
 import { t } from '../i18n.js';
 
 // the Home Screen copy, or Bento's iPhone and iPad app (ios/), which shows this page full screen with no Safari around it
-export const STANDALONE = typeof navigator !== 'undefined' && (navigator.standalone === true || matchMedia('(display-mode: standalone)').matches || /\bBentoApp\//.test(navigator.userAgent));
+export const STANDALONE =
+  typeof navigator !== 'undefined' &&
+  (navigator.standalone === true ||
+    matchMedia('(display-mode: standalone)').matches ||
+    /\bBentoApp\//.test(navigator.userAgent));
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Bento Code (ios/WebShell.swift) listens for a few things only it can do: its own Your Macs sheet, connecting again
 // with Allow on the Mac when the Mac has forgotten this device, and the iPhone's haptics (a web page has none on iOS).
-const bridge = () => (typeof window !== 'undefined' && /\bBentoApp\//.test(navigator.userAgent) ? window.webkit?.messageHandlers?.bento : null);
+const bridge = () =>
+  typeof window !== 'undefined' && /\bBentoApp\//.test(navigator.userAgent)
+    ? window.webkit?.messageHandlers?.bento
+    : null;
 export const IN_APP = !!bridge();
-export const native = (type, more) => { try { bridge()?.postMessage({ type, ...more }); return !!bridge(); } catch { return false; } };
+export const native = (type, more) => {
+  try {
+    bridge()?.postMessage({ type, ...more });
+    return !!bridge();
+  } catch {
+    return false;
+  }
+};
 /** a tick under the finger: 'select' (a tab, a switch, a picked option), 'light', 'success', 'warn' */
 export const haptic = (kind = 'select') => native('haptic', { kind });
 if (IN_APP) {
   // what an iPhone ticks for on its own: picking a tab, a segment or an option, and flipping a switch
-  const TICK = '.ptabs button, .pseg button, .seg button, .lens, .stab, .ab-nav button, [role=tab], [role=switch], .switch, .shelf, .int, .set-models button, .pz-chip';
-  addEventListener('click', (e) => {
-    const b = e.target.closest?.(TICK); if (!b || b.disabled) return;
-    // (a switch ticks both ways; a tab or segment only when it changes)
-    if (b.matches('[role=switch], .switch') || (b.getAttribute('aria-selected') !== 'true' && !b.classList.contains('on'))) haptic('select');
-  }, true);
+  const TICK =
+    '.ptabs button, .pseg button, .seg button, .lens, .stab, .ab-nav button, [role=tab], [role=switch], .switch, .shelf, .int, .set-models button, .pz-chip';
+  addEventListener(
+    'click',
+    (e) => {
+      const b = e.target.closest?.(TICK);
+      if (!b || b.disabled) return;
+      // (a switch ticks both ways; a tab or segment only when it changes)
+      if (
+        b.matches('[role=switch], .switch') ||
+        (b.getAttribute('aria-selected') !== 'true' && !b.classList.contains('on'))
+      )
+        haptic('select');
+    },
+    true,
+  );
   // a tap on the status bar (the app passes it on): what you're looking at goes back to its top, as anywhere on an iPhone
   window.__bentoTop = () => {
-    const top = document.querySelector('.hold-menu') ? null : document.querySelector('.settings, .drawer, .cv-full') || document.getElementById('content');
+    const top = document.querySelector('.hold-menu')
+      ? null
+      : document.querySelector('.settings, .drawer, .cv-full') ||
+        document.getElementById('content');
     if (!top) return;
-    const shown = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.right > 0 && r.left < innerWidth && getComputedStyle(el).visibility !== 'hidden'; };
-    [top, ...top.querySelectorAll('*')].filter((el) => el.scrollTop > 0 && shown(el)).forEach((el) => el.scrollTo({ top: 0, behavior: reduced() ? 'auto' : 'smooth' }));
+    const shown = (el) => {
+      const r = el.getBoundingClientRect();
+      return (
+        r.width > 0 &&
+        r.right > 0 &&
+        r.left < innerWidth &&
+        getComputedStyle(el).visibility !== 'hidden'
+      );
+    };
+    [top, ...top.querySelectorAll('*')]
+      .filter((el) => el.scrollTop > 0 && shown(el))
+      .forEach((el) => el.scrollTo({ top: 0, behavior: reduced() ? 'auto' : 'smooth' }));
   };
   // and a firmer tap for sending something off: a question, a repo to take apart
-  addEventListener('click', (e) => { const b = e.target.closest?.('.send, .ask-go'); if (b && !b.disabled) haptic('light'); }, true);
+  addEventListener(
+    'click',
+    (e) => {
+      const b = e.target.closest?.('.send, .ask-go');
+      if (b && !b.disabled) haptic('light');
+    },
+    true,
+  );
 }
-const OUT = 'cubic-bezier(.4, 0, .9, .6)', SPRING = 'cubic-bezier(.2, .9, .3, 1)';
+const OUT = 'cubic-bezier(.4, 0, .9, .6)',
+  SPRING = 'cubic-bezier(.2, .9, .3, 1)';
 
 // ---------------------------------------------------------------- springs
 // A real spring, the kind an iPhone moves things with (SwiftUI's .spring(response:, dampingFraction:)): its curve,
 // written out as a CSS linear() easing, and how long it takes to come to rest.
-const LINEAR = typeof CSS !== 'undefined' && CSS.supports?.('transition-timing-function', 'linear(0, 1)');
+const LINEAR =
+  typeof CSS !== 'undefined' && CSS.supports?.('transition-timing-function', 'linear(0, 1)');
 const springs = new Map();
 export function spring(response = 0.4, damping = 0.86) {
-  const k = `${response}/${damping}`; if (springs.has(k)) return springs.get(k);
-  const w = (2 * Math.PI) / response, z = Math.min(damping, 0.999), wd = w * Math.sqrt(1 - z * z);
-  const x = (t) => 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + ((z * w) / wd) * Math.sin(wd * t));
+  const k = `${response}/${damping}`;
+  if (springs.has(k)) return springs.get(k);
+  const w = (2 * Math.PI) / response,
+    z = Math.min(damping, 0.999),
+    wd = w * Math.sqrt(1 - z * z);
+  const x = (t) =>
+    1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + ((z * w) / wd) * Math.sin(wd * t));
   const T = Math.log(1000) / (z * w); // within a thousandth of where it's going
-  const pts = []; for (let i = 0; i <= 40; i++) pts.push(i === 40 ? 1 : +x((T * i) / 40).toFixed(4));
+  const pts = [];
+  for (let i = 0; i <= 40; i++) pts.push(i === 40 ? 1 : +x((T * i) / 40).toFixed(4));
   const s = { easing: LINEAR ? `linear(${pts.join(', ')})` : SPRING, ms: Math.round(T * 1000) };
-  springs.set(k, s); return s;
+  springs.set(k, s);
+  return s;
 }
 
 // ---------------------------------------------------------------- a switch's thumb slides to what you picked
 // (Lesson | Code, Puzzles | Playgrounds, Code | Both | Plain, Output | Steps | Growth…). The page only moves its
 // "on" look from one button to the next; a stand-in thumb glides between them while it does.
-const GLIDE = [['.pseg', 'button'], ['.seg', 'button'], ['.lenses', '.lens:not(.twin)'], ['.stage-tabs', '.stab:not(.predict)']];
+const GLIDE = [
+  ['.pseg', 'button'],
+  ['.seg', 'button'],
+  ['.lenses', '.lens:not(.twin)'],
+  ['.stage-tabs', '.stab:not(.predict)'],
+];
 function glide(e) {
-  const b = e.target.closest?.('button'); const box = b?.parentElement; if (!box || b.disabled || reduced()) return;
-  const g = GLIDE.find(([c, it]) => box.matches(c) && b.matches(it)); if (!g) return;
+  const b = e.target.closest?.('button');
+  const box = b?.parentElement;
+  if (!box || b.disabled || reduced()) return;
+  const g = GLIDE.find(([c, it]) => box.matches(c) && b.matches(it));
+  if (!g) return;
   const items = [...box.children].filter((x) => x.matches(g[1]));
   const from = box.__glide?.ghost || items.find((x) => x.classList.contains('on'));
   if (!from || (from === b && !box.__glide)) return;
   if (getComputedStyle(box).position === 'static') box.style.position = 'relative';
   box.style.isolation = 'isolate';
-  const bx = box.getBoundingClientRect(), fr = from.getBoundingClientRect();
+  const bx = box.getBoundingClientRect(),
+    fr = from.getBoundingClientRect();
   let ghost = box.__glide?.ghost;
   if (ghost) box.__glide.anim?.cancel();
   else {
     const cs = getComputedStyle(from);
-    ghost = document.createElement('i'); ghost.className = 'glide';
-    Object.assign(ghost.style, { background: cs.backgroundColor, boxShadow: cs.boxShadow, borderRadius: cs.borderRadius });
-    box.prepend(ghost); box.classList.add('gliding');
+    ghost = document.createElement('i');
+    ghost.className = 'glide';
+    Object.assign(ghost.style, {
+      background: cs.backgroundColor,
+      boxShadow: cs.boxShadow,
+      borderRadius: cs.borderRadius,
+    });
+    box.prepend(ghost);
+    box.classList.add('gliding');
   }
-  const at = (r) => ({ transform: `translate(${r.left - bx.left - box.clientLeft}px, ${r.top - bx.top - box.clientTop}px)`, width: `${r.width}px`, height: `${r.height}px` });
+  const at = (r) => ({
+    transform: `translate(${r.left - bx.left - box.clientLeft}px, ${r.top - bx.top - box.clientTop}px)`,
+    width: `${r.width}px`,
+    height: `${r.height}px`,
+  });
   Object.assign(ghost.style, at(fr));
   const me = (box.__glide = { ghost });
   let tries = 0;
@@ -80,17 +151,31 @@ function glide(e) {
   const go = () => {
     if (box.__glide !== me) return;
     let to = b.isConnected && b.classList.contains('on') ? b : null;
-    if (!to && ++tries < 6) { requestAnimationFrame(go); return; }
+    if (!to && ++tries < 6) {
+      requestAnimationFrame(go);
+      return;
+    }
     to = to || items.find((x) => x.classList.contains('on') && x.isConnected);
     // (the real thumb takes over where the stand-in stopped, without fading in: one frame with no transitions)
     const done = () => {
       if (box.__glide !== me) return;
-      box.classList.add('glided'); ghost.remove(); box.classList.remove('gliding'); box.__glide = null; box.style.isolation = '';
+      box.classList.add('glided');
+      ghost.remove();
+      box.classList.remove('gliding');
+      box.__glide = null;
+      box.style.isolation = '';
       requestAnimationFrame(() => requestAnimationFrame(() => box.classList.remove('glided')));
     };
-    if (!to || !box.isConnected) { done(); return; }
+    if (!to || !box.isConnected) {
+      done();
+      return;
+    }
     const s = spring(0.34, 0.8);
-    me.anim = ghost.animate([at(fr), at(to.getBoundingClientRect())], { duration: s.ms, easing: s.easing, fill: 'forwards' });
+    me.anim = ghost.animate([at(fr), at(to.getBoundingClientRect())], {
+      duration: s.ms,
+      easing: s.easing,
+      fill: 'forwards',
+    });
     me.anim.onfinish = done;
   };
   requestAnimationFrame(go);
@@ -98,86 +183,211 @@ function glide(e) {
 
 // ---------------------------------------------------------------- press and hold: a menu, as on any iPhone list
 // The row lifts out of a blurred page and its actions open under it. Today: Recent (open it, or take it off the list).
-const HOLD = [{ sel: '.side .rl', items: (row) => [
-  { label: t('Open'), icon: 'M5 12h14M13 6l6 6-6 6', run: () => row.querySelector('.rl-main')?.click() },
-  { label: t('Remove from Recent'), icon: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13', danger: true, run: () => row.querySelector('.rl-x')?.click() },
-] }];
+const HOLD = [
+  {
+    sel: '.side .rl',
+    items: (row) => [
+      {
+        label: t('Open'),
+        icon: 'M5 12h14M13 6l6 6-6 6',
+        run: () => row.querySelector('.rl-main')?.click(),
+      },
+      {
+        label: t('Remove from Recent'),
+        icon: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
+        danger: true,
+        run: () => row.querySelector('.rl-x')?.click(),
+      },
+    ],
+  },
+];
 // a copy of the row that looks the same anywhere on the page (its styles come from where it sits, so they go with it)
-const LOOK = ['display', 'flex-direction', 'align-items', 'justify-content', 'gap', 'flex', 'padding', 'width', 'height', 'min-width', 'min-height',
-  'font-family', 'font-size', 'font-weight', 'letter-spacing', 'line-height', 'color', 'background-color', 'border-radius', 'overflow',
-  'white-space', 'text-overflow', 'box-shadow', 'opacity', 'object-fit', 'stroke', 'fill'];
+const LOOK = [
+  'display',
+  'flex-direction',
+  'align-items',
+  'justify-content',
+  'gap',
+  'flex',
+  'padding',
+  'width',
+  'height',
+  'min-width',
+  'min-height',
+  'font-family',
+  'font-size',
+  'font-weight',
+  'letter-spacing',
+  'line-height',
+  'color',
+  'background-color',
+  'border-radius',
+  'overflow',
+  'white-space',
+  'text-overflow',
+  'box-shadow',
+  'opacity',
+  'object-fit',
+  'stroke',
+  'fill',
+];
 function lookalike(el) {
   const c = el.cloneNode(true);
   const walk = (a, b) => {
     if (!(a instanceof Element)) return;
-    const cs = getComputedStyle(a); for (const k of LOOK) b.style.setProperty(k, cs.getPropertyValue(k));
+    const cs = getComputedStyle(a);
+    for (const k of LOOK) b.style.setProperty(k, cs.getPropertyValue(k));
     [...a.children].forEach((x, i) => walk(x, b.children[i]));
   };
-  walk(el, c); return c;
+  walk(el, c);
+  return c;
 }
 function holdMenu(row, spec, done) {
   haptic('light');
   const r = row.getBoundingClientRect();
-  const veil = document.createElement('div'); veil.className = 'hold-veil';
-  const lift = lookalike(row); lift.classList.add('hold-lift'); lift.removeAttribute('id'); lift.setAttribute('aria-hidden', 'true');
+  const veil = document.createElement('div');
+  veil.className = 'hold-veil';
+  const lift = lookalike(row);
+  lift.classList.add('hold-lift');
+  lift.removeAttribute('id');
+  lift.setAttribute('aria-hidden', 'true');
   lift.querySelectorAll('[id]').forEach((x) => x.removeAttribute('id'));
-  Object.assign(lift.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` });
-  const menu = document.createElement('div'); menu.className = 'hold-menu'; menu.setAttribute('role', 'menu');
+  Object.assign(lift.style, {
+    left: `${r.left}px`,
+    top: `${r.top}px`,
+    width: `${r.width}px`,
+    height: `${r.height}px`,
+  });
+  const menu = document.createElement('div');
+  menu.className = 'hold-menu';
+  menu.setAttribute('role', 'menu');
   const close = (then) => {
-    veil.classList.add('out'); lift.classList.add('out'); menu.classList.add('out');
-    setTimeout(() => { veil.remove(); lift.remove(); menu.remove(); row.style.visibility = ''; done(); then?.(); }, 180);
+    veil.classList.add('out');
+    lift.classList.add('out');
+    menu.classList.add('out');
+    setTimeout(() => {
+      veil.remove();
+      lift.remove();
+      menu.remove();
+      row.style.visibility = '';
+      done();
+      then?.();
+    }, 180);
   };
   for (const it of spec.items(row)) {
-    const b = document.createElement('button'); b.setAttribute('role', 'menuitem'); if (it.danger) b.className = 'danger';
+    const b = document.createElement('button');
+    b.setAttribute('role', 'menuitem');
+    if (it.danger) b.className = 'danger';
     b.innerHTML = `<span></span><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path d="${it.icon}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
     b.firstChild.textContent = it.label;
-    b.onclick = (e) => { e.stopPropagation(); if (it.danger) haptic('warn'); close(it.run); };
+    b.onclick = (e) => {
+      e.stopPropagation();
+      if (it.danger) haptic('warn');
+      close(it.run);
+    };
     menu.append(b);
   }
   veil.onclick = () => close();
-  menu.onkeydown = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(() => row.querySelector('button')?.focus()); } };
+  menu.onkeydown = (e) => {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      close(() => row.querySelector('button')?.focus());
+    }
+  };
   document.body.append(veil, lift, menu);
   // under the row if it fits, over it if not, never off the screen
-  const mh = menu.offsetHeight, below = r.bottom + 10 + mh < innerHeight - 20;
-  Object.assign(menu.style, { left: `${Math.min(Math.max(12, r.left + 8), innerWidth - menu.offsetWidth - 12)}px`, top: `${below ? r.bottom + 10 : Math.max(20, r.top - 10 - mh)}px`, transformOrigin: below ? 'top left' : 'bottom left' });
+  const mh = menu.offsetHeight,
+    below = r.bottom + 10 + mh < innerHeight - 20;
+  Object.assign(menu.style, {
+    left: `${Math.min(Math.max(12, r.left + 8), innerWidth - menu.offsetWidth - 12)}px`,
+    top: `${below ? r.bottom + 10 : Math.max(20, r.top - 10 - mh)}px`,
+    transformOrigin: below ? 'top left' : 'bottom left',
+  });
   row.style.visibility = 'hidden';
   const s = spring(0.32, 0.72);
-  lift.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.035)' }], { duration: s.ms, easing: s.easing, fill: 'forwards' });
+  lift.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.035)' }], {
+    duration: s.ms,
+    easing: s.easing,
+    fill: 'forwards',
+  });
   menu.querySelector('button')?.focus({ preventScroll: true });
 }
 
 // the sheets that slide up over a page, and how each is put away (the same way Esc or its ✕ does)
-const esc = (el) => el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+const esc = (el) =>
+  el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 const SHEETS = [
   { sel: '.drawer', veil: '.drawer-veil', x: '.dr-x', close: esc },
   { sel: '.settings', veil: '.pal-veil', x: '.set-h .ib', close: esc },
   { sel: '.pal', veil: '.pal-veil', x: '.pal-cancel', close: esc },
   // a conversation about a project: down makes it small (its ✕ clears it)
-  { sel: '.aq-dock', x: '.aq-dock-h .ib', close: (el) => el.querySelector('.aq-dock-h .ib')?.click() },
+  {
+    sel: '.aq-dock',
+    x: '.aq-dock-h .ib',
+    close: (el) => el.querySelector('.aq-dock-h .ib')?.click(),
+  },
 ];
-const veilOf = (s, el) => (s.veil ? el.closest(s.veil) || el.parentElement?.querySelector(`:scope > ${s.veil}`) || document.querySelector(s.veil) : null);
+const veilOf = (s, el) =>
+  s.veil
+    ? el.closest(s.veil) ||
+      el.parentElement?.querySelector(`:scope > ${s.veil}`) ||
+      document.querySelector(s.veil)
+    : null;
 
-const set = (el, st) => { if (el) Object.assign(el.style, st); };
-const clear = (el, ...props) => { if (el) props.forEach((p) => { el.style[p] = ''; }); };
+const set = (el, st) => {
+  if (el) Object.assign(el.style, st);
+};
+const clear = (el, ...props) => {
+  if (el)
+    props.forEach((p) => {
+      el.style[p] = '';
+    });
+};
 
 /** slide a sheet off the bottom of the screen, then put it away for real */
 function slideAway(el, s, after) {
   const veil = veilOf(s, el);
-  if (reduced()) { after(); return; }
+  if (reduced()) {
+    after();
+    return;
+  }
   const h = el.getBoundingClientRect().height;
-  set(el, { animation: 'none', transition: `transform .24s ${OUT}`, transform: `translateY(${h + 24}px)` });
-  if (veil) set(veil, veil.contains(el) ? { transition: 'background-color .24s', backgroundColor: 'transparent' } : { transition: 'opacity .24s', opacity: '0' });
+  set(el, {
+    animation: 'none',
+    transition: `transform .24s ${OUT}`,
+    transform: `translateY(${h + 24}px)`,
+  });
+  if (veil)
+    set(
+      veil,
+      veil.contains(el)
+        ? { transition: 'background-color .24s', backgroundColor: 'transparent' }
+        : { transition: 'opacity .24s', opacity: '0' },
+    );
   setTimeout(() => {
     after();
     // if it didn't go away after all, bring it back rather than leave it hidden off-screen
-    setTimeout(() => { if (el.isConnected) { clear(el, 'transform', 'transition', 'animation'); clear(veil, 'opacity', 'backgroundColor', 'transition'); } }, 400);
+    setTimeout(() => {
+      if (el.isConnected) {
+        clear(el, 'transform', 'transition', 'animation');
+        clear(veil, 'opacity', 'backgroundColor', 'transition');
+      }
+    }, 400);
   }, 220);
 }
 const snapBack = (el, veil) => {
   const sp = spring(0.38, 0.8);
   set(el, { transition: `transform ${sp.ms}ms ${sp.easing}`, transform: '' });
-  if (veil) set(veil, { transition: 'opacity .32s, background-color .32s', opacity: '', backgroundColor: '' });
-  setTimeout(() => { clear(el, 'transition'); clear(veil, 'transition'); }, 340);
+  if (veil)
+    set(veil, {
+      transition: 'opacity .32s, background-color .32s',
+      opacity: '',
+      backgroundColor: '',
+    });
+  setTimeout(() => {
+    clear(el, 'transition');
+    clear(veil, 'transition');
+  }, 340);
 };
 
 // what can scroll between the finger and the sheet: a sheet only moves once that's at its top
@@ -196,68 +406,149 @@ const PRESSABLE = 'button, a[href], [role=button], [role=tab], [role=option], la
  * swipe: the edge swipes are on (the Home Screen app; Safari's own swipe does Back elsewhere).
  */
 export function useTouch(on, o) {
-  const ref = useRef(o); ref.current = o;
+  const ref = useRef(o);
+  ref.current = o;
   useEffect(() => {
     if (!on) return undefined;
     let g = null; // the gesture in progress
     const W = () => innerWidth;
 
     // ---------------------------------------------------------------- a button answers as soon as you touch it
-    let pressed = null, pressT = 0, p0 = [0, 0];
+    let pressed = null,
+      pressT = 0,
+      p0 = [0, 0];
     // a row across the screen lights up behind its words (as in an iPhone list); a big card gives a little; the rest dim
     const press = (el) => {
-      el.classList.remove('unpress'); el.classList.add('pressed'); const r = el.getBoundingClientRect();
+      el.classList.remove('unpress');
+      el.classList.add('pressed');
+      const r = el.getBoundingClientRect();
       const row = r.width > innerWidth * 0.7 && r.height < 130;
-      el.classList.toggle('prow', row); el.classList.toggle('big', !row && r.width * r.height > 9000 && r.height > 54);
+      el.classList.toggle('prow', row);
+      el.classList.toggle('big', !row && r.width * r.height > 9000 && r.height > 54);
     };
     const unpress = () => {
-      clearTimeout(pressT); const el = pressed; pressed = null; if (!el) return;
-      const release = () => { el.classList.remove('pressed'); el.classList.add('unpress'); setTimeout(() => el.classList.remove('unpress', 'big', 'prow'), 520); };
-      if (el.classList.contains('pressed')) release(); else { press(el); requestAnimationFrame(() => requestAnimationFrame(release)); } // a quick tap still shows
+      clearTimeout(pressT);
+      const el = pressed;
+      pressed = null;
+      if (!el) return;
+      const release = () => {
+        el.classList.remove('pressed');
+        el.classList.add('unpress');
+        setTimeout(() => el.classList.remove('unpress', 'big', 'prow'), 520);
+      };
+      if (el.classList.contains('pressed')) release();
+      else {
+        press(el);
+        requestAnimationFrame(() => requestAnimationFrame(release));
+      } // a quick tap still shows
     };
-    const unpressNow = () => { clearTimeout(pressT); if (pressed) pressed.classList.remove('pressed', 'big', 'prow'); pressed = null; };
+    const unpressNow = () => {
+      clearTimeout(pressT);
+      if (pressed) pressed.classList.remove('pressed', 'big', 'prow');
+      pressed = null;
+    };
 
     // press and hold (a menu): the finger stays put for half a second
-    let holdT = 0, holding = false, eatUntil = 0;
-    const holdOff = () => { clearTimeout(holdT); holdT = 0; };
+    let holdT = 0,
+      holding = false,
+      eatUntil = 0;
+    const holdOff = () => {
+      clearTimeout(holdT);
+      holdT = 0;
+    };
 
     const start = (e) => {
       holdOff();
-      if (e.touches.length !== 1) { g = null; return; }
-      const t = e.touches[0]; const tgt = e.target instanceof Element ? e.target : e.target?.parentElement;
+      if (e.touches.length !== 1) {
+        g = null;
+        return;
+      }
+      const t = e.touches[0];
+      const tgt = e.target instanceof Element ? e.target : e.target?.parentElement;
       if (!tgt) return;
-      const x = ref.current; p0 = [t.clientX, t.clientY];
+      const x = ref.current;
+      p0 = [t.clientX, t.clientY];
       // the press
       const b = tgt.closest(PRESSABLE);
-      if (b && !b.disabled && !b.closest('.cm-editor, .city') && b.getAttribute('aria-disabled') !== 'true') { pressed = b; pressT = setTimeout(() => pressed === b && press(b), 60); }
+      if (
+        b &&
+        !b.disabled &&
+        !b.closest('.cm-editor, .city') &&
+        b.getAttribute('aria-disabled') !== 'true'
+      ) {
+        pressed = b;
+        pressT = setTimeout(() => pressed === b && press(b), 60);
+      }
       for (const h of HOLD) {
-        const row = tgt.closest(h.sel); if (!row || tgt.closest('.rl-x') || document.querySelector('.hold-menu')) continue;
-        holdT = setTimeout(() => { holdT = 0; unpressNow(); g = null; holding = true; holdMenu(row, h, () => {}); }, 480);
+        const row = tgt.closest(h.sel);
+        if (!row || tgt.closest('.rl-x') || document.querySelector('.hold-menu')) continue;
+        holdT = setTimeout(() => {
+          holdT = 0;
+          unpressNow();
+          g = null;
+          holding = true;
+          holdMenu(row, h, () => {});
+        }, 480);
       }
       g = { x0: t.clientX, y0: t.clientY, trail: [[e.timeStamp, 0, 0]], mode: null, lock: false };
       if (!x.phone) return;
       for (const s of SHEETS) {
         const el = tgt.closest(s.sel);
-        if (el) { if (atTop(tgt, el) && !tgt.closest('input, textarea, [contenteditable]')) Object.assign(g, { mode: 'sheet', el, s, veil: veilOf(s, el) }); return; }
+        if (el) {
+          if (atTop(tgt, el) && !tgt.closest('input, textarea, [contenteditable]'))
+            Object.assign(g, { mode: 'sheet', el, s, veil: veilOf(s, el) });
+          return;
+        }
       }
       const side = document.querySelector('.app.phone .side');
-      if (x.drawerOpen()) { if (side && (side.contains(tgt) || tgt.closest('.pveil'))) Object.assign(g, { mode: 'drawer', el: side, veil: document.querySelector('.pveil') }); return; }
-      if (!x.swipe || t.clientX > 22 || document.querySelector('.drawer, .pal-veil, .aq-dock, .coach-tip')) return;
-      if (x.canBack()) Object.assign(g, { mode: 'back', el: document.getElementById('content'), bar: document.querySelector('.pbar-mid') });
-      else if (x.atRoot() && side) Object.assign(g, { mode: 'open', el: side, veil: document.querySelector('.pveil') });
+      if (x.drawerOpen()) {
+        if (side && (side.contains(tgt) || tgt.closest('.pveil')))
+          Object.assign(g, { mode: 'drawer', el: side, veil: document.querySelector('.pveil') });
+        return;
+      }
+      if (
+        !x.swipe ||
+        t.clientX > 22 ||
+        document.querySelector('.drawer, .pal-veil, .aq-dock, .coach-tip')
+      )
+        return;
+      if (x.canBack())
+        Object.assign(g, {
+          mode: 'back',
+          el: document.getElementById('content'),
+          bar: document.querySelector('.pbar-mid'),
+        });
+      else if (x.atRoot() && side)
+        Object.assign(g, { mode: 'open', el: side, veil: document.querySelector('.pveil') });
     };
 
     const move = (e) => {
       const t = e.touches[0];
-      if (Math.abs(t.clientX - p0[0]) > 8 || Math.abs(t.clientY - p0[1]) > 8) { holdOff(); if (pressed) unpressNow(); }
-      if (holding) { if (e.cancelable) e.preventDefault(); return; }
+      if (Math.abs(t.clientX - p0[0]) > 8 || Math.abs(t.clientY - p0[1]) > 8) {
+        holdOff();
+        if (pressed) unpressNow();
+      }
+      if (holding) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
       if (!g?.mode) return;
-      const dx = t.clientX - g.x0, dy = t.clientY - g.y0;
+      const dx = t.clientX - g.x0,
+        dy = t.clientY - g.y0;
       if (!g.lock) {
         // decided on the first move: once Safari starts scrolling, it can't be taken back
-        const ok = g.mode === 'sheet' ? dy > 0 && dy >= Math.abs(dx) : g.mode === 'drawer' ? dx < 0 && -dx > Math.abs(dy) : dx > 0 && dx > Math.abs(dy);
-        if (!ok || !e.cancelable) { g = null; return; }
-        g.lock = true; unpressNow();
+        const ok =
+          g.mode === 'sheet'
+            ? dy > 0 && dy >= Math.abs(dx)
+            : g.mode === 'drawer'
+              ? dx < 0 && -dx > Math.abs(dy)
+              : dx > 0 && dx > Math.abs(dy);
+        if (!ok || !e.cancelable) {
+          g = null;
+          return;
+        }
+        g.lock = true;
+        unpressNow();
         set(g.el, { transition: 'none', animation: 'none' });
         if (g.veil) set(g.veil, { transition: 'none', animation: 'none' });
         if (g.mode === 'back') set(g.el, { boxShadow: '-10px 0 30px rgba(0, 0, 0, .14)' });
@@ -265,78 +556,145 @@ export function useTouch(on, o) {
         if (g.mode === 'open' && g.veil) set(g.veil, { display: 'block', pointerEvents: 'none' });
       }
       e.preventDefault();
-      g.trail.push([e.timeStamp, dx, dy]); if (g.trail.length > 6) g.trail.shift();
+      g.trail.push([e.timeStamp, dx, dy]);
+      if (g.trail.length > 6) g.trail.shift();
       const w = W();
       if (g.mode === 'sheet') {
-        const y = Math.max(0, dy); g.el.style.transform = `translateY(${y}px)`;
-        if (g.veil) g.veil.contains(g.el) ? (g.veil.style.backgroundColor = `rgba(30, 24, 18, ${0.16 * Math.max(0, 1 - y / 400)})`) : (g.veil.style.opacity = String(Math.max(0, 1 - y / 500)));
+        const y = Math.max(0, dy);
+        g.el.style.transform = `translateY(${y}px)`;
+        if (g.veil)
+          g.veil.contains(g.el)
+            ? (g.veil.style.backgroundColor = `rgba(30, 24, 18, ${0.16 * Math.max(0, 1 - y / 400)})`)
+            : (g.veil.style.opacity = String(Math.max(0, 1 - y / 500)));
       } else if (g.mode === 'drawer') {
-        const sw = g.el.offsetWidth; const x = Math.min(0, dx); g.el.style.transform = `translateX(${x}px)`; if (g.veil) g.veil.style.opacity = String(1 + x / sw);
+        const sw = g.el.offsetWidth;
+        const x = Math.min(0, dx);
+        g.el.style.transform = `translateX(${x}px)`;
+        if (g.veil) g.veil.style.opacity = String(1 + x / sw);
       } else if (g.mode === 'open') {
-        const sw = g.el.offsetWidth; const x = Math.min(0, -sw + dx); g.el.style.transform = `translateX(${x}px)`; if (g.veil) g.veil.style.opacity = String(Math.max(0, 1 + x / sw));
+        const sw = g.el.offsetWidth;
+        const x = Math.min(0, -sw + dx);
+        g.el.style.transform = `translateX(${x}px)`;
+        if (g.veil) g.veil.style.opacity = String(Math.max(0, 1 + x / sw));
       } else {
-        const x = Math.max(0, dx); g.el.style.transform = `translateX(${x}px)`; if (g.bar) g.bar.style.opacity = String(Math.max(0, 1 - (2 * x) / w));
+        const x = Math.max(0, dx);
+        g.el.style.transform = `translateX(${x}px)`;
+        if (g.bar) g.bar.style.opacity = String(Math.max(0, 1 - (2 * x) / w));
       }
     };
 
     const end = () => {
       holdOff();
       // (the click a lifted finger may still send lands on the shade: it isn't a tap to close the menu)
-      if (holding) { holding = false; eatUntil = Date.now() + 250; }
+      if (holding) {
+        holding = false;
+        eatUntil = Date.now() + 250;
+      }
       unpress();
-      const k = g; g = null;
+      const k = g;
+      g = null;
       if (!k?.lock) return;
-      const [a, b] = [k.trail[0], k.trail[k.trail.length - 1]]; const dt = Math.max(1, b[0] - a[0]);
-      const vx = (b[1] - a[1]) / dt, vy = (b[2] - a[2]) / dt; const [, dx, dy] = b; const w = W(); const x = ref.current;
+      const [a, b] = [k.trail[0], k.trail[k.trail.length - 1]];
+      const dt = Math.max(1, b[0] - a[0]);
+      const vx = (b[1] - a[1]) / dt,
+        vy = (b[2] - a[2]) / dt;
+      const [, dx, dy] = b;
+      const w = W();
+      const x = ref.current;
       if (k.mode === 'sheet') {
         const h = k.el.getBoundingClientRect().height;
-        if (dy > Math.min(150, h * 0.3) || (vy > 0.5 && dy > 24)) slideAway(k.el, k.s, () => k.s.close(k.el)); else snapBack(k.el, k.veil);
+        if (dy > Math.min(150, h * 0.3) || (vy > 0.5 && dy > 24))
+          slideAway(k.el, k.s, () => k.s.close(k.el));
+        else snapBack(k.el, k.veil);
       } else if (k.mode === 'drawer' || k.mode === 'open') {
-        const sw = k.el.offsetWidth; const closing = k.mode === 'drawer' ? -dx > sw * 0.3 || vx < -0.4 : !(dx > sw * 0.35 || vx > 0.4);
-        set(k.el, { transition: `transform .26s ${closing ? OUT : SPRING}`, transform: closing ? 'translateX(-104%)' : 'translateX(0)' });
+        const sw = k.el.offsetWidth;
+        const closing =
+          k.mode === 'drawer' ? -dx > sw * 0.3 || vx < -0.4 : !(dx > sw * 0.35 || vx > 0.4);
+        set(k.el, {
+          transition: `transform .26s ${closing ? OUT : SPRING}`,
+          transform: closing ? 'translateX(-104%)' : 'translateX(0)',
+        });
         if (k.veil) set(k.veil, { transition: 'opacity .26s', opacity: closing ? '0' : '1' });
         setTimeout(() => {
-          if (k.mode === 'drawer' && closing) x.closeDrawer(); if (k.mode === 'open' && !closing) x.openDrawer();
-          requestAnimationFrame(() => { clear(k.el, 'transition', 'transform', 'visibility', 'animation'); clear(k.veil, 'transition', 'opacity', 'display', 'pointerEvents', 'animation'); });
+          if (k.mode === 'drawer' && closing) x.closeDrawer();
+          if (k.mode === 'open' && !closing) x.openDrawer();
+          requestAnimationFrame(() => {
+            clear(k.el, 'transition', 'transform', 'visibility', 'animation');
+            clear(k.veil, 'transition', 'opacity', 'display', 'pointerEvents', 'animation');
+          });
         }, 250);
       } else {
         const go = dx > w * 0.33 || (vx > 0.35 && dx > 30);
-        set(k.el, { transition: `transform ${go ? '.2s' : '.3s'} ${go ? OUT : SPRING}`, transform: go ? `translateX(${w}px)` : '' });
+        set(k.el, {
+          transition: `transform ${go ? '.2s' : '.3s'} ${go ? OUT : SPRING}`,
+          transform: go ? `translateX(${w}px)` : '',
+        });
         if (k.bar) set(k.bar, { transition: 'opacity .2s', opacity: go ? '0' : '' });
-        setTimeout(() => {
-          if (go) { set(k.el, { visibility: 'hidden' }); x.back(); setTimeout(() => settle(k), 700); } // the next page clears this (enter, Phone.jsx); this is in case it never comes
-          else settle(k);
-        }, go ? 190 : 300);
+        setTimeout(
+          () => {
+            if (go) {
+              set(k.el, { visibility: 'hidden' });
+              x.back();
+              setTimeout(() => settle(k), 700);
+            } // the next page clears this (enter, Phone.jsx); this is in case it never comes
+            else settle(k);
+          },
+          go ? 190 : 300,
+        );
       }
     };
-    const settle = (k) => { clear(k.el, 'transition', 'transform', 'boxShadow', 'visibility', 'animation'); clear(k.bar, 'transition', 'opacity'); };
+    const settle = (k) => {
+      clear(k.el, 'transition', 'transform', 'boxShadow', 'visibility', 'animation');
+      clear(k.bar, 'transition', 'opacity');
+    };
 
     // ---------------------------------------------------------------- ✕ and the shade behind a sheet: it slides away first
     // (only a finger's own tap: the click that follows the slide, or one Bento makes itself, goes straight through)
     const tapAway = (e) => {
       const tgt = e.target instanceof Element ? e.target : null;
       // the finger that held a row down for its menu lifts: that's not a tap on the row
-      if (e.type === 'click' && Date.now() < eatUntil && !tgt?.closest('.hold-menu')) { eatUntil = 0; e.preventDefault(); e.stopPropagation(); return; }
+      if (e.type === 'click' && Date.now() < eatUntil && !tgt?.closest('.hold-menu')) {
+        eatUntil = 0;
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       if (!tgt || !e.isTrusted || !ref.current.phone) return;
       for (const s of SHEETS) {
-        const btn = s.x && tgt.closest(s.x); const el = btn?.closest(s.sel);
+        const btn = s.x && tgt.closest(s.x);
+        const el = btn?.closest(s.sel);
         if (btn && el) {
-          if (e.type !== 'click' || (s.sel === '.aq-dock' && btn !== el.querySelector('.aq-dock-h .ib'))) return; // ✕ on a conversation clears it: no slide
-          e.preventDefault(); e.stopPropagation(); slideAway(el, s, () => btn.click()); return;
+          if (
+            e.type !== 'click' ||
+            (s.sel === '.aq-dock' && btn !== el.querySelector('.aq-dock-h .ib'))
+          )
+            return; // ✕ on a conversation clears it: no slide
+          e.preventDefault();
+          e.stopPropagation();
+          slideAway(el, s, () => btn.click());
+          return;
         }
         // the shade itself (not the sheet on it)
         if (s.veil && tgt.matches(s.veil)) {
-          const sheet = tgt.querySelector(s.sel) || (s.sel === '.drawer' && document.querySelector('.drawer'));
+          const sheet =
+            tgt.querySelector(s.sel) || (s.sel === '.drawer' && document.querySelector('.drawer'));
           if (!sheet || (e.type === 'mousedown') !== (s.veil === '.pal-veil')) continue;
-          e.preventDefault(); e.stopPropagation(); slideAway(sheet, s, () => s.close(sheet)); return;
+          e.preventDefault();
+          e.stopPropagation();
+          slideAway(sheet, s, () => s.close(sheet));
+          return;
         }
       }
     };
 
     // ---------------------------------------------------------------- the keyboard: the app fits in what's left above it
     // (Safari would slide the whole page up instead, top bar and all, to show the box you're typing in)
-    const vv = window.visualViewport; const root = document.documentElement;
-    const typingIn = () => document.activeElement?.matches?.('input:not([type=checkbox], [type=radio], [type=range]), textarea, [contenteditable=true]');
+    const vv = window.visualViewport;
+    const root = document.documentElement;
+    const typingIn = () =>
+      document.activeElement?.matches?.(
+        'input:not([type=checkbox], [type=radio], [type=range]), textarea, [contenteditable=true]',
+      );
     // (iOS 26 shrinks innerHeight with the keyboard, so it's measured against the height with no keyboard up)
     let full = vv ? vv.height : innerHeight;
     const fit = () => {
@@ -345,30 +703,56 @@ export function useTouch(on, o) {
       if (!on && !root.classList.contains('kb')) full = vv.height;
       if (on && full - vv.height > 120) {
         // (Safari may also pan what you see down the page a little, which nothing can undo: the app moves to meet it)
-        root.style.setProperty('--kb-h', `${Math.round(vv.height)}px`); root.style.setProperty('--kb-top', `${Math.max(0, Math.round(vv.offsetTop - scrollY))}px`);
-        if (!root.classList.contains('kb')) { root.classList.add('kb'); requestAnimationFrame(() => document.activeElement?.scrollIntoView?.({ block: 'nearest' })); }
+        root.style.setProperty('--kb-h', `${Math.round(vv.height)}px`);
+        root.style.setProperty('--kb-top', `${Math.max(0, Math.round(vv.offsetTop - scrollY))}px`);
+        if (!root.classList.contains('kb')) {
+          root.classList.add('kb');
+          requestAnimationFrame(() =>
+            document.activeElement?.scrollIntoView?.({ block: 'nearest' }),
+          );
+        }
         if (scrollY || vv.offsetTop) scrollTo(0, 0);
-      } else if (root.classList.contains('kb')) { root.classList.remove('kb'); root.style.removeProperty('--kb-h'); root.style.removeProperty('--kb-top'); if (scrollY) scrollTo(0, 0); full = vv.height; }
+      } else if (root.classList.contains('kb')) {
+        root.classList.remove('kb');
+        root.style.removeProperty('--kb-h');
+        root.style.removeProperty('--kb-top');
+        if (scrollY) scrollTo(0, 0);
+        full = vv.height;
+      }
     };
     // Safari scrolls the page to show the box you tapped; the app already shows it, so the page stays put
-    const stay = () => { if (root.classList.contains('kb') && scrollY) scrollTo(0, 0); };
+    const stay = () => {
+      if (root.classList.contains('kb') && scrollY) scrollTo(0, 0);
+    };
     addEventListener('scroll', stay, { passive: true });
     const out = () => setTimeout(fit, 60);
-    vv?.addEventListener('resize', fit); vv?.addEventListener('scroll', fit); document.addEventListener('focusout', out);
+    vv?.addEventListener('resize', fit);
+    vv?.addEventListener('scroll', fit);
+    document.addEventListener('focusout', out);
 
     document.addEventListener('touchstart', start, { passive: true });
     document.addEventListener('touchmove', move, { passive: false });
-    document.addEventListener('touchend', end); document.addEventListener('touchcancel', end);
-    document.addEventListener('click', tapAway, true); document.addEventListener('mousedown', tapAway, true);
+    document.addEventListener('touchend', end);
+    document.addEventListener('touchcancel', end);
+    document.addEventListener('click', tapAway, true);
+    document.addEventListener('mousedown', tapAway, true);
     document.addEventListener('click', glide, true);
     root.style.setProperty('--spring-press', spring(0.42, 0.58).easing);
     root.style.setProperty('--spring-sheet', spring(0.5, 0.94).easing);
     return () => {
-      holdOff(); document.removeEventListener('click', glide, true);
-      vv?.removeEventListener('resize', fit); vv?.removeEventListener('scroll', fit); document.removeEventListener('focusout', out); removeEventListener('scroll', stay); root.classList.remove('kb');
-      document.removeEventListener('touchstart', start); document.removeEventListener('touchmove', move);
-      document.removeEventListener('touchend', end); document.removeEventListener('touchcancel', end);
-      document.removeEventListener('click', tapAway, true); document.removeEventListener('mousedown', tapAway, true);
+      holdOff();
+      document.removeEventListener('click', glide, true);
+      vv?.removeEventListener('resize', fit);
+      vv?.removeEventListener('scroll', fit);
+      document.removeEventListener('focusout', out);
+      removeEventListener('scroll', stay);
+      root.classList.remove('kb');
+      document.removeEventListener('touchstart', start);
+      document.removeEventListener('touchmove', move);
+      document.removeEventListener('touchend', end);
+      document.removeEventListener('touchcancel', end);
+      document.removeEventListener('click', tapAway, true);
+      document.removeEventListener('mousedown', tapAway, true);
     };
   }, [on]);
 }

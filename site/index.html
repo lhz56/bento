@@ -1,153 +1,257 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bento: take software apart</title>
-<meta name="description" content="Ask anything and get a lesson you can run. Take apart any app on GitHub. A free, open-source Mac app that teaches with the AI you already pay for.">
-<meta property="og:title" content="Bento: take software apart">
-<meta property="og:description" content="Ask anything and get a lesson you can run. Take apart any app. Free and open source, for Mac.">
-<meta property="og:image" content="https://takeitapart.app/media/social.png">
-<meta property="og:url" content="https://takeitapart.app/">
-<meta property="og:type" content="website">
-<link rel="canonical" href="https://takeitapart.app/">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
-<meta name="color-scheme" content="light dark">
-<link rel="icon" href="img/logo.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-<header class="nav">
-  <a class="brand" href="#top" aria-label="Bento, back to top"><img src="img/logo.svg" alt="" width="22" height="22">Bento</a>
-  <nav class="links" aria-label="Sections">
-    <a href="#learn">Learn</a>
-    <a href="#apart">Take apart</a>
-    <a href="#more">Features</a>
-    <a href="#open">Open source</a>
-  </nav>
-  <div class="nav-end">
-    <a class="stars" href="https://github.com/lhz56/bento" aria-label="Bento on GitHub"><img src="img/github.svg" alt="" width="16" height="16"><span data-stars></span></a>
-    <a class="btn sm" href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg" data-dl>Download</a>
-  </div>
-</header>
-
-<main id="top">
-  <section class="hero">
-    <p class="eyebrow">Free and open source · for Mac</p>
-    <h1>Take software apart.</h1>
-    <p class="sub">Ask anything and get a lesson you can run. Open any app on GitHub and see how it’s built. With the AI you already pay for.</p>
-    <div class="ctas">
-      <a class="btn" href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg" data-dl><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9s-2-.9-3.4-.9c-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.4.8c1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-4.1zM13.9 5c.7-.9 1.2-2.1 1.1-3.3-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.1.1 2.3-.6 3-1.5z"/></svg>Download for Mac</a>
-      <a class="btn ghost" href="try/">Try it in your browser</a>
-    </div>
-    <p class="fine">macOS 13+ · Apple Silicon · <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg">Intel</a> <span data-version></span></p>
-
-    <div class="window hero-win">
-      <div class="chrome" aria-hidden="true"><i></i><i></i><i></i></div>
-      <video src="media/ask.mp4" poster="media/ask.jpg" muted loop playsinline preload="metadata" aria-label="Screen recording: a question typed into Bento becomes a lesson that writes itself, runs, and explains every line in plain English"></video>
-    </div>
-  </section>
-
-  <section class="ais" aria-label="Works with the AI you already have">
-    <p>Works with the AI you already have</p>
-    <ul>
-      <li><img src="img/claude.svg" alt="">Claude</li>
-      <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.3 6.7 4.7 5.3 11.4 12l-6.7 6.7-1.4-1.4L8.6 12zM12 16.5h8.5v2H12z"/></svg>ChatGPT</li>
-      <li><img src="img/googlegemini.svg" alt="">Gemini</li>
-      <li><img src="img/githubcopilot.svg" alt="">Copilot</li>
-    </ul>
-    <p class="none">No API key. No account. No extra bill.</p>
-  </section>
-
-  <section class="feature" id="learn">
-    <div class="copy">
-      <h2>Every answer is a lesson you can run.</h2>
-      <p>Ask how Uber finds a driver or why hash maps feel instant. Bento writes the lesson, runs the real idea, and explains each line in plain words.</p>
-    </div>
-    <div class="window">
-      <div class="chrome" aria-hidden="true"><i></i><i></i><i></i></div>
-      <video src="media/idea.mp4" poster="media/idea.jpg" muted loop playsinline preload="none" aria-label="Screen recording: Discord's hash ring as a lesson. It runs, a phrase is tapped to show its code, then the plain-words view"></video>
-    </div>
-  </section>
-
-  <section class="feature" id="apart">
-    <div class="copy">
-      <h2>Paste a link. Get the blueprint.</h2>
-      <p>Any repo on GitHub becomes one picture of the whole app. Click a part, follow a request through it, see every tool it uses and why.</p>
-    </div>
-    <div class="window">
-      <div class="chrome" aria-hidden="true"><i></i><i></i><i></i><span class="url">github.com/pingdotgg/t3code</span></div>
-      <video src="media/atlas.mp4" poster="media/atlas.jpg" muted loop playsinline preload="none" aria-label="Screen recording: a GitHub link pasted into Bento. T3 Code appears as one picture, a part is opened, a request travels through a code city, then the toolbelt"></video>
-    </div>
-  </section>
-
-  <section class="feature" id="more">
-    <div class="copy">
-      <h2>And everything else.</h2>
-    </div>
-    <div class="tabs" role="tablist" aria-label="Features">
-      <button role="tab" aria-selected="true" data-clip="practice">Puzzles</button>
-      <button role="tab" aria-selected="false" data-clip="toolbelt">Toolbelt</button>
-      <button role="tab" aria-selected="false" data-clip="hotspots">Hot spots</button>
-      <button role="tab" aria-selected="false" data-clip="files">Every file</button>
-      <button role="tab" aria-selected="false" data-clip="path">Paths</button>
-    </div>
-    <p class="tab-line" data-line>Push a puzzle to a billion and watch the answers race.</p>
-    <div class="window stage" role="tabpanel">
-      <div class="chrome" aria-hidden="true"><i></i><i></i><i></i><span class="bar"></span></div>
-      <video src="media/practice.mp4" poster="media/practice.jpg" muted playsinline preload="none" aria-label="Screen recording of the chosen feature"></video>
-    </div>
-  </section>
-
-  <section class="facts" aria-label="Private by design">
-    <div><b>On your Mac</b><span>Lessons and projects stay on your computer.</span></div>
-    <div><b>No account</b><span>Open it and start. Nothing to sign up for.</span></div>
-    <div><b>No telemetry</b><span>The app doesn’t track what you do.</span></div>
-    <div><b>Signed by Apple</b><span>Notarized, and it updates itself.</span></div>
-  </section>
-
-  <section class="open" id="open">
-    <div class="copy">
-      <h2>Free and open source.</h2>
-      <p>MIT licensed. Read it, change it, take it apart too.</p>
-      <div class="ctas left">
-        <a class="btn ghost" href="https://github.com/lhz56/bento"><img src="img/github.svg" alt="" width="15" height="15">Source</a>
-        <a class="btn ghost" href="https://github.com/lhz56/bento/blob/main/CONTRIBUTING.md">Contribute</a>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Bento: take software apart</title>
+    <meta
+      name="description"
+      content="Ask anything and get a lesson you can run. Take apart any app on GitHub. A free, open-source Mac app that teaches with the AI you already pay for."
+    />
+    <meta property="og:title" content="Bento: take software apart" />
+    <meta
+      property="og:description"
+      content="Ask anything and get a lesson you can run. Take apart any app. Free and open source, for Mac."
+    />
+    <meta property="og:image" content="https://takeitapart.app/media/social.png" />
+    <meta property="og:url" content="https://takeitapart.app/" />
+    <meta property="og:type" content="website" />
+    <link rel="canonical" href="https://takeitapart.app/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="img/logo.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="nav">
+      <a class="brand" href="#top" aria-label="Bento, back to top"
+        ><img src="img/logo.svg" alt="" width="22" height="22" />Bento</a
+      >
+      <nav class="links" aria-label="Sections">
+        <a href="#learn">Learn</a>
+        <a href="#apart">Take apart</a>
+        <a href="#more">Features</a>
+        <a href="#open">Open source</a>
+      </nav>
+      <div class="nav-end">
+        <a class="stars" href="https://github.com/lhz56/bento" aria-label="Bento on GitHub"
+          ><img src="img/github.svg" alt="" width="16" height="16" /><span data-stars></span
+        ></a>
+        <a
+          class="btn sm"
+          href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg"
+          data-dl
+          >Download</a
+        >
       </div>
-    </div>
-    <div class="code">
-      <button class="copy-btn" type="button" data-copy="git clone https://github.com/lhz56/bento && cd bento && npm install && npm run dev">Copy</button>
-<pre><code><span class="p">$</span> git clone https://github.com/lhz56/bento
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <p class="eyebrow">Free and open source · for Mac</p>
+        <h1>Take software apart.</h1>
+        <p class="sub">
+          Ask anything and get a lesson you can run. Open any app on GitHub and see how it’s built.
+          With the AI you already pay for.
+        </p>
+        <div class="ctas">
+          <a
+            class="btn"
+            href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg"
+            data-dl
+            ><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9s-2-.9-3.4-.9c-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.4.8c1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-4.1zM13.9 5c.7-.9 1.2-2.1 1.1-3.3-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.1.1 2.3-.6 3-1.5z"
+              /></svg
+            >Download for Mac</a
+          >
+          <a class="btn ghost" href="try/">Try it in your browser</a>
+        </div>
+        <p class="fine">
+          macOS 13+ · Apple Silicon ·
+          <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg"
+            >Intel</a
+          >
+          <span data-version></span>
+        </p>
+
+        <div class="window hero-win">
+          <div class="chrome" aria-hidden="true"><i></i><i></i><i></i></div>
+          <video
+            src="media/ask.mp4"
+            poster="media/ask.jpg"
+            muted
+            loop
+            playsinline
+            preload="metadata"
+            aria-label="Screen recording: a question typed into Bento becomes a lesson that writes itself, runs, and explains every line in plain English"
+          ></video>
+        </div>
+      </section>
+
+      <section class="ais" aria-label="Works with the AI you already have">
+        <p>Works with the AI you already have</p>
+        <ul>
+          <li><img src="img/claude.svg" alt="" />Claude</li>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3.3 6.7 4.7 5.3 11.4 12l-6.7 6.7-1.4-1.4L8.6 12zM12 16.5h8.5v2H12z" /></svg
+            >ChatGPT
+          </li>
+          <li><img src="img/googlegemini.svg" alt="" />Gemini</li>
+          <li><img src="img/githubcopilot.svg" alt="" />Copilot</li>
+        </ul>
+        <p class="none">No API key. No account. No extra bill.</p>
+      </section>
+
+      <section class="feature" id="learn">
+        <div class="copy">
+          <h2>Every answer is a lesson you can run.</h2>
+          <p>
+            Ask how Uber finds a driver or why hash maps feel instant. Bento writes the lesson, runs
+            the real idea, and explains each line in plain words.
+          </p>
+        </div>
+        <div class="window">
+          <div class="chrome" aria-hidden="true"><i></i><i></i><i></i></div>
+          <video
+            src="media/idea.mp4"
+            poster="media/idea.jpg"
+            muted
+            loop
+            playsinline
+            preload="none"
+            aria-label="Screen recording: Discord's hash ring as a lesson. It runs, a phrase is tapped to show its code, then the plain-words view"
+          ></video>
+        </div>
+      </section>
+
+      <section class="feature" id="apart">
+        <div class="copy">
+          <h2>Paste a link. Get the blueprint.</h2>
+          <p>
+            Any repo on GitHub becomes one picture of the whole app. Click a part, follow a request
+            through it, see every tool it uses and why.
+          </p>
+        </div>
+        <div class="window">
+          <div class="chrome" aria-hidden="true">
+            <i></i><i></i><i></i><span class="url">github.com/pingdotgg/t3code</span>
+          </div>
+          <video
+            src="media/atlas.mp4"
+            poster="media/atlas.jpg"
+            muted
+            loop
+            playsinline
+            preload="none"
+            aria-label="Screen recording: a GitHub link pasted into Bento. T3 Code appears as one picture, a part is opened, a request travels through a code city, then the toolbelt"
+          ></video>
+        </div>
+      </section>
+
+      <section class="feature" id="more">
+        <div class="copy">
+          <h2>And everything else.</h2>
+        </div>
+        <div class="tabs" role="tablist" aria-label="Features">
+          <button role="tab" aria-selected="true" data-clip="practice">Puzzles</button>
+          <button role="tab" aria-selected="false" data-clip="toolbelt">Toolbelt</button>
+          <button role="tab" aria-selected="false" data-clip="hotspots">Hot spots</button>
+          <button role="tab" aria-selected="false" data-clip="files">Every file</button>
+          <button role="tab" aria-selected="false" data-clip="path">Paths</button>
+        </div>
+        <p class="tab-line" data-line>Push a puzzle to a billion and watch the answers race.</p>
+        <div class="window stage" role="tabpanel">
+          <div class="chrome" aria-hidden="true">
+            <i></i><i></i><i></i><span class="bar"></span>
+          </div>
+          <video
+            src="media/practice.mp4"
+            poster="media/practice.jpg"
+            muted
+            playsinline
+            preload="none"
+            aria-label="Screen recording of the chosen feature"
+          ></video>
+        </div>
+      </section>
+
+      <section class="facts" aria-label="Private by design">
+        <div><b>On your Mac</b><span>Lessons and projects stay on your computer.</span></div>
+        <div><b>No account</b><span>Open it and start. Nothing to sign up for.</span></div>
+        <div><b>No telemetry</b><span>The app doesn’t track what you do.</span></div>
+        <div><b>Signed by Apple</b><span>Notarized, and it updates itself.</span></div>
+      </section>
+
+      <section class="open" id="open">
+        <div class="copy">
+          <h2>Free and open source.</h2>
+          <p>MIT licensed. Read it, change it, take it apart too.</p>
+          <div class="ctas left">
+            <a class="btn ghost" href="https://github.com/lhz56/bento"
+              ><img src="img/github.svg" alt="" width="15" height="15" />Source</a
+            >
+            <a class="btn ghost" href="https://github.com/lhz56/bento/blob/main/CONTRIBUTING.md"
+              >Contribute</a
+            >
+          </div>
+        </div>
+        <div class="code">
+          <button
+            class="copy-btn"
+            type="button"
+            data-copy="git clone https://github.com/lhz56/bento && cd bento && npm install && npm run dev"
+          >
+            Copy
+          </button>
+          <pre><code><span class="p">$</span> git clone https://github.com/lhz56/bento
 <span class="p">$</span> cd bento && npm install
 <span class="p">$</span> npm run dev</code></pre>
-    </div>
-  </section>
+        </div>
+      </section>
 
-  <section class="last">
-    <h2>What will you take apart first?</h2>
-    <div class="ctas">
-      <a class="btn" href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg" data-dl>Download for Mac</a>
-      <a class="btn ghost" href="try/">Try it in your browser</a>
-    </div>
-    <p class="fine">Free · Apple Silicon · <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg">Intel</a></p>
-  </section>
-</main>
+      <section class="last">
+        <h2>What will you take apart first?</h2>
+        <div class="ctas">
+          <a
+            class="btn"
+            href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg"
+            data-dl
+            >Download for Mac</a
+          >
+          <a class="btn ghost" href="try/">Try it in your browser</a>
+        </div>
+        <p class="fine">
+          Free · Apple Silicon ·
+          <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg"
+            >Intel</a
+          >
+        </p>
+      </section>
+    </main>
 
-<footer class="foot">
-  <span class="who"><img src="img/logo.svg" alt="" width="16" height="16">Made by <a href="https://github.com/lhz56">Lin Zaw</a></span>
-  <nav aria-label="Links">
-    <a href="https://github.com/lhz56/bento">GitHub</a>
-    <a href="https://github.com/lhz56/bento-releases/releases">Releases</a>
-    <a href="https://github.com/lhz56/bento/blob/main/SECURITY.md">Security</a>
-    <a href="https://github.com/lhz56/bento/issues">Report a problem</a>
-  </nav>
-  <p class="count-note">This site and the browser version count visits and clicks anonymously: no cookies, nothing personal.</p>
-</footer>
+    <footer class="foot">
+      <span class="who"
+        ><img src="img/logo.svg" alt="" width="16" height="16" />Made by
+        <a href="https://github.com/lhz56">Lin Zaw</a></span
+      >
+      <nav aria-label="Links">
+        <a href="https://github.com/lhz56/bento">GitHub</a>
+        <a href="https://github.com/lhz56/bento-releases/releases">Releases</a>
+        <a href="https://github.com/lhz56/bento/blob/main/SECURITY.md">Security</a>
+        <a href="https://github.com/lhz56/bento/issues">Report a problem</a>
+      </nav>
+      <p class="count-note">
+        This site and the browser version count visits and clicks anonymously: no cookies, nothing
+        personal.
+      </p>
+    </footer>
 
-<script src="main.js" defer></script>
-</body>
+    <script src="main.js" defer></script>
+  </body>
 </html>

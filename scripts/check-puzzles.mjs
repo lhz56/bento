@@ -14,15 +14,30 @@ const packAt = process.argv.indexOf('--pack');
 let source = PUZZLES;
 if (packAt > 0) {
   globalThis.localStorage ??= { getItem: () => null, setItem: () => {} };
-  const { errors, pack } = validatePack(JSON.parse(fs.readFileSync(process.argv[packAt + 1], 'utf8')));
-  if (errors.length) { console.log('✗ pack has problems:\n  - ' + errors.join('\n  - ')); process.exit(1); }
-  console.log(`checking pack “${pack.name}”: ${pack.puzzles.length} puzzle(s), ${pack.ideas.length} idea(s), ${pack.paths.length} path(s)`);
+  const { errors, pack } = validatePack(
+    JSON.parse(fs.readFileSync(process.argv[packAt + 1], 'utf8')),
+  );
+  if (errors.length) {
+    console.log('✗ pack has problems:\n  - ' + errors.join('\n  - '));
+    process.exit(1);
+  }
+  console.log(
+    `checking pack “${pack.name}”: ${pack.puzzles.length} puzzle(s), ${pack.ideas.length} idea(s), ${pack.paths.length} path(s)`,
+  );
   source = pack.puzzles;
 }
-const which = process.env.ONLY ? source.filter((p) => process.env.ONLY.split(',').includes(p.id)) : source;
+const which = process.env.ONLY
+  ? source.filter((p) => process.env.ONLY.split(',').includes(p.id))
+  : source;
 // python3 on Mac and Linux, often just python on Windows
-const PY = ['python3', 'python'].find((c) => { const r = spawnSync(c, ['--version'], { encoding: 'utf8' }); return r.status === 0 && /Python 3/.test(r.stdout + r.stderr); });
-if (!PY) { console.log('· skipped puzzle checks: Python 3 not found'); process.exit(0); }
+const PY = ['python3', 'python'].find((c) => {
+  const r = spawnSync(c, ['--version'], { encoding: 'utf8' });
+  return r.status === 0 && /Python 3/.test(r.stdout + r.stderr);
+});
+if (!PY) {
+  console.log('· skipped puzzle checks: Python 3 not found');
+  process.exit(0);
+}
 
 const HARNESS = String.raw`
 import sys, json, copy, time, io, contextlib
@@ -88,37 +103,90 @@ print(json.dumps(res))
 let bad = 0;
 for (const p of which) {
   const spec = {
-    start: codeOf(codeParts(p, 'start')), fast: codeOf(codeParts(p, 'fast')), blank: codeOf(codeParts(p, 'blank')),
-    fn: p.fn, tests: p.tests, gremlins: p.gremlins.map(([, a, e]) => [a, e]), setup: p.setup, call: p.call, ns: p.ns || null, fresh: !!p.fresh, startWorks: p.startWorks,
+    start: codeOf(codeParts(p, 'start')),
+    fast: codeOf(codeParts(p, 'fast')),
+    blank: codeOf(codeParts(p, 'blank')),
+    fn: p.fn,
+    tests: p.tests,
+    gremlins: p.gremlins.map(([, a, e]) => [a, e]),
+    setup: p.setup,
+    call: p.call,
+    ns: p.ns || null,
+    fresh: !!p.fresh,
+    startWorks: p.startWorks,
   };
   // Timings on a busy machine (CI, a laptop doing other work) can wobble. Wrong answers fail at once;
   // a puzzle that only missed its speed shape is measured again, up to three times in all.
-  let tries = 0; let R; let errs; let ff; let sf; let timingOnly;
+  let tries = 0;
+  let R;
+  let errs;
+  let ff;
+  let sf;
+  let timingOnly;
   do {
-  tries++;
-  const r = spawnSync(PY, ['-I', '-c', HARNESS], { input: JSON.stringify(spec), encoding: 'utf8', maxBuffer: 1 << 24, timeout: 60000 });
-  if (r.status !== 0) { R = null; break; }
-  R = JSON.parse(r.stdout); errs = []; let timing = 0;
-  for (const k of ['start', 'fast', 'blank']) if (R[`${k}_ok`] !== true) errs.push(`${k} code crashed: ${R[`${k}_ok`]}`);
-  (R.fast_tests || []).forEach(([ok, got], i) => { if (!ok) errs.push(`clever way fails test ${i + 1}: got ${got}`); });
-  (R.fast_grem || []).forEach(([ok, got], i) => { if (!ok) errs.push(`clever way fails gremlin "${p.gremlins[i][0]}": got ${got}`); });
-  if (p.startWorks) {
-    (R.start_tests || []).forEach(([ok, got], i) => { if (!ok) errs.push(`starter fails test ${i + 1}: got ${got}`); });
-    (R.start_grem || []).forEach(([ok, got], i) => { if (!ok) errs.push(`starter fails gremlin "${p.gremlins[i][0]}": got ${got}`); });
-  } else if ((R.start_tests || []).every(([ok]) => ok)) errs.push('unfinished starter already passes every test');
-  ff = fitScale(R.fast_scale.pts, p.target);
-  if (R.fast_scale.crash) errs.push(`clever way crashed at n=${R.fast_scale.crash.n}: ${R.fast_scale.crash.msg}`);
-  else if (!ff || ff.tier > tierOf(p.target)) { timing++; errs.push(`clever way measured ${ff?.label} (k=${ff?.k?.toFixed(2)}), target ${p.target}`); }
-  sf = null;
-  if (p.startWorks) {
-    sf = fitScale(R.start_scale.pts, p.target);
-    if (!R.start_scale.crash && (!sf || sf.tier <= tierOf(p.target))) { timing++; errs.push(`obvious way isn't slower: ${sf?.label} (k=${sf?.k?.toFixed(2)}) vs target ${p.target}`); }
-  }
-  timingOnly = errs.length > 0 && timing === errs.length;
+    tries++;
+    const r = spawnSync(PY, ['-I', '-c', HARNESS], {
+      input: JSON.stringify(spec),
+      encoding: 'utf8',
+      maxBuffer: 1 << 24,
+      timeout: 60000,
+    });
+    if (r.status !== 0) {
+      R = null;
+      break;
+    }
+    R = JSON.parse(r.stdout);
+    errs = [];
+    let timing = 0;
+    for (const k of ['start', 'fast', 'blank'])
+      if (R[`${k}_ok`] !== true) errs.push(`${k} code crashed: ${R[`${k}_ok`]}`);
+    (R.fast_tests || []).forEach(([ok, got], i) => {
+      if (!ok) errs.push(`clever way fails test ${i + 1}: got ${got}`);
+    });
+    (R.fast_grem || []).forEach(([ok, got], i) => {
+      if (!ok) errs.push(`clever way fails gremlin "${p.gremlins[i][0]}": got ${got}`);
+    });
+    if (p.startWorks) {
+      (R.start_tests || []).forEach(([ok, got], i) => {
+        if (!ok) errs.push(`starter fails test ${i + 1}: got ${got}`);
+      });
+      (R.start_grem || []).forEach(([ok, got], i) => {
+        if (!ok) errs.push(`starter fails gremlin "${p.gremlins[i][0]}": got ${got}`);
+      });
+    } else if ((R.start_tests || []).every(([ok]) => ok))
+      errs.push('unfinished starter already passes every test');
+    ff = fitScale(R.fast_scale.pts, p.target);
+    if (R.fast_scale.crash)
+      errs.push(`clever way crashed at n=${R.fast_scale.crash.n}: ${R.fast_scale.crash.msg}`);
+    else if (!ff || ff.tier > tierOf(p.target)) {
+      timing++;
+      errs.push(`clever way measured ${ff?.label} (k=${ff?.k?.toFixed(2)}), target ${p.target}`);
+    }
+    sf = null;
+    if (p.startWorks) {
+      sf = fitScale(R.start_scale.pts, p.target);
+      if (!R.start_scale.crash && (!sf || sf.tier <= tierOf(p.target))) {
+        timing++;
+        errs.push(
+          `obvious way isn't slower: ${sf?.label} (k=${sf?.k?.toFixed(2)}) vs target ${p.target}`,
+        );
+      }
+    }
+    timingOnly = errs.length > 0 && timing === errs.length;
   } while (timingOnly && tries < 3);
-  if (!R) { bad++; console.log(`✗ ${p.id}: python failed`); continue; }
+  if (!R) {
+    bad++;
+    console.log(`✗ ${p.id}: python failed`);
+    continue;
+  }
   const desc = `clever ${ff?.label}${ff?.k != null ? ` k=${ff.k.toFixed(2)}` : ff?.base ? ` ×${ff.base.toFixed(2)}/n` : ''}${p.startWorks ? ` · obvious ${R.start_scale.crash ? `💥 n=${R.start_scale.crash.n}` : `${sf?.label}${sf?.k != null ? ` k=${sf.k.toFixed(2)}` : sf?.base ? ` ×${sf.base.toFixed(2)}/n` : ''}`}` : ''}`;
-  if (errs.length) { bad++; console.log(`✗ ${p.id} (${desc})\n  - ${errs.join('\n  - ')}`); } else console.log(`✓ puzzle ${p.id} (${desc})${tries > 1 ? ` · timings settled on try ${tries}` : ''}`);
+  if (errs.length) {
+    bad++;
+    console.log(`✗ ${p.id} (${desc})\n  - ${errs.join('\n  - ')}`);
+  } else
+    console.log(
+      `✓ puzzle ${p.id} (${desc})${tries > 1 ? ` · timings settled on try ${tries}` : ''}`,
+    );
 }
 console.log(bad ? `${bad} puzzle(s) need fixing` : `all ${which.length} puzzles check out`);
 process.exit(bad ? 1 : 0);

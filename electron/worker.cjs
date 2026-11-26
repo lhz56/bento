@@ -24,5 +24,7 @@ parentPort.on('message', async ({ id, op, args }) => {
   try {
     if (!OPS[op]) throw new Error(`unknown job ${op}`);
     parentPort.postMessage({ id, ok: true, v: await OPS[op](...args, progress) });
-  } catch (e) { parentPort.postMessage({ id, ok: false, e: String(e?.message || e) }); }
+  } catch (e) {
+    parentPort.postMessage({ id, ok: false, e: String(e?.message || e) });
+  }
 });

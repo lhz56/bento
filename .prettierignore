@@ -1,0 +1,12 @@
+dist/
+dist-web/
+release/
+smoke-out/
+build/
+ios/
+public/
+node_modules/
+site/media/
+docs/benchmarks/
+*.json
+*.md

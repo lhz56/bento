@@ -5,13 +5,28 @@ import { keys, tap } from '../platform.js';
 export const TIPS = {
   lesson: [
     ['.act.run', 'Run the code, or use Step to watch it one line at a time.'],
-    ['.cm-content', 'Point at any word in the code for a quick explanation. Hold ⌥ and drag a number to change it live.'],
-    ['.lenses', 'Switch how you read the code: just code, side by side with plain words, or plain words first.'],
-    ['#followup', 'Ask anything about this lesson. Enter gives a short answer here; ⌘↵ makes a whole new lesson.'],
+    [
+      '.cm-content',
+      'Point at any word in the code for a quick explanation. Hold ⌥ and drag a number to change it live.',
+    ],
+    [
+      '.lenses',
+      'Switch how you read the code: just code, side by side with plain words, or plain words first.',
+    ],
+    [
+      '#followup',
+      'Ask anything about this lesson. Enter gives a short answer here; ⌘↵ makes a whole new lesson.',
+    ],
   ],
   atlas: [
-    ['.bigpic', 'This is the whole app as one picture. Click any part to see what it does and the real word for it.'],
-    ['.ab-nav', 'Each tab is a different way to look at the same code: a city, its tools, its risks, every file.'],
+    [
+      '.bigpic',
+      'This is the whole app as one picture. Click any part to see what it does and the real word for it.',
+    ],
+    [
+      '.ab-nav',
+      'Each tab is a different way to look at the same code: a city, its tools, its risks, every file.',
+    ],
     ['#atlas-ask', 'Ask anything about this project. Answers point at the real files.'],
   ],
 };
@@ -23,28 +38,86 @@ export default function Coach({ screen, ready }) {
   const step = i >= 0 ? steps[i] : null;
   useLayoutEffect(() => {
     if (!step || !ready) return;
-    let raf; let tries = 0;
-    const find = () => { const el = document.querySelector(step[0]); if (el) { const r = el.getBoundingClientRect(); setBox({ x: r.left, y: r.top, w: r.width, h: r.height }); } else if (tries++ < 40) raf = setTimeout(find, 150); };
+    let raf;
+    let tries = 0;
+    const find = () => {
+      const el = document.querySelector(step[0]);
+      if (el) {
+        const r = el.getBoundingClientRect();
+        setBox({ x: r.left, y: r.top, w: r.width, h: r.height });
+      } else if (tries++ < 40) raf = setTimeout(find, 150);
+    };
     find();
-    const re = () => find(); addEventListener('resize', re);
+    const re = () => find();
+    addEventListener('resize', re);
     // the thing it points at can go (another Atlas tab, a closed pane): the tip waits, and comes back with it
-    const watch = setInterval(() => { const el = document.querySelector(step[0]); const r = el?.getBoundingClientRect(); setBox((b) => (!r || !r.width ? null : b && Math.abs(b.x - r.left) < 1 && Math.abs(b.y - r.top) < 1 && b.w === r.width && b.h === r.height ? b : { x: r.left, y: r.top, w: r.width, h: r.height })); }, 400);
-    return () => { clearTimeout(raf); clearInterval(watch); removeEventListener('resize', re); };
+    const watch = setInterval(() => {
+      const el = document.querySelector(step[0]);
+      const r = el?.getBoundingClientRect();
+      setBox((b) =>
+        !r || !r.width
+          ? null
+          : b &&
+              Math.abs(b.x - r.left) < 1 &&
+              Math.abs(b.y - r.top) < 1 &&
+              b.w === r.width &&
+              b.h === r.height
+            ? b
+            : { x: r.left, y: r.top, w: r.width, h: r.height },
+      );
+    }, 400);
+    return () => {
+      clearTimeout(raf);
+      clearInterval(watch);
+      removeEventListener('resize', re);
+    };
   }, [i, ready]);
-  const done = () => { localStorage.setItem(`bento.coach.${screen}`, '1'); setI(-1); };
-  useEffect(() => { if (!step) return; const h = (e) => e.key === 'Escape' && done(); addEventListener('keydown', h); return () => removeEventListener('keydown', h); }, [step]);
+  const done = () => {
+    localStorage.setItem(`bento.coach.${screen}`, '1');
+    setI(-1);
+  };
+  useEffect(() => {
+    if (!step) return;
+    const h = (e) => e.key === 'Escape' && done();
+    addEventListener('keydown', h);
+    return () => removeEventListener('keydown', h);
+  }, [step]);
   if (!step || !box || !ready) return null;
   const below = box.y + box.h + 150 < innerHeight;
   const left = Math.max(12, Math.min(innerWidth - 332, box.x + box.w / 2 - 160));
   return (
     <>
-      <div className="coach-ring" aria-hidden="true" style={{ left: box.x - 6, top: box.y - 6, width: box.w + 12, height: box.h + 12 }} />
-      <div className={`coach-tip ${below ? 'below' : 'above'}`} role="dialog" aria-label={`Tip ${i + 1} of ${steps.length}`} style={{ left, top: below ? box.y + box.h + 14 : undefined, bottom: below ? undefined : innerHeight - box.y + 14 }}>
+      <div
+        className="coach-ring"
+        aria-hidden="true"
+        style={{ left: box.x - 6, top: box.y - 6, width: box.w + 12, height: box.h + 12 }}
+      />
+      <div
+        className={`coach-tip ${below ? 'below' : 'above'}`}
+        role="dialog"
+        aria-label={`Tip ${i + 1} of ${steps.length}`}
+        style={{
+          left,
+          top: below ? box.y + box.h + 14 : undefined,
+          bottom: below ? undefined : innerHeight - box.y + 14,
+        }}
+      >
         <div className="ct-text">{tap(keys(step[1]))}</div>
         <div className="ct-foot">
-          <span className="ct-dots">{steps.map((_, k) => <i key={k} className={k === i ? 'on' : ''} />)}</span>
-          <button className="link" style={{ marginLeft: 'auto' }} onClick={done}>Skip</button>
-          <button className="btn tiny" onClick={() => (i < steps.length - 1 ? setI(i + 1) : done())}>{i < steps.length - 1 ? 'Next' : 'Got it'}</button>
+          <span className="ct-dots">
+            {steps.map((_, k) => (
+              <i key={k} className={k === i ? 'on' : ''} />
+            ))}
+          </span>
+          <button className="link" style={{ marginLeft: 'auto' }} onClick={done}>
+            Skip
+          </button>
+          <button
+            className="btn tiny"
+            onClick={() => (i < steps.length - 1 ? setI(i + 1) : done())}
+          >
+            {i < steps.length - 1 ? 'Next' : 'Got it'}
+          </button>
         </div>
       </div>
     </>

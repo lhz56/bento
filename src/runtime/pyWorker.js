@@ -397,7 +397,10 @@ async function boot() {
     const base = `${self.location.origin}/pyodide/`;
     const mod = await import(/* @vite-ignore */ `${base}pyodide.mjs`);
     // the core ships with the app; extra packages (numpy, pandas, …) download from Pyodide's CDN the first time a lesson imports them
-    py = await mod.loadPyodide({ indexURL: base, packageBaseUrl: `https://cdn.jsdelivr.net/pyodide/v${mod.version}/full/` });
+    py = await mod.loadPyodide({
+      indexURL: base,
+      packageBaseUrl: `https://cdn.jsdelivr.net/pyodide/v${mod.version}/full/`,
+    });
     py.runPython(PRELUDE);
     py.runPython('_install_net()');
     return py;
@@ -407,46 +410,110 @@ async function boot() {
 
 function fitGrowth(pts) {
   if (pts.length < 3) return null;
-  const F = { 'O(1)': () => 1, 'O(log n)': (n) => Math.log2(n), 'O(n)': (n) => n, 'O(n log n)': (n) => n * Math.log2(n), 'O(n²)': (n) => n * n, 'O(n³)': (n) => n * n * n, 'O(2ⁿ)': (n) => Math.pow(2, Math.min(n, 60)) };
+  const F = {
+    'O(1)': () => 1,
+    'O(log n)': (n) => Math.log2(n),
+    'O(n)': (n) => n,
+    'O(n log n)': (n) => n * Math.log2(n),
+    'O(n²)': (n) => n * n,
+    'O(n³)': (n) => n * n * n,
+    'O(2ⁿ)': (n) => Math.pow(2, Math.min(n, 60)),
+  };
   let best = null;
   const use = pts.slice(Math.floor(pts.length / 3));
   for (const [k, f] of Object.entries(F)) {
-    const a = use.reduce((s, [n, c]) => s + c * f(n), 0) / use.reduce((s, [n]) => s + f(n) * f(n), 0);
+    const a =
+      use.reduce((s, [n, c]) => s + c * f(n), 0) / use.reduce((s, [n]) => s + f(n) * f(n), 0);
     const err = use.reduce((s, [n, c]) => s + Math.pow((c - a * f(n)) / Math.max(c, 1), 2), 0);
     if (!best || err < best.err) best = { label: k, a, err };
   }
-  const [n1, c1] = pts[pts.length - 2], [n2, c2] = pts[pts.length - 1];
+  const [n1, c1] = pts[pts.length - 2],
+    [n2, c2] = pts[pts.length - 1];
   return { label: best.label, a: best.a, ratio: c2 / Math.max(c1, 1), nRatio: n2 / n1 };
 }
 
 // Printed lines reach the screen while a slow program is still running (quick runs just return at the end)
-let liveId = null, liveBuf = [], liveT0 = 0, liveLast = 0;
+let liveId = null,
+  liveBuf = [],
+  liveT0 = 0,
+  liveLast = 0;
 self.bentoLive = (k, s) => {
   liveBuf.push({ k, s: String(s) });
   const now = performance.now();
-  if (now - liveT0 > 250 && now - liveLast > 50) { self.postMessage({ id: liveId, live: liveBuf }); liveBuf = []; liveLast = now; }
+  if (now - liveT0 > 250 && now - liveLast > 50) {
+    self.postMessage({ id: liveId, live: liveBuf });
+    liveBuf = [];
+    liveLast = now;
+  }
 };
 
 self.onmessage = async (e) => {
   const { id, mode, code, extra } = e.data;
-  if (mode === 'boot') { try { await boot(); self.postMessage({ id, result: { ok: true } }); } catch (err) { self.postMessage({ id, result: { error: { msg: String(err) } } }); } return; }
+  if (mode === 'boot') {
+    try {
+      await boot();
+      self.postMessage({ id, result: { ok: true } });
+    } catch (err) {
+      self.postMessage({ id, result: { error: { msg: String(err) } } });
+    }
+    return;
+  }
   try {
     await boot();
-    if (/^\s*(import|from)\s+(numpy|pandas|matplotlib|scipy|sklearn|networkx|sympy|PIL)\b/m.test(code)) {
-      try { await py.loadPackagesFromImports(code); }
-      catch (err) { self.postMessage({ id, result: { logs: [], visuals: [], error: { msg: `ModuleNotFoundError: couldn't download a package this code imports (are you online?) ${String(err?.message || err).split('\n')[0].slice(0, 120)}`, line: null } } }); return; }
+    if (
+      /^\s*(import|from)\s+(numpy|pandas|matplotlib|scipy|sklearn|networkx|sympy|PIL)\b/m.test(code)
+    ) {
+      try {
+        await py.loadPackagesFromImports(code);
+      } catch (err) {
+        self.postMessage({
+          id,
+          result: {
+            logs: [],
+            visuals: [],
+            error: {
+              msg: `ModuleNotFoundError: couldn't download a package this code imports (are you online?) ${String(
+                err?.message || err,
+              )
+                .split('\n')[0]
+                .slice(0, 120)}`,
+              line: null,
+            },
+          },
+        });
+        return;
+      }
     }
-    liveId = id; liveBuf = []; liveT0 = performance.now(); liveLast = 0;
+    liveId = id;
+    liveBuf = [];
+    liveT0 = performance.now();
+    liveLast = 0;
     const run = py.globals.get('_run');
     // called "promising" where the engine can switch stacks (Electron's can), so asyncio.run() and await asyncio.sleep()
     // really wait, the way they do on a Mac, instead of failing with "Cannot stack switch"
-    const promising = typeof run.callPromising === 'function' && typeof WebAssembly.Suspending === 'function';
-    const json = promising ? await run.callPromising(code, mode, extra ? JSON.stringify(extra) : '') : run(code, mode, extra ? JSON.stringify(extra) : '');
+    const promising =
+      typeof run.callPromising === 'function' && typeof WebAssembly.Suspending === 'function';
+    const json = promising
+      ? await run.callPromising(code, mode, extra ? JSON.stringify(extra) : '')
+      : run(code, mode, extra ? JSON.stringify(extra) : '');
     run.destroy?.();
     const result = JSON.parse(json);
     if (result.growth) result.growth.fit = fitGrowth(result.growth.pts);
     self.postMessage({ id, result });
   } catch (err) {
-    self.postMessage({ id, result: { logs: [], visuals: [], error: { msg: String(err?.message || err).split('\n').slice(-2).join(' '), line: null } } });
+    self.postMessage({
+      id,
+      result: {
+        logs: [],
+        visuals: [],
+        error: {
+          msg: String(err?.message || err)
+            .split('\n')
+            .slice(-2)
+            .join(' '),
+          line: null,
+        },
+      },
+    });
   }
 };

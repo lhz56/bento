@@ -9,7 +9,10 @@ const BY = Object.fromEntries(PROVIDERS.map((p) => [p.id, p]));
 export const MODELS = PROVIDERS.flatMap((p) => p.models.map((m) => ({ ...m, prov: p.id })));
 
 export const provider = (id) => BY[id] || null;
-export const provOf = (model) => { const id = String(model || '').split(':')[0]; return BY[id] ? id : PROVIDERS[0].id; };
+export const provOf = (model) => {
+  const id = String(model || '').split(':')[0];
+  return BY[id] ? id : PROVIDERS[0].id;
+};
 export const modelInfo = (model) => MODELS.find((m) => m.id === model) || null;
 export const modelLabel = (model) => modelInfo(model)?.label || BY[provOf(model)].name;
 export const providerName = (id) => BY[id]?.name || id;
@@ -23,27 +26,70 @@ export const hasAI = (providers) => !providers || PROVIDERS.some((p) => provider
 export const noAI = (providers) => !!providers && !PROVIDERS.some((p) => providers[p.id]);
 export const firstAI = (providers) => PROVIDERS.find((p) => providers?.[p.id]) || null;
 // when this AI can't answer (limit reached, signed out, missing): the next one you have, in Bento's order
-export const altOf = (model, providers) => { const mine = provOf(model); const p = PROVIDERS.find((x) => x.id !== mine && providers?.[x.id]); return p ? p.default : null; };
+export const altOf = (model, providers) => {
+  const mine = provOf(model);
+  const p = PROVIDERS.find((x) => x.id !== mine && providers?.[x.id]);
+  return p ? p.default : null;
+};
 // the model to use when the chosen one's AI isn't on this Mac
-export const usableModel = (model, providers) => (!providers || providers[provOf(model)] ? model : firstAI(providers)?.default || model);
+export const usableModel = (model, providers) =>
+  !providers || providers[provOf(model)] ? model : firstAI(providers)?.default || model;
 
 // ---------------------------------------------------------------- plan usage, in plain words
 // A limits reading from the app: { plan, windows: [{ label, used (0-100), n, of, unit, resetsAt, warn, out }], at }
 // The window that matters most: the fullest one
-export const mainWindow = (L) => (L?.windows || []).filter((w) => w.used != null || w.n != null).sort((a, b) => (b.used ?? 0) - (a.used ?? 0))[0] || null;
-export const level = (w) => (!w ? 'none' : w.out || (w.used ?? 0) >= 100 ? 'out' : w.warn || (w.used ?? 0) >= 80 ? 'high' : (w.used ?? 0) >= 50 ? 'mid' : 'low');
+export const mainWindow = (L) =>
+  (L?.windows || [])
+    .filter((w) => w.used != null || w.n != null)
+    .sort((a, b) => (b.used ?? 0) - (a.used ?? 0))[0] || null;
+export const level = (w) =>
+  !w
+    ? 'none'
+    : w.out || (w.used ?? 0) >= 100
+      ? 'out'
+      : w.warn || (w.used ?? 0) >= 80
+        ? 'high'
+        : (w.used ?? 0) >= 50
+          ? 'mid'
+          : 'low';
 // "resets Thursday 9:00" / "resets in 2 h" / "resets Dec 1". T translates the fixed words (never the numbers: each
 // new string would otherwise be sent off for translation); dates and times come in the Mac's own language.
 export function resetText(at, now = Date.now(), T = (x) => x) {
   if (!at) return '';
-  const ms = at - now; if (ms <= 0) return T('resets soon');
+  const ms = at - now;
+  if (ms <= 0) return T('resets soon');
   const d = new Date(at);
-  if (ms < 3 * 3600e3) { const m = Math.round(ms / 60000); return m < 60 ? `${T('resets in')} ${m} ${T('min')}` : `${T('resets in')} ${Math.round(m / 60)} ${T('h')}`; }
+  if (ms < 3 * 3600e3) {
+    const m = Math.round(ms / 60000);
+    return m < 60
+      ? `${T('resets in')} ${m} ${T('min')}`
+      : `${T('resets in')} ${Math.round(m / 60)} ${T('h')}`;
+  }
   const tm = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-  if (ms < 6 * 864e5) return new Date(now).toDateString() === d.toDateString() ? `${T('resets at')} ${tm}` : `${T('resets')} ${d.toLocaleDateString(undefined, { weekday: 'long' })} ${tm}`;
+  if (ms < 6 * 864e5)
+    return new Date(now).toDateString() === d.toDateString()
+      ? `${T('resets at')} ${tm}`
+      : `${T('resets')} ${d.toLocaleDateString(undefined, { weekday: 'long' })} ${tm}`;
   return `${T('resets')} ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
 }
 // "53% of this week" / "12 of 200 requests this month"
-export const usedText = (w, T = (x) => x) => (!w ? '' : w.unlimited ? `${T('unlimited')} ${T(w.label)}` : w.of ? `${w.n} ${T('of')} ${w.of} ${T(w.unit || 'requests')} ${T(w.label)}` : `${w.used}% ${T('of')} ${T(w.label)}`);
+export const usedText = (w, T = (x) => x) =>
+  !w
+    ? ''
+    : w.unlimited
+      ? `${T('unlimited')} ${T(w.label)}`
+      : w.of
+        ? `${w.n} ${T('of')} ${w.of} ${T(w.unit || 'requests')} ${T(w.label)}`
+        : `${w.used}% ${T('of')} ${T(w.label)}`;
 // how old a reading is, so a meter never pretends to be live
-export const ageText = (at, now = Date.now(), T = (x) => x) => { if (!at) return ''; const m = Math.round((now - at) / 60000); return m < 2 ? T('just now') : m < 60 ? `${m} ${T('min ago')}` : m < 1440 ? `${Math.round(m / 60)} ${T('h ago')}` : `${Math.round(m / 1440)} ${T('d ago')}`; };
+export const ageText = (at, now = Date.now(), T = (x) => x) => {
+  if (!at) return '';
+  const m = Math.round((now - at) / 60000);
+  return m < 2
+    ? T('just now')
+    : m < 60
+      ? `${m} ${T('min ago')}`
+      : m < 1440
+        ? `${Math.round(m / 60)} ${T('h ago')}`
+        : `${Math.round(m / 1440)} ${T('d ago')}`;
+};

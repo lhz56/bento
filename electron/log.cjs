@@ -8,14 +8,29 @@ let file = null;
 let chain = Promise.resolve();
 function init(dir) {
   file = path.join(dir, 'main.log');
-  chain = chain.then(async () => {
-    await fs.promises.mkdir(dir, { recursive: true });
-    const st = await fs.promises.stat(file).catch(() => null);
-    if (st && st.size > 1_000_000) await fs.promises.rename(file, `${file}.1`);
-  }).catch(() => { file = null; });
+  chain = chain
+    .then(async () => {
+      await fs.promises.mkdir(dir, { recursive: true });
+      const st = await fs.promises.stat(file).catch(() => null);
+      if (st && st.size > 1_000_000) await fs.promises.rename(file, `${file}.1`);
+    })
+    .catch(() => {
+      file = null;
+    });
   return file;
 }
-const show = (x) => (x instanceof Error ? (x.stack || x.message) : typeof x === 'string' ? x : (() => { try { return JSON.stringify(x); } catch { return String(x); } })());
+const show = (x) =>
+  x instanceof Error
+    ? x.stack || x.message
+    : typeof x === 'string'
+      ? x
+      : (() => {
+          try {
+            return JSON.stringify(x);
+          } catch {
+            return String(x);
+          }
+        })();
 function log(...parts) {
   const line = `${new Date().toISOString()} ${parts.map(show).join(' ').slice(0, 4000)}\n`;
   chain = chain.then(() => file && fs.promises.appendFile(file, line)).catch(() => {});

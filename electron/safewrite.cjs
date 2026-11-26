@@ -5,8 +5,16 @@ const fs = require('node:fs');
 
 function writeSafe(file, data) {
   const tmp = `${file}.tmp`;
-  try { fs.writeFileSync(tmp, data); fs.renameSync(tmp, file); return true; }
-  catch { try { fs.rmSync(tmp, { force: true }); } catch {} return false; }
+  try {
+    fs.writeFileSync(tmp, data);
+    fs.renameSync(tmp, file);
+    return true;
+  } catch {
+    try {
+      fs.rmSync(tmp, { force: true });
+    } catch {}
+    return false;
+  }
 }
 
 // Resolves to null when written, or the error's code ('ENOSPC' for a full disk, 'EACCES'/'EPERM' when not allowed).
@@ -19,12 +27,17 @@ async function writeOnce(file, data) {
   let fh = null;
   try {
     fh = await fs.promises.open(tmp, 'w');
-    await fh.writeFile(data); await fh.sync(); await fh.close(); fh = null;
+    await fh.writeFile(data);
+    await fh.sync();
+    await fh.close();
+    fh = null;
     if (stopped) throw Object.assign(new Error('quitting'), { code: 'ECANCELED' });
     await fs.promises.rename(tmp, file);
     return null;
   } catch (e) {
-    try { await fh?.close(); } catch {}
+    try {
+      await fh?.close();
+    } catch {}
     await fs.promises.rm(tmp, { force: true }).catch(() => {});
     return e?.code || 'EIO';
   }
@@ -33,9 +46,13 @@ function writeSafeAsync(file, data) {
   if (stopped) return Promise.resolve('ECANCELED');
   const next = (queues.get(file) || Promise.resolve()).then(() => writeOnce(file, data));
   queues.set(file, next);
-  next.then(() => { if (queues.get(file) === next) queues.delete(file); });
+  next.then(() => {
+    if (queues.get(file) === next) queues.delete(file);
+  });
   return next;
 }
-const stopWrites = () => { stopped = true; };
+const stopWrites = () => {
+  stopped = true;
+};
 
 module.exports = { writeSafe, writeSafeAsync, stopWrites };
