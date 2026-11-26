@@ -1,36 +1,35 @@
-import { spotConstructs } from '../constructs.js';
-import { t } from '../i18n.js';
 import {
   forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
   useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+  useImperativeHandle,
 } from 'react';
-import { haptic } from './touch.js';
-import { Md } from './Story.jsx';
+import { spotConstructs } from '../constructs.js';
+import { explainToken } from '../explain.js';
+import { t } from '../i18n.js';
+import { parseJSONLoose, quickPrompts } from '../lesson.js';
+import { keys } from '../platform.js';
+import { typeCheck } from '../runtime/runner.js';
+import { localChecks, checkPrompt, applyCheck } from '../verify.js';
 import Editor from './Editor.jsx';
 import Stage from './Stage.jsx';
-import { run as runCode, typeCheck } from '../runtime/runner.js';
-import { explainToken } from '../explain.js';
-import { quickPrompts, parseJSONLoose } from '../lesson.js';
-import { localChecks, checkPrompt, applyCheck } from '../verify.js';
-import { keys } from '../platform.js';
+import { Md } from './Story.jsx';
+import { Interlinear } from './desk/Interlinear.jsx';
+import { haptic } from './touch.js';
+import useDividers from './desk/useDividers.js';
+import usePlainEnglish from './desk/usePlainEnglish.js';
+import useDeskFiles from './desk/useDeskFiles.js';
+import useDeskExecution from './desk/useDeskExecution.js';
+import useTwin, { LNAME, other } from './desk/useTwin.js';
 
 const LENSES = [
   ['code', 'Code', 'Code'],
   ['both', 'Side by side', 'Both'],
   ['english', 'Plain words', 'Plain'],
 ]; // full and narrow labels
-const other = (l) => (l === 'python' ? 'javascript' : 'python');
-const LNAME = {
-  python: 'Python',
-  javascript: 'JavaScript',
-  typescript: 'TypeScript',
-  html: 'HTML',
-};
 
 function addedLines(prev, cur) {
   if (prev == null) return null;
@@ -73,45 +72,60 @@ const Desk = forwardRef(function Desk(props, ref) {
   useEffect(() => {
     if (phone && lens === 'both') setLens('english');
   }, [phone, lens]);
-  const [result, setResult] = useState(null);
-  const [running, setRunning] = useState(false);
-  const [trace, setTrace] = useState(null);
-  const [tracing, setTracing] = useState(false);
-  const [stepIdx, setStepIdx] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [growth, setGrowth] = useState(null);
-  const [measuring, setMeasuring] = useState(false);
-  const [tests, setTests] = useState(null);
-  const [testing, setTesting] = useState(false);
   const [tab, setTab] = useState(lesson.tests ? 'tests' : 'output');
   const [hoverLine, setHoverLine] = useState(null);
   const [noteRange, setNoteRange] = useState(null);
   const [errShown, setErrShown] = useState(false);
   const [live, setLive] = useState(true);
-  const [split, setSplit] = useState(0.56);
-  const [twinBusy, setTwinBusy] = useState(false);
-  const [twinHover, setTwinHover] = useState(null);
-  const [pmapV, setPmapV] = useState(0);
+  const { deskRef, dragDiv, split, touchDiv } = useDividers();
+  const { english, englishAgain, englishAsked, pendingEnglish, setEnglishAgain, setPmapV } =
+    usePlainEnglish({ code, lesson });
   const edited = useRef(false);
-  // input(): the learner's answers so far, and a random seed kept while answering so a re-run replays the same game
-  // projects: several files, one open at a time (files[0] is the one that runs)
-  const multi = Array.isArray(lesson.files) && lesson.files.length > 0;
-  const filesRef = useRef(lesson.files || null);
-  const [fi, setFi] = useState(0);
-  const [, bumpFiles] = useState(0);
-  const fiRef = useRef(0);
-  fiRef.current = fi; // memoised callbacks read the open file through this
-  const answersRef = useRef([]);
-  const seedRef = useRef(Math.floor(Math.random() * 1e9));
-  const [liveLogs, setLiveLogs] = useState([]);
-  // stuck detector: the same error on three runs you asked for, or three failed test runs in a row
-  const streak = useRef({ err: null, n: 0, tests: 0 });
-  const [stuck, setStuck] = useState(null);
-  const inflight = useRef(false),
-    queued = useRef(null); // a run asked for during another one: the latest request's options
   const codeRef = useRef(code);
   codeRef.current = code;
+  const { addFile, fi, filesRef, multi, openFile, projectBundle, removeFile, setFi } = useDeskFiles(
+    { codeRef, edited, lang, lesson, onPatch, setCode },
+  );
   const lidRef = useRef(lesson.id);
+  const {
+    answersRef,
+    doMeasure,
+    doRun,
+    doTests,
+    doTrace,
+    growth,
+    liveLogs,
+    liveTimer,
+    measuring,
+    playing,
+    result,
+    running,
+    setGrowth,
+    setLiveLogs,
+    setPlaying,
+    setResult,
+    setStepIdx,
+    setStuck,
+    setTests,
+    setTrace,
+    stepIdx,
+    streak,
+    stuck,
+    testing,
+    tests,
+    trace,
+    tracing,
+  } = useDeskExecution({
+    codeRef,
+    lang,
+    lesson,
+    lidRef,
+    onMastery,
+    projectBundle,
+    props,
+    pyReady,
+    setTab,
+  });
   lidRef.current = lesson.id;
 
   // ---- reset when the lesson changes
@@ -154,36 +168,6 @@ const Desk = forwardRef(function Desk(props, ref) {
     }
   }, [stepSel, streaming, lesson.steps.length]);
 
-  // ---- plain-English map: line text → English, survives edits that keep a line intact
-  const pmap = useMemo(() => {
-    const m = new Map();
-    const src = (lesson.code || '').split('\n');
-    src.forEach((l, i) => {
-      if (lesson.pseudo[i] != null) m.set(l.trim(), lesson.pseudo[i]);
-    });
-    Object.entries(lesson.pmap || {}).forEach(([k, v]) => m.set(k, v));
-    return m;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lesson.code, lesson.pseudo, lesson.pmap, pmapV]);
-  // a line still where the lesson wrote it keeps the lesson's own English for that spot (the same line can appear twice
-  // with different jobs: `show(steps)` mid-search and at the end); edited or moved lines are matched by their text
-  const english = useMemo(() => {
-    const src = (lesson.code || '').split('\n');
-    return code.split('\n').map((l, i) => {
-      const k = l.trim();
-      if (!k || /^[}\])]+[;,)]*$/.test(k)) return '';
-      if (src[i] === l && lesson.pseudo[i] != null && String(lesson.pseudo[i]).trim())
-        return lesson.pseudo[i];
-      // a lesson from your own agent never has Bento ask your AI for the missing lines: they stay blank
-      return pmap.has(k) ? pmap.get(k) : lesson.agent ? '' : null;
-    });
-  }, [code, pmap, lesson.code, lesson.pseudo, lesson.agent]);
-  const pendingEnglish = english.some((x) => x === null);
-
-  // lines without plain English get it from the fast model, by line number (so a skipped or merged line can't move the
-  // rest onto the wrong code); lines it missed are asked for once more, then left blank rather than keep spending
-  const englishAsked = useRef({ code: null, n: 0 });
-  const [englishAgain, setEnglishAgain] = useState(0);
   useEffect(() => {
     if (!pendingEnglish || streaming || !quick) return;
     const asked = englishAsked.current;
@@ -232,253 +216,6 @@ const Desk = forwardRef(function Desk(props, ref) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingEnglish, code, streaming, englishAgain]);
 
-  // a project runs as one thing: a web page gets its CSS and JS files stitched in; Python gets the other files next to it
-  const projectBundle = (src) => {
-    const fs = filesRef.current;
-    if (!fs?.length) return { main: src, files: null };
-    const all = fs.map((f, i) => (i === fiRef.current ? { ...f, code: src } : f));
-    if (lang === 'html') {
-      let main = all[0].code;
-      const extra = [];
-      for (const f of all.slice(1)) {
-        const n = f.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        if (
-          /\.css$/.test(f.name) &&
-          new RegExp(`<link[^>]+href=["']\\.?/?${n}["'][^>]*>`, 'i').test(main)
-        ) {
-          main = main.replace(new RegExp(`<link[^>]+href=["']\\.?/?${n}["'][^>]*>`, 'i'), '');
-          extra.push(`<style>\n${f.code}\n</style>`);
-        }
-        if (
-          /\.js$/.test(f.name) &&
-          new RegExp(`<script[^>]+src=["']\\.?/?${n}["'][^>]*>\\s*</script>`, 'i').test(main)
-        ) {
-          main = main.replace(
-            new RegExp(`<script[^>]+src=["']\\.?/?${n}["'][^>]*>\\s*</script>`, 'i'),
-            '',
-          );
-          extra.push(`<script>\n${f.code}\n</script>`);
-        }
-      }
-      return { main: `${main}\n${extra.join('\n')}`, files: null }; // added at the end, so index.html keeps its line numbers
-    }
-    return { main: all[0].code, files: all.slice(1).map((f) => ({ name: f.name, code: f.code })) };
-  };
-  const openFile = (i) => {
-    if (!filesRef.current) return;
-    filesRef.current = filesRef.current.map((f, k) =>
-      k === fi ? { ...f, code: codeRef.current } : f,
-    );
-    setFi(i);
-    setCode(filesRef.current[i].code);
-    edited.current = true;
-  };
-  const addFile = () => {
-    const web = lang === 'html';
-    const have = filesRef.current || [
-      {
-        name: lesson.file || (lang === 'python' ? 'main.py' : 'index.html'),
-        code: codeRef.current,
-      },
-    ];
-    const names = web
-      ? ['style.css', 'script.js', 'page2.html', 'more.css']
-      : ['helpers.py', 'data.py', 'utils.py', 'module4.py'];
-    const name =
-      names.find((n) => !have.some((f) => f.name === n)) ||
-      `file${have.length + 1}${web ? '.js' : '.py'}`;
-    const starter = name.endsWith('.css')
-      ? '/* styles for your page */\nh1 { color: tomato; }\n'
-      : name.endsWith('.js')
-        ? '// code for your page\ndocument.querySelector("h1").addEventListener("click", () => alert("hi!"));\n'
-        : name.endsWith('.py')
-          ? `# ${name}: import it from ${have[0].name} with: from ${name.slice(0, -3)} import greet\ndef greet(who):\n    return f"Hello, {who}!"\n`
-          : '<!doctype html>\n<h1>Another page</h1>\n';
-    let files = [
-      ...have.map((f, i) => (i === fi ? { ...f, code: codeRef.current } : f)),
-      { name, code: starter },
-    ];
-    // link new CSS/JS files into the page so they work straight away
-    if (web && /\.(css|js)$/.test(name)) {
-      const tag = name.endsWith('.css')
-        ? `<link rel="stylesheet" href="${name}">`
-        : `<script src="${name}"></script>`;
-      const m = files[0].code;
-      files[0] = {
-        ...files[0],
-        code: /<\/body>/i.test(m) ? m.replace(/<\/body>/i, `  ${tag}\n</body>`) : `${m}\n${tag}`,
-      };
-    }
-    filesRef.current = files;
-    onPatch({ files });
-    setFi(files.length - 1);
-    setCode(starter);
-    bumpFiles((x) => x + 1);
-  };
-  const removeFile = (i) => {
-    if (!filesRef.current || i === 0) return;
-    const files = filesRef.current.filter((_, k) => k !== i);
-    filesRef.current = files;
-    onPatch({ files });
-    setFi(0);
-    setCode(files[0].code);
-  };
-
-  // ---- running
-  const doRun = useCallback(
-    async (src = codeRef.current, opts = {}) => {
-      if (!src.trim()) return;
-      if (inflight.current) {
-        queued.current = opts;
-        return;
-      }
-      if (!opts.fromTyping) clearTimeout(liveTimer.current); // a run you asked for (or an answer) replaces the pending re-run
-      if (!opts.keepAnswers) {
-        answersRef.current = [];
-        seedRef.current = Math.floor(Math.random() * 1e9);
-      }
-      inflight.current = true;
-      setRunning(true);
-      setLiveLogs([]);
-      const mine = lidRef.current;
-      const bundle = projectBundle(src);
-      const result = await runCode(
-        lang,
-        'run',
-        bundle.main,
-        {
-          key: lesson.id,
-          answers: [...answersRef.current],
-          seed: seedRef.current,
-          files: bundle.files,
-        },
-        {
-          onLive: (batch) => {
-            if (lidRef.current === mine) setLiveLogs((l) => [...l, ...batch].slice(-400));
-          },
-        },
-      );
-      inflight.current = false;
-      setRunning(false);
-      if (lidRef.current !== mine) {
-        queued.current = null;
-        return;
-      } // the learner moved to another lesson meanwhile
-      setResult(result);
-      props.onResult?.(mine, result, src);
-      if (!opts.quiet) {
-        const streakNow = streak.current;
-        if (result.error) {
-          streakNow.n = streakNow.err === result.error.msg ? streakNow.n + 1 : 1;
-          streakNow.err = result.error.msg;
-          if (streakNow.n >= 3) setStuck({ why: 'error', err: result.error });
-        } else {
-          streakNow.n = 0;
-          streakNow.err = null;
-          setStuck(null);
-        }
-      }
-      if (!opts.quiet) {
-        if (result.error)
-          setTab((t) => (t === 'steps' || t === 'growth' || t === 'tests' ? t : 'output'));
-      }
-      if (!opts.quiet && result.error) haptic('warn'); // (a run you asked for that stopped on an error: you feel it before you read it)
-      // then the one that waited, as asked: an answer typed meanwhile keeps the answers so far (it used to start over and ask again)
-      if (queued.current) {
-        const next = queued.current;
-        queued.current = null;
-        doRun(codeRef.current, { quiet: true, keepAnswers: !!next.keepAnswers });
-      }
-      onMastery?.('run');
-    },
-    [lang, onMastery],
-  );
-
-  const doTrace = useCallback(async () => {
-    setTab('steps');
-    setTracing(true);
-    setPlaying(false);
-    const mine = lidRef.current;
-    const bundle = projectBundle(codeRef.current);
-    const result = await runCode(lang, 'trace', bundle.main, {
-      answers: [...answersRef.current],
-      seed: seedRef.current,
-      files: bundle.files,
-    });
-    setTracing(false);
-    if (lidRef.current !== mine) return; // the learner moved to another lesson meanwhile
-    setTrace(result);
-    setStepIdx(0);
-    if (result.steps?.length) setPlaying(true);
-    onMastery?.('step');
-  }, [lang, onMastery]);
-
-  const doMeasure = useCallback(
-    async (cfg) => {
-      setTab('growth');
-      setMeasuring(true);
-      const mine = lidRef.current;
-      const calls = cfg.calls || [
-        { label: (cfg.call || '').replace(/\(.*$/, '') || 'your function', call: cfg.call },
-      ];
-      const out = [];
-      for (const call of calls) {
-        const result = await runCode(lang, 'growth', codeRef.current, {
-          setup: cfg.setup,
-          call: call.call,
-        });
-        out.push({
-          label: call.label,
-          pts: result.growth?.pts || [],
-          fit: result.growth?.fit,
-          error: result.error?.msg,
-        });
-      }
-      setMeasuring(false);
-      if (lidRef.current !== mine) return;
-      setGrowth(out);
-    },
-    [lang],
-  );
-
-  // races start themselves once the runtime is ready
-  useEffect(() => {
-    if (lesson.race && lesson.growth && (lang !== 'python' || pyReady)) {
-      const t = setTimeout(() => doMeasure(lesson.growth), 400);
-      return () => clearTimeout(t);
-    }
-  }, [lesson.id, pyReady]);
-
-  const doTests = useCallback(async () => {
-    if (!lesson.tests) return;
-    setTab('tests');
-    setTesting(true);
-    const mine = lidRef.current;
-    const result = await runCode(lang, 'tests', codeRef.current, {
-      fn: lesson.tests.fn,
-      cases: lesson.tests.cases,
-    });
-    setTesting(false);
-    if (lidRef.current !== mine) return; // a pass must not count for the lesson you moved to
-    if (result.error) {
-      haptic('warn');
-      setResult(result);
-      setTests(lesson.tests.cases.map(() => ({ ok: false, got: result.error.msg })));
-      return;
-    }
-    setTests(result.tests);
-    haptic(result.tests?.every((x) => x.ok) ? 'success' : 'warn');
-    if (result.tests?.every((x) => x.ok)) {
-      onMastery?.('challenge');
-      streak.current.tests = 0;
-      setStuck(null);
-    } else if (++streak.current.tests >= 3)
-      setStuck({
-        why: 'tests',
-        failing: result.tests.map((x, i) => (x.ok ? null : { i, got: x.got })).filter(Boolean),
-      });
-  }, [lesson.tests, lang, onMastery]);
-
   useImperativeHandle(ref, () => ({
     run: () => doRun(),
     step: doTrace,
@@ -507,8 +244,6 @@ const Desk = forwardRef(function Desk(props, ref) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lesson.id, streaming, pyReady]);
 
-  // live re-run while typing (debounced)
-  const liveTimer = useRef(null);
   const onChange = (v, scrub) => {
     edited.current = true;
     setCode(v);
@@ -628,6 +363,19 @@ const Desk = forwardRef(function Desk(props, ref) {
     addEventListener('message', h);
     return () => removeEventListener('message', h);
   }, [lang]);
+  const { makeTwin, mapTo, setTwinHover, switchToTwin, twin, twinBusy, twinHover } = useTwin({
+    code,
+    edited,
+    lang,
+    lesson,
+    model,
+    onPatch,
+    quick,
+    setCode,
+    setLens,
+    setResult,
+    setTrace,
+  });
   const marks = useMemo(
     () => ({
       link:
@@ -662,93 +410,6 @@ const Desk = forwardRef(function Desk(props, ref) {
       }),
     [lang, english, model, quick],
   );
-
-  // ---- twin language
-  const twin = lesson.twin && lesson.twin.src === code ? lesson.twin : lesson.twin;
-  const makeTwin = async () => {
-    setLens('twin');
-    if (lesson.twin && lesson.twin.src === code) return;
-    setTwinBusy(true);
-    try {
-      const reply = await quick(
-        model,
-        quickPrompts.twin({ code, from: LNAME[lang], to: LNAME[other(lang)] }),
-      );
-      const j = parseJSONLoose(reply);
-      if (j?.code)
-        onPatch({ twin: { lang: other(lang), code: j.code, map: j.map || [], src: code } });
-    } finally {
-      setTwinBusy(false);
-    }
-  };
-  const mapTo = (line, dir) => {
-    const m = (twin?.map || [])
-      .filter((p) => (dir ? p[0] : p[1]) === line)
-      .map((p) => (dir ? p[1] : p[0]));
-    return m.length ? [Math.min(...m), Math.max(...m)] : null;
-  };
-  const switchToTwin = () => {
-    if (!twin) return;
-    const next = twin.code;
-    onPatch({
-      lang: twin.lang,
-      code: next,
-      work: null,
-      pseudo: [],
-      pmap: {},
-      file: (lesson.file || 'main').replace(/\.\w+$/, twin.lang === 'python' ? '.py' : '.js'),
-      twin: { lang, code, map: (twin.map || []).map(([a, b]) => [b, a]), src: next },
-    });
-    edited.current = false;
-    setCode(next);
-    setLens('code');
-    setResult(null);
-    setTrace(null);
-  };
-
-  // ---- drag the stage divider
-  const deskRef = useRef(null);
-  const dragDiv = (e) => {
-    e.preventDefault();
-    const rect = deskRef.current.getBoundingClientRect();
-    const mv = (ev) =>
-      setSplit(Math.min(0.82, Math.max(0.22, (ev.clientY - rect.top) / rect.height)));
-    const up = () => {
-      removeEventListener('mousemove', mv);
-      removeEventListener('mouseup', up);
-    };
-    addEventListener('mousemove', mv);
-    addEventListener('mouseup', up);
-  };
-  // (with a finger: the bar follows it, and settles with a tick at the three sizes a phone wants: more code, even, more output)
-  const touchDiv = (e) => {
-    if (e.touches.length !== 1) return;
-    const el = e.currentTarget;
-    const rect = deskRef.current.getBoundingClientRect();
-    let y = e.touches[0].clientY;
-    el.classList.add('held');
-    haptic('light');
-    const mv = (ev) => {
-      ev.preventDefault();
-      y = ev.touches[0].clientY;
-      setSplit(Math.min(0.82, Math.max(0.22, (y - rect.top) / rect.height)));
-    };
-    const up = () => {
-      el.classList.remove('held');
-      el.removeEventListener('touchmove', mv);
-      el.removeEventListener('touchend', up);
-      el.removeEventListener('touchcancel', up);
-      const f = (y - rect.top) / rect.height;
-      const snap = [0.3, 0.56, 0.78].reduce((a, c) => (Math.abs(c - f) < Math.abs(a - f) ? c : a));
-      deskRef.current.classList.add('settling');
-      setSplit(snap);
-      haptic('select');
-      setTimeout(() => deskRef.current?.classList.remove('settling'), 420);
-    };
-    el.addEventListener('touchmove', mv, { passive: false });
-    el.addEventListener('touchend', up);
-    el.addEventListener('touchcancel', up);
-  };
 
   // A freshly written example that crashes gets one quiet repair (never for challenges, where the bug is the point).
   const repairTried = useRef(new Set());
@@ -1530,46 +1191,5 @@ const Desk = forwardRef(function Desk(props, ref) {
     </div>
   );
 });
-export default Desk;
 
-function Interlinear({ code, english, hoverLine, setHoverLine, onPick, step, notes }) {
-  const lines = code.split('\n');
-  const noteAt = new Map((notes || []).map((n) => [n.from, n]));
-  return (
-    <div className="interlinear">
-      {lines.map((line, i) => {
-        const e = english[i];
-        const blank = !line.trim();
-        if (blank) return <div key={i} className="il-gap" />;
-        const indent = line.match(/^\s*/)[0].length;
-        const note = noteAt.get(i + 1);
-        return (
-          <div
-            key={i}
-            className={`il ${hoverLine === i + 1 ? 'hot' : ''} ${step === i + 1 ? 'step' : ''}`}
-            onMouseEnter={() => setHoverLine(i + 1)}
-            onMouseLeave={() => setHoverLine(null)}
-            onClick={() => onPick(i + 1)}
-          >
-            <span className="il-n">{i + 1}</span>
-            <div className="il-body" style={{ paddingLeft: Math.min(indent, 16) * 7 }}>
-              <div className={`il-en ${e === null ? 'pending' : ''}`}>
-                {e === null ? (
-                  <span className="en-shimmer" />
-                ) : (
-                  e || <span className="il-dim">—</span>
-                )}
-              </div>
-              <code className="il-code">{line.trim()}</code>
-              {note && (
-                <div className="il-note">
-                  <b>{note.label}</b> {note.text}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+export default Desk;
