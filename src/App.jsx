@@ -1,54 +1,61 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SAMPLES, CHALLENGE, parseJSONLoose } from './lesson.js';
-// when a lesson finishes: slipped plain English is written again, slipped line links moved back
-import Home from './ui/Home.jsx';
-import Explore from './ui/Explore.jsx';
-import Ideas from './ui/Ideas.jsx';
-import Onboarding from './ui/Onboarding.jsx';
-import Words from './ui/Words.jsx';
-import Palette from './ui/Palette.jsx';
-import Compare from './ui/Compare.jsx';
-import Path from './ui/Path.jsx';
-import Settings from './ui/Settings.jsx';
-import Site from './ui/Site.jsx';
-import Coach from './ui/Coach.jsx';
-import Puzzles from './ui/Puzzles.jsx';
-import { useT, t } from './i18n.js';
-import SkillMap from './ui/SkillMap.jsx';
-import Playgrounds from './ui/Playgrounds.jsx';
-import { SKILLS } from './skills.js';
-import { loadPacks, savePacks, validatePack, applyPacks } from './packs.js';
-import { PRE, loadPrebuilt } from './prebuilt.js'; // lessons that ship already written, loaded just after the first screen
-import FindBar from './ui/FindBar.jsx';
-import KeySheet from './ui/KeySheet.jsx';
-import LessonScreen from './screens/LessonScreen.jsx';
-import AtlasScreen from './screens/AtlasScreen.jsx';
+
 import { noAI } from './ai.js';
-import { Sidebar, modelLabel, groupOf, rememberTab } from './ui/Side.jsx';
-import Icon from './ui/Icons.jsx';
 import { api } from './bridge.js';
-import { WEB } from './web.js';
-import useLibrary from './hooks/useLibrary.js';
-import { load, save } from './store.js';
-import { useNarrow, TopBar, TabBar, isRoot, noteScroll } from './ui/Phone.jsx';
+import { useT, t } from './i18n.js';
+import { SAMPLES, CHALLENGE, parseJSONLoose } from './lesson.js';
+import { loadPacks, savePacks, validatePack, applyPacks } from './packs.js';
 import { keys, TOUCH } from './platform.js';
-import useSettings from './hooks/useSettings.js';
-import usePersistence, { settle } from './hooks/usePersistence.js';
-import useLessons, { RACE_LESSONS } from './hooks/useLessons.js';
-import useConnections from './hooks/useConnections.js';
-import useDeepLinks from './hooks/useDeepLinks.js';
-import useStarters from './hooks/useStarters.js';
-import useLearningPath from './hooks/useLearningPath.jsx';
-import useProgressSummary from './hooks/useProgressSummary.js';
-import useQuestionRouting from './hooks/useQuestionRouting.js';
-import useExplanations from './hooks/useExplanations.js';
-import useFileDrop from './hooks/useFileDrop.js';
-import useShortcuts from './hooks/useShortcuts.js';
-import useNavigation from './hooks/useNavigation.js';
-import useAgentBridge from './hooks/useAgentBridge.js';
-import useFallbackNotice from './hooks/useFallbackNotice.js';
-import useScriptHooks from './hooks/useScriptHooks.js';
-import useAtlasQuestions from './hooks/useAtlasQuestions.js';
+import { PRE, loadPrebuilt } from './prebuilt.js'; // lessons that ship already written, loaded just after the first screen
+import { SKILLS } from './skills.js';
+import { load, save } from './store.js';
+import { WEB } from './web.js';
+
+import {
+  useAgentBridge,
+  useAtlasQuestions,
+  useConnections,
+  useDeepLinks,
+  useExplanations,
+  useFallbackNotice,
+  useFileDrop,
+  useLearningPath,
+  useLessons,
+  useLibrary,
+  useNavigation,
+  usePersistence,
+  useProgressSummary,
+  useQuestionRouting,
+  useScriptHooks,
+  useSettings,
+  useShortcuts,
+  useStarters,
+  RACE_LESSONS,
+  settle,
+} from './hooks/index.js';
+
+import AtlasScreen from './screens/AtlasScreen.jsx';
+import LessonScreen from './screens/LessonScreen.jsx';
+
+import Coach from './ui/Coach.jsx';
+import Compare from './ui/Compare.jsx';
+import Explore from './ui/Explore.jsx';
+import FindBar from './ui/FindBar.jsx';
+import Home from './ui/Home.jsx';
+import Icon from './ui/Icons.jsx';
+import Ideas from './ui/Ideas.jsx';
+import KeySheet from './ui/KeySheet.jsx';
+import Onboarding from './ui/Onboarding.jsx';
+import Palette from './ui/Palette.jsx';
+import Path from './ui/Path.jsx';
+import { useNarrow, TopBar, TabBar, isRoot, noteScroll } from './ui/Phone.jsx';
+import Playgrounds from './ui/Playgrounds.jsx';
+import Puzzles from './ui/Puzzles.jsx';
+import Settings from './ui/Settings.jsx';
+import { Sidebar, modelLabel, groupOf, rememberTab } from './ui/Side.jsx';
+import Site from './ui/Site.jsx';
+import SkillMap from './ui/SkillMap.jsx';
+import Words from './ui/Words.jsx';
 
 // how much you learned each day (lessons + new words), for the activity grid on Home
 const activityByDay = (ls, words = {}) => {

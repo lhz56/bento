@@ -1,0 +1,19 @@
+// The app's state and behaviour, one hook per job. App.jsx wires them together.
+export { default as useLibrary } from './useLibrary.js';
+export { default as useSettings } from './useSettings.js';
+export { default as usePersistence, settle } from './usePersistence.js';
+export { default as useLessons, RACE_LESSONS } from './useLessons.js';
+export { default as useConnections } from './useConnections.js';
+export { default as useDeepLinks } from './useDeepLinks.js';
+export { default as useStarters } from './useStarters.js';
+export { default as useLearningPath } from './useLearningPath.jsx';
+export { default as useProgressSummary } from './useProgressSummary.js';
+export { default as useQuestionRouting } from './useQuestionRouting.js';
+export { default as useExplanations } from './useExplanations.js';
+export { default as useFileDrop } from './useFileDrop.js';
+export { default as useShortcuts } from './useShortcuts.js';
+export { default as useNavigation } from './useNavigation.js';
+export { default as useAgentBridge } from './useAgentBridge.js';
+export { default as useFallbackNotice } from './useFallbackNotice.js';
+export { default as useScriptHooks } from './useScriptHooks.js';
+export { default as useAtlasQuestions } from './useAtlasQuestions.js';

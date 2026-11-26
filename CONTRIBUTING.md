@@ -7,7 +7,8 @@ Thanks for helping people learn how software works.
 - **Formatting is Prettier's** (`npm run format`), at 100 columns. Don't hand-format.
 - **Names say what a thing is**: `lesson`, `atlas`, `facts`, `narration`, not `L`, `A`, `F`, `N`. Single letters
   are fine for loop indices, coordinates and callbacks a line or two long (`(x) => x.id`).
-- **One job per file.** A new group of IPC handlers is a module in `electron/ipc/` that exports `register(ctx)`. A
+- **One job per file.** New app behaviour is a hook in `src/hooks/` (exported from its `index.js`) that takes
+  what it needs as named arguments and returns what the screens use. A new group of IPC handlers is a module in `electron/ipc/` that exports `register(ctx)`. A
   new screen is a component in `src/screens/`, with its own styles in `src/styles/app/` (added to `index.css` in
   cascade order).
 - **Types live in JSDoc** (`/** @param {string} q */`), checked by `npm run typecheck`. New non-component modules

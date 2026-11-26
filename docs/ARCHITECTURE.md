@@ -24,7 +24,7 @@ Each AI has one adapter in `electron/providers.cjs`; its name, models, plan and 
 
 `test/fixtures/fake-ai.mjs` has a pretend twin of each that refuses to run unless those options are there, so `test/features.test.mjs` and `scripts/smoke-ais.mjs` fail the moment one goes missing.
 
-Output streams back line by line (`ask:chunk`). Thinking progress arrives as `ask:think`. Errors are translated into plain advice by `humanize()` (usage limit, signed out, not installed). When the error is about the account (limit, signed out, missing), Bento retries with the next AI you have, in the catalog's order: lessons in `askLesson` (`src/App.jsx`), Atlas readings in `narrate` (`src/hooks/useLibrary.js`) and quick calls in the `quick` handler. The learner's chosen language is appended to every system prompt by `withVoice()`.
+Output streams back line by line (`ask:chunk`). Thinking progress arrives as `ask:think`. Errors are translated into plain advice by `humanize()` (usage limit, signed out, not installed). When the error is about the account (limit, signed out, missing), Bento retries with the next AI you have, in the catalog's order: lessons in `askLesson` (`src/hooks/useLessons.js`), Atlas readings in `narrate` (`src/hooks/useLibrary.js`) and quick calls in the `quick` handler. The learner's chosen language is appended to every system prompt by `withVoice()`.
 
 ## 2. Lessons are streamed blocks
 
@@ -121,7 +121,7 @@ own agent (Claude Code, Codex, Gemini, Copilot, Cursor…) does the thinking and
 spends nothing of your plan.
 
 ```
- agent ──stdio, MCP──▶ Bento --mcp (no window, no Dock icon) ──socket──▶ the open Bento (ipc/agent.cjs) ──IPC──▶ App.jsx
+ agent ──stdio, MCP──▶ Bento --mcp (no window, no Dock icon) ──socket──▶ the open Bento (ipc/agent.cjs) ──IPC──▶ useAgentBridge
 ```
 
 - **`Bento --mcp`** is the app itself, started by the agent with one switch. `main.cjs` sees it before anything else
@@ -131,7 +131,7 @@ spends nothing of your plan.
 - **The socket** is `agent.sock` in Bento's data folder (a named pipe on Windows), made by `serve()` once the app is
   ready, readable only by your user (0600). Arguments are checked in `checkArgs()` before the window sees them, and the
   agent gets a sentence it can act on when something is wrong.
-- **The window** (`App.jsx`, with the pure parts in `src/agent.js`) does each tool: `show_lesson` turns the agent's
+- **The window** (`src/hooks/useAgentBridge.js`, with the pure parts in `src/agent.js`) does each tool: `show_lesson` turns the agent's
   fields into Bento blocks and opens a finished lesson signed "from Claude Code" (it waits for the first run and reports
   it), `get_learner_view` describes the page and the editor's code with line numbers, `highlight_code` sets the same
   line highlight a `[[4-6|link]]` does and pins the note open, `run_code` runs through the desk and reports logs,
@@ -164,10 +164,12 @@ electron/                 the main process (Node)
   providers.cjs           one adapter per AI CLI;  prompts.cjs  the system prompts
   atlas.cjs, worker.cjs   static analysis of a repo, on a thread of its own
 src/                      the renderer (React)
-  App.jsx                 app state and navigation; each screen is its own component
+  App.jsx                 wires the hooks together and lays out the screens
   screens/                the larger screens App.jsx shows (a lesson, a project's Atlas)
   ui/                     components
-  hooks/                  state that belongs together (useLibrary: repos, folders, sites)
+  hooks/                  the app's state and behaviour, one hook per job: useLessons (opening and asking),
+                          usePersistence (saving), useQuestionRouting, useNavigation, useLibrary (repos,
+                          folders, sites)... index.js lists them all
   runtime/                running code: Python, JavaScript, TypeScript workers
   atlas/                  what a repo is made of (stack detection, the catalog, prompts)
   styles/app, styles/touch  the styles, one file per screen, imported in cascade order by index.css
