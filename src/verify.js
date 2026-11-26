@@ -244,8 +244,8 @@ export function applyCheck(lesson, j) {
   const corrections = [];
   let story = [...(lesson.story || [])];
   let qi = -1;
-  story = story.map((b) => {
-    if (b.t !== 'quiz') return b;
+  story = story.map((block) => {
+    if (block.t !== 'quiz') return block;
     qi++;
     const v = (j?.quizzes || []).find((x) => x.i === qi);
     if (
@@ -253,17 +253,22 @@ export function applyCheck(lesson, j) {
       !v.sure ||
       !Number.isInteger(v.correct) ||
       v.correct < 0 ||
-      v.correct >= b.choices.length ||
-      v.correct === b.answer
+      v.correct >= block.choices.length ||
+      v.correct === block.answer
     )
-      return b;
-    corrections.push({ kind: 'quiz', was: b.choices[b.answer], now: b.choices[v.correct], q: b.q });
+      return block;
+    corrections.push({
+      kind: 'quiz',
+      was: block.choices[block.answer],
+      now: block.choices[v.correct],
+      q: block.q,
+    });
     // the old explanation argued for the wrong answer, so it goes too
     const why =
       String(v.why || '').trim() ||
-      `The code’s real output shows the answer is ${b.choices[v.correct]}.`;
+      `The code’s real output shows the answer is ${block.choices[v.correct]}.`;
     return {
-      ...b,
+      ...block,
       answer: v.correct,
       why: `${why} (Bento double-checked this against the code’s real output.)`,
     };

@@ -83,10 +83,10 @@ export default function Ideas({
               </span>
             </div>
             <div className="race-row">
-              {races.map((r, i) => (
-                <button key={r.id} className="race-card" onClick={() => onRace(r)}>
+              {races.map((race, i) => (
+                <button key={race.id} className="race-card" onClick={() => onRace(race)}>
                   <svg viewBox="0 0 120 54" className="race-art" aria-hidden="true">
-                    {(r.growth.calls || []).map((c, k) => {
+                    {(race.growth.calls || []).map((c, k) => {
                       const f = [
                         (x) => x * x * 0.9,
                         (x) => x * 1.6 + 2,
@@ -110,8 +110,8 @@ export default function Ideas({
                       );
                     })}
                   </svg>
-                  <b>{r.title.split(':')[0]}</b>
-                  <span>{r.title.split(':')[1]?.trim()}</span>
+                  <b>{race.title.split(':')[0]}</b>
+                  <span>{race.title.split(':')[1]?.trim()}</span>
                 </button>
               ))}
             </div>

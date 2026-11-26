@@ -51,64 +51,69 @@ export function emptyLesson(q, opts = {}) {
 }
 
 // Apply one parsed block to a lesson (returns a new lesson object)
-export function applyBlock(lesson, b) {
-  if (!b || typeof b !== 'object' || !b.t) return lesson;
-  const l = { ...lesson };
-  switch (b.t) {
+export function applyBlock(lesson, block) {
+  if (!block || typeof block !== 'object' || !block.t) return lesson;
+  const next = { ...lesson };
+  switch (block.t) {
     case 'title':
-      l.title = b.title || l.title;
-      l.kicker = b.kicker || '';
-      if (b.lang) l.lang = langOf(b.lang, l.lang);
-      l.concepts = Array.isArray(b.concepts) ? b.concepts : [];
+      next.title = block.title || next.title;
+      next.kicker = block.kicker || '';
+      if (block.lang) next.lang = langOf(block.lang, next.lang);
+      next.concepts = Array.isArray(block.concepts) ? block.concepts : [];
       break;
     case 'code':
-      l.code = String(b.code || '').replace(/\s+$/, '');
-      l.file = b.file || l.file;
-      if (b.lang) l.lang = langOf(b.lang, l.lang);
+      next.code = String(block.code || '').replace(/\s+$/, '');
+      next.file = block.file || next.file;
+      if (block.lang) next.lang = langOf(block.lang, next.lang);
       break;
     case 'pseudo':
-      l.pseudo = Array.isArray(b.lines) ? b.lines.map(String) : [];
+      next.pseudo = Array.isArray(block.lines) ? block.lines.map(String) : [];
       break;
     case 'notes':
-      l.notes = (b.items || []).filter((n) => n && n.from).slice(0, 6);
+      next.notes = (block.items || []).filter((n) => n && n.from).slice(0, 6);
       break;
     case 'growth':
-      l.growth = b;
+      next.growth = block;
       break;
     case 'tests':
-      l.tests = b;
+      next.tests = block;
       break;
     case 'hints':
-      l.hints = b.items || [];
+      next.hints = block.items || [];
       break;
     case 'step': {
-      l.steps = [
-        ...l.steps,
-        { title: b.title, file: b.file, md: b.md, code: String(b.code || '').replace(/\s+$/, '') },
+      next.steps = [
+        ...next.steps,
+        {
+          title: block.title,
+          file: block.file,
+          md: block.md,
+          code: String(block.code || '').replace(/\s+$/, ''),
+        },
       ];
-      l.code = l.steps[l.steps.length - 1].code;
-      l.file = b.file || l.file;
-      l.story = [...l.story, { t: 'step', i: l.steps.length - 1 }];
+      next.code = next.steps[next.steps.length - 1].code;
+      next.file = block.file || next.file;
+      next.story = [...next.story, { t: 'step', i: next.steps.length - 1 }];
       break;
     }
     case 'term':
-      l.terms = [...(l.terms || []), b];
-      l.story = [...l.story, b];
+      next.terms = [...(next.terms || []), block];
+      next.story = [...next.story, block];
       break;
     case 'diagram':
-      if (Array.isArray(b.nodes) && b.nodes.length) l.story = [...l.story, b];
+      if (Array.isArray(block.nodes) && block.nodes.length) next.story = [...next.story, block];
       break;
     case 'p':
     case 'h':
     case 'quiz':
     case 'try':
     case 'next':
-      l.story = [...l.story, b];
+      next.story = [...next.story, block];
       break;
     default:
       break;
   }
-  return l;
+  return next;
 }
 
 // Incremental NDJSON parser tolerant of code fences and pretty-printed objects.

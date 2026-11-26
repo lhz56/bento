@@ -551,33 +551,34 @@ export default function City({
             </radialGradient>
           </defs>
           {/* ground */}
-          {city.map((d) => {
-            const c = LAYER[d.id][3];
+          {city.map((district) => {
+            const color = LAYER[district.id][3];
             const pts = [
-              project(d.x, d.y),
-              project(d.x + d.W, d.y),
-              project(d.x + d.W, d.y + d.D),
-              project(d.x, d.y + d.D),
+              project(district.x, district.y),
+              project(district.x + district.W, district.y),
+              project(district.x + district.W, district.y + district.D),
+              project(district.x, district.y + district.D),
             ];
             const lip = [
-              project(d.x, d.y + d.D),
-              project(d.x + d.W, d.y + d.D),
-              project(d.x + d.W, d.y + d.D, -0.28),
-              project(d.x, d.y + d.D, -0.28),
+              project(district.x, district.y + district.D),
+              project(district.x + district.W, district.y + district.D),
+              project(district.x + district.W, district.y + district.D, -0.28),
+              project(district.x, district.y + district.D, -0.28),
             ];
             const lip2 = [
-              project(d.x + d.W, d.y),
-              project(d.x + d.W, d.y + d.D),
-              project(d.x + d.W, d.y + d.D, -0.28),
-              project(d.x + d.W, d.y, -0.28),
+              project(district.x + district.W, district.y),
+              project(district.x + district.W, district.y + district.D),
+              project(district.x + district.W, district.y + district.D, -0.28),
+              project(district.x + district.W, district.y, -0.28),
             ];
-            const on = hoveredD === d.id || (lit && d.lots.some((l) => lit.has(`f:${l.i}`)));
+            const on =
+              hoveredD === district.id || (lit && district.lots.some((l) => lit.has(`f:${l.i}`)));
             return (
               <g
-                key={d.id}
+                key={district.id}
                 className={`plot ${on ? 'on' : ''}`}
-                style={{ '--c': c }}
-                onMouseEnter={() => setHover(`d:${d.id}`)}
+                style={{ '--c': color }}
+                onMouseEnter={() => setHover(`d:${district.id}`)}
                 onMouseLeave={() => setHover(null)}
               >
                 <polygon className="plot-lip" points={lip.map((p) => p.join(',')).join(' ')} />
@@ -587,20 +588,20 @@ export default function City({
             );
           })}
           {/* buildings */}
-          {lots.map((l) => {
-            const key = `f:${l.i}`;
-            const f = l.f;
-            const h = bh(f);
+          {lots.map((lot) => {
+            const key = `f:${lot.i}`;
+            const file = lot.f;
+            const h = bh(file);
             const w = 0.62;
-            const topLeft = project(l.lx, l.ly, h),
-              topRight = project(l.lx + w, l.ly, h),
-              bottomRight = project(l.lx + w, l.ly + w, h),
-              bottomLeft = project(l.lx, l.ly + w, h);
-            const B0 = project(l.lx + w, l.ly),
-              C0 = project(l.lx + w, l.ly + w),
-              D0 = project(l.lx, l.ly + w);
-            const c = LAYER[l.d.id][3];
-            const hv = heatOn ? heat(f, maxUsed) : 0;
+            const topLeft = project(lot.lx, lot.ly, h),
+              topRight = project(lot.lx + w, lot.ly, h),
+              bottomRight = project(lot.lx + w, lot.ly + w, h),
+              bottomLeft = project(lot.lx, lot.ly + w, h);
+            const B0 = project(lot.lx + w, lot.ly),
+              C0 = project(lot.lx + w, lot.ly + w),
+              D0 = project(lot.lx, lot.ly + w);
+            const color = LAYER[lot.d.id][3];
+            const hv = heatOn ? heat(file, maxUsed) : 0;
             const side =
               hv > 0.3
                 ? `color-mix(in srgb, var(--rose) ${Math.round(hv * 80)}%, var(--bsid))`
@@ -615,10 +616,10 @@ export default function City({
               <g
                 key={key}
                 className={cls}
-                data-p={f.p}
+                data-p={file.p}
                 style={{
-                  '--c': c,
-                  '--roof': f.lang ? langColor(f.lang) : 'var(--ink-4)',
+                  '--c': color,
+                  '--roof': file.lang ? langColor(file.lang) : 'var(--ink-4)',
                   '--side': side,
                 }}
                 onMouseEnter={() => setHover(key)}
@@ -629,7 +630,7 @@ export default function City({
                     setHover(key);
                     return;
                   }
-                  onOpen(f.p);
+                  onOpen(file.p);
                 }}
               >
                 <polygon
@@ -655,7 +656,7 @@ export default function City({
                     className="heat-glow"
                   />
                 )}
-                {f.entry && (
+                {file.entry && (
                   <g
                     transform={`translate(${(topLeft[0] + bottomRight[0]) / 2},${(topLeft[1] + bottomRight[1]) / 2})`}
                     className="flag"
@@ -664,7 +665,7 @@ export default function City({
                     <path d="M0,-14 L9,-11 L0,-8 Z" />
                   </g>
                 )}
-                {f.used >= Math.max(5, maxUsed * 0.5) && (
+                {file.used >= Math.max(5, maxUsed * 0.5) && (
                   <g
                     transform={`translate(${(topLeft[0] + bottomRight[0]) / 2},${(topLeft[1] + bottomRight[1]) / 2})`}
                     className="beacon"
@@ -682,10 +683,10 @@ export default function City({
               outside help
             </text>
           )}
-          {svcs.map((s) => {
-            const key = `s:${s.id}`;
+          {svcs.map((svc) => {
+            const key = `s:${svc.id}`;
             const [x, y] = svcPos[key];
-            const ic = ICONS[s.slug];
+            const ic = ICONS[svc.slug];
             const cls = [
               'svc-n',
               lit ? (lit.has(key) ? 'lit' : 'dim') : '',
@@ -708,12 +709,12 @@ export default function City({
                     style={{ fill: lumDark(ic[0]) ? 'var(--svc-ink)' : `#${ic[0]}` }}
                   />
                 ) : (
-                  <text className="svc-mono" dy="4.5" style={{ fill: s.color || 'var(--ink-2)' }}>
-                    {s.name.slice(0, 2)}
+                  <text className="svc-mono" dy="4.5" style={{ fill: svc.color || 'var(--ink-2)' }}>
+                    {svc.name.slice(0, 2)}
                   </text>
                 )}
                 <text className="svc-name" y="32">
-                  {s.name}
+                  {svc.name}
                 </text>
               </g>
             );
@@ -755,30 +756,30 @@ export default function City({
             </g>
           ))}
           {/* district signs */}
-          {city.map((d) => {
-            const [x, y] = project(d.x + d.W, d.y + d.D);
-            const [, name] = LAYER[d.id];
-            const label = `${GLYPH[d.id]}  ${name}`;
+          {city.map((district) => {
+            const [x, y] = project(district.x + district.W, district.y + district.D);
+            const [, name] = LAYER[district.id];
+            const label = `${GLYPH[district.id]}  ${name}`;
             const w = label.length * 7 + 40;
             return (
               <g
-                key={`s${d.id}`}
-                className={`sign ${hoveredD === d.id ? 'on' : ''}`}
-                style={{ '--c': LAYER[d.id][3] }}
+                key={`s${district.id}`}
+                className={`sign ${hoveredD === district.id ? 'on' : ''}`}
+                style={{ '--c': LAYER[district.id][3] }}
                 transform={`translate(${x - w / 2},${y + 14})`}
-                onMouseEnter={() => setHover(`d:${d.id}`)}
+                onMouseEnter={() => setHover(`d:${district.id}`)}
                 onMouseLeave={() => setHover(null)}
                 {...pressable(() =>
-                  window.dispatchEvent(new CustomEvent('atlas-layer', { detail: d.id })),
+                  window.dispatchEvent(new CustomEvent('atlas-layer', { detail: district.id })),
                 )}
               >
-                <title>Show every file in {LAYER[d.id][1]}</title>
+                <title>Show every file in {LAYER[district.id][1]}</title>
                 <rect width={w} height="22" rx="11" />
                 <text x="11" y="15">
                   {label}
                 </text>
                 <text className="sign-n" x={w - 11} y="15" textAnchor="end">
-                  {d.total}
+                  {district.total}
                 </text>
               </g>
             );

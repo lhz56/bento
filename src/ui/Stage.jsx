@@ -968,19 +968,22 @@ function RaceBars({ series }) {
   return (
     <div className="race-bars">
       <div className="col-h">the race at n = {common.toLocaleString()}</div>
-      {at.map((a, k) => (
-        <div key={a.i} className="rb">
+      {at.map((mark, k) => (
+        <div key={mark.i} className="rb">
           <span className="rb-l mono">
             {k === 0 ? '🏁 ' : ''}
-            {a.label}
+            {mark.label}
           </span>
           <span className="rb-track">
-            <i className={`s${a.i}`} style={{ width: `${Math.max(1.5, (a.c / max) * 100)}%` }} />
+            <i
+              className={`s${mark.i}`}
+              style={{ width: `${Math.max(1.5, (mark.c / max) * 100)}%` }}
+            />
           </span>
           <span className="rb-n">
-            {a.c.toLocaleString()} steps
-            {k > 0 && a.c / best >= 1.5 ? (
-              <b> · {Math.round(a.c / best).toLocaleString()}× more</b>
+            {mark.c.toLocaleString()} steps
+            {k > 0 && mark.c / best >= 1.5 ? (
+              <b> · {Math.round(mark.c / best).toLocaleString()}× more</b>
             ) : (
               ''
             )}

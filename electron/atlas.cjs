@@ -95,23 +95,27 @@ const LOCK =
 function run(cmd, args, opts = {}, onErrLine) {
   return new Promise((resolve, reject) => {
     // git and gh are real programs on every system (git.exe, gh.exe on Windows): started directly, never through a shell
-    const c = spawn(cmd, args, { ...opts, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    const child = spawn(cmd, args, {
+      ...opts,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+    });
     let out = '',
       err = '';
-    c.stdout.on('data', (d) => {
+    child.stdout.on('data', (d) => {
       out += d;
       if (opts.maxOut && out.length > opts.maxOut) {
-        c.kill();
+        child.kill();
         reject(new Error('too much history'));
       }
     });
-    c.stderr.on('data', (d) => {
+    child.stderr.on('data', (d) => {
       const s = d.toString();
       err += s;
       if (onErrLine) s.split(/[\r\n]+/).forEach((l) => l && onErrLine(l));
     });
-    c.on('error', reject);
-    c.on('close', (code) =>
+    child.on('error', reject);
+    child.on('close', (code) =>
       code === 0
         ? resolve(out)
         : reject(
@@ -158,27 +162,27 @@ async function fetchRepo({ full, base, env, hasGh, onProgress }) {
 
 // what git or gh said when a download failed, as a sentence for people (never its raw output, with its temp paths)
 function downloadTrouble(full, said) {
-  const m = String(said || '');
+  const text = String(said || '');
   if (
-    /Repository not found|not found|does not exist|Could not read from remote/i.test(m) &&
-    !/resolve host/i.test(m)
+    /Repository not found|not found|does not exist|Could not read from remote/i.test(text) &&
+    !/resolve host/i.test(text)
   )
     return `Couldn’t find ${full} on GitHub. Is the name right, and is it public (or yours)?`;
   if (
     /resolve host|Failed to connect|unable to access|Could not connect|timed out|Network is unreachable|Connection refused|Connection reset|proxy|SSL|TLS|early EOF|RPC failed|ENOTFOUND|ECONNREFUSED|ETIMEDOUT/i.test(
-      m,
+      text,
     )
   )
     return `Couldn’t reach GitHub to download ${full}. Check your internet connection, then try again.`;
-  if (/No space left|ENOSPC/i.test(m))
+  if (/No space left|ENOSPC/i.test(text))
     return `Your disk is full, so ${full} couldn’t be downloaded. Free up some space, then try again.`;
-  if (/ENOENT|command not found|spawn git/i.test(m))
+  if (/ENOENT|command not found|spawn git/i.test(text))
     return process.platform === 'win32'
       ? 'Downloading projects needs git, which isn’t on this PC yet. Install it from git-scm.com, then open Bento again.'
       : process.platform === 'darwin'
         ? 'Downloading projects needs git, which isn’t on this Mac yet. Install it with: xcode-select --install'
         : 'Downloading projects needs git. Install it with your package manager, then open Bento again.';
-  if (/Authentication|could not read Username|terminal prompts disabled|403/i.test(m))
+  if (/Authentication|could not read Username|terminal prompts disabled|403/i.test(text))
     return `GitHub wouldn’t let Bento download ${full}. If it’s private, sign in with gh auth login in Terminal.`;
   return `Couldn’t download ${full}. Try again in a moment.`;
 }
@@ -194,8 +198,8 @@ function walkAll(root) {
     } catch {
       return;
     }
-    for (const d of ents) {
-      const name = d.name;
+    for (const entry of ents) {
+      const name = entry.name;
       if (SKIP.has(name)) continue;
       if (
         name.startsWith('.') &&
@@ -215,8 +219,8 @@ function walkAll(root) {
       )
         continue;
       const r = rel ? `${rel}/${name}` : name;
-      if (d.isDirectory()) go(r, depth + 1);
-      else if (d.isFile()) out.push(r);
+      if (entry.isDirectory()) go(r, depth + 1);
+      else if (entry.isFile()) out.push(r);
     }
   };
   go('', 0);
@@ -667,18 +671,18 @@ function analyze(root, meta = {}) {
       dirFiles.get(d).push(f.p);
     }
 
-  for (const f of files) {
-    const t = f._t;
+  for (const file of files) {
+    const t = file._t;
     if (!t) continue;
     const imp = new Set(),
       ext = new Set();
-    if (['TypeScript', 'JavaScript', 'Vue', 'Svelte', 'Astro'].includes(f.lang)) {
+    if (['TypeScript', 'JavaScript', 'Vue', 'Svelte', 'Astro'].includes(file.lang)) {
       let m;
       JS_RX.lastIndex = 0;
       while ((m = JS_RX.exec(t))) {
         const spec = m[1] || m[2] || m[3];
         if (!spec) continue;
-        const r = resolveJs(f.p, spec);
+        const r = resolveJs(file.p, spec);
         if (r) imp.add(r);
         else if (r === null && !spec.startsWith('.') && !spec.startsWith('/')) {
           if (spec.startsWith('node:') || NODE_BUILTIN.has(spec.split('/')[0])) continue;
@@ -688,27 +692,27 @@ function analyze(root, meta = {}) {
           if (pkg && !/^[$~#]/.test(pkg)) ext.add(pkg);
         }
       }
-    } else if (f.lang === 'Python') {
-      let m;
+    } else if (file.lang === 'Python') {
+      let match;
       PY_RX.lastIndex = 0;
-      while ((m = PY_RX.exec(t))) {
-        if (m[1]) {
-          const names = (m[2] || m[3] || '')
+      while ((match = PY_RX.exec(t))) {
+        if (match[1]) {
+          const names = (match[2] || match[3] || '')
             .split(/[,\s()]+/)
             .filter((x) => x && x !== '*' && x !== 'as');
-          const r = resolvePy(f.p, m[1], names);
+          const r = resolvePy(file.p, match[1], names);
           r.files.forEach((x) => imp.add(x));
           if (r.ext) ext.add(r.ext);
-        } else if (m[4])
-          for (const part of m[4].split(',')) {
+        } else if (match[4])
+          for (const part of match[4].split(',')) {
             const mod = part.trim().split(/\s+/)[0];
             if (!mod) continue;
-            const r = resolvePy(f.p, mod, []);
+            const r = resolvePy(file.p, mod, []);
             r.files.forEach((x) => imp.add(x));
             if (r.ext) ext.add(r.ext);
           }
       }
-    } else if (f.lang === 'Go') {
+    } else if (file.lang === 'Go') {
       let m;
       GO_RX.lastIndex = 0;
       while ((m = GO_RX.exec(t))) {
@@ -722,9 +726,9 @@ function analyze(root, meta = {}) {
         }
       }
     }
-    imp.delete(f.p);
-    f.imp = [...imp].map((p) => idx.get(p)).filter((x) => x != null);
-    f.ext = [...ext].slice(0, 30);
+    imp.delete(file.p);
+    file.imp = [...imp].map((p) => idx.get(p)).filter((x) => x != null);
+    file.ext = [...ext].slice(0, 30);
   }
 
   // in-degree, entry points
@@ -754,20 +758,20 @@ function analyze(root, meta = {}) {
     bins: [],
     mains: [],
   };
-  for (const f of files) {
-    const name = f.p.split('/').pop();
-    const depth = f.p.split('/').length;
-    if (f.sub === 'docs' || f.sub === 'tests') continue; // examples/ and tests/ manifests aren't the app's own stack
+  for (const file of files) {
+    const name = file.p.split('/').pop();
+    const depth = file.p.split('/').length;
+    if (file.sub === 'docs' || file.sub === 'tests') continue; // examples/ and tests/ manifests aren't the app's own stack
     if (name === 'package.json' && depth <= 4) {
-      const j = jsonLoose(readText(root, f.p) || '');
+      const j = jsonLoose(readText(root, file.p) || '');
       if (!j) continue;
       for (const [k, v] of Object.entries({
         ...(j.dependencies || {}),
         ...(j.peerDependencies || {}),
       }))
-        sig.npm[k] = sig.npm[k] || { v: String(v), dev: false, where: f.p };
+        sig.npm[k] = sig.npm[k] || { v: String(v), dev: false, where: file.p };
       for (const [k, v] of Object.entries(j.devDependencies || {}))
-        sig.npm[k] = sig.npm[k] || { v: String(v), dev: true, where: f.p };
+        sig.npm[k] = sig.npm[k] || { v: String(v), dev: true, where: file.p };
       if (depth === 1) {
         sig.scripts = j.scripts || {};
         sig.pkgName = j.name || '';
@@ -782,13 +786,13 @@ function analyze(root, meta = {}) {
       }
     }
     if (/^requirements.*\.txt$/.test(name))
-      for (const l of (readText(root, f.p) || '').split('\n')) {
+      for (const l of (readText(root, file.p) || '').split('\n')) {
         const m = /^\s*([A-Za-z0-9][\w.-]*)/.exec(l);
         if (m && !l.trim().startsWith('#') && !l.trim().startsWith('-'))
           sig.pip.push(m[1].toLowerCase());
       }
     if (name === 'pyproject.toml' || name === 'Pipfile' || name === 'setup.py') {
-      const t = readText(root, f.p) || '';
+      const t = readText(root, file.p) || '';
       for (const arr of t.matchAll(
         /(?:dependencies|requires|install_requires|dev)\s*=\s*\[([\s\S]*?)\]/g,
       ))
@@ -801,33 +805,33 @@ function analyze(root, meta = {}) {
         sig.pip.push(m[1].toLowerCase());
     }
     if (name === 'go.mod')
-      for (const m of (readText(root, f.p) || '').matchAll(
+      for (const m of (readText(root, file.p) || '').matchAll(
         /^\s*(?:require\s+)?([\w.-]+\.[\w.-]+\/[\w.\-/]+)\s+v/gm,
       ))
         sig.go.push(m[1]);
     if (name === 'Gemfile')
-      for (const m of (readText(root, f.p) || '').matchAll(/^\s*gem\s+['"]([\w-]+)['"]/gm))
+      for (const m of (readText(root, file.p) || '').matchAll(/^\s*gem\s+['"]([\w-]+)['"]/gm))
         sig.gem.push(m[1]);
     if (name === 'Cargo.toml') {
-      const t = readText(root, f.p) || '';
+      const t = readText(root, file.p) || '';
       const d = /\[(?:dev-)?dependencies\]([\s\S]*?)(\n\[|$)/.exec(t)?.[1] || '';
       for (const m of d.matchAll(/^([\w-]+)\s*=/gm)) sig.cargo.push(m[1]);
     }
     if (name === 'composer.json') {
-      const j = jsonLoose(readText(root, f.p) || '');
+      const j = jsonLoose(readText(root, file.p) || '');
       sig.composer.push(...Object.keys(j?.require || {}));
     }
     if (/^\.env\.(example|sample|local\.example|template)$|^env\.example$/.test(name))
-      for (const m of (readText(root, f.p) || '').matchAll(/^\s*([A-Z][A-Z0-9_]+)\s*=/gm))
+      for (const m of (readText(root, file.p) || '').matchAll(/^\s*([A-Z][A-Z0-9_]+)\s*=/gm))
         sig.env.push(m[1]);
     if (/^(docker-)?compose.*\.ya?ml$/.test(name))
-      for (const m of (readText(root, f.p) || '').matchAll(/image:\s*["']?([\w.\-/]+)/g))
+      for (const m of (readText(root, file.p) || '').matchAll(/image:\s*["']?([\w.\-/]+)/g))
         sig.dock.push(m[1].split('/').pop());
     if (name === 'Dockerfile')
-      for (const m of (readText(root, f.p) || '').matchAll(/^FROM\s+([\w.\-/]+)/gm))
+      for (const m of (readText(root, file.p) || '').matchAll(/^FROM\s+([\w.\-/]+)/gm))
         sig.dock.push(m[1].split('/').pop());
     if (/\.prisma$/.test(name))
-      for (const m of (readText(root, f.p) || '').matchAll(/provider\s*=\s*"(\w+)"/g))
+      for (const m of (readText(root, file.p) || '').matchAll(/provider\s*=\s*"(\w+)"/g))
         sig.prisma.push(m[1]);
   }
   // env keys used in code even without an .env.example
@@ -1076,16 +1080,16 @@ function search(root, ws) {
     .filter((p) => SEARCH_CODE.test(p) && !SEARCH_NOISE.test(p))
     .slice(0, 12000);
   const out = [];
-  for (const p of all) {
+  for (const item of all) {
     let t;
     try {
-      const f = path.join(root, p);
+      const f = path.join(root, item);
       if (fs.statSync(f).size > 2000000) continue;
       t = fs.readFileSync(f, 'utf8').toLowerCase();
     } catch {
       continue;
     }
-    const name = p.toLowerCase().split('/').pop();
+    const name = item.toLowerCase().split('/').pop();
     let score = 0,
       kinds = 0,
       first = -1;
@@ -1105,7 +1109,7 @@ function search(root, ws) {
       }
       if (name.includes(w)) score += 10; // a file named after the thing is usually the place
     }
-    if (kinds) out.push({ p, score: score * (1 + 0.35 * (kinds - 1)), at: first, words });
+    if (kinds) out.push({ p: item, score: score * (1 + 0.35 * (kinds - 1)), at: first, words });
   }
   return out.sort((a, b) => b.score - a.score).slice(0, 30);
 }
@@ -1146,7 +1150,7 @@ function codeFiles(root, rel = '', out = [], depth = 0) {
 }
 
 // bytes on disk under a folder (links counted as links, never followed)
-function dirSize(d) {
+function dirSize(dir) {
   let n = 0;
   const go = (p) => {
     let es = [];
@@ -1165,7 +1169,7 @@ function dirSize(d) {
       }
     }
   };
-  go(d);
+  go(dir);
   return n;
 }
 

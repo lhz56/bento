@@ -143,16 +143,16 @@ module.exports = function registerDevices(ctx) {
   // "Approve on Mac": the Bento Code app on a phone asks to connect. The answer comes only from here, a native dialog on
   // this Mac (never from a page), showing the same 4-digit number as the phone so you know it's yours.
   let askBox = null; // { id, ctl }: the dialog on screen, and how to close it
-  async function askOnMac(a) {
+  async function askOnMac(ask) {
     askBox?.ctl.abort();
     const box = new AbortController();
-    askBox = { id: a.id, ctl: box };
-    const t = setTimeout(() => box.abort(), Math.max(1000, a.exp - Date.now()));
+    askBox = { id: ask.id, ctl: box };
+    const t = setTimeout(() => box.abort(), Math.max(1000, ask.exp - Date.now()));
     // tests: answer by itself (allow / deny), or leave it waiting (never); a test never puts a dialog on the screen
     if (TEST_BUILD && process.env.BENTO_TEST_ASK) {
       if (process.env.BENTO_TEST_ASK !== 'never')
         setTimeout(
-          () => ctx.host?.answer(a.id, process.env.BENTO_TEST_ASK === 'allow'),
+          () => ctx.host?.answer(ask.id, process.env.BENTO_TEST_ASK === 'allow'),
           Number(process.env.BENTO_TEST_ASK_MS) || 400,
         );
       return;
@@ -163,12 +163,12 @@ module.exports = function registerDevices(ctx) {
       app.dock?.bounce('informational');
     }
     if (parent?.isMinimized()) parent.restore();
-    const what = a.kind === 'tablet' ? 'iPad' : 'iPhone';
+    const what = ask.kind === 'tablet' ? 'iPad' : 'iPhone';
     /** @type {Electron.MessageBoxOptions & { signal: AbortSignal }} */
     const opts = {
       type: 'question',
-      message: `Allow “${a.name}” to use Bento on this Mac?`,
-      detail: `Check that your ${what} shows ${a.code.split('').join(' ')}.\n\nIt will see your lessons and projects, and ask your AI through this Mac. You can remove it any time in Settings → Your phone and iPad.`,
+      message: `Allow “${ask.name}” to use Bento on this Mac?`,
+      detail: `Check that your ${what} shows ${ask.code.split('').join(' ')}.\n\nIt will see your lessons and projects, and ask your AI through this Mac. You can remove it any time in Settings → Your phone and iPad.`,
       buttons: ['Allow', 'Don’t Allow'],
       defaultId: 0,
       cancelId: 1,
@@ -176,7 +176,7 @@ module.exports = function registerDevices(ctx) {
     };
     try {
       const r = await (parent ? dialog.showMessageBox(parent, opts) : dialog.showMessageBox(opts));
-      if (!box.signal.aborted) ctx.host?.answer(a.id, r.response === 0);
+      if (!box.signal.aborted) ctx.host?.answer(ask.id, r.response === 0);
     } catch (e) {
       logger.log('ask dialog', e);
     } finally {

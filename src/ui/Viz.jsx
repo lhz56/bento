@@ -47,7 +47,7 @@ function Flipbook({ frames }) {
     );
     return () => clearTimeout(t);
   }, [playing, i, frames.length]);
-  const f = frames[i];
+  const frame = frames[i];
   const palette = useMemo(
     () =>
       frames[0].type === 'grid'
@@ -57,7 +57,7 @@ function Flipbook({ frames }) {
   );
   return (
     <div className="flip">
-      <Visual v={{ ...f, palette, label: f.label || `step ${i + 1}` }} />
+      <Visual v={{ ...frame, palette, label: frame.label || `step ${i + 1}` }} />
       <div className="flip-ctl">
         <button
           className="ib"

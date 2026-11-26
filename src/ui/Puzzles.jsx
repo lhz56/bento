@@ -87,10 +87,10 @@ export default function Puzzles({ progress = {}, onOpen, onIdeas, onIdea, races 
               </span>
             </div>
             <div className="race-row">
-              {races.map((r, i) => (
-                <button key={r.id} className="race-card" onClick={() => onRace(r)}>
+              {races.map((race, i) => (
+                <button key={race.id} className="race-card" onClick={() => onRace(race)}>
                   <svg viewBox="0 0 120 54" className="race-art" aria-hidden="true">
-                    {(r.growth.calls || []).map((c, k) => {
+                    {(race.growth.calls || []).map((c, k) => {
                       const f = [
                         (x) => x * x * 0.9,
                         (x) => x * 1.6 + 2,
@@ -114,8 +114,8 @@ export default function Puzzles({ progress = {}, onOpen, onIdeas, onIdea, races 
                       );
                     })}
                   </svg>
-                  <b>{r.title.split(':')[0]}</b>
-                  <span>{r.title.split(':')[1]?.trim()}</span>
+                  <b>{race.title.split(':')[0]}</b>
+                  <span>{race.title.split(':')[1]?.trim()}</span>
                 </button>
               ))}
             </div>
@@ -123,12 +123,12 @@ export default function Puzzles({ progress = {}, onOpen, onIdeas, onIdea, races 
         )}
 
         <div className="metro">
-          {STATIONS.map((s, i) => {
-            const ps = PUZZLES.filter((p) => p.st === s.id);
+          {STATIONS.map((station, i) => {
+            const ps = PUZZLES.filter((p) => p.st === station.id);
             const sg = ps.reduce((a, p) => a + starsOf(done[p.id]), 0);
             return (
               <div
-                key={s.id}
+                key={station.id}
                 className={`station ${sg === ps.length * 3 ? 'full' : sg ? 'some' : ''}`}
                 style={{ animationDelay: `${i * 35}ms` }}
               >
@@ -136,14 +136,14 @@ export default function Puzzles({ progress = {}, onOpen, onIdeas, onIdea, races 
                   <span className="st-dot">{sg === ps.length * 3 ? '★' : i + 1}</span>
                 </div>
                 <div className="st-art">
-                  <PatternArt kind={s.art} />
+                  <PatternArt kind={station.art} />
                 </div>
                 <div className="st-body">
                   <div className="st-h">
-                    <b>{s.name}</b>
-                    <span>{s.motto}</span>
+                    <b>{station.name}</b>
+                    <span>{station.motto}</span>
                   </div>
-                  <div className="st-like">{s.like}</div>
+                  <div className="st-like">{station.like}</div>
                   <div className="st-pz">
                     {ps.map((p) => (
                       <button
@@ -264,7 +264,7 @@ function ScaleChart({ onOpen }) {
       </div>
       <div className="sc-rows">
         {CLASSES.map(([o, say, , pid, ex], i) => {
-          const h = humanTime(secs[i]);
+          const human = humanTime(secs[i]);
           return (
             <button
               key={o}
@@ -276,14 +276,14 @@ function ScaleChart({ onOpen }) {
               <span className="sc-say">{say}</span>
               <span className="sc-bar">
                 <i
-                  className={`c${h.c}`}
+                  className={`c${human.c}`}
                   style={{
                     width: `${Math.max(2, Math.min(100, (logScale(secs[i]) / max) * 100))}%`,
                   }}
                 />
               </span>
-              <span className={`sc-t c${h.c}`}>
-                {h.e} {h.t}
+              <span className={`sc-t c${human.c}`}>
+                {human.e} {human.t}
               </span>
             </button>
           );
@@ -362,19 +362,19 @@ function Compass({ onClose, onOpen }) {
       </div>
       <div className="cp-q">“{p.hook}”</div>
       <div className="cp-opts">
-        {opts.map((s) => (
+        {opts.map((opt) => (
           <button
-            key={s.id}
+            key={opt.id}
             disabled={!!pick}
-            className={`cp-opt ${pick ? (s.id === p.st ? 'ok' : s.id === pick ? 'no' : '') : ''}`}
+            className={`cp-opt ${pick ? (opt.id === p.st ? 'ok' : opt.id === pick ? 'no' : '') : ''}`}
             onClick={() => {
-              setPick(s.id);
-              if (s.id === p.st) setScore((x) => x + 1);
+              setPick(opt.id);
+              if (opt.id === p.st) setScore((x) => x + 1);
             }}
           >
-            <PatternArt kind={s.art} />
-            <b>{s.name}</b>
-            <span>{s.motto}</span>
+            <PatternArt kind={opt.art} />
+            <b>{opt.name}</b>
+            <span>{opt.motto}</span>
           </button>
         ))}
       </div>
@@ -723,18 +723,19 @@ function Ladder({ p, lanes }) {
             </span>
           </div>
         ))}
-        {rungs.map(([n, e, l]) => (
-          <Fragment key={n}>
+        {rungs.map(([rung, e, l]) => (
+          <Fragment key={rung}>
             <div className={`ld-col ${l.includes('LeetCode') ? 'lc' : ''}`}>
               <span className="ld-e">{e}</span>
               <div>
-                <b>{fmtN(n)}</b>
+                <b>{fmtN(rung)}</b>
                 <span>{l}</span>
               </div>
             </div>
             {rows.map((row) => {
-              const h = row.skipped ? null : at(row, n);
-              const tle = l.includes('LeetCode') && h && !h.crash && row.fit && row.fit.at(n) > 1;
+              const h = row.skipped ? null : at(row, rung);
+              const tle =
+                l.includes('LeetCode') && h && !h.crash && row.fit && row.fit.at(rung) > 1;
               return (
                 <div key={row.k} className={`ld-cell c${h?.c ?? 'x'}`}>
                   {h ? (

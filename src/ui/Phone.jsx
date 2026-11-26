@@ -23,7 +23,7 @@ export const isRoot = (view) => !!groupOf(view)?.views.some(([v]) => v === view)
 
 // seg: { value, options: [[value, label]], onChange } puts a switch in the middle instead of the title (a lesson: Lesson | Code)
 export function TopBar({ view, title, onBack, onMenu, onSearch, setView, scrolled, seg }) {
-  const g = groupOf(view);
+  const group = groupOf(view);
   const root = isRoot(view);
   return (
     <header className={`pbar ${scrolled ? 'scrolled' : ''}`}>
@@ -61,9 +61,9 @@ export function TopBar({ view, title, onBack, onMenu, onSearch, setView, scrolle
               </button>
             ))}
           </div>
-        ) : root && g.views.length > 1 ? (
-          <div className="pseg" role="tablist" aria-label={t(g.label)}>
-            {g.views.map(([v, label]) => (
+        ) : root && group.views.length > 1 ? (
+          <div className="pseg" role="tablist" aria-label={t(group.label)}>
+            {group.views.map(([v, label]) => (
               <button
                 key={v}
                 role="tab"
@@ -96,20 +96,20 @@ export function TabBar({ view, setView, onTop, away }) {
       inert={away || undefined}
       aria-hidden={away || undefined}
     >
-      {GROUPS.map((g) => (
+      {GROUPS.map((group) => (
         <button
-          key={g.id}
-          className={active === g.id ? 'on' : ''}
-          aria-current={active === g.id ? 'page' : undefined}
+          key={group.id}
+          className={active === group.id ? 'on' : ''}
+          aria-current={active === group.id ? 'page' : undefined}
           // tapping the tab you're on goes back to its top, as on iPhone
           onClick={() =>
-            active === g.id && isRoot(view)
+            active === group.id && isRoot(view)
               ? onTop?.()
-              : setView(active === g.id ? g.views[0][0] : lastTab(g))
+              : setView(active === group.id ? group.views[0][0] : lastTab(group))
           }
         >
-          <Icon name={g.icon} size={23} />
-          <span>{t(g.label)}</span>
+          <Icon name={group.icon} size={23} />
+          <span>{t(group.label)}</span>
         </button>
       ))}
     </nav>

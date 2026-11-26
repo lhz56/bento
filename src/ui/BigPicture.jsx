@@ -327,12 +327,12 @@ export default function BigPicture({
       </div>
       {narrow ? (
         <div className={`vflow ${flow.fallback ? 'is-fallback' : ''}`} ref={box}>
-          {flowLayout.nodes.map((n, i) => {
-            const t = toolFor(n);
-            const [c, glyph] = KIND[n.kind] || KIND.part;
-            const into = flowLayout.edges.find((e) => e.to === n.id);
+          {flowLayout.nodes.map((node, i) => {
+            const t = toolFor(node);
+            const [color, glyph] = KIND[node.kind] || KIND.part;
+            const into = flowLayout.edges.find((e) => e.to === node.id);
             return (
-              <div key={n.id}>
+              <div key={node.id}>
                 {i > 0 && (
                   <div className="vf-edge">
                     <i />
@@ -340,9 +340,9 @@ export default function BigPicture({
                   </div>
                 )}
                 <button
-                  className={`vf-node ${sel === n.id ? 'on' : ''}`}
-                  style={{ '--c': n.layer ? LAYER[n.layer][3] : c }}
-                  onClick={() => setSel(sel === n.id ? null : n.id)}
+                  className={`vf-node ${sel === node.id ? 'on' : ''}`}
+                  style={{ '--c': node.layer ? LAYER[node.layer][3] : color }}
+                  onClick={() => setSel(sel === node.id ? null : node.id)}
                 >
                   {t ? (
                     <Brand slug={t.slug} name={t.name} color={t.color} size={28} />
@@ -354,12 +354,12 @@ export default function BigPicture({
                     </span>
                   )}
                   <span className="vf-t">
-                    <b>{n.label}</b>
-                    {n.does && <span className="vf-does">{n.does}</span>}
+                    <b>{node.label}</b>
+                    {node.does && <span className="vf-does">{node.does}</span>}
                   </span>
-                  {n.term && <span className="fn-term">{n.term}</span>}
+                  {node.term && <span className="fn-term">{node.term}</span>}
                 </button>
-                {sel === n.id && dive}
+                {sel === node.id && dive}
               </div>
             );
           })}
@@ -409,25 +409,25 @@ export default function BigPicture({
                 </span>
               );
             })}
-          {flowLayout.nodes.map((n, i) => {
-            const p = flowLayout.pos[n.id];
-            const t = toolFor(n);
-            const [c, glyph] = KIND[n.kind] || KIND.part;
+          {flowLayout.nodes.map((node, i) => {
+            const p = flowLayout.pos[node.id];
+            const t = toolFor(node);
+            const [color, glyph] = KIND[node.kind] || KIND.part;
             return (
               <button
-                key={n.id}
-                className={`fnode k-${n.kind} ${p.compact ? 'compact' : ''} ${sel === n.id ? 'on' : ''} ${sel && sel !== n.id ? 'dim' : ''}`}
+                key={node.id}
+                className={`fnode k-${node.kind} ${p.compact ? 'compact' : ''} ${sel === node.id ? 'on' : ''} ${sel && sel !== node.id ? 'dim' : ''}`}
                 style={{
                   left: p.x,
                   top: p.y,
                   width: p.w,
                   height: p.h,
-                  '--c': n.layer ? LAYER[n.layer][3] : c,
+                  '--c': node.layer ? LAYER[node.layer][3] : color,
                   animationDelay: `${i * 70}ms`,
                 }}
                 onClick={() => {
                   stopWalk();
-                  setSel(sel === n.id ? null : n.id);
+                  setSel(sel === node.id ? null : node.id);
                 }}
               >
                 <span className="fn-ic">
@@ -449,9 +449,9 @@ export default function BigPicture({
                   )}
                 </span>
                 <span className="fn-body">
-                  <b className="fn-label">{n.label}</b>
-                  {!p.compact && n.does && <span className="fn-does">{n.does}</span>}
-                  {n.term && <span className="fn-term">{n.term}</span>}
+                  <b className="fn-label">{node.label}</b>
+                  {!p.compact && node.does && <span className="fn-does">{node.does}</span>}
+                  {node.term && <span className="fn-term">{node.term}</span>}
                 </span>
               </button>
             );

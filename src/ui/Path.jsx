@@ -256,7 +256,7 @@ export default function Path({ done, onGo, onIdeas, custom = [], onMakePath, onD
 
 function Ring({ f = 0, size = 18 }) {
   const r = size / 2 - (size > 30 ? 5 : 2.5),
-    c = 2 * Math.PI * r;
+    circumference = 2 * Math.PI * r;
   return (
     <svg
       className="ring"
@@ -279,7 +279,7 @@ function Ring({ f = 0, size = 18 }) {
           r={r}
           className="ring-fg"
           strokeWidth={size > 30 ? 6 : 3}
-          strokeDasharray={`${c * Math.min(1, f)} ${c}`}
+          strokeDasharray={`${circumference * Math.min(1, f)} ${circumference}`}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       )}

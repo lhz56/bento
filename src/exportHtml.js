@@ -25,21 +25,21 @@ export function lessonHtml(lesson) {
       return `<figure class="code"><figcaption>${esc(lesson.file || 'page.html')}</figcaption><iframe sandbox="allow-scripts" srcdoc="${esc(code)}"></iframe><details><summary>See the code</summary><pre>${esc(code)}</pre></details></figure>`;
     return `<figure class="code"><figcaption>${esc(lesson.file || (lang === 'python' ? 'main.py' : 'main.js'))}${runnable ? `<button onclick="run()">▶ Run</button>` : ''}</figcaption><pre id="src" contenteditable="true" spellcheck="false">${esc(code)}</pre><pre id="out" hidden></pre><div id="vis"></div></figure>`;
   };
-  for (const b of lesson.story || []) {
-    if (b.t === 'p') parts.push(`<p>${inline(b.md)}</p>`);
-    else if (b.t === 'h') parts.push(`<h2>${esc(b.text)}</h2>`);
-    else if (b.t === 'term')
+  for (const block of lesson.story || []) {
+    if (block.t === 'p') parts.push(`<p>${inline(block.md)}</p>`);
+    else if (block.t === 'h') parts.push(`<h2>${esc(block.text)}</h2>`);
+    else if (block.t === 'term')
       parts.push(
-        `<aside class="term"><b>${esc(b.term)}</b> ${inline(b.plain || '')}${b.like ? `<span>${inline(b.like)}</span>` : ''}</aside>`,
+        `<aside class="term"><b>${esc(block.term)}</b> ${inline(block.plain || '')}${block.like ? `<span>${inline(block.like)}</span>` : ''}</aside>`,
       );
-    else if (b.t === 'step' && lesson.steps?.[b.i]) {
-      const st = lesson.steps[b.i];
-      parts.push(`<h3>${b.i + 1}. ${esc(st.title)}</h3><p>${inline(st.md || '')}</p>`);
-    } else if (b.t === 'quiz')
+    else if (block.t === 'step' && lesson.steps?.[block.i]) {
+      const st = lesson.steps[block.i];
+      parts.push(`<h3>${block.i + 1}. ${esc(st.title)}</h3><p>${inline(st.md || '')}</p>`);
+    } else if (block.t === 'quiz')
       parts.push(
-        `<div class="quiz"><b>Check yourself:</b> ${inline(b.q)}<ol>${b.choices.map((c, i) => `<li><button onclick="this.parentNode.parentNode.querySelectorAll('button').forEach(x=>x.disabled=true);this.className='${i === b.answer ? 'yes' : 'no'}';this.closest('.quiz').querySelector('.why').hidden=false">${inline(c)}</button></li>`).join('')}</ol><p class="why" hidden>${inline(b.why || '')}</p></div>`,
+        `<div class="quiz"><b>Check yourself:</b> ${inline(block.q)}<ol>${block.choices.map((c, i) => `<li><button onclick="this.parentNode.parentNode.querySelectorAll('button').forEach(x=>x.disabled=true);this.className='${i === block.answer ? 'yes' : 'no'}';this.closest('.quiz').querySelector('.why').hidden=false">${inline(c)}</button></li>`).join('')}</ol><p class="why" hidden>${inline(block.why || '')}</p></div>`,
       );
-    if (!codeDone && code && b.t === 'p' && parts.length >= 2) parts.push(codeBlock());
+    if (!codeDone && code && block.t === 'p' && parts.length >= 2) parts.push(codeBlock());
   }
   if (!codeDone && code) parts.push(codeBlock());
   const words = (lesson.story || []).filter((b) => b.t === 'term').length;

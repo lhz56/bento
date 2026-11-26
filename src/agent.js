@@ -28,39 +28,39 @@ const paras = (md) =>
     .filter(Boolean);
 
 // show_lesson's arguments (checked in agent.cjs) → a finished Bento lesson
-export function lessonFromAgent(a, client) {
-  const lines = a.code.replace(/\s+$/, '').split('\n');
+export function lessonFromAgent(args, client) {
+  const lines = args.code.replace(/\s+$/, '').split('\n');
   const blocks = [
     {
       t: 'title',
-      title: a.title,
+      title: args.title,
       kicker: `from ${agentName(client)}`,
-      lang: a.language,
+      lang: args.language,
       concepts: [],
     },
-    ...paras(a.intro).map((md) => ({ t: 'p', md })),
-    ...a.terms.map((x) => ({ t: 'term', ...x })),
+    ...paras(args.intro).map((md) => ({ t: 'p', md })),
+    ...args.terms.map((x) => ({ t: 'term', ...x })),
     {
       t: 'code',
-      code: a.code,
+      code: args.code,
       file:
-        a.language === 'html'
+        args.language === 'html'
           ? 'index.html'
-          : a.language === 'python'
+          : args.language === 'python'
             ? 'main.py'
-            : a.language === 'typescript'
+            : args.language === 'typescript'
               ? 'main.ts'
               : 'main.js',
     },
     // one plain-English line per line of code; missing ones stay blank (Bento never spends your plan filling them in)
-    { t: 'pseudo', lines: lines.map((_, i) => a.pseudo[i] ?? '') },
-    { t: 'notes', items: a.notes },
-    ...paras(a.explanation).map((md) => ({ t: 'p', md })),
-    ...(a.quiz ? [{ t: 'quiz', ...a.quiz }] : []),
-    ...(a.try.length ? [{ t: 'try', items: a.try }] : []),
-    ...(a.next.length ? [{ t: 'next', items: a.next }] : []),
+    { t: 'pseudo', lines: lines.map((_, i) => args.pseudo[i] ?? '') },
+    { t: 'notes', items: args.notes },
+    ...paras(args.explanation).map((md) => ({ t: 'p', md })),
+    ...(args.quiz ? [{ t: 'quiz', ...args.quiz }] : []),
+    ...(args.try.length ? [{ t: 'try', items: args.try }] : []),
+    ...(args.next.length ? [{ t: 'next', items: args.next }] : []),
   ];
-  let lesson = emptyLesson(a.question || a.title, { mode: 'explain', lang: a.language });
+  let lesson = emptyLesson(args.question || args.title, { mode: 'explain', lang: args.language });
   for (const b of blocks) lesson = applyBlock(lesson, b);
   return { ...lesson, status: 'done', agent: agentName(client) };
 }

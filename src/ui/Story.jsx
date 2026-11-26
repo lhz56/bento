@@ -418,11 +418,11 @@ export default function Story(p) {
         {p.puzzleEnd}
         {(lesson.chat || []).length > 0 && (
           <div className="chat">
-            {lesson.chat.map((c, i) => (
+            {lesson.chat.map((message, i) => (
               <div key={i} className="qa fade-in">
-                <div className="qa-q">{c.q}</div>
+                <div className="qa-q">{message.q}</div>
                 <div className="qa-a">
-                  {c.loading ? (
+                  {message.loading ? (
                     <span className="dots">
                       <i />
                       <i />
@@ -430,23 +430,25 @@ export default function Story(p) {
                     </span>
                   ) : (
                     <>
-                      {c.second && c.by && <span className="qa-who">{modelLabel(c.by)}</span>}
+                      {message.second && message.by && (
+                        <span className="qa-who">{modelLabel(message.by)}</span>
+                      )}
                       <Md
-                        text={c.a}
+                        text={message.a}
                         onLink={p.onLink}
                         onLinkClick={p.onLinkClick}
                         onTerm={p.onTerm}
                       />
-                      {c.term && c.plain && (
+                      {message.term && message.plain && (
                         <span className="qa-term">
-                          <b>{c.term}</b> {c.plain}
+                          <b>{message.term}</b> {message.plain}
                         </span>
                       )}
-                      {c.check && <QuickCheck c={c.check} onDone={p.onCheck} />}
+                      {message.check && <QuickCheck c={message.check} onDone={p.onCheck} />}
                       <div className="qa-acts">
                         <button
                           className="qa-chip"
-                          onClick={() => p.onQuickAsk?.(`Explain that more simply: ${c.q}`)}
+                          onClick={() => p.onQuickAsk?.(`Explain that more simply: ${message.q}`)}
                         >
                           {t('Simpler')}
                         </button>
@@ -454,24 +456,24 @@ export default function Story(p) {
                           className="qa-chip"
                           onClick={() =>
                             p.onQuickAsk?.(
-                              `Show me a tiny example of that, using this lesson's code: ${c.q}`,
+                              `Show me a tiny example of that, using this lesson's code: ${message.q}`,
                             )
                           }
                         >
                           {t('Show an example')}
                         </button>
-                        <button className="qa-chip" onClick={() => p.onFollowUp(c.q)}>
+                        <button className="qa-chip" onClick={() => p.onFollowUp(message.q)}>
                           ✦ {t('Make it a lesson')}
                         </button>
-                        {p.altFor?.(c) && !c.second && (
+                        {p.altFor?.(message) && !message.second && (
                           <button className="qa-chip alt" onClick={() => p.onSecondOpinion?.(i)}>
-                            {t('Ask')} {p.altFor(c)}
+                            {t('Ask')} {p.altFor(message)}
                           </button>
                         )}
                       </div>
-                      {c.next?.length > 0 && i === lesson.chat.length - 1 && (
+                      {message.next?.length > 0 && i === lesson.chat.length - 1 && (
                         <div className="qa-next" aria-label={t('Ask next')}>
-                          {c.next.map((x) => (
+                          {message.next.map((x) => (
                             <button key={x} onClick={() => p.onQuickAsk?.(x)}>
                               {x}
                               <span aria-hidden="true">↵</span>
@@ -479,10 +481,10 @@ export default function Story(p) {
                           ))}
                         </div>
                       )}
-                      {c.second && (
-                        <div className={`qa-second ${c.second.loading ? 'loading' : ''}`}>
-                          <span className="qa-who">{c.second.who}</span>
-                          {c.second.loading ? (
+                      {message.second && (
+                        <div className={`qa-second ${message.second.loading ? 'loading' : ''}`}>
+                          <span className="qa-who">{message.second.who}</span>
+                          {message.second.loading ? (
                             <span className="dots">
                               <i />
                               <i />
@@ -490,7 +492,7 @@ export default function Story(p) {
                             </span>
                           ) : (
                             <Md
-                              text={c.second.a}
+                              text={message.second.a}
                               onLink={p.onLink}
                               onLinkClick={p.onLinkClick}
                               onTerm={p.onTerm}
@@ -1032,18 +1034,18 @@ function Wild({ lesson, onWild, onOpenAt, auto }) {
           {st.rows.length === 0 && (
             <div className="muted small">Nothing found. Try a follow-up question instead.</div>
           )}
-          {st.rows.map((r) => (
+          {st.rows.map((row) => (
             <button
-              key={r.repo + r.path}
+              key={row.repo + row.path}
               className="wild-row"
-              onClick={() => onOpenAt(r.repo, r.path)}
+              onClick={() => onOpenAt(row.repo, row.path)}
             >
               <div className="wr-top">
-                <b>{r.repo}</b>
-                <span>{r.path}</span>
+                <b>{row.repo}</b>
+                <span>{row.path}</span>
                 <em>open in Atlas →</em>
               </div>
-              <pre>{r.fragment}</pre>
+              <pre>{row.fragment}</pre>
             </button>
           ))}
         </>

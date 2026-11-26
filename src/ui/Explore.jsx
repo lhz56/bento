@@ -165,9 +165,9 @@ export default function Explore({
           ))}
         </div>
         <div className="shelves">
-          {SHELVES.map(([l, , ic], i) => (
+          {SHELVES.map(([shelve, , ic], i) => (
             <button
-              key={l}
+              key={shelve}
               className={`shelf ${shelf === i ? 'on' : ''}`}
               onClick={() => {
                 setShelf(i);
@@ -175,7 +175,7 @@ export default function Explore({
               }}
             >
               <span>{ic}</span>
-              {l}
+              {shelve}
             </button>
           ))}
         </div>
@@ -206,11 +206,11 @@ export default function Explore({
               <div className="muted pad">Nothing found. Try fewer words.</div>
             )}
             <div className={busy ? 'faded' : ''}>
-              {res?.items.map((r) => (
-                <button key={r.full} className="spec" onClick={() => onOpenRepo(r.full)}>
+              {res?.items.map((item) => (
+                <button key={item.full} className="spec" onClick={() => onOpenRepo(item.full)}>
                   <img
                     className="spec-av"
-                    src={`https://avatars.githubusercontent.com/${r.owner}?s=72`}
+                    src={`https://avatars.githubusercontent.com/${item.owner}?s=72`}
                     alt=""
                     onError={(e) => {
                       e.currentTarget.style.visibility = 'hidden';
@@ -218,29 +218,29 @@ export default function Explore({
                   />
                   <div className="spec-main">
                     <div className="spec-name">
-                      <span className="muted">{r.owner}/</span>
-                      {r.full.split('/')[1]}
+                      <span className="muted">{item.owner}/</span>
+                      {item.full.split('/')[1]}
                     </div>
-                    {r.description && <div className="spec-desc">{r.description}</div>}
+                    {item.description && <div className="spec-desc">{item.description}</div>}
                     <div className="spec-meta">
-                      {r.language && (
+                      {item.language && (
                         <span>
-                          <span className="ldot" style={{ background: langColor(r.language) }} />
-                          {r.language}
+                          <span className="ldot" style={{ background: langColor(item.language) }} />
+                          {item.language}
                         </span>
                       )}
-                      <span>★ {fmtN(r.stars)}</span>
-                      {r.size != null && (
+                      <span>★ {fmtN(item.stars)}</span>
+                      {item.size != null && (
                         <span
-                          className={`sz sz-${r.size < 600 ? 0 : r.size < 6000 ? 1 : r.size < 60000 ? 2 : 3}`}
+                          className={`sz sz-${item.size < 600 ? 0 : item.size < 6000 ? 1 : item.size < 60000 ? 2 : 3}`}
                         >
-                          {sizeWord(r.size)}
+                          {sizeWord(item.size)}
                         </span>
                       )}
                     </div>
                   </div>
                   <span className="spec-go">
-                    {projects.some((x) => x.full === r.full) ? (
+                    {projects.some((x) => x.full === item.full) ? (
                       <>
                         Open again <span>→</span>
                       </>

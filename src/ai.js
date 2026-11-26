@@ -58,19 +58,19 @@ export function resetText(at, now = Date.now(), translate = (x) => x) {
   if (!at) return '';
   const ms = at - now;
   if (ms <= 0) return translate('resets soon');
-  const d = new Date(at);
+  const date = new Date(at);
   if (ms < 3 * 3600e3) {
     const m = Math.round(ms / 60000);
     return m < 60
       ? `${translate('resets in')} ${m} ${translate('min')}`
       : `${translate('resets in')} ${Math.round(m / 60)} ${translate('h')}`;
   }
-  const tm = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const tm = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   if (ms < 6 * 864e5)
-    return new Date(now).toDateString() === d.toDateString()
+    return new Date(now).toDateString() === date.toDateString()
       ? `${translate('resets at')} ${tm}`
-      : `${translate('resets')} ${d.toLocaleDateString(undefined, { weekday: 'long' })} ${tm}`;
-  return `${translate('resets')} ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+      : `${translate('resets')} ${date.toLocaleDateString(undefined, { weekday: 'long' })} ${tm}`;
+  return `${translate('resets')} ${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
 }
 // "53% of this week" / "12 of 200 requests this month"
 export const usedText = (w, translate = (x) => x) =>

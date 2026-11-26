@@ -61,20 +61,20 @@ export default function useLibrary({
     const atlas = atlasRef.current[key];
     if (!atlas?.facts) return;
     patchAtlas(key, { status: 'narrating', narr: emptyNarr(), error: null });
-    const parser = ndjsonParser((b) => {
-      patchAtlas(key, (a) => ({ narr: applyNarr(a.narr || emptyNarr(), b) }));
-      if (b.t === 'term' && b.term)
+    const parser = ndjsonParser((block) => {
+      patchAtlas(key, (a) => ({ narr: applyNarr(a.narr || emptyNarr(), block) }));
+      if (block.t === 'term' && block.term)
         setProgress((p) => {
-          const k = String(b.term).toLowerCase();
+          const k = String(block.term).toLowerCase();
           if (p.words?.[k]) return p;
           return {
             ...p,
             words: {
               ...(p.words || {}),
               [k]: {
-                term: b.term,
-                plain: b.plain,
-                like: b.like,
+                term: block.term,
+                plain: block.plain,
+                like: block.like,
                 from: null,
                 title: atlas.name,
                 at: Date.now(),
@@ -99,19 +99,19 @@ export default function useLibrary({
           });
         } catch {}
       }
-      setAtlases((m) => {
-        const a = { ...m[key], status, error };
+      setAtlases((prev) => {
+        const updated = { ...prev[key], status, error };
         api.cachePut(key, {
-          facts: a.facts,
-          meta: a.meta,
-          narr: a.narr,
-          src: a.src,
-          name: a.name,
+          facts: updated.facts,
+          meta: updated.meta,
+          narr: updated.narr,
+          src: updated.src,
+          name: updated.name,
           done: status === 'done',
           stopped,
           at: Date.now(),
         });
-        return { ...m, [key]: a };
+        return { ...prev, [key]: updated };
       });
     };
     const onErr = (m) => {
@@ -299,20 +299,20 @@ export default function useLibrary({
       const facts = await api.siteInspect(url);
       put({ facts, status: 'narrating' });
       const found = detectSite(facts);
-      const parser = ndjsonParser((b) => {
-        put((x) => ({ narr: applyNarr(x.narr || emptyNarr(), b) }));
-        if (b.t === 'term' && b.term)
+      const parser = ndjsonParser((block) => {
+        put((x) => ({ narr: applyNarr(x.narr || emptyNarr(), block) }));
+        if (block.t === 'term' && block.term)
           setProgress((p) => {
-            const k = String(b.term).toLowerCase();
+            const k = String(block.term).toLowerCase();
             if (p.words?.[k]) return p;
             return {
               ...p,
               words: {
                 ...(p.words || {}),
                 [k]: {
-                  term: b.term,
-                  plain: b.plain,
-                  like: b.like,
+                  term: block.term,
+                  plain: block.plain,
+                  like: block.like,
                   from: null,
                   title: host,
                   at: Date.now(),

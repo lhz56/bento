@@ -99,18 +99,18 @@ const BASE_HEADERS = {
  *   interfaces?() (tests), port?, ttlMs?, askMs?, askCoolMs? (tests)
  * }
  */
-function createHost(o) {
-  const port = o.port || PORT,
+function createHost(opts) {
+  const port = opts.port || PORT,
     playPort = port + 1;
   let devices = [];
   try {
-    const d = JSON.parse(fs.readFileSync(o.devicesFile, 'utf8'));
+    const d = JSON.parse(fs.readFileSync(opts.devicesFile, 'utf8'));
     if (Array.isArray(d))
       devices = d.filter((x) => x && typeof x.hash === 'string' && typeof x.id === 'string');
   } catch {}
   const saveDevices = () =>
-    o.writeFile(
-      o.devicesFile,
+    opts.writeFile(
+      opts.devicesFile,
       JSON.stringify(
         devices.map(({ id, name, hash, added, seen }) => ({ id, name, hash, added, seen })),
       ),
@@ -138,7 +138,7 @@ function createHost(o) {
     beatTimer = null;
   const changed = () => {
     try {
-      o.onChange?.();
+      opts.onChange?.();
     } catch {}
   };
 
@@ -155,7 +155,7 @@ function createHost(o) {
     return d || null;
   };
   function newPairing() {
-    pairing = { code: newCode(), exp: Date.now() + (o.ttlMs || PAIR_MS), misses: 0 };
+    pairing = { code: newCode(), exp: Date.now() + (opts.ttlMs || PAIR_MS), misses: 0 };
     changed();
     return pairing;
   }
@@ -219,7 +219,7 @@ function createHost(o) {
     a.waiters.clear();
     changed();
     try {
-      o.onAskEnd?.(a.id, st);
+      opts.onAskEnd?.(a.id, st);
     } catch {}
   }
   function newAsk(name, kind) {
@@ -249,7 +249,7 @@ function createHost(o) {
       name: clean(name, 'A device'),
       kind: ['phone', 'tablet'].includes(kind) ? kind : 'phone',
       code: String(crypto.randomInt(0, 10000)).padStart(4, '0'),
-      exp: now + (o.askMs || ASK_MS),
+      exp: now + (opts.askMs || ASK_MS),
       state: 'waiting',
       pair: null,
       waiters: new Set(),
@@ -259,16 +259,16 @@ function createHost(o) {
     ask = a;
     changed();
     try {
-      o.onAsk?.({ id: a.id, name: a.name, kind: a.kind, code: a.code, exp: a.exp });
+      opts.onAsk?.({ id: a.id, name: a.name, kind: a.kind, code: a.code, exp: a.exp });
     } catch (e) {
-      o.log?.('ask dialog', e);
+      opts.log?.('ask dialog', e);
     }
     return {
       id: a.id,
       secret: a.secret,
       code: a.code,
       exp: a.exp,
-      mac: typeof o.name === 'function' ? o.name() : o.name,
+      mac: typeof opts.name === 'function' ? opts.name() : opts.name,
     };
   }
   /** The person answered on this Mac. Allow mints a one-time pairing code that only this request's device receives. */
@@ -283,7 +283,7 @@ function createHost(o) {
       a.pair = newPairing().code;
       settle(a, 'allowed');
     } else {
-      askCool = Date.now() + (o.askCoolMs || ASK_COOL_MS);
+      askCool = Date.now() + (opts.askCoolMs || ASK_COOL_MS);
       settle(a, 'denied');
     }
     return true;
@@ -334,7 +334,7 @@ function createHost(o) {
   const pageHtml = (hostName) => {
     // the same page as in the app, plus what a phone needs to keep it on the Home Screen, and lesson pages from the
     // next port (their own origin) instead of play://
-    let html = fs.readFileSync(path.join(o.dist, 'index.html'), 'utf8');
+    let html = fs.readFileSync(path.join(opts.dist, 'index.html'), 'utf8');
     const play = `http://${hostName}:${playPort}`;
     html = html.replace(/frame-src play:/, `frame-src ${play}`);
     // a tap into a text box mustn't zoom the page (pinching to zoom still works: iOS keeps that for everyone)
@@ -441,7 +441,7 @@ function createHost(o) {
       );
     }
     // inside dist only: "/../" and folders that merely start with the same letters ("dist-evil") never get out
-    const root = path.resolve(o.dist),
+    const root = path.resolve(opts.dist),
       f = path.resolve(root, `.${p}`);
     if (!f.startsWith(root + path.sep)) return plain(res, 403, 'no');
     let info;
@@ -572,7 +572,7 @@ function createHost(o) {
         const headers = new Headers();
         for (const [k2, v] of Object.entries(req.headers))
           if (k2.startsWith('x-h-') && typeof v === 'string') headers.set(k2, v);
-        const r = await o.netProxy(
+        const r = await opts.netProxy(
           new Request(u.toString(), { method: req.method, headers, body }),
           u,
         );
@@ -610,17 +610,17 @@ function createHost(o) {
       // only the Bento Code app asks this way, never a web page: browsers always send Origin with these, the app never
       // does, so a page on any device on the Wi-Fi (or one that points its own name at this Mac) can't raise the dialog
       if (req.headers.origin) return json(res, 403, { error: 'Ask from the Bento Code app.' });
-      const b = await readJson(req, 4000);
+      const body = await readJson(req, 4000);
       if (route === 'connect') {
-        const r = newAsk(b?.name, b?.kind);
+        const r = newAsk(body?.name, body?.kind);
         return json(res, r.status || 200, r.status ? { error: r.error } : r);
       }
       const a =
         ask &&
-        typeof b?.id === 'string' &&
-        same(b.id, ask.id) &&
-        typeof b?.secret === 'string' &&
-        same(b.secret, ask.secret)
+        typeof body?.id === 'string' &&
+        same(body.id, ask.id) &&
+        typeof body?.secret === 'string' &&
+        same(body.secret, ask.secret)
           ? ask
           : null;
       if (!a) return json(res, 404, { state: 'gone' });
@@ -652,7 +652,7 @@ function createHost(o) {
         return json(res, 200, {
           state: 'allowed',
           pair,
-          mac: typeof o.name === 'function' ? o.name() : o.name,
+          mac: typeof opts.name === 'function' ? opts.name() : opts.name,
         });
       }
       return json(res, 200, { state: a.state });
@@ -674,10 +674,10 @@ function createHost(o) {
       // a stream for one client; the ticket came from /api/hello a moment ago (an EventSource can't carry the key)
       const t = tickets.get(u.searchParams.get('ticket') || '');
       tickets.delete(u.searchParams.get('ticket') || '');
-      const c = t && Date.now() < t.exp ? clients.get(t.client) : null;
-      if (!c) return plain(res, 401, 'Pair this device with your Mac first.');
+      const client = t && Date.now() < t.exp ? clients.get(t.client) : null;
+      if (!client) return plain(res, 401, 'Pair this device with your Mac first.');
       try {
-        c.res?.end();
+        client.res?.end();
       } catch {}
       res.writeHead(200, {
         ...BASE_HEADERS,
@@ -688,16 +688,16 @@ function createHost(o) {
       });
       res.write(': hello\n\n');
       const after = Number(u.searchParams.get('after')) || 0;
-      for (const ev of c.buf)
+      for (const ev of client.buf)
         if (ev.s > after)
           res.write(`id: ${ev.s}\ndata: ${JSON.stringify({ s: ev.s, ch: ev.ch, a: ev.a })}\n\n`);
-      c.res = res;
-      c.idleAt = 0;
+      client.res = res;
+      client.idleAt = 0;
       changed();
       req.on('close', () => {
-        if (c.res === res) {
-          c.res = null;
-          c.idleAt = Date.now();
+        if (client.res === res) {
+          client.res = null;
+          client.idleAt = Date.now();
           changed();
         }
       });
@@ -707,9 +707,9 @@ function createHost(o) {
     if (!dev) return json(res, 401, { error: 'unpaired' });
     if (route === 'hello') {
       const b = await readJson(req, 4000);
-      let c = typeof b?.client === 'string' ? clients.get(b.client) : null;
-      if (!c || c.deviceId !== dev.id) {
-        c = {
+      let client = typeof b?.client === 'string' ? clients.get(b.client) : null;
+      if (!client || client.deviceId !== dev.id) {
+        client = {
           id: rand(12),
           deviceId: dev.id,
           res: null,
@@ -718,10 +718,10 @@ function createHost(o) {
           gone: false,
           idleAt: Date.now(),
         };
-        clients.set(c.id, c);
+        clients.set(client.id, client);
       }
       const ticket = rand(18);
-      tickets.set(ticket, { client: c.id, exp: Date.now() + 30_000 });
+      tickets.set(ticket, { client: client.id, exp: Date.now() + 30_000 });
       for (const [k, v] of tickets) if (Date.now() > v.exp) tickets.delete(k);
       const net = rand(24);
       netKeys.set(net, dev.id);
@@ -730,37 +730,40 @@ function createHost(o) {
         res,
         200,
         {
-          client: c.id,
+          client: client.id,
           ticket,
-          seq: c.seq,
+          seq: client.seq,
           device: { id: dev.id, name: dev.name },
-          host: { name: typeof o.name === 'function' ? o.name() : o.name, version: o.version },
+          host: {
+            name: typeof opts.name === 'function' ? opts.name() : opts.name,
+            version: opts.version,
+          },
         },
         { 'set-cookie': `bento_net=${net}; Path=/__net; HttpOnly; SameSite=Strict` },
       );
     }
-    const c = clients.get(String(req.headers['x-bento-client'] || ''));
-    if (!c || c.deviceId !== dev.id) return json(res, 409, { error: 'reconnect' });
+    const client = clients.get(String(req.headers['x-bento-client'] || ''));
+    if (!client || client.deviceId !== dev.id) return json(res, 409, { error: 'reconnect' });
     if (route === 'call' || route === 'send') {
       const b = await readJson(req, 64_000_000);
       const ch = typeof b?.ch === 'string' ? b.ch : '';
       const args = Array.isArray(b?.args) ? b.args : [];
       if (route === 'send') {
         try {
-          o.send(ch, args, senderFor(c));
+          opts.send(ch, args, senderFor(client));
         } catch {}
         res.writeHead(204, BASE_HEADERS);
         return res.end();
       }
       try {
-        const v = await o.call(ch, args, senderFor(c));
+        const v = await opts.call(ch, args, senderFor(client));
         return json(res, 200, { ok: true, v: v === undefined ? null : v });
       } catch (e) {
         return json(res, 200, { ok: false, e: String(e?.message || e).slice(0, 2000) });
       }
     }
     if (route === 'bye') {
-      dropClient(c, 'bye');
+      dropClient(client, 'bye');
       changed();
       res.writeHead(204, BASE_HEADERS);
       return res.end();
@@ -787,7 +790,7 @@ function createHost(o) {
     if (!hostName) return plain(res, 421, 'no');
     if (req.method !== 'GET') return plain(res, 405, 'no');
     const m = /^\/p\/([a-z0-9-]{3,48})\/?$/i.exec(new URL(req.url, 'http://x').pathname);
-    const html = m && o.playGet(m[1]);
+    const html = m && opts.playGet(m[1]);
     if (!html) return plain(res, 404, 'Run the code again to see the page.');
     const b = Buffer.from(html);
     res.writeHead(200, {
@@ -805,7 +808,9 @@ function createHost(o) {
   // always this Mac itself (the iOS Simulator reaches it there too); `local` (tests) means only that
   const wanted = () => [
     { ip: '127.0.0.1', kind: 'local' },
-    ...(local ? [] : addressesOf(o.interfaces ? o.interfaces() : os.networkInterfaces(), { wifi })),
+    ...(local
+      ? []
+      : addressesOf(opts.interfaces ? opts.interfaces() : os.networkInterfaces(), { wifi })),
   ];
   const listenOn = (ip) =>
     new Promise((resolve) => {
@@ -838,7 +843,7 @@ function createHost(o) {
   async function scan() {
     if (!on) return;
     try {
-      names = ((await o.dnsNames?.().catch(() => [])) || []).map((x) => String(x).toLowerCase());
+      names = ((await opts.dnsNames?.().catch(() => [])) || []).map((x) => String(x).toLowerCase());
     } catch {
       names = [];
     }
@@ -861,7 +866,7 @@ function createHost(o) {
       }
     if (err !== error) {
       error = err;
-      if (err) o.log?.('host', err);
+      if (err) opts.log?.('host', err);
     }
     changed();
   }

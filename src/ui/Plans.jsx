@@ -73,7 +73,7 @@ const Bar = ({ used, lv }) => (
 // a small ring for the sidebar
 export const Ring = ({ used, lv, size = 18 }) => {
   const r = size / 2 - 2.2,
-    c = 2 * Math.PI * r;
+    circumference = 2 * Math.PI * r;
   return (
     <svg
       className={`plan-ring lv-${lv}`}
@@ -90,7 +90,7 @@ export const Ring = ({ used, lv, size = 18 }) => {
           r={r}
           className="pr-fg"
           strokeWidth="2.6"
-          strokeDasharray={`${(c * Math.min(100, Math.max(used, 3))) / 100} ${c}`}
+          strokeDasharray={`${(circumference * Math.min(100, Math.max(used, 3))) / 100} ${circumference}`}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       )}

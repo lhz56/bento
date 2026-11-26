@@ -149,7 +149,7 @@ module.exports = function registerAsk(ctx) {
         prov === 'copilot' && !(ENV.COPILOT_GITHUB_TOKEN || ENV.GH_TOKEN || ENV.GITHUB_TOKEN)
           ? await ghToken()
           : null;
-      const b = adapter.build({
+      const built = adapter.build({
         name,
         system: sys,
         prompt,
@@ -158,24 +158,24 @@ module.exports = function registerAsk(ctx) {
         token,
       });
       if (killed) throw new Error('Stopped.');
-      if (b.noModel)
+      if (built.noModel)
         throw new Error(
           `${providers.label(prov)} doesn’t offer ${modelId.split(':')[1]} on this account right now. Choose another model in the bottom-left.`,
         );
-      const env = { ...ENV, ...b.env };
-      for (const [k, v] of Object.entries(b.env || {})) if (v === undefined) delete env[k];
-      const [runCmd, runArgs, runOpts] = await launch(...viaFake(bin, b.args));
+      const env = { ...ENV, ...built.env };
+      for (const [k, v] of Object.entries(built.env || {})) if (v === undefined) delete env[k];
+      const [runCmd, runArgs, runOpts] = await launch(...viaFake(bin, built.args));
       if (killed) throw new Error('Stopped.');
       return new Promise((resolve, reject) => {
         child = spawn(runCmd, runArgs, {
           cwd: WORKDIR,
           env,
-          stdio: [b.stdin == null ? 'ignore' : 'pipe', 'pipe', 'pipe'],
+          stdio: [built.stdin == null ? 'ignore' : 'pipe', 'pipe', 'pipe'],
           ...runOpts,
         }); // no open stdin otherwise: some CLIs wait on an open pipe
-        if (b.stdin != null) {
+        if (built.stdin != null) {
           child.stdin.on('error', () => {});
-          child.stdin.end(b.stdin);
+          child.stdin.end(built.stdin);
         }
         let buf = '',
           full = '',

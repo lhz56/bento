@@ -466,18 +466,19 @@ const copilot = {
     };
   },
   parse(o, s) {
-    const d = o.data || {};
-    if (o.type === 'assistant.message_delta' && d.deltaContent) {
-      s.seen(d.messageId);
-      s.text(d.deltaContent);
-    } else if (o.type === 'assistant.message' && d.content && !s.seen(d.messageId, true)) {
+    const data = o.data || {};
+    if (o.type === 'assistant.message_delta' && data.deltaContent) {
+      s.seen(data.messageId);
+      s.text(data.deltaContent);
+    } else if (o.type === 'assistant.message' && data.content && !s.seen(data.messageId, true)) {
       if (s.full() && !s.full().endsWith('\n')) s.text('\n');
-      s.text(d.content);
-    } else if (o.type === 'assistant.reasoning_delta' && d.deltaContent) s.think(d.deltaContent);
-    else if (o.type === 'session.usage_checkpoint' && d.totalPremiumRequests != null)
-      s.requests(d.totalPremiumRequests);
-    else if (/error/i.test(o.type) && (d.message || d.error))
-      s.error(String(d.message || d.error?.message || d.error));
+      s.text(data.content);
+    } else if (o.type === 'assistant.reasoning_delta' && data.deltaContent)
+      s.think(data.deltaContent);
+    else if (o.type === 'session.usage_checkpoint' && data.totalPremiumRequests != null)
+      s.requests(data.totalPremiumRequests);
+    else if (/error/i.test(o.type) && (data.message || data.error))
+      s.error(String(data.message || data.error?.message || data.error));
   },
   // the monthly allowance, from GitHub (the same numbers GitHub shows in its own apps); costs nothing
   async limits({ ghApi }) {
@@ -655,67 +656,69 @@ const ADAPTERS = { claude, codex, antigravity, gemini, copilot };
 function humanize(id, msg) {
   const provider = BY[id] || BY.claude;
   const who = label(provider.id);
-  const m = String(msg || '');
-  if (id === 'antigravity' && /please sign in|not logged in|sign in to/i.test(m))
+  const text = String(msg || '');
+  if (id === 'antigravity' && /please sign in|not logged in|sign in to/i.test(text))
     return `Gemini (Antigravity) isn’t signed in on this Mac. Open Terminal and run \`agy\` to sign in with your Google account, then try again.`;
   if (
     id === 'antigravity' &&
-    /unknown setting|took .* as its prompt|flag provided but not defined/i.test(m)
+    /unknown setting|took .* as its prompt|flag provided but not defined/i.test(text)
   )
     return `Antigravity on this Mac is a version Bento can’t talk to yet. Update it in Terminal (\`agy update\`), then try again.`;
   if (
     id === 'gemini' &&
-    /no longer supported for Gemini Code Assist for individuals|migrate to the Antigravity/i.test(m)
+    /no longer supported for Gemini Code Assist for individuals|migrate to the Antigravity/i.test(
+      text,
+    )
   )
     return `Google no longer lets personal accounts use the Gemini CLI. Use Gemini through Antigravity instead (choose it in the bottom-left), or give the Gemini CLI an API key.`;
   if (
     id === 'gemini' &&
     /set an auth method|not logged in|login required|unauthori[sz]ed|\b401\b|authentication/i.test(
-      m,
+      text,
     )
   )
     return `The Gemini CLI isn’t set up with a key. Give it a Gemini API key (free from Google AI Studio), or use Gemini through Antigravity instead (bottom-left).`;
   // Gemini's account setup (before any lesson): a school or work account needing a Cloud project, or Google's own reason
-  if (id === 'gemini' && /GOOGLE_CLOUD_PROJECT/.test(m))
+  if (id === 'gemini' && /GOOGLE_CLOUD_PROJECT/.test(text))
     return `This Google account can’t use Gemini on its own (school and work accounts often need a Google Cloud project). Sign in to Gemini with a personal Google account: run \`gemini\` in Terminal and choose “Sign in with Google”.`;
-  if (id === 'gemini' && /IneligibleTier|not eligible|ineligible/i.test(m))
-    return `Google says this account can’t use Gemini here yet: ${m.replace(/^.*?(IneligibleTierError:?\s*)?/i, '').slice(0, 200)}`;
+  if (id === 'gemini' && /IneligibleTier|not eligible|ineligible/i.test(text))
+    return `Google says this account can’t use Gemini here yet: ${text.replace(/^.*?(IneligibleTierError:?\s*)?/i, '').slice(0, 200)}`;
   if (
     id === 'gemini' &&
-    /onboardUser|Error authenticating/i.test(m) &&
-    /exhausted|429|quota/i.test(m)
+    /onboardUser|Error authenticating/i.test(text) &&
+    /exhausted|429|quota/i.test(text)
   )
     return `Google is still setting up Gemini for this account and asked Bento to wait. Try again in a few minutes.`;
   if (
     /usage limit|rate.?limit|quota|too many requests|\b429\b|limit reached|exceeded|resource.?exhausted/i.test(
-      m,
+      text,
     )
   )
     return `${who} says you’ve hit your plan’s usage limit for now. Try again later, or switch to another AI in the bottom-left.`;
   if (
     /no (active )?copilot|copilot (is )?not enabled|not authorized to use copilot|access to copilot/i.test(
-      m,
+      text,
     )
   )
     return `This GitHub account doesn’t have Copilot turned on yet. Turn on Copilot Free at github.com/settings/copilot, then try again.`;
   if (
     /not logged in|please run \/login|login required|unauthori[sz]ed|\b401\b|invalid api key|authentication|set an auth method|sign in/i.test(
-      m,
+      text,
     )
   )
     return `${who} isn’t signed in on this Mac. Open Terminal and run \`${provider.signIn}\` to sign in, then try again.`;
   // an update renamed or dropped an option Bento passes: say what to do, not the raw parser error
   if (
     /unknown option|unexpected argument|unrecognized (option|argument)|unknown argument|invalid value for '--|unknown feature flag/i.test(
-      m,
+      text,
     )
   )
     return `${who} on this Mac is a version Bento can’t talk to yet. Update it in Terminal (\`${provider.update}\`), then try again.`;
-  if (/ENOENT|not found|command not found/i.test(m))
+  if (/ENOENT|not found|command not found/i.test(text))
     return `${who} isn’t installed. Open Settings → Connections to see how to install it.`;
-  if (/network|ENOTFOUND|ECONNRESET|ETIMEDOUT|getaddrinfo/i.test(m))
+  if (/network|ENOTFOUND|ECONNRESET|ETIMEDOUT|getaddrinfo/i.test(text))
     return `Couldn’t reach ${who}. Check your internet connection and try again.`;
-  return m.length > 300 ? m.slice(0, 300) + '…' : m;
+  return text.length > 300 ? text.slice(0, 300) + '…' : text;
 }
 
 // Files the adapters need, made once: Gemini's deny-every-tool policy, and Copilot's own home folder for Bento

@@ -552,7 +552,7 @@ const Desk = forwardRef(function Desk(props, ref) {
 
   // keyboard: arrows to step
   useEffect(() => {
-    const h = (e) => {
+    const onKey = (e) => {
       if (tab !== 'steps' || !trace?.steps?.length) return;
       if (document.activeElement?.closest?.('.cm-editor, input, textarea')) return;
       if (e.key === 'ArrowRight') {
@@ -573,8 +573,8 @@ const Desk = forwardRef(function Desk(props, ref) {
         setStepIdx(e.key === 'Home' ? 0 : trace.steps.length - 1);
       }
     };
-    addEventListener('keydown', h);
-    return () => removeEventListener('keydown', h);
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
   }, [tab, trace]);
 
   // diff against the previous version of the SAME file: an earlier step, else the real file from the project
@@ -1161,40 +1161,40 @@ const Desk = forwardRef(function Desk(props, ref) {
           <span className="tb-k">
             TypeScript found {typeErrs.length === 1 ? 'a problem' : `${typeErrs.length} problems`}
           </span>
-          {typeErrs.map((d, i) => (
+          {typeErrs.map((typeError, i) => (
             <div key={i} className="tb-row">
-              <button onClick={() => ed.current?.setCursorLine(d.line)}>
-                <b>line {d.line}</b> {d.msg}
+              <button onClick={() => ed.current?.setCursorLine(typeError.line)}>
+                <b>line {typeError.line}</b> {typeError.msg}
               </button>
               <button
                 className="tb-ex"
                 onClick={async () => {
-                  setTypeEx((m) => ({ ...m, [d.msg]: '…' }));
+                  setTypeEx((m) => ({ ...m, [typeError.msg]: '…' }));
                   try {
                     const j = parseJSONLoose(
                       await quick(
                         model,
                         quickPrompts.error({
                           code,
-                          err: `TypeScript type error: ${d.msg} (line ${d.line})`,
+                          err: `TypeScript type error: ${typeError.msg} (line ${typeError.line})`,
                           lang: 'TypeScript',
                         }),
                       ),
                     );
                     setTypeEx((m) => ({
                       ...m,
-                      [d.msg]: j
+                      [typeError.msg]: j
                         ? `${j.plain}${j.fix ? ` Fix: ${j.fix}` : ''}`
                         : 'Couldn’t explain this one.',
                     }));
                   } catch {
-                    setTypeEx((m) => ({ ...m, [d.msg]: 'The model didn’t answer.' }));
+                    setTypeEx((m) => ({ ...m, [typeError.msg]: 'The model didn’t answer.' }));
                   }
                 }}
               >
                 explain
               </button>
-              {typeEx[d.msg] && <div className="tb-plain">{typeEx[d.msg]}</div>}
+              {typeEx[typeError.msg] && <div className="tb-plain">{typeEx[typeError.msg]}</div>}
             </div>
           ))}
           <span className="tb-note">
@@ -1530,11 +1530,11 @@ function Interlinear({ code, english, hoverLine, setHoverLine, onPick, step, not
   const noteAt = new Map((notes || []).map((n) => [n.from, n]));
   return (
     <div className="interlinear">
-      {lines.map((l, i) => {
+      {lines.map((line, i) => {
         const e = english[i];
-        const blank = !l.trim();
+        const blank = !line.trim();
         if (blank) return <div key={i} className="il-gap" />;
-        const indent = l.match(/^\s*/)[0].length;
+        const indent = line.match(/^\s*/)[0].length;
         const note = noteAt.get(i + 1);
         return (
           <div
@@ -1553,7 +1553,7 @@ function Interlinear({ code, english, hoverLine, setHoverLine, onPick, step, not
                   e || <span className="il-dim">—</span>
                 )}
               </div>
-              <code className="il-code">{l.trim()}</code>
+              <code className="il-code">{line.trim()}</code>
               {note && (
                 <div className="il-note">
                   <b>{note.label}</b> {note.text}

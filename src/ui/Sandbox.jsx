@@ -239,17 +239,17 @@ export default function Sandbox({ done = {}, onDone, onAsk }) {
   return (
     <div className="sandbox">
       <div className="sb-levels">
-        {LEVELS.map((l, i) => (
+        {LEVELS.map((level, i) => (
           <button
             key={i}
             className={`sb-lv ${i === lv ? 'on' : ''} ${done[i] ? 'done' : ''}`}
             onClick={() => {
               setLv(i);
-              setRps(l.rps);
+              setRps(level.rps);
             }}
           >
             {done[i] ? '✓' : i + 1}
-            <span>{t(l.title)}</span>
+            <span>{t(level.title)}</span>
           </button>
         ))}
       </div>

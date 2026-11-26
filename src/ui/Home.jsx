@@ -659,14 +659,14 @@ function ProjectChoice({ choice, onChoose }) {
         <b>{t('Is this about one of these?')}</b>
       </div>
       <div className="pc-row">
-        {repos.map((g, i) => {
-          const [owner, name] = g.full.split('/');
+        {repos.map((repo, i) => {
+          const [owner, name] = repo.full.split('/');
           return (
             <button
-              key={g.full}
+              key={repo.full}
               ref={i === 0 ? first : null}
               className={`pc-card ${i === 0 ? 'main' : ''}`}
-              onClick={() => onChoose(g)}
+              onClick={() => onChoose(repo)}
             >
               <img
                 className="pc-av"
@@ -675,9 +675,9 @@ function ProjectChoice({ choice, onChoose }) {
               />
               <span className="pc-name">{name}</span>
               <span className="pc-meta">
-                {owner} · ★ {fmtStars(g.stars)}
+                {owner} · ★ {fmtStars(repo.stars)}
               </span>
-              {g.description && <span className="pc-desc">{g.description}</span>}
+              {repo.description && <span className="pc-desc">{repo.description}</span>}
               <span className="pc-go">{t('Open the real code')} →</span>
             </button>
           );
@@ -710,7 +710,7 @@ export function Seg({ value, options, onChange, small }) {
 // progress around the path's next stop
 function Ring({ i, n }) {
   const r = 20,
-    c = 2 * Math.PI * r,
+    circumference = 2 * Math.PI * r,
     f = Math.max(0.04, (i - 1) / n);
   return (
     <span className="hc-ring" aria-hidden="true">
@@ -721,7 +721,7 @@ function Ring({ i, n }) {
           cy="24"
           r={r}
           className="hr-fg"
-          strokeDasharray={`${c * f} ${c}`}
+          strokeDasharray={`${circumference * f} ${circumference}`}
           transform="rotate(-90 24 24)"
         />
       </svg>

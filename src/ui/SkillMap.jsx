@@ -410,7 +410,7 @@ function Review({ quiz, setQuiz, onDone, onOpenLesson, onAsk }) {
       </div>
       <div className="sm-q">{q.q}</div>
       <div className="sm-choices">
-        {q.choices.map((c, k) => (
+        {q.choices.map((choice, k) => (
           <button
             key={k}
             disabled={quiz.pick != null}
@@ -421,7 +421,7 @@ function Review({ quiz, setQuiz, onDone, onOpenLesson, onAsk }) {
               setQuiz({ ...quiz, pick: k, score: quiz.score + (k === q.answer ? 1 : 0) })
             }
           >
-            {c}
+            {choice}
           </button>
         ))}
       </div>

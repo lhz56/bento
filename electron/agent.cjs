@@ -154,18 +154,18 @@ const strs = (v, n, max) =>
     : undefined;
 const int = (v) =>
   Number.isInteger(v) ? v : typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : undefined;
-function checkArgs(name, a) {
-  a = a && typeof a === 'object' ? a : {};
+function checkArgs(name, args) {
+  args = args && typeof args === 'object' ? args : {};
   if (name === 'show_lesson') {
-    const title = s(a.title, 120),
-      code = s(a.code, 60000);
+    const title = s(args.title, 120),
+      code = s(args.code, 60000);
     if (!title) return { error: 'show_lesson needs a title.' };
     if (!code || !code.trim())
       return { error: 'show_lesson needs code: the runnable example the lesson is about.' };
-    if (!LANGS.includes(a.language))
+    if (!LANGS.includes(args.language))
       return { error: `language must be one of ${LANGS.join(', ')}.` };
-    const notes = Array.isArray(a.notes)
-      ? a.notes
+    const notes = Array.isArray(args.notes)
+      ? args.notes
           .filter((n) => n && int(n.from) && typeof n.text === 'string')
           .slice(0, 6)
           .map((n) => ({
@@ -175,8 +175,8 @@ function checkArgs(name, a) {
             text: n.text.slice(0, 400),
           }))
       : [];
-    const terms = Array.isArray(a.terms)
-      ? a.terms
+    const terms = Array.isArray(args.terms)
+      ? args.terms
           .filter((x) => x && typeof x.term === 'string' && typeof x.plain === 'string')
           .slice(0, 6)
           .map((x) => ({
@@ -185,7 +185,7 @@ function checkArgs(name, a) {
             like: s(x.like, 200) || '',
           }))
       : [];
-    const q = a.quiz && typeof a.quiz === 'object' ? a.quiz : null;
+    const q = args.quiz && typeof args.quiz === 'object' ? args.quiz : null;
     const quiz =
       q &&
       typeof q.q === 'string' &&
@@ -204,30 +204,30 @@ function checkArgs(name, a) {
       args: {
         title,
         code,
-        language: a.language,
-        question: s(a.question, 500) || '',
-        pseudo: strs(a.pseudo, 400, 200) || [],
-        intro: s(a.intro, 4000) || '',
-        explanation: s(a.explanation, 6000) || '',
+        language: args.language,
+        question: s(args.question, 500) || '',
+        pseudo: strs(args.pseudo, 400, 200) || [],
+        intro: s(args.intro, 4000) || '',
+        explanation: s(args.explanation, 6000) || '',
         notes,
         terms,
         quiz,
-        try: strs(a.try, 4, 120) || [],
-        next: strs(a.next, 4, 120) || [],
+        try: strs(args.try, 4, 120) || [],
+        next: strs(args.next, 4, 120) || [],
       },
     };
   }
   if (name === 'highlight_code') {
-    const from = int(a.from);
+    const from = int(args.from);
     if (!from || from < 1)
       return {
         error: 'highlight_code needs from: the first line to light up (1 is the first line).',
       };
-    const to = Math.max(from, int(a.to) || from);
-    return { args: { from, to, note: s(a.note, 400) || '', label: s(a.label, 40) || '' } };
+    const to = Math.max(from, int(args.to) || from);
+    return { args: { from, to, note: s(args.note, 400) || '', label: s(args.label, 40) || '' } };
   }
   if (name === 'run_code')
-    return { args: { code: typeof a.code === 'string' ? a.code.slice(0, 60000) : null } };
+    return { args: { code: typeof args.code === 'string' ? args.code.slice(0, 60000) : null } };
   if (name === 'get_learner_view') return { args: {} };
   return { error: `Bento has no tool called ${name}.` };
 }
@@ -244,37 +244,37 @@ function serve({ sock, call, log = () => {} }) {
       fs.rmSync(sock, { force: true });
     } catch {}
   }
-  const server = net.createServer((c) => {
-    c.setEncoding('utf8');
+  const server = net.createServer((conn) => {
+    conn.setEncoding('utf8');
     let buf = '';
-    c.on('error', () => {});
-    c.on('data', (d) => {
+    conn.on('error', () => {});
+    conn.on('data', (d) => {
       buf += d;
       if (buf.length > 2_000_000) {
-        c.destroy();
+        conn.destroy();
         return;
       }
       let i;
       while ((i = buf.indexOf('\n')) >= 0) {
         const line = buf.slice(0, i);
         buf = buf.slice(i + 1);
-        let m;
+        let match;
         try {
-          m = JSON.parse(line);
+          match = JSON.parse(line);
         } catch {
           continue;
         }
-        if (!m || typeof m !== 'object') continue;
+        if (!match || typeof match !== 'object') continue;
         const reply = (o) => {
-          if (!c.destroyed) c.write(JSON.stringify({ id: m.id, ...o }) + '\n');
+          if (!conn.destroyed) conn.write(JSON.stringify({ id: match.id, ...o }) + '\n');
         };
-        const checked = checkArgs(String(m.tool), m.args);
+        const checked = checkArgs(String(match.tool), match.args);
         if (checked.error) {
           reply({ error: checked.error });
           continue;
         }
         Promise.resolve()
-          .then(() => call(String(m.tool), checked.args, s(m.client, 60) || ''))
+          .then(() => call(String(match.tool), checked.args, s(match.client, 60) || ''))
           .then(
             (text) => reply({ text: String(text) }),
             (e) => reply({ error: String(e?.message || e) }),

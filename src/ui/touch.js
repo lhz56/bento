@@ -120,14 +120,14 @@ const GLIDE = [
   ['.stage-tabs', '.stab:not(.predict)'],
 ];
 function glide(e) {
-  const b = e.target.closest?.('button');
-  const box = b?.parentElement;
-  if (!box || b.disabled || reduced()) return;
-  const g = GLIDE.find(([c, it]) => box.matches(c) && b.matches(it));
+  const button = e.target.closest?.('button');
+  const box = button?.parentElement;
+  if (!box || button.disabled || reduced()) return;
+  const g = GLIDE.find(([c, it]) => box.matches(c) && button.matches(it));
   if (!g) return;
   const items = [...box.children].filter((x) => x.matches(g[1]));
   const from = box.__glide?.ghost || items.find((x) => x.classList.contains('on'));
-  if (!from || (from === b && !box.__glide)) return;
+  if (!from || (from === button && !box.__glide)) return;
   if (getComputedStyle(box).position === 'static') box.style.position = 'relative';
   box.style.isolation = 'isolate';
   const bx = box.getBoundingClientRect(),
@@ -158,7 +158,7 @@ function glide(e) {
   // the page shows the new choice once it has heard the tap: then the thumb follows it there
   const go = () => {
     if (box.__glide !== me) return;
-    let to = b.isConnected && b.classList.contains('on') ? b : null;
+    let to = button.isConnected && button.classList.contains('on') ? button : null;
     if (!to && ++tries < 6) {
       requestAnimationFrame(go);
       return;
@@ -283,17 +283,17 @@ function holdMenu(row, spec, done) {
     }, 180);
   };
   for (const it of spec.items(row)) {
-    const b = document.createElement('button');
-    b.setAttribute('role', 'menuitem');
-    if (it.danger) b.className = 'danger';
-    b.innerHTML = `<span></span><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path d="${it.icon}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-    b.firstChild.textContent = it.label;
-    b.onclick = (e) => {
+    const button = document.createElement('button');
+    button.setAttribute('role', 'menuitem');
+    if (it.danger) button.className = 'danger';
+    button.innerHTML = `<span></span><svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path d="${it.icon}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    button.firstChild.textContent = it.label;
+    button.onclick = (e) => {
       e.stopPropagation();
       if (it.danger) haptic('warn');
       close(it.run);
     };
-    menu.append(b);
+    menu.append(button);
   }
   veil.onclick = () => close();
   menu.onkeydown = (e) => {
@@ -418,7 +418,7 @@ export function useTouch(on, o) {
   ref.current = o;
   useEffect(() => {
     if (!on) return undefined;
-    let g = null; // the gesture in progress
+    let gesture = null; // the gesture in progress
     const width = () => innerWidth;
 
     // ---------------------------------------------------------------- a button answers as soon as you touch it
@@ -468,7 +468,7 @@ export function useTouch(on, o) {
     const start = (e) => {
       holdOff();
       if (e.touches.length !== 1) {
-        g = null;
+        gesture = null;
         return;
       }
       const t = e.touches[0];
@@ -493,25 +493,35 @@ export function useTouch(on, o) {
         holdT = window.setTimeout(() => {
           holdT = 0;
           unpressNow();
-          g = null;
+          gesture = null;
           holding = true;
           holdMenu(row, h, () => {});
         }, 480);
       }
-      g = { x0: t.clientX, y0: t.clientY, trail: [[e.timeStamp, 0, 0]], mode: null, lock: false };
+      gesture = {
+        x0: t.clientX,
+        y0: t.clientY,
+        trail: [[e.timeStamp, 0, 0]],
+        mode: null,
+        lock: false,
+      };
       if (!x.phone) return;
       for (const s of SHEETS) {
         const el = tgt.closest(s.sel);
         if (el) {
           if (atTop(tgt, el) && !tgt.closest('input, textarea, [contenteditable]'))
-            Object.assign(g, { mode: 'sheet', el, s, veil: veilOf(s, el) });
+            Object.assign(gesture, { mode: 'sheet', el, s, veil: veilOf(s, el) });
           return;
         }
       }
       const side = document.querySelector('.app.phone .side');
       if (x.drawerOpen()) {
         if (side && (side.contains(tgt) || tgt.closest('.pveil')))
-          Object.assign(g, { mode: 'drawer', el: side, veil: document.querySelector('.pveil') });
+          Object.assign(gesture, {
+            mode: 'drawer',
+            el: side,
+            veil: document.querySelector('.pveil'),
+          });
         return;
       }
       if (
@@ -521,13 +531,13 @@ export function useTouch(on, o) {
       )
         return;
       if (x.canBack())
-        Object.assign(g, {
+        Object.assign(gesture, {
           mode: 'back',
           el: document.getElementById('content'),
           bar: document.querySelector('.pbar-mid'),
         });
       else if (x.atRoot() && side)
-        Object.assign(g, { mode: 'open', el: side, veil: document.querySelector('.pveil') });
+        Object.assign(gesture, { mode: 'open', el: side, veil: document.querySelector('.pveil') });
     };
 
     const move = (e) => {
@@ -540,54 +550,56 @@ export function useTouch(on, o) {
         if (e.cancelable) e.preventDefault();
         return;
       }
-      if (!g?.mode) return;
-      const dx = t.clientX - g.x0,
-        dy = t.clientY - g.y0;
-      if (!g.lock) {
+      if (!gesture?.mode) return;
+      const dx = t.clientX - gesture.x0,
+        dy = t.clientY - gesture.y0;
+      if (!gesture.lock) {
         // decided on the first move: once Safari starts scrolling, it can't be taken back
         const ok =
-          g.mode === 'sheet'
+          gesture.mode === 'sheet'
             ? dy > 0 && dy >= Math.abs(dx)
-            : g.mode === 'drawer'
+            : gesture.mode === 'drawer'
               ? dx < 0 && -dx > Math.abs(dy)
               : dx > 0 && dx > Math.abs(dy);
         if (!ok || !e.cancelable) {
-          g = null;
+          gesture = null;
           return;
         }
-        g.lock = true;
+        gesture.lock = true;
         unpressNow();
-        set(g.el, { transition: 'none', animation: 'none' });
-        if (g.veil) set(g.veil, { transition: 'none', animation: 'none' });
-        if (g.mode === 'back') set(g.el, { boxShadow: '-10px 0 30px rgba(0, 0, 0, .14)' });
-        if (g.mode === 'open') set(g.el, { visibility: 'visible' });
-        if (g.mode === 'open' && g.veil) set(g.veil, { display: 'block', pointerEvents: 'none' });
+        set(gesture.el, { transition: 'none', animation: 'none' });
+        if (gesture.veil) set(gesture.veil, { transition: 'none', animation: 'none' });
+        if (gesture.mode === 'back')
+          set(gesture.el, { boxShadow: '-10px 0 30px rgba(0, 0, 0, .14)' });
+        if (gesture.mode === 'open') set(gesture.el, { visibility: 'visible' });
+        if (gesture.mode === 'open' && gesture.veil)
+          set(gesture.veil, { display: 'block', pointerEvents: 'none' });
       }
       e.preventDefault();
-      g.trail.push([e.timeStamp, dx, dy]);
-      if (g.trail.length > 6) g.trail.shift();
+      gesture.trail.push([e.timeStamp, dx, dy]);
+      if (gesture.trail.length > 6) gesture.trail.shift();
       const w = width();
-      if (g.mode === 'sheet') {
+      if (gesture.mode === 'sheet') {
         const y = Math.max(0, dy);
-        g.el.style.transform = `translateY(${y}px)`;
-        if (g.veil)
-          g.veil.contains(g.el)
-            ? (g.veil.style.backgroundColor = `rgba(30, 24, 18, ${0.16 * Math.max(0, 1 - y / 400)})`)
-            : (g.veil.style.opacity = String(Math.max(0, 1 - y / 500)));
-      } else if (g.mode === 'drawer') {
-        const sw = g.el.offsetWidth;
+        gesture.el.style.transform = `translateY(${y}px)`;
+        if (gesture.veil)
+          gesture.veil.contains(gesture.el)
+            ? (gesture.veil.style.backgroundColor = `rgba(30, 24, 18, ${0.16 * Math.max(0, 1 - y / 400)})`)
+            : (gesture.veil.style.opacity = String(Math.max(0, 1 - y / 500)));
+      } else if (gesture.mode === 'drawer') {
+        const sw = gesture.el.offsetWidth;
         const x = Math.min(0, dx);
-        g.el.style.transform = `translateX(${x}px)`;
-        if (g.veil) g.veil.style.opacity = String(1 + x / sw);
-      } else if (g.mode === 'open') {
-        const sw = g.el.offsetWidth;
+        gesture.el.style.transform = `translateX(${x}px)`;
+        if (gesture.veil) gesture.veil.style.opacity = String(1 + x / sw);
+      } else if (gesture.mode === 'open') {
+        const sw = gesture.el.offsetWidth;
         const x = Math.min(0, -sw + dx);
-        g.el.style.transform = `translateX(${x}px)`;
-        if (g.veil) g.veil.style.opacity = String(Math.max(0, 1 + x / sw));
+        gesture.el.style.transform = `translateX(${x}px)`;
+        if (gesture.veil) gesture.veil.style.opacity = String(Math.max(0, 1 + x / sw));
       } else {
         const x = Math.max(0, dx);
-        g.el.style.transform = `translateX(${x}px)`;
-        if (g.bar) g.bar.style.opacity = String(Math.max(0, 1 - (2 * x) / w));
+        gesture.el.style.transform = `translateX(${x}px)`;
+        if (gesture.bar) gesture.bar.style.opacity = String(Math.max(0, 1 - (2 * x) / w));
       }
     };
 
@@ -599,8 +611,8 @@ export function useTouch(on, o) {
         eatUntil = Date.now() + 250;
       }
       unpress();
-      const k = g;
-      g = null;
+      const k = gesture;
+      gesture = null;
       if (!k?.lock) return;
       const [a, b] = [k.trail[0], k.trail[k.trail.length - 1]];
       const dt = Math.max(1, b[0] - a[0]);

@@ -192,8 +192,8 @@ export default function Grow({ full }) {
                 </text>
               );
             })}
-            {st.moments.map((m, j) => {
-              const k = momentAt(m);
+            {st.moments.map((moment, j) => {
+              const k = momentAt(moment);
               return (
                 <g
                   key={j}
@@ -205,15 +205,15 @@ export default function Grow({ full }) {
                   }}
                 >
                   <circle cx={xAt(k)} cy={yAt(frames[k].total)} r="5" />
-                  <title>{`${fmtDate(m.at)}: ${m.msg} (+${m.add} −${m.del} files)`}</title>
+                  <title>{`${fmtDate(moment.at)}: ${moment.msg} (+${moment.add} −${moment.del} files)`}</title>
                 </g>
               );
             })}
             <line x1={xAt(i)} x2={xAt(i)} y1={8} y2={height - 22} className="gc-now" />
           </svg>
           <div className="grow-moments">
-            {st.moments.map((m, j) => {
-              const k = momentAt(m);
+            {st.moments.map((moment, j) => {
+              const k = momentAt(moment);
               return (
                 <button
                   key={j}
@@ -223,11 +223,11 @@ export default function Grow({ full }) {
                     setI(k);
                   }}
                 >
-                  <b>{fmtDate(m.at)}</b>
-                  <span>{m.first ? `🌱 ${t('The very first commit')}` : m.msg}</span>
+                  <b>{fmtDate(moment.at)}</b>
+                  <span>{moment.first ? `🌱 ${t('The very first commit')}` : moment.msg}</span>
                   <em>
-                    {m.add ? `+${m.add}` : ''}
-                    {m.del ? ` −${m.del}` : ''} {t('files')}
+                    {moment.add ? `+${moment.add}` : ''}
+                    {moment.del ? ` −${moment.del}` : ''} {t('files')}
                   </em>
                 </button>
               );

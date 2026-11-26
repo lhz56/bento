@@ -3007,17 +3007,19 @@ export const DEFAULT_RUNGS = [
 ];
 
 const YEAR = 365.25 * 86400;
-export function humanTime(s) {
-  if (!isFinite(s) || s > 13.8e9 * YEAR)
+export function humanTime(human) {
+  if (!isFinite(human) || human > 13.8e9 * YEAR)
     return { t: 'longer than the universe’s age', e: '🌌', c: 5 };
-  if (s < 1e-3) return { t: 'instant', e: '⚡', c: 0 };
-  if (s < 1) return { t: `${Math.round(s * 1000)} ms`, e: '⚡', c: s < 0.1 ? 0 : 1 };
-  if (s < 60) return { t: `${s < 10 ? s.toFixed(1) : Math.round(s)} s`, e: '⏳', c: 2 };
-  if (s < 3600) return { t: `${Math.round(s / 60)} min`, e: '☕', c: 2 };
+  if (human < 1e-3) return { t: 'instant', e: '⚡', c: 0 };
+  if (human < 1) return { t: `${Math.round(human * 1000)} ms`, e: '⚡', c: human < 0.1 ? 0 : 1 };
+  if (human < 60)
+    return { t: `${human < 10 ? human.toFixed(1) : Math.round(human)} s`, e: '⏳', c: 2 };
+  if (human < 3600) return { t: `${Math.round(human / 60)} min`, e: '☕', c: 2 };
   const pl = (v, w) => `${v} ${w}${v === '1' || v === 1 ? '' : 's'}`;
-  if (s < 86400) return { t: pl(+(s / 3600).toFixed(s < 36000 ? 1 : 0), 'hour'), e: '🌙', c: 3 };
-  if (s < YEAR) return { t: pl(Math.round(s / 86400), 'day'), e: '📅', c: 3 };
-  const y = s / YEAR;
+  if (human < 86400)
+    return { t: pl(+(human / 3600).toFixed(human < 36000 ? 1 : 0), 'hour'), e: '🌙', c: 3 };
+  if (human < YEAR) return { t: pl(Math.round(human / 86400), 'day'), e: '📅', c: 3 };
+  const y = human / YEAR;
   if (y < 1e3) return { t: pl(Math.round(y), 'year'), e: '🦕', c: 4 };
   if (y < 1e6)
     return { t: `${Math.round(y / 1e3).toLocaleString()} thousand years`, e: '🦕', c: 4 };

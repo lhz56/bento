@@ -247,16 +247,16 @@ export default function Atlas({
   const navRef = useRef(null);
   const [navMore, setNavMore] = useState('');
   useLayoutEffect(() => {
-    const n = navRef.current;
-    if (!n) return undefined;
+    const nav = navRef.current;
+    if (!nav) return undefined;
     const upd = () => {
-      const over = n.scrollWidth - n.clientWidth > 4;
+      const over = nav.scrollWidth - nav.clientWidth > 4;
       setNavMore(
         !over
           ? ''
           : [
-              n.scrollLeft > 4 && 'more-l',
-              n.scrollLeft + n.clientWidth < n.scrollWidth - 4 && 'more-r',
+              nav.scrollLeft > 4 && 'more-l',
+              nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 4 && 'more-r',
             ]
               .filter(Boolean)
               .join(' '),
@@ -264,11 +264,11 @@ export default function Atlas({
     };
     upd();
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(upd) : null;
-    ro?.observe(n);
-    n.addEventListener('scroll', upd, { passive: true });
+    ro?.observe(nav);
+    nav.addEventListener('scroll', upd, { passive: true });
     return () => {
       ro?.disconnect();
-      n.removeEventListener('scroll', upd);
+      nav.removeEventListener('scroll', upd);
     };
   }, [holding]); // the bar only exists once the project has loaded
   // keep the lit section in view in the bar, by moving the bar only (scrolling anything else would stop the page's glide)
@@ -796,7 +796,7 @@ function Donut({ langs, total }) {
   let a = -Math.PI / 2;
   const radius = 30,
     r = 19;
-  const arcs = langs.slice(0, 6).map(([l, n]) => {
+  const arcs = langs.slice(0, 6).map(([lang, n]) => {
     const da = (n / total) * Math.PI * 2;
     const a0 = a;
     a += da;
@@ -806,16 +806,16 @@ function Donut({ langs, total }) {
       `${(36 + rad * Math.cos(ang)).toFixed(2)},${(36 + rad * Math.sin(ang)).toFixed(2)}`;
     return (
       <path
-        key={l}
+        key={lang}
         d={
           da >= Math.PI * 2 - 0.03
             ? `M36,${36 - radius} A${radius},${radius} 0 1 1 35.99,${36 - radius} L35.99,${36 - r} A${r},${r} 0 1 0 36,${36 - r} Z`
             : `M${polar(radius, a0)} A${radius},${radius} 0 ${big} 1 ${polar(radius, a1)} L${polar(r, a1)} A${r},${r} 0 ${big} 0 ${polar(r, a0)} Z`
         }
-        fill={langColor(l)}
+        fill={langColor(lang)}
       >
         <title>
-          {l} {Math.round((n / total) * 100)}%
+          {lang} {Math.round((n / total) * 100)}%
         </title>
       </path>
     );
@@ -1132,18 +1132,18 @@ function Language({ langs, totalL, main, narration, narrating }) {
             {alts.length > 0 && (
               <div className="lang-alts">
                 <span className="mini-h">it could have been</span>
-                {alts.slice(0, 3).map((a) => (
-                  <div key={a.name} className="lang-alt">
+                {alts.slice(0, 3).map((alt) => (
+                  <div key={alt.name} className="lang-alt">
                     <Brand
-                      slug={LANGS[a.name]?.slug}
-                      name={a.name}
-                      color={LANGS[a.name]?.color}
+                      slug={LANGS[alt.name]?.slug}
+                      name={alt.name}
+                      color={LANGS[alt.name]?.color}
                       size={22}
                       plain
                     />
-                    <b>{a.name}</b>
+                    <b>{alt.name}</b>
                     <span>
-                      <Md text={a.when || ''} />
+                      <Md text={alt.when || ''} />
                     </span>
                   </div>
                 ))}
@@ -1152,17 +1152,17 @@ function Language({ langs, totalL, main, narration, narrating }) {
           </div>
         </div>
         <div className="lang-mix">
-          {langs.slice(0, 8).map(([l, n]) => (
-            <div key={l} className="lm-row">
+          {langs.slice(0, 8).map(([lang, n]) => (
+            <div key={lang} className="lm-row">
               <span className="lm-name">
-                <span className="ldot" style={{ background: langColor(l) }} />
-                {l}
+                <span className="ldot" style={{ background: langColor(lang) }} />
+                {lang}
               </span>
               <span className="lm-bar">
                 <i
                   style={{
                     width: `${Math.max(1.5, (n / totalL) * 100)}%`,
-                    background: langColor(l),
+                    background: langColor(lang),
                   }}
                 />
               </span>
@@ -1226,35 +1226,35 @@ function Hotspots({ hot, role, onOpen, narrating, facts, pathIdx }) {
         {hot.length === 0 && !narrating && (
           <p className="muted">Nothing stands out. Clean little codebase.</p>
         )}
-        {hot.map((h, i) => {
-          const [ic, label] = HOT_ICON[h.kind] || HOT_ICON.fragile;
+        {hot.map((spot, i) => {
+          const [ic, label] = HOT_ICON[spot.kind] || HOT_ICON.fragile;
           return (
-            <div key={i} className={`hot k-${h.kind || 'fragile'}`}>
-              {h.p && pathIdx.has(h.p) ? (
+            <div key={i} className={`hot k-${spot.kind || 'fragile'}`}>
+              {spot.p && pathIdx.has(spot.p) ? (
                 <MiniBuilding
-                  f={facts.files[pathIdx.get(h.p)]}
+                  f={facts.files[pathIdx.get(spot.p)]}
                   maxL={maxL}
                   maxU={maxU}
-                  kind={h.kind}
+                  kind={spot.kind}
                 />
               ) : (
                 <span className="hot-ic">{ic}</span>
               )}
               <div className="hot-main">
                 <div className="hot-top">
-                  <b>{h.title}</b>
+                  <b>{spot.title}</b>
                   <span className="hot-kind">{label}</span>
                   <span className="hot-src">
-                    {h.measured ? 'measured' : 'from reading the code'}
+                    {spot.measured ? 'measured' : 'from reading the code'}
                   </span>
                 </div>
                 <div className="hot-md">
-                  <Md text={h.md} />
+                  <Md text={spot.md} />
                 </div>
-                {h.p && (
-                  <button className="file-chip" onClick={() => onOpen(h.p)}>
-                    {h.p}
-                    <span>{role(h.p)}</span>
+                {spot.p && (
+                  <button className="file-chip" onClick={() => onOpen(spot.p)}>
+                    {spot.p}
+                    <span>{role(spot.p)}</span>
                   </button>
                 )}
               </div>
@@ -1522,17 +1522,17 @@ function FileList({ facts, role, onOpen }) {
         <FileMap files={files} role={role} onOpen={onOpen} />
       ) : (
         <div className="fl">
-          {sorted.map(([d, fs]) => {
-            const isOpen = !many || open[d] || fs.length <= 3;
+          {sorted.map(([group, fs]) => {
+            const isOpen = !many || open[group] || fs.length <= 3;
             return (
-              <div key={d} className="fl-dir">
+              <div key={group} className="fl-dir">
                 <button
                   className="fl-dname"
                   aria-expanded={isOpen}
-                  onClick={() => setOpen({ ...open, [d]: !isOpen })}
+                  onClick={() => setOpen({ ...open, [group]: !isOpen })}
                 >
                   <span className="caret2">{isOpen ? '▾' : '▸'}</span>
-                  <span className="fl-dn">{d || 'top level'}/</span>
+                  <span className="fl-dn">{group || 'top level'}/</span>
                   <span className="muted"> {fs.length}</span>
                 </button>
                 {isOpen &&
@@ -2161,19 +2161,19 @@ function Ripple({ facts, idx, onOpen }) {
           ring.slice(0, Math.floor(radius[d] / 1.6)).map((j, k, arr) => {
             const dr = Math.max(2.2, Math.min(5.5, ((Math.PI * radius[d]) / arr.length) * 0.55));
             const a = (k / arr.length) * Math.PI * 2 - Math.PI / 2 + d * 0.4;
-            const g = facts.files[j];
+            const file = facts.files[j];
             return (
               <circle
                 key={j}
                 cx={center + Math.cos(a) * radius[d]}
                 cy={center + Math.sin(a) * radius[d]}
                 r={hov === j ? dr + 2.5 : dr}
-                fill={LAYER[g.layer]?.[3] || 'var(--ink-3)'}
+                fill={LAYER[file.layer]?.[3] || 'var(--ink-3)'}
                 className="rp-dot"
                 style={{ animationDelay: `${0.15 + d * 0.25 + k * 0.01}s` }}
                 onMouseEnter={() => setHov(j)}
                 onMouseLeave={() => setHov(null)}
-                onClick={() => onOpen(g.p)}
+                onClick={() => onOpen(file.p)}
               />
             );
           }),
@@ -2271,7 +2271,7 @@ function Drawer({
   const [tab, setTab] = useState(first);
   useEffect(() => setTab(first()), [p]); // eslint-disable-line react-hooks/exhaustive-deps
   // a file outside the analysed sample: what we know from its name and its text
-  const f = facts.files[pathIdx.get(p)] || {
+  const file = facts.files[pathIdx.get(p)] || {
     p,
     lang: EXT_LANG[(/\.([^./]+)$/.exec(p)?.[1] || '').toLowerCase()] || null,
     lines: text ? text.split('\n').length : 0,
@@ -2297,12 +2297,12 @@ function Drawer({
     addEventListener('keydown', h);
     return () => removeEventListener('keydown', h);
   }, []);
-  if (!f) return null;
+  if (!file) return null;
   const idx = pathIdx.get(p);
   const usedBy = facts.files.filter((g) => g.imp.includes(idx));
-  const uses = f.imp.map((j) => facts.files[j]);
+  const uses = file.imp.map((j) => facts.files[j]);
   const tools = stack.filter((s) => s.used.includes(idx));
-  const [, lname, , lcolor] = LAYER[f.layer];
+  const [, lname, , lcolor] = LAYER[file.layer];
   return (
     <>
       <div className="drawer-veil" onClick={onClose} />
@@ -2311,7 +2311,7 @@ function Drawer({
           <span className="dr-layer" style={{ '--c': lcolor }}>
             {lname}
           </span>
-          {f.entry && (
+          {file.entry && (
             <span className="dr-layer" style={{ '--c': 'var(--mint)' }}>
               starts here
             </span>
@@ -2340,19 +2340,19 @@ function Drawer({
         <div className="dr-path">{p}</div>
         <h3 className="dr-role">{role(p)}</h3>
         <div className="dr-meta">
-          {f.lang && (
+          {file.lang && (
             <>
-              <span className="ldot" style={{ background: langColor(f.lang) }} />
-              {f.lang} ·{' '}
+              <span className="ldot" style={{ background: langColor(file.lang) }} />
+              {file.lang} ·{' '}
             </>
           )}
-          {f.lines.toLocaleString()} lines{f.used ? ` · ${f.used} files use it` : ''}
+          {file.lines.toLocaleString()} lines{file.used ? ` · ${file.used} files use it` : ''}
         </div>
         <div className="dr-actions">
           <button className="btn" disabled={!text} onClick={() => onExplain(p, text)}>
             Explain it line by line
           </button>
-          {onOthers && f.lang && (
+          {onOthers && file.lang && (
             <button
               className="btn ghost"
               disabled={!text || others === 'busy'}
@@ -2392,7 +2392,7 @@ function Drawer({
               className={tab === 'code' ? 'on' : ''}
               onClick={() => setTab('code')}
             >
-              Code{f.lines ? <span>{f.lines.toLocaleString()}</span> : null}
+              Code{file.lines ? <span>{file.lines.toLocaleString()}</span> : null}
             </button>
           </div>
         )}
@@ -2454,7 +2454,7 @@ function Drawer({
             ) : (
               <Editor
                 value={text.length > 60000 ? text.slice(0, 60000) + '\n// …' : text}
-                lang={edLang(f.lang)}
+                lang={edLang(file.lang)}
                 readOnly
                 lens="code"
               />

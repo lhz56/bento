@@ -205,8 +205,8 @@ export function run(S0, line) {
   const say = (s, k = 'out') => sim.out.push({ k, s });
   const t = tokens(line.trim());
   if (!t.length) return S0;
-  const [cmd, ...a] = t;
-  const key = cmd === 'git' ? `git ${a[0] || ''}`.trim() : cmd;
+  const [cmd, ...args] = t;
+  const key = cmd === 'git' ? `git ${args[0] || ''}`.trim() : cmd;
   sim.last = EXPLAIN[key] ? key : null;
   try {
     if (cmd === 'help')
@@ -221,39 +221,39 @@ export function run(S0, line) {
         .sort();
       say(kids.length ? kids.join('  ') : '(empty)');
     } else if (cmd === 'cd') {
-      const p = join(sim.cwd, a[0]);
-      if (!isDir(sim, p)) throw new Error(`cd: no such folder: ${a[0]}`);
+      const p = join(sim.cwd, args[0]);
+      if (!isDir(sim, p)) throw new Error(`cd: no such folder: ${args[0]}`);
       sim.cwd = p;
     } else if (cmd === 'mkdir') {
-      if (!a[0]) throw new Error('mkdir: give the folder a name');
-      const p = join(sim.cwd, a[0]);
-      if (p in sim.files) throw new Error(`mkdir: ${a[0]} already exists`);
+      if (!args[0]) throw new Error('mkdir: give the folder a name');
+      const p = join(sim.cwd, args[0]);
+      if (p in sim.files) throw new Error(`mkdir: ${args[0]} already exists`);
       sim.files[p] = null;
     } else if (cmd === 'touch') {
-      if (!a[0]) throw new Error('touch: give the file a name');
-      for (const f of a) {
+      if (!args[0]) throw new Error('touch: give the file a name');
+      for (const f of args) {
         const p = join(sim.cwd, f);
         if (!(p in sim.files)) sim.files[p] = '';
       }
     } else if (cmd === 'cat') {
-      const p = join(sim.cwd, a[0]);
-      if (sim.files[p] == null) throw new Error(`cat: ${a[0]}: no such file`);
+      const p = join(sim.cwd, args[0]);
+      if (sim.files[p] == null) throw new Error(`cat: ${args[0]}: no such file`);
       say(sim.files[p] || '(empty file)');
     } else if (cmd === 'rm') {
-      const p = join(sim.cwd, a[0]);
-      if (!(p in sim.files) || isDir(sim, p)) throw new Error(`rm: ${a[0]}: no such file`);
+      const p = join(sim.cwd, args[0]);
+      if (!(p in sim.files) || isDir(sim, p)) throw new Error(`rm: ${args[0]}: no such file`);
       delete sim.files[p];
     } else if (cmd === 'echo') {
-      const i = a.findIndex((x) => x === '>' || x === '>>');
-      const text = (i < 0 ? a : a.slice(0, i)).join(' ');
+      const i = args.findIndex((x) => x === '>' || x === '>>');
+      const text = (i < 0 ? args : args.slice(0, i)).join(' ');
       if (i < 0) say(text);
       else {
-        const p = join(sim.cwd, a[i + 1]);
-        if (!a[i + 1]) throw new Error('echo: where should the text go?');
-        if (isDir(sim, p)) throw new Error(`${a[i + 1]} is a folder`);
-        sim.files[p] = a[i] === '>>' && sim.files[p] ? `${sim.files[p]}\n${text}` : text;
+        const p = join(sim.cwd, args[i + 1]);
+        if (!args[i + 1]) throw new Error('echo: where should the text go?');
+        if (isDir(sim, p)) throw new Error(`${args[i + 1]} is a folder`);
+        sim.files[p] = args[i] === '>>' && sim.files[p] ? `${sim.files[p]}\n${text}` : text;
       }
-    } else if (cmd === 'git') gitCmd(sim, a, say);
+    } else if (cmd === 'git') gitCmd(sim, args, say);
     else
       throw new Error(
         `${cmd}: command not found. Type help to see what this terminal understands.`,
@@ -265,8 +265,8 @@ export function run(S0, line) {
   return sim;
 }
 
-function gitCmd(sim, a, say) {
-  const sub = a[0];
+function gitCmd(sim, args, say) {
+  const sub = args[0];
   if (sub === 'init') {
     if (sim.repo) throw new Error('There’s already a repository here.');
     sim.repo = { root: sim.cwd, head: 'main', branches: { main: null }, commits: {}, index: {} };
@@ -304,13 +304,13 @@ function gitCmd(sim, a, say) {
     return;
   }
   if (sub === 'add') {
-    if (!a[1])
+    if (!args[1])
       throw new Error('Nothing specified. Try `git add .` (everything) or `git add <file>`.');
     const width = workTree(sim);
     const names =
-      a[1] === '.' || a[1] === '-A'
+      args[1] === '.' || args[1] === '-A'
         ? [...new Set([...Object.keys(width), ...Object.keys(repo.index)])]
-        : a.slice(1).map((f) => rel(sim, join(sim.cwd, f)));
+        : args.slice(1).map((f) => rel(sim, join(sim.cwd, f)));
     for (const n of names) {
       if (width[n] === undefined && repo.index[n] === undefined)
         throw new Error(`fatal: pathspec '${n}' did not match any files`);
@@ -320,8 +320,8 @@ function gitCmd(sim, a, say) {
     return;
   }
   if (sub === 'commit') {
-    const mi = a.indexOf('-m');
-    const msg = mi >= 0 ? a[mi + 1] : null;
+    const mi = args.indexOf('-m');
+    const msg = mi >= 0 ? args[mi + 1] : null;
     if (!msg) throw new Error('Add a message: git commit -m "what you changed and why"');
     const head = headTree(sim);
     if (JSON.stringify(repo.index) === JSON.stringify(head))
@@ -360,7 +360,7 @@ function gitCmd(sim, a, say) {
     return;
   }
   if (sub === 'branch') {
-    if (!a[1]) {
+    if (!args[1]) {
       say(
         Object.keys(repo.branches)
           .map((b) => (b === repo.head ? `* ${b}` : `  ${b}`))
@@ -369,13 +369,13 @@ function gitCmd(sim, a, say) {
       return;
     }
     if (!repo.branches[repo.head]) throw new Error('Make a first commit before branching.');
-    if (a[1] in repo.branches) throw new Error(`A branch named '${a[1]}' already exists.`);
-    repo.branches[a[1]] = repo.branches[repo.head];
+    if (args[1] in repo.branches) throw new Error(`A branch named '${args[1]}' already exists.`);
+    repo.branches[args[1]] = repo.branches[repo.head];
     return;
   }
   if (sub === 'checkout' || sub === 'switch') {
-    const create = a[1] === '-b' || a[1] === '-c';
-    const name = create ? a[2] : a[1];
+    const create = args[1] === '-b' || args[1] === '-c';
+    const name = create ? args[2] : args[1];
     if (!name) throw new Error('Which branch?');
     if (create) {
       if (name in repo.branches) throw new Error(`A branch named '${name}' already exists.`);
@@ -396,7 +396,7 @@ function gitCmd(sim, a, say) {
     return;
   }
   if (sub === 'merge') {
-    const name = a[1];
+    const name = args[1];
     if (!(name in repo.branches)) throw new Error(`merge: ${name} - not something we can merge`);
     const ours = repo.branches[repo.head],
       theirs = repo.branches[name];
@@ -478,8 +478,8 @@ function gitCmd(sim, a, say) {
     return;
   }
   if (sub === 'restore') {
-    const n = rel(sim, join(sim.cwd, a[1] || ''));
-    if (repo.index[n] === undefined) throw new Error(`error: ${a[1]} isn’t tracked yet`);
+    const n = rel(sim, join(sim.cwd, args[1] || ''));
+    if (repo.index[n] === undefined) throw new Error(`error: ${args[1]} isn’t tracked yet`);
     sim.files[`${repo.root}/${n}`] = repo.index[n];
     return;
   }

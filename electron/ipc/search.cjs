@@ -10,17 +10,17 @@ module.exports = function registerSearch(ctx) {
   const { REPO_RX, gh, ghOk, optStr, refuse, repoMeta, roots, str, strList, work } = ctx;
 
   // a search's options, checked: anything unexpected is dropped rather than passed on to gh
-  const searchOpts = (o) => {
-    o = o && typeof o === 'object' ? o : {};
+  const searchOpts = (opts) => {
+    opts = opts && typeof opts === 'object' ? opts : {};
     const ok = (v, rx) => (typeof v === 'string' && rx.test(v) ? v : undefined);
     return {
-      limit: Number.isInteger(o.limit) ? Math.min(50, Math.max(1, o.limit)) : 24,
-      sort: ['stars', 'updated', 'forks', 'help-wanted-issues', 'best-match'].includes(o.sort)
-        ? o.sort
+      limit: Number.isInteger(opts.limit) ? Math.min(50, Math.max(1, opts.limit)) : 24,
+      sort: ['stars', 'updated', 'forks', 'help-wanted-issues', 'best-match'].includes(opts.sort)
+        ? opts.sort
         : 'stars',
-      language: ok(o.language, /^[\w#+. -]{1,40}$/),
-      stars: ok(o.stars, /^[<>=]{0,2}\d+(\.\.\d+)?$/),
-      size: ok(o.size, /^[<>=]{0,2}\d+(\.\.\d+)?$/),
+      language: ok(opts.language, /^[\w#+. -]{1,40}$/),
+      stars: ok(opts.stars, /^[<>=]{0,2}\d+(\.\.\d+)?$/),
+      size: ok(opts.size, /^[<>=]{0,2}\d+(\.\.\d+)?$/),
     };
   };
   async function searchRepos(q, opts = {}) {

@@ -402,17 +402,17 @@ export default function DevicesRow() {
             <div className="dv-group">
               <h3 id="dv-devs">{t('Your devices')}</h3>
               <ul className="dv-list" aria-labelledby="dv-devs">
-                {st.devices.map((d) => (
-                  <li key={d.id} className="dv-line">
-                    <span className={`dv-tile ${d.online ? 'ok' : ''}`}>
-                      {ICON[kindOf(d.name)]}
+                {st.devices.map((device) => (
+                  <li key={device.id} className="dv-line">
+                    <span className={`dv-tile ${device.online ? 'ok' : ''}`}>
+                      {ICON[kindOf(device.name)]}
                     </span>
                     <span className="dv-what">
-                      <b>{d.name}</b>
-                      <span className={d.online ? 'dv-live' : ''}>
-                        {d.online
+                      <b>{device.name}</b>
+                      <span className={device.online ? 'dv-live' : ''}>
+                        {device.online
                           ? t('Connected now')
-                          : `${t('Last seen')} ${ago(d.seen || d.added)}`}
+                          : `${t('Last seen')} ${ago(device.seen || device.added)}`}
                       </span>
                     </span>
                     <button
@@ -421,10 +421,10 @@ export default function DevicesRow() {
                       onClick={() => {
                         if (
                           confirm(
-                            `${t('Remove')} ${d.name}? ${t('It will need to connect again to use Bento.')}`,
+                            `${t('Remove')} ${device.name}? ${t('It will need to connect again to use Bento.')}`,
                           )
                         )
-                          act(() => host.forget(d.id));
+                          act(() => host.forget(device.id));
                       }}
                     >
                       {t('Remove')}

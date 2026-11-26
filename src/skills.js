@@ -467,12 +467,12 @@ export function masteryOf({
 }) {
   /** @typedef {{ seen: number, asked: number, practised: number, proven: number, last: number, from: any[], level?: number, pts?: number }} Mastery */
   /** @type {Record<string, Mastery>} */
-  const m = Object.fromEntries(
+  const bySkill = Object.fromEntries(
     SKILLS.map(([id]) => [id, { seen: 0, asked: 0, practised: 0, proven: 0, last: 0, from: [] }]),
   );
   const add = (ids, kind, n, at, label) =>
     ids.forEach((id) => {
-      const x = m[id];
+      const x = bySkill[id];
       if (!x || !n) return;
       x[kind] += n;
       x.last = Math.max(x.last, at || 0);
@@ -547,8 +547,8 @@ export function masteryOf({
   for (const [id, r] of Object.entries(progress.reviewScores || {}))
     if (r?.right) add([id], 'proven', r.right, r.at, `${r.right}/${r.total} in a quiz`);
   for (const [id, at] of Object.entries(progress.reviewed || {}))
-    if (m[id]) m[id].last = Math.max(m[id].last, at);
-  for (const x of Object.values(m)) {
+    if (bySkill[id]) bySkill[id].last = Math.max(bySkill[id].last, at);
+  for (const x of Object.values(bySkill)) {
     x.level =
       x.proven >= 2 || (x.proven >= 1 && x.asked >= 3)
         ? 3
@@ -559,7 +559,7 @@ export function masteryOf({
             : 0;
     x.pts = [0, 1, 4, 10][x.level]; // older screens read pts
   }
-  return m;
+  return bySkill;
 }
 export const levelOf = (pts) => (pts >= 10 ? 3 : pts >= 4 ? 2 : pts > 0 ? 1 : 0);
 // how fresh it is: 1 = this week, fading over about a month

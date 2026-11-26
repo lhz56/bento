@@ -90,25 +90,25 @@ function ModelPicker({ settings, setSettings, providers, onClose, onSettings, on
                   </span>
                 )}
               </div>
-              {p.models.map((m) => {
-                const on = settings.model === m.id;
+              {p.models.map((model) => {
+                const on = settings.model === model.id;
                 return (
                   <button
-                    key={m.id}
-                    data-model={m.id}
+                    key={model.id}
+                    data-model={model.id}
                     role="menuitemradio"
                     aria-checked={on}
                     className={`mc ${on ? 'on' : ''}`}
-                    title={t(m.what || '')}
+                    title={t(model.what || '')}
                     onClick={() => {
-                      setSettings({ model: m.id });
+                      setSettings({ model: model.id });
                       onClose();
                     }}
                   >
                     <span className="mc-t">
                       <b>
-                        {m.short || m.label}
-                        {m.tag === 'recommended' ? (
+                        {model.short || model.label}
+                        {model.tag === 'recommended' ? (
                           <span
                             className="mc-star"
                             title={t('Recommended')}
@@ -117,18 +117,18 @@ function ModelPicker({ settings, setSettings, providers, onClose, onSettings, on
                             ★
                           </span>
                         ) : (
-                          m.tag && <em>{t(m.tag)}</em>
+                          model.tag && <em>{t(model.tag)}</em>
                         )}
                       </b>
                     </span>
                     <span className="mc-m">
-                      <Meter n={m.speed || 2} max={3} label={t('speed')} />
-                      <Meter n={m.depth || 2} max={4} label={t('depth')} />
+                      <Meter n={model.speed || 2} max={3} label={t('speed')} />
+                      <Meter n={model.depth || 2} max={4} label={t('depth')} />
                     </span>
                     <span className="mc-tick" aria-hidden="true">
                       {on ? '✓' : ''}
                     </span>
-                    {on && <span className="mc-d">{t(m.what || '')}</span>}
+                    {on && <span className="mc-d">{t(model.what || '')}</span>}
                   </button>
                 );
               })}
@@ -369,17 +369,21 @@ export function Sidebar({
           aria-hidden="true"
           style={{ transform: `translateY(${Math.max(0, ai) * 34}px)`, opacity: ai >= 0 ? 1 : 0 }}
         />
-        {GROUPS.map((g) => (
+        {GROUPS.map((group) => (
           <button
-            key={g.id}
-            className={active === g.id ? 'on' : ''}
-            aria-current={active === g.id ? 'page' : undefined}
+            key={group.id}
+            className={active === group.id ? 'on' : ''}
+            aria-current={active === group.id ? 'page' : undefined}
             onClick={() =>
-              setView(active === g.id && g.views.some(([v]) => v === view) ? view : lastTab(g))
+              setView(
+                active === group.id && group.views.some(([v]) => v === view)
+                  ? view
+                  : lastTab(group),
+              )
             }
           >
-            <Icon name={g.icon} />
-            {t(g.label)}
+            <Icon name={group.icon} />
+            {t(group.label)}
           </button>
         ))}
       </nav>
@@ -604,7 +608,7 @@ function LessonIcon({ l, path }) {
         <Brand slug={idea.slug} name={idea.company} size={12} plain />
       </span>
     );
-  const g = path
+  const pathGroup = path
     ? '⤳'
     : l.scratch
       ? '✎'
@@ -618,8 +622,8 @@ function LessonIcon({ l, path }) {
               ? '↗'
               : null;
   return (
-    <span className={`rl-tile ${g ? 'g' : `mono ${l.lang || ''}`}`} aria-hidden="true">
-      {g || ((l.title || l.q || '?').replace(/^[^A-Za-z0-9]+/, '')[0] || '•').toUpperCase()}
+    <span className={`rl-tile ${pathGroup ? 'g' : `mono ${l.lang || ''}`}`} aria-hidden="true">
+      {pathGroup || ((l.title || l.q || '?').replace(/^[^A-Za-z0-9]+/, '')[0] || '•').toUpperCase()}
     </span>
   );
 }

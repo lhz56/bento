@@ -283,39 +283,41 @@ export default function App() {
   useEffect(() => {
     api
       .storeGet?.()
-      .then((d) => {
-        if (!d || typeof d !== 'object') return;
+      .then((saved) => {
+        if (!saved || typeof saved !== 'object') return;
         // a damaged save file must never blank the app: keep only values of the right shape
-        if (!Array.isArray(d['bento.lessons'])) delete d['bento.lessons'];
+        if (!Array.isArray(saved['bento.lessons'])) delete saved['bento.lessons'];
         else
-          d['bento.lessons'] = d['bento.lessons'].filter((l) => l && typeof l === 'object' && l.id);
-        if (!Array.isArray(d['bento.projects'])) delete d['bento.projects'];
+          saved['bento.lessons'] = saved['bento.lessons'].filter(
+            (l) => l && typeof l === 'object' && l.id,
+          );
+        if (!Array.isArray(saved['bento.projects'])) delete saved['bento.projects'];
         for (const k of ['bento.progress', 'bento.settings'])
-          if (!d[k] || typeof d[k] !== 'object' || Array.isArray(d[k])) delete d[k];
+          if (!saved[k] || typeof saved[k] !== 'object' || Array.isArray(saved[k])) delete saved[k];
         // whichever copy was written last wins (browser storage can lag behind after a crash)
-        const diskNewer = (d['bento.savedAt'] || 0) > BOOT.savedAt;
-        if ((diskNewer || !BOOT.has.has('bento.lessons')) && d['bento.lessons']?.length)
-          setLessons(settle(d['bento.lessons']));
-        else if (d['bento.lessons']?.length)
+        const diskNewer = (saved['bento.savedAt'] || 0) > BOOT.savedAt;
+        if ((diskNewer || !BOOT.has.has('bento.lessons')) && saved['bento.lessons']?.length)
+          setLessons(settle(saved['bento.lessons']));
+        else if (saved['bento.lessons']?.length)
           setLessons((ls) => {
             const have = new Set(ls.map((l) => l.id));
-            const older = d['bento.lessons'].filter((l) => !have.has(l.id));
+            const older = saved['bento.lessons'].filter((l) => !have.has(l.id));
             return older.length ? [...ls, ...settle(older)] : ls;
           }); // lessons older than the newest 60 live only on disk
-        if ((diskNewer || !BOOT.has.has('bento.progress')) && d['bento.progress'])
-          setProgress(d['bento.progress']);
-        if ((diskNewer || !BOOT.has.has('bento.settings')) && d['bento.settings']) {
+        if ((diskNewer || !BOOT.has.has('bento.progress')) && saved['bento.progress'])
+          setProgress(saved['bento.progress']);
+        if ((diskNewer || !BOOT.has.has('bento.settings')) && saved['bento.settings']) {
           setSettingsRaw((s0) => {
-            const n = { ...s0, ...d['bento.settings'] };
+            const n = { ...s0, ...saved['bento.settings'] };
             save('bento.settings', n);
             return n;
           });
-          if (d['bento.settings'].onboarded) setOnb(null);
+          if (saved['bento.settings'].onboarded) setOnb(null);
         } // restored settings are kept, and a finished welcome stays finished
-        if ((diskNewer || !BOOT.has.has('bento.projects')) && d['bento.projects']?.length)
+        if ((diskNewer || !BOOT.has.has('bento.projects')) && saved['bento.projects']?.length)
           setProjects((ps) => {
             const seen = new Set(ps.map((x) => x.key));
-            return [...ps, ...d['bento.projects'].filter((x) => !seen.has(x.key))];
+            return [...ps, ...saved['bento.projects'].filter((x) => !seen.has(x.key))];
           });
       })
       .catch(() => {});
@@ -344,44 +346,44 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // a backup file brings everything back, merged with what's already here (nothing is lost on either side)
-  const restoreBackup = (d) => {
+  const restoreBackup = (saved) => {
     let added = 0;
-    if (Array.isArray(d['bento.lessons']))
+    if (Array.isArray(saved['bento.lessons']))
       setLessons((ls) => {
         const have = new Set(ls.map((l) => l.id));
-        const more = settle(d['bento.lessons'].filter((l) => l?.id && !have.has(l.id)));
+        const more = settle(saved['bento.lessons'].filter((l) => l?.id && !have.has(l.id)));
         added = more.length;
         return [...ls, ...more];
       });
-    if (Array.isArray(d['bento.projects']))
+    if (Array.isArray(saved['bento.projects']))
       setProjects((ps) => {
         const seen = new Set(ps.map((x) => x.key));
-        return [...ps, ...d['bento.projects'].filter((x) => x?.key && !seen.has(x.key))];
+        return [...ps, ...saved['bento.projects'].filter((x) => x?.key && !seen.has(x.key))];
       });
-    const savedProgress = d['bento.progress'];
+    const savedProgress = saved['bento.progress'];
     if (savedProgress && typeof savedProgress === 'object')
       setProgress((p) => {
-        const n = { ...p };
-        n.words = { ...(savedProgress.words || {}), ...(p.words || {}) };
-        n.path = { ...(savedProgress.path || {}), ...(p.path || {}) };
-        n.puzzles = { ...(savedProgress.puzzles || {}) };
+        const next = { ...p };
+        next.words = { ...(savedProgress.words || {}), ...(p.words || {}) };
+        next.path = { ...(savedProgress.path || {}), ...(p.path || {}) };
+        next.puzzles = { ...(savedProgress.puzzles || {}) };
         for (const [k, r] of Object.entries(p.puzzles || {})) {
-          const o = n.puzzles[k] || {};
-          n.puzzles[k] = { ...o, ...r, s: [0, 1, 2].map((i) => !!(o.s?.[i] || r.s?.[i])) };
+          const o = next.puzzles[k] || {};
+          next.puzzles[k] = { ...o, ...r, s: [0, 1, 2].map((i) => !!(o.s?.[i] || r.s?.[i])) };
         }
-        n.concepts = { ...(savedProgress.concepts || {}) };
+        next.concepts = { ...(savedProgress.concepts || {}) };
         for (const [k, v] of Object.entries(p.concepts || {}))
-          n.concepts[k] = Math.max(v, n.concepts[k] || 0);
+          next.concepts[k] = Math.max(v, next.concepts[k] || 0);
         for (const k of ['sql', 'git', 'design', 'reviewed', 'daily'])
-          n[k] = { ...(savedProgress[k] || {}), ...(p[k] || {}) };
-        n.tracks = [
+          next[k] = { ...(savedProgress[k] || {}), ...(p[k] || {}) };
+        next.tracks = [
           ...(p.tracks || []),
           ...(savedProgress.tracks || []).filter(
             (t) => !(p.tracks || []).some((x) => x.id === t.id),
           ),
         ];
-        n.coins = Math.max(p.coins ?? 5, savedProgress.coins ?? 5);
-        return n;
+        next.coins = Math.max(p.coins ?? 5, savedProgress.coins ?? 5);
+        return next;
       });
     return added;
   };
@@ -773,18 +775,18 @@ export default function App() {
           }
           parser.end();
           setLessons((ls) =>
-            ls.map((l) =>
-              l.id === L0.id
+            ls.map((item) =>
+              item.id === L0.id
                 ? {
-                    ...l,
-                    ...tidyLesson(l),
-                    status: l.code || l.story.length ? 'done' : 'error',
+                    ...item,
+                    ...tidyLesson(item),
+                    status: item.code || item.story.length ? 'done' : 'error',
                     error:
-                      l.code || l.story.length
+                      item.code || item.story.length
                         ? null
                         : 'The model replied, but not in the lesson format. Try again or switch model.',
                   }
-                : l,
+                : item,
             ),
           );
           cancels.current.delete(L0.id);
@@ -955,25 +957,25 @@ export default function App() {
     }
     askLesson(q, o);
   };
-  const goToProject = async (q, d) => {
+  const goToProject = async (decision, d) => {
     setChoice(null);
     const pick = d.pick || {};
     // already on this Mac: read your copy, nothing to download
     if (pick.local) {
       const r = await api.openLocalProject?.(pick.local.root);
       if (r) {
-        setAtlasQ({ key: `local:${r.root}`, q, d, at: Date.now() });
+        setAtlasQ({ key: `local:${r.root}`, q: decision, d, at: Date.now() });
         openAtlas({ kind: 'local', root: r.root, name: pick.full || r.name });
         return;
       }
     }
     // GitHub's size counts the whole history; Bento only fetches the latest code, so don't stop to warn here
     if (pick.full) {
-      setAtlasQ({ key: pick.full, q, d, at: Date.now() });
+      setAtlasQ({ key: pick.full, q: decision, d, at: Date.now() });
       openAtlas({ kind: 'github', full: pick.full }, { big: true });
       return;
     }
-    askLesson(q, {});
+    askLesson(decision, {});
   };
   const cancelFinding = () => {
     findingRef.current = null;
@@ -1004,13 +1006,13 @@ export default function App() {
   const onTry = async (t) => {
     const lesson = current;
     if (!lesson) return;
-    const d = desk.current;
+    const deskEl = desk.current;
     // on a phone the code is on the other page: go there, so you see what the try does
     if (phone) setPane('code');
-    if (/step/i.test(t)) return d?.step();
-    if (/run the tests|tests/i.test(t) && lesson.tests) return d?.tests();
+    if (/step/i.test(t)) return deskEl?.step();
+    if (/run the tests|tests/i.test(t) && lesson.tests) return deskEl?.tests();
     if (/measure|growth/i.test(t)) return document.querySelector('.stab:nth-child(3)')?.click();
-    const code = d?.getCode() ?? lesson.code;
+    const code = deskEl?.getCode() ?? lesson.code;
     const m = /^change\s+(.+?)\s+to\s+(.+?)\.?$/i.exec(t);
     if (m) {
       const from = m[1].replace(/^["'`]|["'`]$/g, '');
@@ -1020,8 +1022,8 @@ export default function App() {
       if (kv && !/[=:]/.test(to)) to = from.slice(0, from.length - kv[3].length) + to;
       const rx = new RegExp(`(^|[^\\w.])${from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.])`);
       if (rx.test(code)) {
-        d?.setCode(code.replace(rx, (all, pre) => pre + to));
-        setTimeout(() => d?.run(), 30);
+        deskEl?.setCode(code.replace(rx, (all, pre) => pre + to));
+        setTimeout(() => deskEl?.run(), 30);
         return;
       }
     }
@@ -1040,8 +1042,8 @@ export default function App() {
       );
       const j = parseJSONLoose(s);
       if (j?.code) {
-        d?.setCode(j.code);
-        setTimeout(() => d?.run(), 30);
+        deskEl?.setCode(j.code);
+        setTimeout(() => deskEl?.run(), 30);
         setPop(null);
       } else setPop(null);
     } catch {
@@ -1211,7 +1213,7 @@ export default function App() {
 
   // ---------------------------------------------------------------- shortcuts
   useEffect(() => {
-    const h = (e) => {
+    const onKey = (e) => {
       if (mod(e) && e.key === 'n') {
         e.preventDefault();
         setViewRaw('home');
@@ -1277,8 +1279,8 @@ export default function App() {
         e.shiftKey ? desk.current?.step() : desk.current?.run();
       }
     };
-    addEventListener('keydown', h);
-    return () => removeEventListener('keydown', h);
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
   }, [view]);
   // The menu bar sends the same commands. If you just pressed that shortcut, the page has already done it.
   const menuActs = useRef({});
@@ -2246,12 +2248,13 @@ export default function App() {
           </button>
         )}
         {(() => {
-          const g = groupOf(view);
-          if (!g || g.views.length < 2 || !g.views.some(([v]) => v === view)) return null;
+          const group = groupOf(view);
+          if (!group || group.views.length < 2 || !group.views.some(([v]) => v === view))
+            return null;
           return (
             <div className="gtabs">
-              <div className="gt-list" role="tablist" aria-label={t(g.label)}>
-                {g.views.map(([v, label]) => (
+              <div className="gt-list" role="tablist" aria-label={t(group.label)}>
+                {group.views.map(([v, label]) => (
                   <button
                     key={v}
                     role="tab"
@@ -2263,11 +2266,11 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              {g.extra && (
+              {group.extra && (
                 <>
                   <span className="gt-sep" aria-hidden="true" />
-                  <button className="gt-extra" onClick={() => setView(g.extra[0])}>
-                    ⚑ {t(g.extra[1])}
+                  <button className="gt-extra" onClick={() => setView(group.extra[0])}>
+                    ⚑ {t(group.extra[1])}
                     <span className="coins">
                       <i className="coin" />
                       {progress.coins ?? 5}

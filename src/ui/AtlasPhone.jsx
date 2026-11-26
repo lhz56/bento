@@ -937,28 +937,28 @@ function FlowMap({ flow, toolOf, onPick }) {
             </g>
           ))}
         </svg>
-        {layout.nodes.map((n, i) => {
-          const q = layout.pos[n.id];
-          const t = toolOf(n);
+        {layout.nodes.map((node, i) => {
+          const q = layout.pos[node.id];
+          const t = toolOf(node);
           return (
             <button
-              key={n.id}
-              className={`fx-n k-${n.kind || 'part'} ${q.wide ? 'wide' : ''}`}
+              key={node.id}
+              className={`fx-n k-${node.kind || 'part'} ${q.wide ? 'wide' : ''}`}
               style={{
                 left: q.x,
                 top: q.y,
                 width: q.w,
                 height: q.h,
-                '--c': colorOf(n),
+                '--c': colorOf(node),
                 animationDelay: `${i * 55}ms`,
               }}
-              onClick={() => onPick(n.id)}
-              aria-label={`${n.label}: ${n.does || kindOf(n)[1]}`}
+              onClick={() => onPick(node.id)}
+              aria-label={`${node.label}: ${node.does || kindOf(node)[1]}`}
             >
-              <NodeIcon n={n} tool={t} size={q.wide ? 40 : 38} />
+              <NodeIcon n={node} tool={t} size={q.wide ? 40 : 38} />
               <span className="fx-t">
-                <b>{n.label}</b>
-                {q.wide && n.does && <span>{n.does}</span>}
+                <b>{node.label}</b>
+                {q.wide && node.does && <span>{node.does}</span>}
               </span>
               {q.wide && <Chev />}
             </button>
@@ -1084,28 +1084,28 @@ function StorySheet({ j, tools, pathIdx, onClose, onOpenFile, onAsk }) {
         </div>
         <h3 className="ps-title big">{j.title}</h3>
         <ol className="stp">
-          {j.steps.map((s, i) => {
-            const id = String(s.p || '').startsWith('stack:') ? s.p.slice(6) : null;
+          {j.steps.map((step, i) => {
+            const id = String(step.p || '').startsWith('stack:') ? step.p.slice(6) : null;
             const t = id && (tools.find((x) => x.id === id) || BY_ID[id]);
             return (
               <li key={i} style={{ animationDelay: `${80 + i * 70}ms` }}>
                 <span className="stp-n">{i + 1}</span>
                 <div className="stp-b">
                   <p>
-                    <Md text={s.md} />
+                    <Md text={step.md} />
                   </p>
                   {t ? (
                     <span className="stp-chip">
                       <Brand slug={t.slug} name={t.name} color={t.color} size={20} />
                       {t.name}
                     </span>
-                  ) : s.p && pathIdx.has(s.p) ? (
-                    <button className="stp-chip" onClick={() => onOpenFile(s.p)}>
-                      <span className="ph-mono">{base(s.p)}</span>
+                  ) : step.p && pathIdx.has(step.p) ? (
+                    <button className="stp-chip" onClick={() => onOpenFile(step.p)}>
+                      <span className="ph-mono">{base(step.p)}</span>
                       <Chev />
                     </button>
-                  ) : s.p ? (
-                    <span className="stp-chip ph-mono">{base(s.p)}</span>
+                  ) : step.p ? (
+                    <span className="stp-chip ph-mono">{base(step.p)}</span>
                   ) : null}
                 </div>
               </li>
@@ -1568,7 +1568,7 @@ function Risks({ hot, narrating, onPick }) {
 }
 function HotSheet({ h, facts, pathIdx, role, onClose, onOpenFile, onAsk }) {
   const [ic, label, c] = hotOf(h);
-  const f = h.p && pathIdx.has(h.p) ? facts.files[pathIdx.get(h.p)] : null;
+  const file = h.p && pathIdx.has(h.p) ? facts.files[pathIdx.get(h.p)] : null;
   return (
     <Sheet label={h.title} onClose={onClose}>
       <div className="ps-in">
@@ -1588,11 +1588,11 @@ function HotSheet({ h, facts, pathIdx, role, onClose, onOpenFile, onAsk }) {
         <p className="ps-p">
           <Md text={h.md} />
         </p>
-        {f && (
+        {file && (
           <Group title="Where">
             <FileRow
-              f={f}
-              sub={`${role(f.p) || ''}${role(f.p) ? ' · ' : ''}${f.lines} lines${f.used ? ` · ${f.used} files use it` : ''}`}
+              f={file}
+              sub={`${role(file.p) || ''}${role(file.p) ? ' · ' : ''}${file.lines} lines${file.used ? ` · ${file.used} files use it` : ''}`}
               onOpen={onOpenFile}
             />
           </Group>
@@ -1657,18 +1657,18 @@ function Language({ langs, totalL, main, narration, narrating }) {
       </div>
       {alts.length > 0 && (
         <Group title="It could have been">
-          {alts.map((a) => (
-            <div key={a.name} className="ph-cell">
+          {alts.map((alt) => (
+            <div key={alt.name} className="ph-cell">
               <Brand
-                slug={LANGS[a.name]?.slug}
-                name={a.name}
-                color={LANGS[a.name]?.color}
+                slug={LANGS[alt.name]?.slug}
+                name={alt.name}
+                color={LANGS[alt.name]?.color}
                 size={32}
               />
               <span className="ph-ct">
-                <b>{a.name}</b>
+                <b>{alt.name}</b>
                 <span>
-                  <Md text={a.when || ''} />
+                  <Md text={alt.when || ''} />
                 </span>
               </span>
             </div>
@@ -1794,38 +1794,38 @@ function Code({ facts, role, onOpen, name }) {
         </nav>
       )}
       <div className={`ph-cells fl2 ${way}`} key={flat ? `q:${layer}` : `d:${dir}`}>
-        {(cut ? rows.slice(0, LIMIT) : rows).map((r) =>
-          r.d != null ? (
+        {(cut ? rows.slice(0, LIMIT) : rows).map((row) =>
+          row.d != null ? (
             <button
-              key={`d:${r.d}`}
+              key={`d:${row.d}`}
               className="ph-cell"
-              onClick={() => go(dir ? `${dir}/${r.d}` : r.d, 'in')}
+              onClick={() => go(dir ? `${dir}/${row.d}` : row.d, 'in')}
             >
               <span className="ph-folder">
                 <I n="folder" s={28} />
               </span>
               <span className="ph-ct">
-                <b>{r.d}</b>
+                <b>{row.d}</b>
               </span>
-              <span className="ph-val">{r.n}</span>
+              <span className="ph-val">{row.n}</span>
               <Chev />
             </button>
           ) : (
             <button
-              key={r.f.p}
+              key={row.f.p}
               className="ph-cell tall"
-              data-p={r.f.p}
-              onClick={() => onOpen(r.f.p)}
+              data-p={row.f.p}
+              onClick={() => onOpen(row.f.p)}
             >
-              <FileIcon f={r.f} />
+              <FileIcon f={row.f} />
               <span className="ph-ct">
-                <b className="ph-mono">{base(r.f.p)}</b>
-                <span>{role(r.f.p) || (r.f.lang ? `${r.f.lang} file` : 'A file')}</span>
-                {flat && r.f.p.includes('/') && (
-                  <span className="ph-path">{r.f.p.slice(0, r.f.p.lastIndexOf('/'))}/</span>
+                <b className="ph-mono">{base(row.f.p)}</b>
+                <span>{role(row.f.p) || (row.f.lang ? `${row.f.lang} file` : 'A file')}</span>
+                {flat && row.f.p.includes('/') && (
+                  <span className="ph-path">{row.f.p.slice(0, row.f.p.lastIndexOf('/'))}/</span>
                 )}
               </span>
-              <span className="ph-val">{r.f.lines ? fmtN(r.f.lines) : ''}</span>
+              <span className="ph-val">{row.f.lines ? fmtN(row.f.lines) : ''}</span>
             </button>
           ),
         )}

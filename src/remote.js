@@ -170,24 +170,24 @@ export function createRemote() {
     es = null;
     setState('unpaired');
   }
-  function dispatch(ch, a) {
-    if (ch === 'ask:chunk') return asks.get(a[0])?.chunk?.(a[1]);
-    if (ch === 'ask:think') return asks.get(a[0])?.think?.(a[1]);
+  function dispatch(ch, args) {
+    if (ch === 'ask:chunk') return asks.get(args[0])?.chunk?.(args[1]);
+    if (ch === 'ask:think') return asks.get(args[0])?.think?.(args[1]);
     if (ch === 'ask:done') {
-      const l = asks.get(a[0]);
-      asks.delete(a[0]);
+      const l = asks.get(args[0]);
+      asks.delete(args[0]);
       return l?.done?.();
     }
     if (ch === 'ask:error') {
-      const l = asks.get(a[0]);
-      asks.delete(a[0]);
-      return l?.error?.(a[1]);
+      const l = asks.get(args[0]);
+      asks.delete(args[0]);
+      return l?.error?.(args[1]);
     }
     if (ch === 'store:changed')
       try {
-        lastSent.set(a[0], JSON.stringify(a[1]));
+        lastSent.set(args[0], JSON.stringify(args[1]));
       } catch {}
-    emit(ch, a);
+    emit(ch, args);
   }
   // back from the background, or back online: reconnect now rather than waiting out the timer
   if (typeof document !== 'undefined') {

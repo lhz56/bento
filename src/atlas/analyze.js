@@ -359,22 +359,24 @@ export function emptyNarr() {
     learn: [],
   };
 }
-export function applyNarr(narration, b) {
-  if (!b || !b.t) return narration;
-  const n = { ...narration };
-  if (b.t === 'gist') n.gist = b;
-  else if (b.t === 'flow' && Array.isArray(b.nodes)) n.flow = b;
-  else if (b.t === 'build') n.build = b;
-  else if (b.t === 'tour' && Array.isArray(b.steps)) n.tour = b.steps;
-  else if (b.t === 'term' && b.term) n.terms = [...(n.terms || []), b];
-  else if (b.t === 'layer' && b.id) n.layers = { ...n.layers, [b.id]: b.md };
-  else if (b.t === 'journey' && Array.isArray(b.steps)) n.journeys = [...n.journeys, b];
-  else if (b.t === 'stack' && (b.id || b.name)) n.stack = { ...n.stack, [b.id || b.name]: b };
-  else if (b.t === 'lang') n.lang = b;
-  else if (b.t === 'file' && b.p) n.roles = { ...n.roles, [b.p]: b.role };
-  else if (b.t === 'hot') n.hot = [...n.hot, b];
-  else if (b.t === 'learn') n.learn = b.items || [];
-  return n;
+export function applyNarr(narration, block) {
+  if (!block || !block.t) return narration;
+  const next = { ...narration };
+  if (block.t === 'gist') next.gist = block;
+  else if (block.t === 'flow' && Array.isArray(block.nodes)) next.flow = block;
+  else if (block.t === 'build') next.build = block;
+  else if (block.t === 'tour' && Array.isArray(block.steps)) next.tour = block.steps;
+  else if (block.t === 'term' && block.term) next.terms = [...(next.terms || []), block];
+  else if (block.t === 'layer' && block.id) next.layers = { ...next.layers, [block.id]: block.md };
+  else if (block.t === 'journey' && Array.isArray(block.steps))
+    next.journeys = [...next.journeys, block];
+  else if (block.t === 'stack' && (block.id || block.name))
+    next.stack = { ...next.stack, [block.id || block.name]: block };
+  else if (block.t === 'lang') next.lang = block;
+  else if (block.t === 'file' && block.p) next.roles = { ...next.roles, [block.p]: block.role };
+  else if (block.t === 'hot') next.hot = [...next.hot, block];
+  else if (block.t === 'learn') next.learn = block.items || [];
+  return next;
 }
 
 // Pick the files that matter for a question about the repo (for "Ask about this repo").

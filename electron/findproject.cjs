@@ -105,9 +105,9 @@ async function installedApps(names) {
     } catch {
       continue;
     }
-    for (const f of list) {
-      if (!f.endsWith('.app') || !want.has(norm(f))) continue;
-      const appPath = path.join(d, f);
+    for (const item of list) {
+      if (!item.endsWith('.app') || !want.has(norm(item))) continue;
+      const appPath = path.join(d, item);
       const plist = path.join(appPath, 'Contents', 'Info.plist');
       const [version, id, iconFile] = await Promise.all([
         plistValue(plist, 'CFBundleShortVersionString'),
@@ -115,7 +115,7 @@ async function installedApps(names) {
         plistValue(plist, 'CFBundleIconFile'),
       ]);
       out.push({
-        app: f.replace(/\.app$/, ''),
+        app: item.replace(/\.app$/, ''),
         path: appPath,
         version,
         id,

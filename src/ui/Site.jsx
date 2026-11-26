@@ -84,7 +84,7 @@ export default function Site({ site, onAsk, onRetry, onOpenUrl, onOpenRepo }) {
         )}
       </div>
     );
-  const g = narration.gist;
+  const gist = narration.gist;
   const kb = Math.round(facts.bytes / 1024);
   const j = narration.journeys?.[0];
   return (
@@ -118,10 +118,10 @@ export default function Site({ site, onAsk, onRetry, onOpenUrl, onOpenRepo }) {
       <section className="asec a-over">
         <div className="over-top">
           <div className="over-text">
-            <div className="kicker">{g?.kind || 'website'}</div>
-            <h1 className={g ? '' : 'pending'}>{g?.one || facts.title || facts.host}</h1>
-            {g?.analogy ? (
-              <p className="analogy">{g.analogy}</p>
+            <div className="kicker">{gist?.kind || 'website'}</div>
+            <h1 className={gist ? '' : 'pending'}>{gist?.one || facts.title || facts.host}</h1>
+            {gist?.analogy ? (
+              <p className="analogy">{gist.analogy}</p>
             ) : narrating ? (
               <div className="shimmer" style={{ width: '62%', height: 16 }} />
             ) : null}
@@ -145,10 +145,10 @@ export default function Site({ site, onAsk, onRetry, onOpenUrl, onOpenRepo }) {
                 <span>tools spotted</span>
               </div>
             </div>
-            {g?.users && (
+            {gist?.users && (
               <div className="vt-who">
                 <span className="k">for</span>
-                {g.users}
+                {gist.users}
               </div>
             )}
           </div>

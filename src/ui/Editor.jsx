@@ -123,39 +123,39 @@ class ErrWidget extends WidgetType {
   }
 }
 const marksDeco = EditorView.decorations.compute([marksField, 'doc'], (state) => {
-  const m = state.field(marksField);
+  const marks = state.field(marksField);
   const doc = state.doc;
   const n = doc.lines;
   const cls = new Map();
   const add = (l, c) => {
     if (l >= 1 && l <= n) cls.set(l, (cls.get(l) || '') + ' ' + c);
   };
-  if (m.diff) m.diff.forEach((l) => add(l, 'cm-hl-add'));
-  if (m.link)
-    for (let l = m.link[0]; l <= m.link[1]; l++)
+  if (marks.diff) marks.diff.forEach((l) => add(l, 'cm-hl-add'));
+  if (marks.link)
+    for (let l = marks.link[0]; l <= marks.link[1]; l++)
       add(
         l,
         'cm-hl-link' +
-          (l === m.link[0] ? ' cm-hl-first' : '') +
-          (l === m.link[1] ? ' cm-hl-last' : ''),
+          (l === marks.link[0] ? ' cm-hl-first' : '') +
+          (l === marks.link[1] ? ' cm-hl-last' : ''),
       );
-  if (m.note) for (let l = m.note[0]; l <= m.note[1]; l++) add(l, 'cm-hl-note');
-  if (m.step) add(m.step, 'cm-hl-step');
-  if (m.err?.line) add(m.err.line, 'cm-hl-err');
-  const b = new RangeSetBuilder();
+  if (marks.note) for (let l = marks.note[0]; l <= marks.note[1]; l++) add(l, 'cm-hl-note');
+  if (marks.step) add(marks.step, 'cm-hl-step');
+  if (marks.err?.line) add(marks.err.line, 'cm-hl-err');
+  const builder = new RangeSetBuilder();
   [...cls.keys()]
     .sort((a, c) => a - c)
     .forEach((l) => {
       const line = doc.line(l);
-      b.add(line.from, line.from, Decoration.line({ class: cls.get(l).trim() }));
-      if (m.err?.line === l && m.err.msg)
-        b.add(
+      builder.add(line.from, line.from, Decoration.line({ class: cls.get(l).trim() }));
+      if (marks.err?.line === l && marks.err.msg)
+        builder.add(
           line.to,
           line.to,
-          Decoration.widget({ widget: new ErrWidget(m.err.msg), block: true, side: 1 }),
+          Decoration.widget({ widget: new ErrWidget(marks.err.msg), block: true, side: 1 }),
         );
     });
-  return b.finish();
+  return builder.finish();
 });
 
 // ---------------------------------------------------------------- scrubbable numbers
@@ -325,12 +325,12 @@ const hangIndent = ViewPlugin.fromClass(
       if (u.docChanged || u.viewportChanged) this.decorations = this.build(u.view);
     }
     build(v) {
-      const b = new RangeSetBuilder();
+      const builder = new RangeSetBuilder();
       for (const { from, to } of v.visibleRanges) {
         for (let pos = from; pos <= to;) {
           const line = v.state.doc.lineAt(pos);
           const n = /^\s*/.exec(line.text)[0].replace(/\t/g, '    ').length + 2;
-          b.add(
+          builder.add(
             line.from,
             line.from,
             Decoration.line({
@@ -340,7 +340,7 @@ const hangIndent = ViewPlugin.fromClass(
           pos = line.to + 1;
         }
       }
-      return b.finish();
+      return builder.finish();
     }
   },
   { decorations: (p) => p.decorations },
@@ -365,19 +365,19 @@ class NoteChip extends WidgetType {
     return o.i === this.i && o.open === this.open && o.n.label === this.n.label;
   }
   toDOM() {
-    const b = document.createElement('button');
-    b.className = `note-chip c${this.i % 4} ${this.open ? 'open' : ''}`;
-    b.setAttribute('aria-expanded', String(this.open));
-    b.append(
+    const button = document.createElement('button');
+    button.className = `note-chip c${this.i % 4} ${this.open ? 'open' : ''}`;
+    button.setAttribute('aria-expanded', String(this.open));
+    button.append(
       Object.assign(document.createElement('span'), { className: 'note-dot' }),
       this.n.label,
     );
-    b.onclick = (e) => {
+    button.onclick = (e) => {
       e.preventDefault();
       e.stopPropagation();
       this.toggle?.(this.i);
     };
-    return b;
+    return button;
   }
   ignoreEvent() {
     return true;
@@ -577,20 +577,20 @@ function fingers(v, cb, setCard) {
   const gone = () => {
     setCard(null);
   };
-  const c = v.contentDOM;
-  c.addEventListener('click', tap);
-  c.addEventListener('touchstart', start, { passive: true });
-  c.addEventListener('touchmove', move, { passive: false });
-  c.addEventListener('touchend', end);
-  c.addEventListener('touchcancel', end);
+  const content = v.contentDOM;
+  content.addEventListener('click', tap);
+  content.addEventListener('touchstart', start, { passive: true });
+  content.addEventListener('touchmove', move, { passive: false });
+  content.addEventListener('touchend', end);
+  content.addEventListener('touchcancel', end);
   v.scrollDOM.addEventListener('scroll', gone, { passive: true });
   return () => {
     badge?.remove();
-    c.removeEventListener('click', tap);
-    c.removeEventListener('touchstart', start);
-    c.removeEventListener('touchmove', move);
-    c.removeEventListener('touchend', end);
-    c.removeEventListener('touchcancel', end);
+    content.removeEventListener('click', tap);
+    content.removeEventListener('touchstart', start);
+    content.removeEventListener('touchmove', move);
+    content.removeEventListener('touchend', end);
+    content.removeEventListener('touchcancel', end);
     v.scrollDOM.removeEventListener('scroll', gone);
   };
 }
@@ -923,14 +923,14 @@ const Editor = forwardRef(function Editor(props, ref) {
       )}
       {!touch && lens !== 'english' && notes.length > 0 && (
         <div className="ed-notes" style={{ right: showEnglish ? 'calc(42% + 10px)' : 10 }}>
-          {notes.map((n, i) => (
+          {notes.map((note, i) => (
             <div
               key={i}
               className={`note-pin ${openNote === i ? 'open' : ''} c${i % 4}`}
-              style={{ top: lineY(n.from) + 2 }}
+              style={{ top: lineY(note.from) + 2 }}
               onMouseEnter={() => {
                 setOpenNote(i);
-                cb.current.onNoteHover?.([n.from, n.to || n.from]);
+                cb.current.onNoteHover?.([note.from, note.to || note.from]);
               }}
               onMouseLeave={() => {
                 setOpenNote(null);
@@ -938,8 +938,8 @@ const Editor = forwardRef(function Editor(props, ref) {
               }}
             >
               <span className="note-dot" />
-              <span className="note-label">{n.label}</span>
-              {openNote === i && <div className="note-text">{n.text}</div>}
+              <span className="note-label">{note.label}</span>
+              {openNote === i && <div className="note-text">{note.text}</div>}
             </div>
           ))}
         </div>

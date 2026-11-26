@@ -101,7 +101,7 @@ export function clauses(q) {
   /** @type {Array<[number, string, number]>} where each clause starts, its keyword, the keyword's length */
   const marks = [];
   const re = /\b(SELECT|FROM|WHERE|GROUP\s+BY|HAVING|ORDER\s+BY|LIMIT)\b/gi;
-  let m;
+  let match;
   let depth = 0;
   // ignore keywords inside quotes or parentheses
   const masked = s
@@ -113,8 +113,8 @@ export function clauses(q) {
       return depth > 0 && c !== '(' ? ' ' : c;
     })
     .join('');
-  while ((m = re.exec(masked)))
-    marks.push([m.index, m[1].toUpperCase().replace(/\s+/g, ' '), m[0].length]);
+  while ((match = re.exec(masked)))
+    marks.push([match.index, match[1].toUpperCase().replace(/\s+/g, ' '), match[0].length]);
   const out = {};
   marks.forEach(([i, k, len], j) => {
     out[k] = s.slice(i + len, j + 1 < marks.length ? marks[j + 1][0] : s.length).trim();
@@ -124,10 +124,10 @@ export function clauses(q) {
 
 // What to count at each step, and how to say each step in plain words
 export function pipeline(q) {
-  const c = clauses(q);
-  if (!c) return null;
+  const parts = clauses(q);
+  if (!parts) return null;
   const steps = [];
-  const from = c.FROM;
+  const from = parts.FROM;
   const joins = [...from.matchAll(/\bjoin\s+(\w+)/gi)].map((m) => m[1]);
   const base = from
     .split(/\bjoin\b/i)[0]
@@ -144,31 +144,33 @@ export function pipeline(q) {
       say: `Match each row with its ${joins.join(' and ')}`,
       count: `SELECT COUNT(*) FROM ${from}`,
     });
-  if (c.WHERE)
+  if (parts.WHERE)
     steps.push({
       k: 'WHERE',
-      say: `Keep only rows where ${c.WHERE}`,
-      count: `SELECT COUNT(*) FROM ${from} WHERE ${c.WHERE}`,
+      say: `Keep only rows where ${parts.WHERE}`,
+      count: `SELECT COUNT(*) FROM ${from} WHERE ${parts.WHERE}`,
     });
-  if (c['GROUP BY'])
+  if (parts['GROUP BY'])
     steps.push({
       k: 'GROUP BY',
-      say: `Make one pile per ${c['GROUP BY']}`,
-      count: `SELECT COUNT(*) FROM (SELECT 1 FROM ${from}${c.WHERE ? ` WHERE ${c.WHERE}` : ''} GROUP BY ${c['GROUP BY']}${c.HAVING ? ` HAVING ${c.HAVING}` : ''})`,
+      say: `Make one pile per ${parts['GROUP BY']}`,
+      count: `SELECT COUNT(*) FROM (SELECT 1 FROM ${from}${parts.WHERE ? ` WHERE ${parts.WHERE}` : ''} GROUP BY ${parts['GROUP BY']}${parts.HAVING ? ` HAVING ${parts.HAVING}` : ''})`,
     });
-  if (c.HAVING) steps.push({ k: 'HAVING', say: `Keep only piles where ${c.HAVING}`, count: null });
+  if (parts.HAVING)
+    steps.push({ k: 'HAVING', say: `Keep only piles where ${parts.HAVING}`, count: null });
   steps.push({
     k: 'SELECT',
-    say: c.SELECT === '*' ? 'Show every column' : `Show ${c.SELECT}`,
+    say: parts.SELECT === '*' ? 'Show every column' : `Show ${parts.SELECT}`,
     count: null,
   });
-  if (c['ORDER BY'])
+  if (parts['ORDER BY'])
     steps.push({
       k: 'ORDER BY',
-      say: `Sort by ${c['ORDER BY'].replace(/\s+desc\b/i, '')}, ${/\bdesc\b/i.test(c['ORDER BY']) ? 'biggest first' : 'smallest first'}`,
+      say: `Sort by ${parts['ORDER BY'].replace(/\s+desc\b/i, '')}, ${/\bdesc\b/i.test(parts['ORDER BY']) ? 'biggest first' : 'smallest first'}`,
       count: null,
     });
-  if (c.LIMIT) steps.push({ k: 'LIMIT', say: `Keep only the first ${c.LIMIT}`, count: null });
+  if (parts.LIMIT)
+    steps.push({ k: 'LIMIT', say: `Keep only the first ${parts.LIMIT}`, count: null });
   return steps;
 }
 

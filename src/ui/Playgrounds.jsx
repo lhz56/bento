@@ -622,17 +622,22 @@ function Graph({ sim }) {
                 ),
             ),
           )}
-          {cs.map((c) => (
-            <g key={c.id} className="gl-node">
+          {cs.map((commit) => (
+            <g key={commit.id} className="gl-node">
               <circle
-                cx={x(idx[c.id])}
-                cy={y(c.branch)}
-                r={c.parents.length > 1 ? 8 : 7}
-                className={c.parents.length > 1 ? 'merge' : ''}
+                cx={x(idx[commit.id])}
+                cy={y(commit.branch)}
+                r={commit.parents.length > 1 ? 8 : 7}
+                className={commit.parents.length > 1 ? 'merge' : ''}
               />
-              <title>{`${c.id.slice(0, 7)} ${c.msg}`}</title>
-              <text x={x(idx[c.id])} y={y(c.branch) + 20} textAnchor="middle" className="gl-msg">
-                {c.msg.length > 11 ? c.msg.slice(0, 10) + '…' : c.msg}
+              <title>{`${commit.id.slice(0, 7)} ${commit.msg}`}</title>
+              <text
+                x={x(idx[commit.id])}
+                y={y(commit.branch) + 20}
+                textAnchor="middle"
+                className="gl-msg"
+              >
+                {commit.msg.length > 11 ? commit.msg.slice(0, 10) + '…' : commit.msg}
               </text>
             </g>
           ))}

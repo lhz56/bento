@@ -68,17 +68,17 @@ function tagLines(html) {
           }
           continue;
         }
-        const m = /<([a-zA-Z][\w-]*)(?=[\s>/])/.exec(rest);
-        if (!m) {
+        const match = /<([a-zA-Z][\w-]*)(?=[\s>/])/.exec(rest);
+        if (!match) {
           out += rest;
           break;
         }
-        const tag = m[1].toLowerCase();
+        const tag = match[1].toLowerCase();
         out +=
-          rest.slice(0, m.index) +
-          `<${m[1]}` +
+          rest.slice(0, match.index) +
+          `<${match[1]}` +
           (tag === 'html' || tag === 'head' ? '' : ` data-bl="${i + 1}"`);
-        rest = rest.slice(m.index + m[0].length);
+        rest = rest.slice(match.index + match[0].length);
         if (tag === 'script' || tag === 'style') {
           const close = rest.indexOf('>');
           out += rest.slice(0, close + 1);

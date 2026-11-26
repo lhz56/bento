@@ -22,7 +22,7 @@ const Rich = ({ s }) =>
 
 export default function WhatsNew({ version, onClose }) {
   const box = useDialog(onClose);
-  const n = notesFor(version);
+  const notes = notesFor(version);
   const url = `https://github.com/lhz56/bento-releases/releases/tag/v${version}`;
   return (
     <div className="pal-veil" onMouseDown={onClose}>
@@ -38,14 +38,14 @@ export default function WhatsNew({ version, onClose }) {
         <h2 id="wn-title">
           {t('What’s new in')} {version}
         </h2>
-        {n?.intro && (
+        {notes?.intro && (
           <p className="wn-intro">
-            <Rich s={n.intro} />
+            <Rich s={notes.intro} />
           </p>
         )}
-        {n?.items?.length ? (
+        {notes?.items?.length ? (
           <ul className="wn-list">
-            {n.items.slice(0, 8).map((it, i) => (
+            {notes.items.slice(0, 8).map((it, i) => (
               <li key={i}>
                 <Rich s={it} />
               </li>
