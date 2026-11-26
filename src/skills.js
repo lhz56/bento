@@ -480,25 +480,30 @@ export function masteryOf({
         x.from.push({ label, kind, at: at || 0 });
     });
   const awarded = new Set(progress.awarded || []);
-  for (const L of lessons) {
-    if (L.status !== 'done' || (L.builtin && !L.touched && !(L.chat || []).length)) continue;
-    const ids = [...new Set((L.concepts || []).flatMap(skillsFor))];
+  for (const lesson of lessons) {
+    if (
+      lesson.status !== 'done' ||
+      (lesson.builtin && !lesson.touched && !(lesson.chat || []).length)
+    )
+      continue;
+    const ids = [...new Set((lesson.concepts || []).flatMap(skillsFor))];
     if (!ids.length) continue;
-    const at = L.createdAt || 0;
-    const title = L.title || L.q || 'a lesson';
+    const at = lesson.createdAt || 0;
+    const title = lesson.title || lesson.q || 'a lesson';
     add(ids, 'seen', 1, at, title);
-    const asked = (L.chat || []).filter((c) => c.q && !c.loading).length;
+    const asked = (lesson.chat || []).filter((c) => c.q && !c.loading).length;
     if (asked)
       add(ids, 'asked', asked, at, `${asked} question${asked > 1 ? 's' : ''} in “${title}”`);
-    if (awarded.has(`${L.id}:run`)) add(ids, 'practised', 1, at, `ran the code in “${title}”`);
-    if (awarded.has(`${L.id}:step`)) add(ids, 'practised', 1, at, `stepped through “${title}”`);
+    if (awarded.has(`${lesson.id}:run`)) add(ids, 'practised', 1, at, `ran the code in “${title}”`);
+    if (awarded.has(`${lesson.id}:step`))
+      add(ids, 'practised', 1, at, `stepped through “${title}”`);
     const right = Math.max(
-      awarded.has(`${L.id}:quiz`) ? 1 : 0,
-      (L.checks || []).filter((c) => c.ok).length,
+      awarded.has(`${lesson.id}:quiz`) ? 1 : 0,
+      (lesson.checks || []).filter((c) => c.ok).length,
     );
     if (right)
       add(ids, 'proven', right, at, `${right} check${right > 1 ? 's' : ''} right in “${title}”`);
-    if (awarded.has(`${L.id}:challenge`)) add(ids, 'proven', 2, at, `solved “${title}”`);
+    if (awarded.has(`${lesson.id}:challenge`)) add(ids, 'proven', 2, at, `solved “${title}”`);
   }
   for (const p of puzzles) {
     const r = progress.puzzles?.[p.id];
@@ -516,9 +521,15 @@ export function masteryOf({
         0,
         `path: ${s.t}`,
       );
-  for (const I of ideas)
-    if (readIds[I.id])
-      add([...new Set((I.concepts || []).flatMap(skillsFor))], 'seen', 1, 0, `read “${I.title}”`);
+  for (const idea of ideas)
+    if (readIds[idea.id])
+      add(
+        [...new Set((idea.concepts || []).flatMap(skillsFor))],
+        'seen',
+        1,
+        0,
+        `read “${idea.title}”`,
+      );
   for (const w of Object.values(progress.words || {}))
     add(skillsFor(w.term), 'seen', 1, w.at, null);
   for (const at of Object.values(progress.sql || {}))

@@ -47,7 +47,7 @@ function addedLines(prev, cur) {
 
 const Desk = forwardRef(function Desk(props, ref) {
   const {
-    lesson: L,
+    lesson,
     onPatch,
     quick,
     model,
@@ -61,14 +61,14 @@ const Desk = forwardRef(function Desk(props, ref) {
     onWord,
     phone,
   } = props;
-  const lang = L.lang;
+  const lang = lesson.lang;
   // a phone shows code to read (a tap explains a word, a drag changes a number); Edit brings up the keyboard
   const [editing, setEditing] = useState(false);
   useEffect(() => {
     setEditing(false);
-  }, [L.id]);
+  }, [lesson.id]);
   const ed = useRef(null);
-  const [code, setCode] = useState(L.work ?? L.code);
+  const [code, setCode] = useState(lesson.work ?? lesson.code);
   const [lens, setLens] = useState('code');
   useEffect(() => {
     if (phone && lens === 'both') setLens('english');
@@ -83,7 +83,7 @@ const Desk = forwardRef(function Desk(props, ref) {
   const [measuring, setMeasuring] = useState(false);
   const [tests, setTests] = useState(null);
   const [testing, setTesting] = useState(false);
-  const [tab, setTab] = useState(L.tests ? 'tests' : 'output');
+  const [tab, setTab] = useState(lesson.tests ? 'tests' : 'output');
   const [hoverLine, setHoverLine] = useState(null);
   const [noteRange, setNoteRange] = useState(null);
   const [errShown, setErrShown] = useState(false);
@@ -95,8 +95,8 @@ const Desk = forwardRef(function Desk(props, ref) {
   const edited = useRef(false);
   // input(): the learner's answers so far, and a random seed kept while answering so a re-run replays the same game
   // projects: several files, one open at a time (files[0] is the one that runs)
-  const multi = Array.isArray(L.files) && L.files.length > 0;
-  const filesRef = useRef(L.files || null);
+  const multi = Array.isArray(lesson.files) && lesson.files.length > 0;
+  const filesRef = useRef(lesson.files || null);
   const [fi, setFi] = useState(0);
   const [, bumpFiles] = useState(0);
   const fiRef = useRef(0);
@@ -111,71 +111,73 @@ const Desk = forwardRef(function Desk(props, ref) {
     queued = useRef(null); // a run asked for during another one: the latest request's options
   const codeRef = useRef(code);
   codeRef.current = code;
-  const lidRef = useRef(L.id);
-  lidRef.current = L.id;
+  const lidRef = useRef(lesson.id);
+  lidRef.current = lesson.id;
 
   // ---- reset when the lesson changes
   useEffect(() => {
-    edited.current = L.work != null && L.work !== L.code;
+    edited.current = lesson.work != null && lesson.work !== lesson.code;
     streak.current = { err: null, n: 0, tests: 0 };
     setStuck(null);
     answersRef.current = [];
     setLiveLogs([]);
-    filesRef.current = L.files || null;
+    filesRef.current = lesson.files || null;
     setFi(0);
-    setCode(L.files?.length ? L.files[0].code : (L.work ?? L.code));
+    setCode(lesson.files?.length ? lesson.files[0].code : (lesson.work ?? lesson.code));
     setResult(null);
     setTrace(null);
     setGrowth(null);
     setTests(null);
     setStepIdx(0);
     setPlaying(false);
-    setTab(L.tests ? 'tests' : 'output');
-    setLens(L.mode === 'code' || L.mode === 'compare' ? 'both' : 'code');
+    setTab(lesson.tests ? 'tests' : 'output');
+    setLens(lesson.mode === 'code' || lesson.mode === 'compare' ? 'both' : 'code');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [L.id]);
+  }, [lesson.id]);
   // streaming: follow the model's code until the student edits
   useEffect(() => {
-    if (!edited.current && L.code && L.code !== codeRef.current && stepSel == null) setCode(L.code);
-  }, [L.code]);
+    if (!edited.current && lesson.code && lesson.code !== codeRef.current && stepSel == null)
+      setCode(lesson.code);
+  }, [lesson.code]);
   // recipe steps
   useEffect(() => {
-    if (stepSel != null && L.steps[stepSel]) {
-      setCode(L.steps[stepSel].code);
+    if (stepSel != null && lesson.steps[stepSel]) {
+      setCode(lesson.steps[stepSel].code);
       edited.current = false;
     }
-  }, [stepSel, L.steps.length]);
+  }, [stepSel, lesson.steps.length]);
   useEffect(() => {
-    if (L.mode === 'build' && stepSel != null && L.steps[stepSel] && !streaming) {
-      const c = L.steps[stepSel].code;
+    if (lesson.mode === 'build' && stepSel != null && lesson.steps[stepSel] && !streaming) {
+      const c = lesson.steps[stepSel].code;
       const t = setTimeout(() => doRun(c, { quiet: true }), 60);
       return () => clearTimeout(t);
     }
-  }, [stepSel, streaming, L.steps.length]);
+  }, [stepSel, streaming, lesson.steps.length]);
 
   // ---- plain-English map: line text → English, survives edits that keep a line intact
   const pmap = useMemo(() => {
     const m = new Map();
-    const src = (L.code || '').split('\n');
+    const src = (lesson.code || '').split('\n');
     src.forEach((l, i) => {
-      if (L.pseudo[i] != null) m.set(l.trim(), L.pseudo[i]);
+      if (lesson.pseudo[i] != null) m.set(l.trim(), lesson.pseudo[i]);
     });
-    Object.entries(L.pmap || {}).forEach(([k, v]) => m.set(k, v));
+    Object.entries(lesson.pmap || {}).forEach(([k, v]) => m.set(k, v));
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [L.code, L.pseudo, L.pmap, pmapV]);
+  }, [lesson.code, lesson.pseudo, lesson.pmap, pmapV]);
   // a line still where the lesson wrote it keeps the lesson's own English for that spot (the same line can appear twice
   // with different jobs: `show(steps)` mid-search and at the end); edited or moved lines are matched by their text
   const english = useMemo(() => {
-    const src = (L.code || '').split('\n');
+    const src = (lesson.code || '').split('\n');
     return code.split('\n').map((l, i) => {
       const k = l.trim();
       if (!k || /^[}\])]+[;,)]*$/.test(k)) return '';
-      if (src[i] === l && L.pseudo[i] != null && String(L.pseudo[i]).trim()) return L.pseudo[i];
+      if (src[i] === l && lesson.pseudo[i] != null && String(lesson.pseudo[i]).trim())
+        return lesson.pseudo[i];
       // a lesson from your own agent never has Bento ask your AI for the missing lines: they stay blank
-      return pmap.has(k) ? pmap.get(k) : L.agent ? '' : null;
+      return pmap.has(k) ? pmap.get(k) : lesson.agent ? '' : null;
     });
-  }, [code, pmap, L.code, L.pseudo, L.agent]);
+  }, [code, pmap, lesson.code, lesson.pseudo, lesson.agent]);
   const pendingEnglish = english.some((x) => x === null);
 
   // lines without plain English get it from the fast model, by line number (so a skipped or merged line can't move the
@@ -184,18 +186,18 @@ const Desk = forwardRef(function Desk(props, ref) {
   const [englishAgain, setEnglishAgain] = useState(0);
   useEffect(() => {
     if (!pendingEnglish || streaming || !quick) return;
-    const A = englishAsked.current;
-    if (A.code !== code) {
-      A.code = code;
-      A.n = 0;
+    const asked = englishAsked.current;
+    if (asked.code !== code) {
+      asked.code = code;
+      asked.n = 0;
     }
-    if (A.n >= 2) return;
+    if (asked.n >= 2) return;
     const t = setTimeout(async () => {
       const snapshot = code;
       const lines = snapshot.split('\n');
       const only = english.map((e, i) => (e === null ? i + 1 : 0)).filter(Boolean);
-      const again = A.n > 0;
-      A.n++;
+      const again = asked.n > 0;
+      asked.n++;
       try {
         const got = parseJSONLoose(
           await quick(
@@ -218,7 +220,7 @@ const Desk = forwardRef(function Desk(props, ref) {
           if (v != null && typeof v !== 'object') add[lines[n - 1].trim()] = String(v);
         }
         if (Object.keys(add).length) {
-          onPatch({ pmap: { ...(L.pmap || {}), ...add } });
+          onPatch({ pmap: { ...(lesson.pmap || {}), ...add } });
           setPmapV((v) => v + 1);
         }
         if (only.some((n) => !(lines[n - 1].trim() in add))) setEnglishAgain((v) => v + 1);
@@ -274,7 +276,10 @@ const Desk = forwardRef(function Desk(props, ref) {
   const addFile = () => {
     const web = lang === 'html';
     const have = filesRef.current || [
-      { name: L.file || (lang === 'python' ? 'main.py' : 'index.html'), code: codeRef.current },
+      {
+        name: lesson.file || (lang === 'python' ? 'main.py' : 'index.html'),
+        code: codeRef.current,
+      },
     ];
     const names = web
       ? ['style.css', 'script.js', 'page2.html', 'more.css']
@@ -341,7 +346,12 @@ const Desk = forwardRef(function Desk(props, ref) {
         lang,
         'run',
         bundle.main,
-        { key: L.id, answers: [...answersRef.current], seed: seedRef.current, files: bundle.files },
+        {
+          key: lesson.id,
+          answers: [...answersRef.current],
+          seed: seedRef.current,
+          files: bundle.files,
+        },
         {
           onLive: (batch) => {
             if (lidRef.current === mine) setLiveLogs((l) => [...l, ...batch].slice(-400));
@@ -357,14 +367,14 @@ const Desk = forwardRef(function Desk(props, ref) {
       setResult(r);
       props.onResult?.(mine, r, src);
       if (!opts.quiet) {
-        const S = streak.current;
+        const streakNow = streak.current;
         if (r.error) {
-          S.n = S.err === r.error.msg ? S.n + 1 : 1;
-          S.err = r.error.msg;
-          if (S.n >= 3) setStuck({ why: 'error', err: r.error });
+          streakNow.n = streakNow.err === r.error.msg ? streakNow.n + 1 : 1;
+          streakNow.err = r.error.msg;
+          if (streakNow.n >= 3) setStuck({ why: 'error', err: r.error });
         } else {
-          S.n = 0;
-          S.err = null;
+          streakNow.n = 0;
+          streakNow.err = null;
           setStuck(null);
         }
       }
@@ -429,25 +439,25 @@ const Desk = forwardRef(function Desk(props, ref) {
 
   // races start themselves once the runtime is ready
   useEffect(() => {
-    if (L.race && L.growth && (lang !== 'python' || pyReady)) {
-      const t = setTimeout(() => doMeasure(L.growth), 400);
+    if (lesson.race && lesson.growth && (lang !== 'python' || pyReady)) {
+      const t = setTimeout(() => doMeasure(lesson.growth), 400);
       return () => clearTimeout(t);
     }
-  }, [L.id, pyReady]);
+  }, [lesson.id, pyReady]);
 
   const doTests = useCallback(async () => {
-    if (!L.tests) return;
+    if (!lesson.tests) return;
     setTab('tests');
     setTesting(true);
     const r = await runCode(lang, 'tests', codeRef.current, {
-      fn: L.tests.fn,
-      cases: L.tests.cases,
+      fn: lesson.tests.fn,
+      cases: lesson.tests.cases,
     });
     setTesting(false);
     if (r.error) {
       haptic('warn');
       setResult(r);
-      setTests(L.tests.cases.map(() => ({ ok: false, got: r.error.msg })));
+      setTests(lesson.tests.cases.map(() => ({ ok: false, got: r.error.msg })));
       return;
     }
     setTests(r.tests);
@@ -461,7 +471,7 @@ const Desk = forwardRef(function Desk(props, ref) {
         why: 'tests',
         failing: r.tests.map((x, i) => (x.ok ? null : { i, got: x.got })).filter(Boolean),
       });
-  }, [L.tests, lang, onMastery]);
+  }, [lesson.tests, lang, onMastery]);
 
   useImperativeHandle(ref, () => ({
     run: () => doRun(),
@@ -477,15 +487,19 @@ const Desk = forwardRef(function Desk(props, ref) {
 
   // run once when a lesson is ready
   useEffect(() => {
-    if (streaming || !L.code) return;
+    if (streaming || !lesson.code) return;
     if (lang === 'python' && !pyReady) return;
-    if (L.mode === 'feature' || L.mode === 'code' || L.mode === 'compare') return;
-    doRun(L.work ?? (stepSel != null && L.steps[stepSel] ? L.steps[stepSel].code : L.code), {
-      quiet: true,
-    }); // the lesson's own code: the editor may still hold the previous lesson's
-    if (L.tests && (L.builtin !== true || L.puzzle)) doTests();
+    if (lesson.mode === 'feature' || lesson.mode === 'code' || lesson.mode === 'compare') return;
+    doRun(
+      lesson.work ??
+        (stepSel != null && lesson.steps[stepSel] ? lesson.steps[stepSel].code : lesson.code),
+      {
+        quiet: true,
+      },
+    ); // the lesson's own code: the editor may still hold the previous lesson's
+    if (lesson.tests && (lesson.builtin !== true || lesson.puzzle)) doTests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [L.id, streaming, pyReady]);
+  }, [lesson.id, streaming, pyReady]);
 
   // live re-run while typing (debounced)
   const liveTimer = useRef(null);
@@ -500,7 +514,12 @@ const Desk = forwardRef(function Desk(props, ref) {
     clearTimeout(liveTimer.current);
     if (scrub) {
       doRun(v, { quiet: true });
-    } else if (live && L.mode !== 'feature' && L.mode !== 'code' && L.mode !== 'compare')
+    } else if (
+      live &&
+      lesson.mode !== 'feature' &&
+      lesson.mode !== 'code' &&
+      lesson.mode !== 'compare'
+    )
       liveTimer.current = setTimeout(
         () => doRun(v, { quiet: true, fromTyping: true }),
         lang === 'python' ? 520 : 380,
@@ -559,18 +578,18 @@ const Desk = forwardRef(function Desk(props, ref) {
   }, [tab, trace]);
 
   // diff against the previous version of the SAME file: an earlier step, else the real file from the project
-  const stepFile = stepSel != null ? L.steps[stepSel]?.file : null;
+  const stepFile = stepSel != null ? lesson.steps[stepSel]?.file : null;
   const prevStepCode = useMemo(() => {
     if (stepSel == null) return null;
     for (let i = stepSel - 1; i >= 0; i--)
-      if ((L.steps[i].file || '') === (stepFile || '')) return L.steps[i].code;
-    const orig = (L.context?.key || []).find(
+      if ((lesson.steps[i].file || '') === (stepFile || '')) return lesson.steps[i].code;
+    const orig = (lesson.context?.key || []).find(
       (k) =>
         stepFile &&
         (k.path === stepFile || k.path.endsWith('/' + stepFile) || stepFile.endsWith(k.path)),
     );
     return orig ? orig.text : '';
-  }, [stepSel, stepFile, L.steps, L.context]);
+  }, [stepSel, stepFile, lesson.steps, lesson.context]);
   const diff = useMemo(
     () => (stepSel != null ? addedLines(prevStepCode ?? '', code) : null),
     [stepSel, prevStepCode, code],
@@ -639,10 +658,10 @@ const Desk = forwardRef(function Desk(props, ref) {
   );
 
   // ---- twin language
-  const twin = L.twin && L.twin.src === code ? L.twin : L.twin;
+  const twin = lesson.twin && lesson.twin.src === code ? lesson.twin : lesson.twin;
   const makeTwin = async () => {
     setLens('twin');
-    if (L.twin && L.twin.src === code) return;
+    if (lesson.twin && lesson.twin.src === code) return;
     setTwinBusy(true);
     try {
       const s = await quick(
@@ -671,7 +690,7 @@ const Desk = forwardRef(function Desk(props, ref) {
       work: null,
       pseudo: [],
       pmap: {},
-      file: (L.file || 'main').replace(/\.\w+$/, twin.lang === 'python' ? '.py' : '.js'),
+      file: (lesson.file || 'main').replace(/\.\w+$/, twin.lang === 'python' ? '.py' : '.js'),
       twin: { lang, code, map: (twin.map || []).map(([a, b]) => [b, a]), src: next },
     });
     edited.current = false;
@@ -729,41 +748,46 @@ const Desk = forwardRef(function Desk(props, ref) {
   useEffect(() => {
     if (
       streaming ||
-      L.status !== 'done' ||
+      lesson.status !== 'done' ||
       !result?.error ||
       edited.current ||
-      L.builtin ||
-      L.repaired ||
-      L.agent
+      lesson.builtin ||
+      lesson.repaired ||
+      lesson.agent
     )
       return; // (your agent is told the error and fixes its own)
-    if (!['explain', 'idea'].includes(L.mode) || repairTried.current.has(L.id) || !L.code) return;
+    if (
+      !['explain', 'idea'].includes(lesson.mode) ||
+      repairTried.current.has(lesson.id) ||
+      !lesson.code
+    )
+      return;
     if (/^Stopped/.test(result.error.msg || '')) return;
-    repairTried.current.add(L.id);
+    repairTried.current.add(lesson.id);
     (async () => {
       try {
         const j = parseJSONLoose(
           await quick(
             model,
             quickPrompts.repair({
-              code: L.code,
+              code: lesson.code,
               err: result.error.msg + (result.error.line ? ` (line ${result.error.line})` : ''),
               lang: LNAME[lang],
             }),
           ),
         );
-        if (!j?.code || j.code === L.code || edited.current) return;
-        const same = j.code.split('\n').length === L.code.split('\n').length;
+        if (!j?.code || j.code === lesson.code || edited.current) return;
+        const same = j.code.split('\n').length === lesson.code.split('\n').length;
         onPatch({
           code: j.code,
-          pseudo: same ? L.pseudo : [],
+          pseudo: same ? lesson.pseudo : [],
           repaired: j.note || 'Fixed a small mistake in the example.',
         });
         setCode(j.code);
         setTimeout(() => doRun(j.code, { quiet: true }), 30);
       } catch {}
     })();
-  }, [streaming, L.status, result, L.id]);
+  }, [streaming, lesson.status, result, lesson.id]);
 
   // After a new lesson's code runs cleanly: check the lesson against what the code really did (free checks first,
   // then one small call to the fast model for the quizzes and claims). Fixes only what it can prove, and says so.
@@ -771,30 +795,30 @@ const Desk = forwardRef(function Desk(props, ref) {
   useEffect(() => {
     if (
       streaming ||
-      L.status !== 'done' ||
+      lesson.status !== 'done' ||
       !result ||
       result.error ||
       result.need ||
-      L.builtin ||
-      L.check ||
-      L.scratch ||
-      L.agent ||
+      lesson.builtin ||
+      lesson.check ||
+      lesson.scratch ||
+      lesson.agent ||
       edited.current
     )
       return;
     if (
-      !['explain', 'idea', 'build', 'feature'].includes(L.mode) ||
+      !['explain', 'idea', 'build', 'feature'].includes(lesson.mode) ||
       lang === 'html' ||
-      checkTried.current.has(L.id) ||
-      !L.code
+      checkTried.current.has(lesson.id) ||
+      !lesson.code
     )
       return;
     if (localStorage.getItem('bento.check') === 'off') return;
-    checkTried.current.add(L.id);
+    checkTried.current.add(lesson.id);
     const run = result;
     (async () => {
-      const loc = localChecks(L);
-      let cur = { ...L, ...loc.patch };
+      const loc = localChecks(lesson);
+      let cur = { ...lesson, ...loc.patch };
       let corrections = [];
       let by = null;
       if (quick) {
@@ -810,7 +834,7 @@ const Desk = forwardRef(function Desk(props, ref) {
           /* the free checks still count */
         }
       }
-      if (lidRef.current !== L.id && !L.id) return;
+      if (lidRef.current !== lesson.id && !lesson.id) return;
       onPatch({
         ...loc.patch,
         ...(corrections.length ? { story: cur.story } : {}),
@@ -818,28 +842,31 @@ const Desk = forwardRef(function Desk(props, ref) {
       });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [streaming, L.status, result, L.id]);
+  }, [streaming, lesson.status, result, lesson.id]);
 
-  const modified = L.code && code !== (stepSel != null ? L.steps[stepSel]?.code : L.code);
+  const modified =
+    lesson.code && code !== (stepSel != null ? lesson.steps[stepSel]?.code : lesson.code);
   // "You just used X": constructs in YOUR code (not in the lesson's original) that you haven't met yet, explained instantly
   const [spotOpen, setSpotOpen] = useState(null);
   const [spotSeen, setSpotSeen] = useState(() => new Set());
   const spotted = useMemo(() => {
-    if (!(modified || L.scratch) || !['python', 'javascript', 'typescript'].includes(lang))
+    if (!(modified || lesson.scratch) || !['python', 'javascript', 'typescript'].includes(lang))
       return [];
-    const before = new Set(L.scratch ? [] : spotConstructs(L.code || '', lang).map((x) => x.id));
+    const before = new Set(
+      lesson.scratch ? [] : spotConstructs(lesson.code || '', lang).map((x) => x.id),
+    );
     return spotConstructs(code, lang)
       .filter(
         (x) => !before.has(x.id) && !spotSeen.has(x.id) && !knownWords?.has(x.name.toLowerCase()),
       )
       .slice(0, 3);
-  }, [code, lang, modified, L.scratch, L.code, spotSeen, knownWords]);
+  }, [code, lang, modified, lesson.scratch, lesson.code, spotSeen, knownWords]);
   const [coach, setCoach] = useState(null);
   const [savedTo, setSavedTo] = useState(null);
   const [publish, setPublish] = useState(null); // { ask } | { busy } | { url } | { err }
-  useEffect(() => setCoach(null), [L.id]);
+  useEffect(() => setCoach(null), [lesson.id]);
   const explainChange = async () => {
-    const before = stepSel != null ? L.steps[stepSel]?.code : L.code;
+    const before = stepSel != null ? lesson.steps[stepSel]?.code : lesson.code;
     setCoach({ loading: true });
     try {
       const out = document.querySelector('.console')?.innerText || '';
@@ -855,8 +882,9 @@ const Desk = forwardRef(function Desk(props, ref) {
     }
   };
   const fromRepo =
-    (L.mode === 'code' && !!(L.context?.repo || L.context?.path)) || L.mode === 'compare';
-  const runnable = L.mode !== 'feature' && !fromRepo;
+    (lesson.mode === 'code' && !!(lesson.context?.repo || lesson.context?.path)) ||
+    lesson.mode === 'compare';
+  const runnable = lesson.mode !== 'feature' && !fromRepo;
   const fileLang = (n) =>
     /\.css$/.test(n)
       ? 'css'
@@ -870,7 +898,7 @@ const Desk = forwardRef(function Desk(props, ref) {
   const edLang =
     multi && filesRef.current?.[fi]
       ? fileLang(filesRef.current[fi].name) || lang
-      : lang === 'typescript' || /\.tsx?$/.test(L.file || L.context?.path || '')
+      : lang === 'typescript' || /\.tsx?$/.test(lesson.file || lesson.context?.path || '')
         ? 'typescript'
         : lang;
 
@@ -880,14 +908,14 @@ const Desk = forwardRef(function Desk(props, ref) {
         <div className="file">
           <span className={`lang-dot ${lang}`} />
           <span className="fname">
-            {stepFile || L.file || (lang === 'python' ? 'main.py' : 'main.js')}
+            {stepFile || lesson.file || (lang === 'python' ? 'main.py' : 'main.js')}
           </span>
           {stepSel != null && (
             <span className="newfile">
               {prevStepCode ? `+${diff?.size || 0} lines` : 'new file'}
             </span>
           )}
-          {onRemix && !L.scratch && runnable && !streaming && (
+          {onRemix && !lesson.scratch && runnable && !streaming && (
             <button
               className="reset remix"
               title="Remix: copy this code into your own scratchpad"
@@ -902,7 +930,7 @@ const Desk = forwardRef(function Desk(props, ref) {
               className="reset"
               title="Back to the original"
               onClick={() => {
-                const orig = stepSel != null ? L.steps[stepSel].code : L.code;
+                const orig = stepSel != null ? lesson.steps[stepSel].code : lesson.code;
                 edited.current = false;
                 setCode(orig);
                 onPatch({ work: null });
@@ -929,7 +957,7 @@ const Desk = forwardRef(function Desk(props, ref) {
               ) : null}
             </button>
           ))}
-          {runnable && L.mode !== 'code' && lang !== 'html' && (
+          {runnable && lesson.mode !== 'code' && lang !== 'html' && (
             <button
               className={`lens twin ${lens === 'twin' ? 'on' : ''}`}
               onClick={lens === 'twin' ? () => setLens('code') : makeTwin}
@@ -940,14 +968,14 @@ const Desk = forwardRef(function Desk(props, ref) {
           )}
         </div>
         <div className="actions">
-          {(modified || L.scratch) && !fromRepo && (
+          {(modified || lesson.scratch) && !fromRepo && (
             <button
               className="act coach-act"
               title="Explain what I changed (plain English)"
-              aria-label={t(L.scratch ? 'Explain' : 'Explain change')}
+              aria-label={t(lesson.scratch ? 'Explain' : 'Explain change')}
               onClick={explainChange}
             >
-              ✦ <span className="lbl">{t(L.scratch ? 'Explain' : 'Explain change')}</span>
+              ✦ <span className="lbl">{t(lesson.scratch ? 'Explain' : 'Explain change')}</span>
             </button>
           )}
           {runnable && (
@@ -974,7 +1002,10 @@ const Desk = forwardRef(function Desk(props, ref) {
               className="act"
               title="Save as a real .html file on your Desktop"
               onClick={async () => {
-                const f = await window.bento.saveWeb(projectBundle(codeRef.current).main, L.title);
+                const f = await window.bento.saveWeb(
+                  projectBundle(codeRef.current).main,
+                  lesson.title,
+                );
                 setSavedTo(f?.split('/').pop());
                 setTimeout(() => setSavedTo(null), 3000);
               }}
@@ -1017,10 +1048,12 @@ const Desk = forwardRef(function Desk(props, ref) {
         </div>
       </div>
 
-      {(multi || (L.scratch && (lang === 'python' || lang === 'html'))) && (
+      {(multi || (lesson.scratch && (lang === 'python' || lang === 'html'))) && (
         <div className="desk-files">
           {(
-            filesRef.current || [{ name: L.file || (lang === 'python' ? 'main.py' : 'index.html') }]
+            filesRef.current || [
+              { name: lesson.file || (lang === 'python' ? 'main.py' : 'index.html') },
+            ]
           ).map((f, i) => (
             <button
               key={f.name + i}
@@ -1067,7 +1100,7 @@ const Desk = forwardRef(function Desk(props, ref) {
                     setPublish(
                       await window.bento.publishWeb(
                         projectBundle(codeRef.current).main,
-                        L.title || 'my page',
+                        lesson.title || 'my page',
                       ),
                     );
                   } catch (e) {
@@ -1115,9 +1148,9 @@ const Desk = forwardRef(function Desk(props, ref) {
           )}
         </div>
       )}
-      {L.repaired && !result?.error && (
+      {lesson.repaired && !result?.error && (
         <div className="repaired">
-          <span>✓</span>Bento caught and fixed a mistake in this example: {L.repaired}
+          <span>✓</span>Bento caught and fixed a mistake in this example: {lesson.repaired}
           <button className="ib" aria-label="Dismiss" onClick={() => onPatch({ repaired: null })}>
             ✕
           </button>
@@ -1252,7 +1285,7 @@ const Desk = forwardRef(function Desk(props, ref) {
           )}
         </div>
       )}
-      {streaming && !code && !L.steps.length && (
+      {streaming && !code && !lesson.steps.length && (
         <div className="desk-wait">
           <div className="dw-lines">
             {[70, 46, 58, 0, 82, 40, 64].map((w, i) =>
@@ -1288,7 +1321,7 @@ const Desk = forwardRef(function Desk(props, ref) {
               setLens('code');
               setTimeout(() => ed.current?.setCursorLine(n), 30);
             }}
-            notes={L.notes}
+            notes={lesson.notes}
           />
         ) : null}
         <div className="ed-row" style={{ display: lens === 'english' ? 'none' : 'flex' }}>
@@ -1301,7 +1334,7 @@ const Desk = forwardRef(function Desk(props, ref) {
               marks={marks}
               lens={lens === 'twin' ? 'code' : lens}
               english={english}
-              notes={lens === 'twin' ? [] : L.notes}
+              notes={lens === 'twin' ? [] : lesson.notes}
               onNoteHover={setNoteRange}
               openNoteAt={props.noteFlash}
               hoverLine={hoverLine}
@@ -1376,7 +1409,7 @@ const Desk = forwardRef(function Desk(props, ref) {
           <Stage
             tab={tab}
             setTab={setTab}
-            lesson={L}
+            lesson={lesson}
             lang={lang}
             code={code}
             english={english}
@@ -1397,14 +1430,14 @@ const Desk = forwardRef(function Desk(props, ref) {
                     const j = parseJSONLoose(
                       await quick(
                         model,
-                        `A beginner is stuck on this ${LNAME[lang]} code${L.title ? ` (lesson: "${L.title}")` : ''}.\nCODE (with line numbers):\n${codeRef.current
+                        `A beginner is stuck on this ${LNAME[lang]} code${lesson.title ? ` (lesson: "${lesson.title}")` : ''}.\nCODE (with line numbers):\n${codeRef.current
                           .split('\n')
                           .map((x, i) => `${i + 1}| ${x}`)
                           .join('\n')
                           .slice(
                             0,
                             4000,
-                          )}\n\n${stuck?.why === 'error' ? `It keeps failing with: ${stuck.err.msg}${stuck.err.line ? ` (line ${stuck.err.line})` : ''}` : `These tests keep failing: ${JSON.stringify((stuck?.failing || []).slice(0, 3).map((f) => ({ args: L.tests?.cases?.[f.i]?.args, want: L.tests?.cases?.[f.i]?.expect, got: f.got })))}`}\n\nGive ONE small hint that gets them unstuck WITHOUT writing the fix for them. Start with an everyday picture or analogy, then point at the exact line to look at. At most 55 words. Talk to them as "you".\nReply JSON: {"hint":"..."}`,
+                          )}\n\n${stuck?.why === 'error' ? `It keeps failing with: ${stuck.err.msg}${stuck.err.line ? ` (line ${stuck.err.line})` : ''}` : `These tests keep failing: ${JSON.stringify((stuck?.failing || []).slice(0, 3).map((f) => ({ args: lesson.tests?.cases?.[f.i]?.args, want: lesson.tests?.cases?.[f.i]?.expect, got: f.got })))}`}\n\nGive ONE small hint that gets them unstuck WITHOUT writing the fix for them. Start with an everyday picture or analogy, then point at the exact line to look at. At most 55 words. Talk to them as "you".\nReply JSON: {"hint":"..."}`,
                       ),
                     );
                     return j?.hint || 'Try stepping through it and watching the values change.';
@@ -1417,7 +1450,7 @@ const Desk = forwardRef(function Desk(props, ref) {
             }}
             onHoverLine={setNoteRange}
             onWhyDiff={
-              L.mode === 'challenge' || lang === 'html'
+              lesson.mode === 'challenge' || lang === 'html'
                 ? null
                 : async (guess, actual) => {
                     try {
@@ -1468,23 +1501,23 @@ const Desk = forwardRef(function Desk(props, ref) {
       )}
       {fromRepo && (
         <div className="recipe-foot repo-foot">
-          {L.mode === 'compare' ? (
+          {lesson.mode === 'compare' ? (
             <>
-              Real code from <b>{L.context?.a?.repo}</b> and <b>{L.context?.b?.repo}</b>.
+              Real code from <b>{lesson.context?.a?.repo}</b> and <b>{lesson.context?.b?.repo}</b>.
             </>
           ) : (
             <>
-              Real code from <b>{L.file || L.context?.path}</b>
-              {L.context?.repo ? <> in {L.context.repo}</> : null}.
+              Real code from <b>{lesson.file || lesson.context?.path}</b>
+              {lesson.context?.repo ? <> in {lesson.context.repo}</> : null}.
             </>
           )}{' '}
           Hover any word for a quick explanation; switch to Plain words to read it like a story.
         </div>
       )}
-      {(!runnable || L.mode === 'build') && L.steps.length > 0 && (
+      {(!runnable || lesson.mode === 'build') && lesson.steps.length > 0 && (
         <div className="recipe-foot">
-          Step {(stepSel ?? L.steps.length - 1) + 1} of {L.steps.length} · new lines are highlighted
-          in green
+          Step {(stepSel ?? lesson.steps.length - 1) + 1} of {lesson.steps.length} · new lines are
+          highlighted in green
         </div>
       )}
     </div>

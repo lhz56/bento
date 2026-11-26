@@ -237,14 +237,14 @@ export const rememberTab = (view) => {
 // On a phone or iPad: the Mac this device is using, and whether it can reach it. In Bento Code, a tap opens the app's
 // own list of your Macs (switch, add another, forget one); in Safari, Settings, where This iPhone uses Bento on… lives.
 function MacCard({ model, onSettings }) {
-  const R = window.bentoRemote;
-  const [st, setSt] = useState(() => ({ state: R.state, host: R.host }));
+  const remote = window.bentoRemote;
+  const [st, setSt] = useState(() => ({ state: remote.state, host: remote.host }));
   // (read it again once listening: Bento can come online between the first render and this effect)
   useEffect(() => {
-    const off = R.on((state, host) => setSt({ state, host }));
-    setSt({ state: R.state, host: R.host });
+    const off = remote.on((state, host) => setSt({ state, host }));
+    setSt({ state: remote.state, host: remote.host });
     return off;
-  }, [R]);
+  }, [remote]);
   const on = st.state === 'online';
   const ai = modelInfo(model)?.short || aiModelLabel(model);
   return (

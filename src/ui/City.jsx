@@ -87,7 +87,17 @@ function plan(bands) {
 }
 
 // bare: just the city, no heading of its own (a phone shows it as a picture in its page, and full screen)
-export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, hot, bare }) {
+export default function City({
+  facts,
+  narration,
+  tools,
+  pathIdx,
+  role,
+  onOpen,
+  narrating,
+  hot,
+  bare,
+}) {
   const wrap = useRef(null);
   const [width, setWidth] = useState(900);
   const [hover, setHover] = useState(null); // 'f:i' | 's:id' | 'd:layer'
@@ -123,11 +133,11 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
   }, []);
 
   const svcs = useMemo(() => tools.filter((s) => !s.hideAsUi).slice(0, 12), [tools]);
-  const journeys = N?.journeys || [];
-  const maxUsed = useMemo(() => Math.max(1, ...F.files.map((f) => f.used)), [F]);
+  const journeys = narration?.journeys || [];
+  const maxUsed = useMemo(() => Math.max(1, ...facts.files.map((f) => f.used)), [facts]);
   const maxLines = useMemo(
-    () => Math.max(60, ...F.files.filter((f) => f.lang).map((f) => f.lines)),
-    [F],
+    () => Math.max(60, ...facts.files.filter((f) => f.lang).map((f) => f.lines)),
+    [facts],
   );
   const forced = useMemo(() => {
     const s = new Set();
@@ -148,7 +158,7 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
   const bands = useMemo(
     () =>
       LAYERS.map(([id]) => {
-        const all = F.files
+        const all = facts.files
           .map((f, i) => ({ f, i }))
           .filter(
             ({ f, i }) =>
@@ -172,10 +182,10 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
         return {
           id,
           files: shown.map((x) => ({ ...x, top: top.has(x.i), folder: folder(x) })),
-          total: F.files.filter((f) => f.layer === id).length,
+          total: facts.files.filter((f) => f.layer === id).length,
         };
       }).filter((b) => b.files.length > 0),
-    [F, forced],
+    [facts, forced],
   );
 
   const city = useMemo(() => plan(bands), [bands]);
@@ -197,21 +207,21 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
       padX = 30,
       bottom = 46;
     const k = Math.min((width - padX * 2) / (maxX - minX), 520 / (maxY - minY + 1), 46);
-    const P = (x, y, z = 0) => {
+    const project = (x, y, z = 0) => {
       const [a, b] = iso(x, y, z);
       return [
         (a - minX) * k + padX + (width - padX * 2 - (maxX - minX) * k) / 2,
         (b - minY) * k + sky,
       ];
     };
-    return { k, P, h: (maxY - minY) * k + sky + bottom, sky };
+    return { k, P: project, h: (maxY - minY) * k + sky + bottom, sky };
   }, [city, width, svcs.length]);
-  const { k, P } = geo;
+  const { k, P: project } = geo;
 
   const bh = (f) => 0.35 + 3.6 * Math.sqrt(Math.min(1, f.lines / maxLines)); // building height in cells
   const roof = {}; // key → [x,y] roof centre in px
   for (const d of city)
-    for (const l of d.lots) roof[`f:${l.i}`] = P(l.lx + 0.31, l.ly + 0.31, bh(l.f));
+    for (const l of d.lots) roof[`f:${l.i}`] = project(l.lx + 0.31, l.ly + 0.31, bh(l.f));
   const svcPos = {};
   svcs.forEach((s, i) => {
     const n = svcs.length;
@@ -247,14 +257,14 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
   else if (hover?.startsWith('f:')) {
     const i = +hover.slice(2);
     lit = new Set([hover]);
-    F.files[i].imp.forEach((j) => {
+    facts.files[i].imp.forEach((j) => {
       const kk = `f:${j}`;
       if (roof[kk]) {
         lit.add(kk);
         links.push([hover, kk, 'out']);
       }
     });
-    F.files.forEach((g, j) => {
+    facts.files.forEach((g, j) => {
       const kk = `f:${j}`;
       if (g.imp.includes(i) && roof[kk]) {
         lit.add(kk);
@@ -302,7 +312,7 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
   if (lit && lit.size <= 14) lit.forEach((x) => x.startsWith('f:') && tags.add(x));
   if (jr && jKeys[jr.s]) tags.add(jKeys[jr.s]);
 
-  const hovered = hover?.startsWith('f:') ? F.files[+hover.slice(2)] : null;
+  const hovered = hover?.startsWith('f:') ? facts.files[+hover.slice(2)] : null;
   const hoveredD = hover?.startsWith('d:') ? hover.slice(2) : null;
   const hoveredS = hover?.startsWith('s:') ? svcs.find((s) => `s:${s.id}` === hover) : null;
   const langsShown = [...new Set(lots.map((l) => l.f.lang).filter(Boolean))].slice(0, 6);
@@ -442,7 +452,7 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
           <div className="cap-f">
             <div className="cap-main">
               <div className="cap-where">{hoveredS.name}</div>
-              <div className="cap-md">{N?.stack?.[hoveredS.id]?.role || hoveredS.what}</div>
+              <div className="cap-md">{narration?.stack?.[hoveredS.id]?.role || hoveredS.what}</div>
             </div>
             {hoveredS.used?.length ? (
               <div className="cap-stats">
@@ -460,7 +470,11 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
                 {LAYER[hoveredD][1]} · {LAYER[hoveredD][2].toLowerCase()}
               </div>
               <div className="cap-md">
-                {N?.layers?.[hoveredD] ? <Md text={N.layers[hoveredD]} /> : LAYER[hoveredD][2]}
+                {narration?.layers?.[hoveredD] ? (
+                  <Md text={narration.layers[hoveredD]} />
+                ) : (
+                  LAYER[hoveredD][2]
+                )}
               </div>
             </div>
           </div>
@@ -540,22 +554,22 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
           {city.map((d) => {
             const c = LAYER[d.id][3];
             const pts = [
-              P(d.x, d.y),
-              P(d.x + d.W, d.y),
-              P(d.x + d.W, d.y + d.D),
-              P(d.x, d.y + d.D),
+              project(d.x, d.y),
+              project(d.x + d.W, d.y),
+              project(d.x + d.W, d.y + d.D),
+              project(d.x, d.y + d.D),
             ];
             const lip = [
-              P(d.x, d.y + d.D),
-              P(d.x + d.W, d.y + d.D),
-              P(d.x + d.W, d.y + d.D, -0.28),
-              P(d.x, d.y + d.D, -0.28),
+              project(d.x, d.y + d.D),
+              project(d.x + d.W, d.y + d.D),
+              project(d.x + d.W, d.y + d.D, -0.28),
+              project(d.x, d.y + d.D, -0.28),
             ];
             const lip2 = [
-              P(d.x + d.W, d.y),
-              P(d.x + d.W, d.y + d.D),
-              P(d.x + d.W, d.y + d.D, -0.28),
-              P(d.x + d.W, d.y, -0.28),
+              project(d.x + d.W, d.y),
+              project(d.x + d.W, d.y + d.D),
+              project(d.x + d.W, d.y + d.D, -0.28),
+              project(d.x + d.W, d.y, -0.28),
             ];
             const on = hoveredD === d.id || (lit && d.lots.some((l) => lit.has(`f:${l.i}`)));
             return (
@@ -578,13 +592,13 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
             const f = l.f;
             const h = bh(f);
             const w = 0.62;
-            const A = P(l.lx, l.ly, h),
-              B = P(l.lx + w, l.ly, h),
-              C = P(l.lx + w, l.ly + w, h),
-              D = P(l.lx, l.ly + w, h);
-            const B0 = P(l.lx + w, l.ly),
-              C0 = P(l.lx + w, l.ly + w),
-              D0 = P(l.lx, l.ly + w);
+            const topLeft = project(l.lx, l.ly, h),
+              topRight = project(l.lx + w, l.ly, h),
+              bottomRight = project(l.lx + w, l.ly + w, h),
+              bottomLeft = project(l.lx, l.ly + w, h);
+            const B0 = project(l.lx + w, l.ly),
+              C0 = project(l.lx + w, l.ly + w),
+              D0 = project(l.lx, l.ly + w);
             const c = LAYER[l.d.id][3];
             const hv = heatOn ? heat(f, maxUsed) : 0;
             const side =
@@ -620,17 +634,22 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
               >
                 <polygon
                   className="f-l"
-                  points={[D0, C0, C, D].map((p) => p.join(',')).join(' ')}
+                  points={[D0, C0, bottomRight, bottomLeft].map((p) => p.join(',')).join(' ')}
                 />
                 <polygon
                   className="f-r"
-                  points={[C0, B0, B, C].map((p) => p.join(',')).join(' ')}
+                  points={[C0, B0, topRight, bottomRight].map((p) => p.join(',')).join(' ')}
                 />
-                <polygon className="f-t" points={[A, B, C, D].map((p) => p.join(',')).join(' ')} />
+                <polygon
+                  className="f-t"
+                  points={[topLeft, topRight, bottomRight, bottomLeft]
+                    .map((p) => p.join(','))
+                    .join(' ')}
+                />
                 {heatOn && hv > 0.55 && (
                   <ellipse
-                    cx={(A[0] + C[0]) / 2}
-                    cy={(A[1] + C[1]) / 2}
+                    cx={(topLeft[0] + bottomRight[0]) / 2}
+                    cy={(topLeft[1] + bottomRight[1]) / 2}
                     rx={k * 0.5}
                     ry={k * 0.25}
                     className="heat-glow"
@@ -638,7 +657,7 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
                 )}
                 {f.entry && (
                   <g
-                    transform={`translate(${(A[0] + C[0]) / 2},${(A[1] + C[1]) / 2})`}
+                    transform={`translate(${(topLeft[0] + bottomRight[0]) / 2},${(topLeft[1] + bottomRight[1]) / 2})`}
                     className="flag"
                   >
                     <line x1="0" y1="0" x2="0" y2="-14" />
@@ -647,7 +666,7 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
                 )}
                 {f.used >= Math.max(5, maxUsed * 0.5) && (
                   <g
-                    transform={`translate(${(A[0] + C[0]) / 2},${(A[1] + C[1]) / 2})`}
+                    transform={`translate(${(topLeft[0] + bottomRight[0]) / 2},${(topLeft[1] + bottomRight[1]) / 2})`}
                     className="beacon"
                   >
                     <line x1="0" y1="0" x2="0" y2="-11" />
@@ -712,7 +731,7 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
             [...tags]
               .filter((key) => roof[key])
               .map((key) => {
-                const t = displayName(F.files[+key.slice(2)].p);
+                const t = displayName(facts.files[+key.slice(2)].p);
                 return {
                   key,
                   t,
@@ -737,7 +756,7 @@ export default function City({ F, N, tools, pathIdx, role, onOpen, narrating, ho
           ))}
           {/* district signs */}
           {city.map((d) => {
-            const [x, y] = P(d.x + d.W, d.y + d.D);
+            const [x, y] = project(d.x + d.W, d.y + d.D);
             const [, name] = LAYER[d.id];
             const label = `${GLYPH[d.id]}  ${name}`;
             const w = label.length * 7 + 40;
@@ -804,6 +823,6 @@ function lumDark(hex) {
   const r = (n >> 16) & 255,
     g = (n >> 8) & 255,
     b = n & 255;
-  const L = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return L < 0.16 || L > 0.9;
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance < 0.16 || luminance > 0.9;
 }

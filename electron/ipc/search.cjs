@@ -169,7 +169,7 @@ module.exports = function registerSearch(ctx) {
         return v == null ? null : String(v);
       },
     };
-    const H = {};
+    const headers = {};
     for (const k of [
       'server',
       'x-powered-by',
@@ -194,7 +194,7 @@ module.exports = function registerSearch(ctx) {
       'alt-svc',
     ]) {
       const v = r.headers.get(k);
-      if (v) H[k] = v.slice(0, 120);
+      if (v) headers[k] = v.slice(0, 120);
     }
     const scripts = [...html.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)]
       .map((m) => m[1])
@@ -244,7 +244,7 @@ module.exports = function registerSearch(ctx) {
       status: r.status,
       ms,
       bytes: html.length,
-      headers: H,
+      headers,
       scripts,
       styles,
       repos,

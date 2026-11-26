@@ -16,13 +16,13 @@ const CAT_ORDER = Object.keys(CATS);
 
 const norm = (s) => String(s).toLowerCase().replace(/_/g, '-');
 
-export function detectStack(F) {
-  const sig = F.sig || {};
+export function detectStack(facts) {
+  const sig = facts.sig || {};
   const npm = sig.npm || {};
   const pip = new Set((sig.pip || []).map(norm));
   const env = sig.env || [];
   const extUse = new Map(); // package → file indices
-  F.files.forEach(
+  facts.files.forEach(
     (f, i) =>
       f.sub !== 'docs' &&
       (f.ext || []).forEach((e) => {
@@ -31,7 +31,7 @@ export function detectStack(F) {
         extUse.get(k).push(i);
       }),
   );
-  const paths = F.files.map((f) => f.p);
+  const paths = facts.files.map((f) => f.p);
   const out = [];
   for (const e of CATALOG) {
     const ev = [];
@@ -82,7 +82,7 @@ export function detectStack(F) {
     !ids.has('tailwind') &&
     !ids.has('sass') &&
     !ids.has('styled') &&
-    F.files.some((f) => /\.css$/.test(f.p) && f.sub !== 'docs')
+    facts.files.some((f) => /\.css$/.test(f.p) && f.sub !== 'docs')
   )
     out.push({ ...BY_ID.cssmod, evidence: ['.css files'], used: [] });
   if (ids.has('rn') || ids.has('expo')) {
@@ -101,7 +101,7 @@ export function detectStack(F) {
     x.side =
       x.evidence.length > 0 &&
       x.evidence.every((e) => SIDE.test(e)) &&
-      x.used.every((i) => SIDE.test(F.files[i]?.p || ''));
+      x.used.every((i) => SIDE.test(facts.files[i]?.p || ''));
   for (const x of out)
     x.workshop =
       x.side ||
@@ -214,8 +214,8 @@ export function guessRole(f) {
 }
 
 // --------------------------------------------------------------------- hot spots you can measure
-export function measuredHotspots(F) {
-  const code = F.files.filter((f) => f.lang && f.layer !== 'support');
+export function measuredHotspots(facts) {
+  const code = facts.files.filter((f) => f.lang && f.layer !== 'support');
   const n = Math.max(1, code.length);
   const out = [];
   const hubs = [...code]
@@ -242,18 +242,18 @@ export function measuredHotspots(F) {
       md: `Long files are hard to read and easy to break. It probably does several jobs; splitting it by job would make it easier to change safely.`,
       measured: true,
     });
-  if ((F.cycles || []).length) {
-    const [a, b] = F.cycles[0];
+  if ((facts.cycles || []).length) {
+    const [a, b] = facts.cycles[0];
     out.push({
-      p: F.files[a].p,
-      p2: F.files[b].p,
+      p: facts.files[a].p,
+      p2: facts.files[b].p,
       kind: 'fragile',
-      title: `${F.cycles.length} import loop${F.cycles.length > 1 ? 's' : ''}`,
-      md: `${displayName(F.files[a].p)} and ${displayName(F.files[b].p)} import each other. Loops like this make load order surprising; moving shared bits into a third file breaks the loop.`,
+      title: `${facts.cycles.length} import loop${facts.cycles.length > 1 ? 's' : ''}`,
+      md: `${displayName(facts.files[a].p)} and ${displayName(facts.files[b].p)} import each other. Loops like this make load order surprising; moving shared bits into a third file breaks the loop.`,
       measured: true,
     });
   }
-  if (code.length > 8 && !F.files.some((f) => f.sub === 'tests'))
+  if (code.length > 8 && !facts.files.some((f) => f.sub === 'tests'))
     out.push({
       p: null,
       kind: 'fragile',
@@ -261,7 +261,7 @@ export function measuredHotspots(F) {
       md: 'Nothing checks the code automatically, so every change has to be tested by hand. A handful of tests on the core files would catch regressions early.',
       measured: true,
     });
-  const deps = Object.keys(F.sig?.npm || {}).filter((k) => !k.startsWith('@types/')).length;
+  const deps = Object.keys(facts.sig?.npm || {}).filter((k) => !k.startsWith('@types/')).length;
   if (deps > 70)
     out.push({
       p: 'package.json',
@@ -293,8 +293,8 @@ export const langColor = (l) => LANGS[l]?.color || '#9a8f84';
 export const fmtN = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n));
 
 // --------------------------------------------------------------------- the narration prompt
-export function buildAtlasPrompt(F, meta, stack, level) {
-  const files = F.files;
+export function buildAtlasPrompt(facts, meta, stack, level) {
+  const files = facts.files;
   const important = new Set();
   files.forEach((f, i) => {
     if (f.entry || f.used >= 2 || (f.layer !== 'support' && f.lines > 120)) important.add(i);
@@ -319,28 +319,28 @@ export function buildAtlasPrompt(F, meta, stack, level) {
       (s) =>
         `${s.id} = ${s.name} [${s.cat}] evidence: ${s.evidence.join('; ') || 'imports'}${s.used.length ? `; imported in ${s.used.length} files` : ''}`,
     );
-  const langs = Object.entries(F.langs)
+  const langs = Object.entries(facts.langs)
     .sort((a, b) => b[1] - a[1])
     .map(([l, n]) => `${l} ${n} lines`)
     .join(', ');
-  const hot = measuredHotspots(F)
+  const hot = measuredHotspots(facts)
     .map((h) => `- ${h.title}${h.p ? ` (${h.p})` : ''}`)
     .join('\n');
   let p = `LEVEL: ${level === 'kid' ? 'kid (lots of analogies, zero jargon)' : level === 'engineer' ? 'engineer (still plain, but name patterns precisely)' : 'curious beginner'}\n`;
-  p += `REPO: ${meta?.full || F.name}${meta?.description ? ` — ${meta.description}` : ''}${meta?.stars != null ? ` (★${meta.stars})` : ''}${meta?.topics?.length ? ` topics: ${meta.topics.join(', ')}` : ''}\n`;
-  if (F.sig?.pkgName)
-    p += `package.json name: ${F.sig.pkgName}${F.sig.pkgDesc ? ` — ${F.sig.pkgDesc}` : ''}\nscripts: ${Object.entries(
-      F.sig.scripts || {},
+  p += `REPO: ${meta?.full || facts.name}${meta?.description ? ` — ${meta.description}` : ''}${meta?.stars != null ? ` (★${meta.stars})` : ''}${meta?.topics?.length ? ` topics: ${meta.topics.join(', ')}` : ''}\n`;
+  if (facts.sig?.pkgName)
+    p += `package.json name: ${facts.sig.pkgName}${facts.sig.pkgDesc ? ` — ${facts.sig.pkgDesc}` : ''}\nscripts: ${Object.entries(
+      facts.sig.scripts || {},
     )
       .slice(0, 10)
       .map(([k, v]) => `${k}: ${v}`)
       .join(' | ')}\n`;
-  p += `TOTALS: ${F.totals.files} files, ${F.totals.lines} lines of code. Languages: ${langs}\n`;
+  p += `TOTALS: ${facts.totals.files} files, ${facts.totals.lines} lines of code. Languages: ${langs}\n`;
   p += `\nDETECTED TOOLS (use these ids):\n${st.join('\n') || '(none)'}\n`;
-  p += `\nMEASURED:\n${hot || '- nothing alarming'}\nimport loops: ${(F.cycles || []).length}\n`;
-  if (F.readme) p += `\nREADME (excerpt):\n${F.readme.slice(0, 4500)}\n`;
+  p += `\nMEASURED:\n${hot || '- nothing alarming'}\nimport loops: ${(facts.cycles || []).length}\n`;
+  if (facts.readme) p += `\nREADME (excerpt):\n${facts.readme.slice(0, 4500)}\n`;
   p += `\nFILES (path | layer | lines | used by N files | notes):\n${list.join('\n')}\n`;
-  for (const h of F.heads || []) p += `\n--- ${h.p} (first lines) ---\n${h.head}\n`;
+  for (const h of facts.heads || []) p += `\n--- ${h.p} (first lines) ---\n${h.head}\n`;
   return p;
 }
 
@@ -359,9 +359,9 @@ export function emptyNarr() {
     learn: [],
   };
 }
-export function applyNarr(N, b) {
-  if (!b || !b.t) return N;
-  const n = { ...N };
+export function applyNarr(narration, b) {
+  if (!b || !b.t) return narration;
+  const n = { ...narration };
   if (b.t === 'gist') n.gist = b;
   else if (b.t === 'flow' && Array.isArray(b.nodes)) n.flow = b;
   else if (b.t === 'build') n.build = b;
@@ -386,9 +386,9 @@ export const areaOf = (p) => {
   const s = p.split('/');
   return s.length > 2 && MONO_AREA.test(s[0]) ? `${s[0]}/${s[1]}` : s.length > 1 ? s[0] : '.';
 };
-export function projectParts(F, max = 10) {
+export function projectParts(facts, max = 10) {
   const by = new Map();
-  for (const f of F.files) {
+  for (const f of facts.files) {
     if (!f.lang || f.layer === 'support' || f.sub === 'docs' || f.sub === 'tests') continue;
     const a = areaOf(f.p);
     if (a === '.' || /^(\.github|docs?|scripts|infra|evals?|third-party.*)$/.test(a)) continue;
@@ -405,7 +405,7 @@ export const isOverviewQuestion = (q) =>
     q,
   ) && !/\b(where|which file|function|line|bug|error|why does .{0,30} fail)\b/i.test(q);
 
-export function filesForQuestion(F, narr, q) {
+export function filesForQuestion(facts, narr, q) {
   const words = (q.toLowerCase().match(/[a-z]{3,}/g) || []).filter(
     (w) =>
       ![
@@ -439,7 +439,7 @@ export function filesForQuestion(F, narr, q) {
       Math.min(1, f.used / 10)
     );
   };
-  return F.files
+  return facts.files
     .filter((f) => f.lang && f.sub !== 'docs')
     .map((f) => [f, score(f)])
     .sort((a, b) => b[1] - a[1])

@@ -51,9 +51,9 @@ export function emptyLesson(q, opts = {}) {
 }
 
 // Apply one parsed block to a lesson (returns a new lesson object)
-export function applyBlock(L, b) {
-  if (!b || typeof b !== 'object' || !b.t) return L;
-  const l = { ...L };
+export function applyBlock(lesson, b) {
+  if (!b || typeof b !== 'object' || !b.t) return lesson;
+  const l = { ...lesson };
   switch (b.t) {
     case 'title':
       l.title = b.title || l.title;
@@ -214,8 +214,8 @@ const LEVEL = {
 };
 
 export function buildPrompt({ q, mode, lang, level, context, prev, path }) {
-  const L = LANG_NAME[lang] || 'Python';
-  let p = `MODE: ${mode}\nLANGUAGE: ${L}\nLEVEL: ${LEVEL[level] || 'student'}\n`;
+  const langInfo = LANG_NAME[lang] || 'Python';
+  let p = `MODE: ${mode}\nLANGUAGE: ${langInfo}\nLEVEL: ${LEVEL[level] || 'student'}\n`;
   if (path) p += `\nLEARNING PATH: ${path}\n`;
   if (prev)
     p += `\nThis is a FOLLOW-UP to the lesson "${prev.title}". Its code was:\n${prev.code}\n`;
@@ -229,8 +229,8 @@ export function buildPrompt({ q, mode, lang, level, context, prev, path }) {
   if (mode === 'code')
     p += `\nExplain THIS code from the student's own project${context?.path ? ` (${context.path})` : ''}. Use it verbatim as the code block (if longer than 60 lines, pick the most interesting 15–40 line section, keep it verbatim). Pseudo must cover every line. Notes should explain the non-obvious parts. The code may not be runnable; that's fine.${q ? `\nThe student asks: ${q}` : ''}\n\nCODE:\n${context?.code || ''}\n`;
   if (mode === 'compare' && context?.a) {
-    const side = (X, n) =>
-      `\n=== APP ${n}: ${X.repo}${X.gist ? ` (${X.gist})` : ''} ===\nFILES (partial):\n${(X.files || []).slice(0, 70).join('\n')}\n${(X.key || []).map((f) => `\n--- ${X.repo}: ${f.path} ---\n${f.text.slice(0, 7000)}`).join('\n')}\n`;
+    const side = (site, n) =>
+      `\n=== APP ${n}: ${site.repo}${site.gist ? ` (${site.gist})` : ''} ===\nFILES (partial):\n${(site.files || []).slice(0, 70).join('\n')}\n${(site.key || []).map((f) => `\n--- ${site.repo}: ${f.path} ---\n${f.text.slice(0, 7000)}`).join('\n')}\n`;
     p += `\nCOMPARE MODE. The learner wants to see how two real apps solve the same problem: ${q}\n${side(context.a, 'A')}${side(context.b, 'B')}`;
     p += `\nWrite the lesson around the difference. Title like "Two ways to …". The code block shows a VERBATIM excerpt from each app (8–20 lines each), A first, separated by a comment line naming the app and file (e.g. "# ── A · repo/file.py ──" or "// ── B · repo/file.js ──"); set file to "compare". Line links refer to lines of this combined block. Use h blocks: "App A’s way", "App B’s way", "Which would you pick?". Use term blocks for new words. Skip growth/tests. Quiz: which app does X. Next: more comparisons.\n`;
     return p;
@@ -240,9 +240,9 @@ export function buildPrompt({ q, mode, lang, level, context, prev, path }) {
     return p;
   }
   if (mode === 'idea' && context) {
-    const I = context;
-    p += `\nCASE STUDY MODE. Write this like a superb engineering blog post for a curious learner, with runnable code they can play with.\nTITLE: ${I.title}\nCOMPANY: ${I.company}\nFACTS (stay strictly inside these; do not invent numbers, dates or internal details):\n${I.brief}\n${I.repo ? `REAL OPEN-SOURCE CODE: github.com/${I.repo} (mention it at the end)\n` : ''}`;
-    p += `\nSTRUCTURE (use h blocks for sections):\n1. title (kicker = "${I.company}")\n2. h "The problem" + 1–2 p: the real situation at ${I.company}, concrete and vivid.\n3. h "The obvious way" + 1 p: ${I.vs}, and exactly why it breaks.\n4. h "The clever idea" + 1–2 p with an everyday analogy, then term blocks for new words.\n5. code + pseudo + notes. CODE BRIEF: ${I.code} The code MUST run both the obvious way and the clever way and show() the difference, so the learner SEES why it wins. 25–45 lines is fine here.\n6. h "How the code does it" + 1–2 p with line links.\n7. h "Trade-offs" + 1 p: what it costs, when NOT to use it.\n8. h "Where else you’ll see it" + 1 short p.\n9. quiz, try (experiments like changing a constant), next.\n`;
+    const ctx = context;
+    p += `\nCASE STUDY MODE. Write this like a superb engineering blog post for a curious learner, with runnable code they can play with.\nTITLE: ${ctx.title}\nCOMPANY: ${ctx.company}\nFACTS (stay strictly inside these; do not invent numbers, dates or internal details):\n${ctx.brief}\n${ctx.repo ? `REAL OPEN-SOURCE CODE: github.com/${ctx.repo} (mention it at the end)\n` : ''}`;
+    p += `\nSTRUCTURE (use h blocks for sections):\n1. title (kicker = "${ctx.company}")\n2. h "The problem" + 1–2 p: the real situation at ${ctx.company}, concrete and vivid.\n3. h "The obvious way" + 1 p: ${ctx.vs}, and exactly why it breaks.\n4. h "The clever idea" + 1–2 p with an everyday analogy, then term blocks for new words.\n5. code + pseudo + notes. CODE BRIEF: ${ctx.code} The code MUST run both the obvious way and the clever way and show() the difference, so the learner SEES why it wins. 25–45 lines is fine here.\n6. h "How the code does it" + 1–2 p with line links.\n7. h "Trade-offs" + 1 p: what it costs, when NOT to use it.\n8. h "Where else you’ll see it" + 1 short p.\n9. quiz, try (experiments like changing a constant), next.\n`;
     return p;
   }
   if (mode === 'challenge')
@@ -296,7 +296,7 @@ export function parseJSONLoose(s) {
 }
 
 // ------------------------------------------------------------------ built-in lessons
-const B = (lesson) => ({
+const blank = (lesson) => ({
   ...emptyLesson(lesson.q, lesson),
   ...lesson,
   status: 'done',
@@ -304,7 +304,7 @@ const B = (lesson) => ({
 });
 
 export const SAMPLES = [
-  B({
+  blank({
     id: 'sample-bst',
     q: 'How does a binary search tree work?',
     lang: 'python',
@@ -412,7 +412,7 @@ show(root, "your tree")`,
       },
     ],
   }),
-  B({
+  blank({
     id: 'sample-bigo',
     q: 'What does O(n²) vs O(n) actually mean?',
     lang: 'python',
@@ -514,7 +514,7 @@ print("fast:", has_dupe_fast(data))`,
       },
     ],
   }),
-  B({
+  blank({
     id: 'sample-spiral',
     q: 'How do people make generative art with code?',
     lang: 'javascript',
@@ -601,7 +601,7 @@ for (let i = 0; i < 260; i++) {
       },
     ],
   }),
-  B({
+  blank({
     id: 'sample-closure',
     q: "What's a closure?",
     lang: 'javascript',
@@ -682,7 +682,7 @@ console.log(b()); // 1`,
   }),
 ];
 
-export const CHALLENGE = B({
+export const CHALLENGE = blank({
   id: 'sample-bug',
   q: 'Daily bug',
   mode: 'challenge',

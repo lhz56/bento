@@ -323,15 +323,15 @@ export default function App() {
   // bento:// links from the "Open in Bento" bookmark: a GitHub repo or file, any website, or a question
   useEffect(() => {
     const go = (url) => {
-      let U;
+      let linkUrl;
       try {
-        U = new URL(url);
+        linkUrl = new URL(url);
       } catch {
         return;
       }
-      const what = U.searchParams.get('u') || U.searchParams.get('url') || '';
-      const q = U.searchParams.get('q');
-      if (U.hostname === 'ask' && q) return askLesson(q.slice(0, 500), {});
+      const what = linkUrl.searchParams.get('u') || linkUrl.searchParams.get('url') || '';
+      const q = linkUrl.searchParams.get('q');
+      if (linkUrl.hostname === 'ask' && q) return askLesson(q.slice(0, 500), {});
       const blob = parseBlob(what);
       if (blob) return openRepoAt(blob.full, blob.path);
       const repo = parseRepo(what);
@@ -358,27 +358,29 @@ export default function App() {
         const seen = new Set(ps.map((x) => x.key));
         return [...ps, ...d['bento.projects'].filter((x) => x?.key && !seen.has(x.key))];
       });
-    const P = d['bento.progress'];
-    if (P && typeof P === 'object')
+    const savedProgress = d['bento.progress'];
+    if (savedProgress && typeof savedProgress === 'object')
       setProgress((p) => {
         const n = { ...p };
-        n.words = { ...(P.words || {}), ...(p.words || {}) };
-        n.path = { ...(P.path || {}), ...(p.path || {}) };
-        n.puzzles = { ...(P.puzzles || {}) };
+        n.words = { ...(savedProgress.words || {}), ...(p.words || {}) };
+        n.path = { ...(savedProgress.path || {}), ...(p.path || {}) };
+        n.puzzles = { ...(savedProgress.puzzles || {}) };
         for (const [k, r] of Object.entries(p.puzzles || {})) {
           const o = n.puzzles[k] || {};
           n.puzzles[k] = { ...o, ...r, s: [0, 1, 2].map((i) => !!(o.s?.[i] || r.s?.[i])) };
         }
-        n.concepts = { ...(P.concepts || {}) };
+        n.concepts = { ...(savedProgress.concepts || {}) };
         for (const [k, v] of Object.entries(p.concepts || {}))
           n.concepts[k] = Math.max(v, n.concepts[k] || 0);
         for (const k of ['sql', 'git', 'design', 'reviewed', 'daily'])
-          n[k] = { ...(P[k] || {}), ...(p[k] || {}) };
+          n[k] = { ...(savedProgress[k] || {}), ...(p[k] || {}) };
         n.tracks = [
           ...(p.tracks || []),
-          ...(P.tracks || []).filter((t) => !(p.tracks || []).some((x) => x.id === t.id)),
+          ...(savedProgress.tracks || []).filter(
+            (t) => !(p.tracks || []).some((x) => x.id === t.id),
+          ),
         ];
-        n.coins = Math.max(p.coins ?? 5, P.coins ?? 5);
+        n.coins = Math.max(p.coins ?? 5, savedProgress.coins ?? 5);
         return n;
       });
     return added;
@@ -420,22 +422,22 @@ export default function App() {
   };
   // a stop in a custom path knows the whole path, and continues from the code of the stop before it
   const pathContext = (st) => {
-    const T = (progress.tracks || []).find((t) => t.stops.some((s) => s.id === st.id));
-    if (!T) return {};
-    const i = T.stops.findIndex((s) => s.id === st.id),
-      last = i === T.stops.length - 1;
-    const before = T.stops[i - 1];
+    const track = (progress.tracks || []).find((t) => t.stops.some((s) => s.id === st.id));
+    if (!track) return {};
+    const i = track.stops.findIndex((s) => s.id === st.id),
+      last = i === track.stops.length - 1;
+    const before = track.stops[i - 1];
     const prevL =
       before && lessons.find((l) => l.id === progress.path?.[before.id] && l.status === 'done');
     const path =
-      `stop ${i + 1} of ${T.stops.length} in "${T.title}" (the learner's goal: "${T.goal || T.d}")${T.project ? `. The whole path builds one project: ${T.project}` : ''}.\nStops: ${T.stops.map((s, k) => `${k + 1}. ${s.t}${k === i ? ' ← THIS ONE' : ''}`).join('; ')}.\n` +
+      `stop ${i + 1} of ${track.stops.length} in "${track.title}" (the learner's goal: "${track.goal || track.d}")${track.project ? `. The whole path builds one project: ${track.project}` : ''}.\nStops: ${track.stops.map((s, k) => `${k + 1}. ${s.t}${k === i ? ' ← THIS ONE' : ''}`).join('; ')}.\n` +
       (i === 0
         ? 'Start the project from nothing.'
         : prevL
           ? 'Continue the program from the previous stop (below): keep its names and data, and add only this stop’s piece.'
           : `Assume the learner built stops 1–${i} already; begin with a short version of that program, then add this stop’s piece.`) +
       (st.make ? ` This stop adds: ${st.make}.` : '') +
-      (last && T.end ? ` This is the final stop: finish with ${T.end}` : '') +
+      (last && track.end ? ` This is the final stop: finish with ${track.end}` : '') +
       ' Don’t re-teach ideas from earlier stops; name them briefly and move on.';
     return { path, ...(prevL ? { prev: prevL } : {}) };
   };
@@ -467,12 +469,12 @@ export default function App() {
   }, [view]); // eslint-disable-line react-hooks/exhaustive-deps
   // a stop on a path that teaches this map skill and opens instantly (the next one you haven't done, or the first)
   const readyFor = (sid) => {
-    const all = tracksWith().flatMap((T) =>
-      T.stops
+    const all = tracksWith().flatMap((track) =>
+      track.stops
         .filter(
           (x) => (PRE.path[x.id] || x.idea || x.play) && stopSkills(x, skillsFor).includes(sid),
         )
-        .map((st) => ({ T, st })),
+        .map((st) => ({ T: track, st })),
     );
     const c = all.find((x) => !progress.path?.[x.st.id]) || all[0];
     return c ? { icon: c.T.icon, label: c.st.t, path: c.T.title, go: () => goStop(c.st) } : null;
@@ -520,7 +522,7 @@ export default function App() {
     }
     return null;
   };
-  const pathOf = (L) => (L ? pathFind((x) => progress.path?.[x.id] === L.id) : null);
+  const pathOf = (lesson) => (lesson ? pathFind((x) => progress.path?.[x.id] === lesson.id) : null);
   const lessonsRef = useRef(lessons);
   lessonsRef.current = lessons;
   useEffect(() => {
@@ -1000,15 +1002,15 @@ export default function App() {
 
   // ---------------------------------------------------------------- try chips: make every suggestion actually do something
   const onTry = async (t) => {
-    const L = current;
-    if (!L) return;
+    const lesson = current;
+    if (!lesson) return;
     const d = desk.current;
     // on a phone the code is on the other page: go there, so you see what the try does
     if (phone) setPane('code');
     if (/step/i.test(t)) return d?.step();
-    if (/run the tests|tests/i.test(t) && L.tests) return d?.tests();
+    if (/run the tests|tests/i.test(t) && lesson.tests) return d?.tests();
     if (/measure|growth/i.test(t)) return document.querySelector('.stab:nth-child(3)')?.click();
-    const code = d?.getCode() ?? L.code;
+    const code = d?.getCode() ?? lesson.code;
     const m = /^change\s+(.+?)\s+to\s+(.+?)\.?$/i.exec(t);
     if (m) {
       const from = m[1].replace(/^["'`]|["'`]$/g, '');
@@ -1034,7 +1036,7 @@ export default function App() {
     try {
       const s = await api.quick(
         settings.model,
-        `Apply this small experiment to the student's ${L.lang} code: "${t}". Change as little as possible.\nReply JSON: {"code":"the full updated code","note":"what changed, max 15 words"}\n\nCODE:\n${code}`,
+        `Apply this small experiment to the student's ${lesson.lang} code: "${t}". Change as little as possible.\nReply JSON: {"code":"the full updated code","note":"what changed, max 15 words"}\n\nCODE:\n${code}`,
       );
       const j = parseJSONLoose(s);
       if (j?.code) {
@@ -1076,7 +1078,7 @@ export default function App() {
         const r = await api.dropOpen(f);
         if (r.kind === 'local') openAtlas({ kind: 'local', root: r.root, name: r.name });
         else if (r.kind === 'lesson') {
-          const L = {
+          const lesson = {
             ...emptyLesson(r.lesson.q || '', r.lesson),
             ...r.lesson,
             id: Math.random().toString(36).slice(2, 10),
@@ -1085,10 +1087,10 @@ export default function App() {
             shared: true,
             createdAt: Date.now(),
           };
-          setLessons((ls) => [L, ...ls]);
-          setCurrentId(L.id);
+          setLessons((ls) => [lesson, ...ls]);
+          setCurrentId(lesson.id);
           setViewRaw('lesson');
-          setStepSel(L.steps?.length ? L.steps.length - 1 : null);
+          setStepSel(lesson.steps?.length ? lesson.steps.length - 1 : null);
         } else
           askLesson(`Explain ${r.name}`, {
             mode: 'code',
@@ -1130,27 +1132,27 @@ export default function App() {
     return () => removeEventListener('mouseup', up);
   }, []);
   const explainSelection = async () => {
-    const S = sel;
+    const selection = sel;
     setSel(null);
     window.getSelection()?.removeAllRanges();
-    const L = view === 'lesson' ? current : null;
-    const A = view === 'atlas' ? atlases[atlasKey] : null;
-    const ctx = L
-      ? `It appears in a lesson titled "${L.title}"${S.inCode ? ` in this ${L.lang} code:\n${(L.work ?? L.code ?? '').slice(0, 2500)}` : '.'}`
-      : A
-        ? `It appears while studying the repository ${A.name} (${A.narr?.gist?.one || ''}).`
+    const lesson = view === 'lesson' ? current : null;
+    const atlas = view === 'atlas' ? atlases[atlasKey] : null;
+    const ctx = lesson
+      ? `It appears in a lesson titled "${lesson.title}"${selection.inCode ? ` in this ${lesson.lang} code:\n${(lesson.work ?? lesson.code ?? '').slice(0, 2500)}` : '.'}`
+      : atlas
+        ? `It appears while studying the repository ${atlas.name} (${atlas.narr?.gist?.one || ''}).`
         : '';
     const base = {
-      x: Math.max(16, S.x - 160),
-      y: S.y + 28,
-      word: S.text.length > 40 ? S.text.slice(0, 38) + '…' : S.text,
+      x: Math.max(16, selection.x - 160),
+      y: selection.y + 28,
+      word: selection.text.length > 40 ? selection.text.slice(0, 38) + '…' : selection.text,
     };
     setPop({ ...base, loading: true });
     try {
       const j = parseJSONLoose(
         await api.quick(
           settings.model,
-          `A learner (${settings.level}) selected this and wants it explained:\n"${S.text}"\n${ctx}\nExplain what it means in plain words, then name the technical idea if there is one. If the selection is a fragment, quietly explain the idea it belongs to; never comment on the selection itself.\nReply JSON: {"title":"short label, max 5 words","what":"plain explanation, max 45 words","plain":"the key idea in max 10 words","example":"tiny example if useful, max 2 lines, else empty"}`,
+          `A learner (${settings.level}) selected this and wants it explained:\n"${selection.text}"\n${ctx}\nExplain what it means in plain words, then name the technical idea if there is one. If the selection is a fragment, quietly explain the idea it belongs to; never comment on the selection itself.\nReply JSON: {"title":"short label, max 5 words","what":"plain explanation, max 45 words","plain":"the key idea in max 10 words","example":"tiny example if useful, max 2 lines, else empty"}`,
         ),
       );
       setPop((p) =>
@@ -1178,15 +1180,15 @@ export default function App() {
   };
 
   const onTerm = (word, elx) => {
-    const L = current;
+    const lesson = current;
     const r = elx.getBoundingClientRect();
-    const doc = L.work ?? L.code ?? '';
+    const doc = lesson.work ?? lesson.code ?? '';
     const info = explainToken({
       word: word.replace(/\(.*$/, '').replace(/^.*\./, ''),
       lineText: word,
-      lang: L.lang,
+      lang: lesson.lang,
       doc,
-      english: L.pseudo,
+      english: lesson.pseudo,
       model: settings.model,
       quick: api.quick,
       isMember: /\./.test(word),
@@ -1424,7 +1426,7 @@ export default function App() {
   useEffect(
     () =>
       api.agent?.on(async (tool, a, client) => {
-        const N = agentNow.current;
+        const now = agentNow.current;
         const ran = (id, ms) =>
           new Promise((res) => {
             const w = { id, res };
@@ -1437,35 +1439,35 @@ export default function App() {
         const later =
           'It is still running (Python takes a few seconds the first time). Call get_learner_view in a moment to see what it did.';
         if (tool === 'show_lesson') {
-          const L = lessonFromAgent(a, client);
-          const done = ran(L.id, 30000);
-          N.openLesson(L);
+          const lesson = lessonFromAgent(a, client);
+          const done = ran(lesson.id, 30000);
+          now.openLesson(lesson);
           setShowSettings(false);
           setPal(false);
           const r = await done;
-          return `Bento is showing "${L.title}" to the learner.\n\nWhen its code ran:\n${r ? describeRun(r.r) : later}`;
+          return `Bento is showing "${lesson.title}" to the learner.\n\nWhen its code ran:\n${r ? describeRun(r.r) : later}`;
         }
         if (tool === 'get_learner_view')
           return describeView({
-            view: N.view,
-            lesson: N.current,
-            code: N.view === 'lesson' ? desk.current?.getCode?.() : null,
-            run: N.current ? N.runs[N.current.id] : null,
-            project: N.view === 'atlas' ? N.atlasKey : null,
+            view: now.view,
+            lesson: now.current,
+            code: now.view === 'lesson' ? desk.current?.getCode?.() : null,
+            run: now.current ? now.runs[now.current.id] : null,
+            project: now.view === 'atlas' ? now.atlasKey : null,
           });
-        const L = N.view === 'lesson' ? N.current : null;
-        if (!L || !desk.current)
+        const lesson = now.view === 'lesson' ? now.current : null;
+        if (!lesson || !desk.current)
           throw new Error('No lesson is open in Bento. Use show_lesson to open one.');
         if (tool === 'highlight_code') {
-          const n = (desk.current.getCode() ?? L.code).split('\n').length;
+          const n = (desk.current.getCode() ?? lesson.code).split('\n').length;
           if (a.from > n)
             throw new Error(`The code has ${n} lines; line ${a.from} isn’t one of them.`);
           const to = Math.min(a.to, n);
           setLinkRange([a.from, to]);
           if (a.note)
-            N.patch(L.id, {
+            now.patch(lesson.id, {
               notes: [
-                ...(L.notes || []).filter((x) => x.from !== a.from),
+                ...(lesson.notes || []).filter((x) => x.from !== a.from),
                 { from: a.from, to, label: a.label || agentName(client), text: a.note },
               ].slice(-8),
             });
@@ -1474,7 +1476,7 @@ export default function App() {
         }
         if (tool === 'run_code') {
           if (a.code != null) desk.current.setCode(a.code);
-          const done = ran(L.id, 30000);
+          const done = ran(lesson.id, 30000);
           setTimeout(() => desk.current?.run(), 40);
           const r = await done;
           return r
@@ -1507,46 +1509,46 @@ export default function App() {
   const [onb, setOnb] = useState(() =>
     WEB || api.remote || load('bento.settings', {}).onboarded ? null : 0,
   );
-  const readIdea = (I) => {
+  const readIdea = (idea) => {
     if (!PRE.ready) {
-      loadPrebuilt().then(() => readIdea(I));
+      loadPrebuilt().then(() => readIdea(idea));
       return null;
     }
-    const pre = PRE.ideas[I.id];
+    const pre = PRE.ideas[idea.id];
     const english = !settings.voice || settings.voice === 'English';
-    if (pre && english && !lessons.some((l) => l.context?.ideaId === I.id)) {
+    if (pre && english && !lessons.some((l) => l.context?.ideaId === idea.id)) {
       openLesson({ ...pre, createdAt: Date.now() });
       return pre.id;
     } // shipped with the app: opens instantly
     const have = lessons.find(
       (l) =>
-        l.context?.ideaId === I.id &&
+        l.context?.ideaId === idea.id &&
         (l.status === 'done' || (l.status === 'streaming' && cancels.current.has(l.id))),
     );
     if (have) {
       openLesson(have);
       return have.id;
     }
-    return askLesson(I.title, {
+    return askLesson(idea.title, {
       mode: 'idea',
-      lang: I.lang,
+      lang: idea.lang,
       context: {
-        ideaId: I.id,
-        title: I.title,
-        company: I.company,
-        brief: I.brief,
-        code: I.code,
-        vs: I.vs,
-        repo: I.repo,
-        file: I.file,
-        link: I.link,
+        ideaId: idea.id,
+        title: idea.title,
+        company: idea.company,
+        brief: idea.brief,
+        code: idea.code,
+        vs: idea.vs,
+        repo: idea.repo,
+        file: idea.file,
+        link: idea.link,
       },
     });
   };
   // a blank scratchpad, or a remix of the same lesson, that you never touched (no edits, no questions) is replaced by
   // the new one instead of piling up in Recent
-  const untouchedTwin = (x, L) =>
-    x.scratch && !x.work && !(x.chat || []).length && x.title === L.title;
+  const untouchedTwin = (x, lesson) =>
+    x.scratch && !x.work && !(x.chat || []).length && x.title === lesson.title;
   const newScratch = (lang = settings.lang, remix = null) => {
     const py = lang === 'python';
     if (lang === 'html' || lang === 'typescript') {
@@ -1605,7 +1607,7 @@ export default function App() {
           '',
           'Draw these numbers as bars',
         ];
-    const L = {
+    const lesson = {
       ...emptyLesson('', { lang, model: settings.model }),
       title: remix ? `Remix of ${remix.title}` : 'Scratchpad',
       kicker: 'your own code',
@@ -1633,8 +1635,8 @@ export default function App() {
         },
       ],
     };
-    setLessons((ls) => [L, ...ls.filter((x) => !untouchedTwin(x, L))]);
-    setCurrentId(L.id);
+    setLessons((ls) => [lesson, ...ls.filter((x) => !untouchedTwin(x, lesson))]);
+    setCurrentId(lesson.id);
     setViewRaw('lesson');
     setStepSel(null);
   };
@@ -1665,7 +1667,7 @@ export default function App() {
     const pre = PRE.bugs[topic];
     const english = !settings.voice || settings.voice === 'English';
     if (pre && settings.lang === 'python' && english && settings.level !== 'engineer') {
-      const L = {
+      const lesson = {
         ...pre,
         id: `bug-${day}`,
         status: 'done',
@@ -1674,8 +1676,8 @@ export default function App() {
         work: null,
         createdAt: Date.now(),
       };
-      setProgress((p) => ({ ...p, daily: { ...(p.daily || {}), [day]: L.id } }));
-      return openLesson(L);
+      setProgress((p) => ({ ...p, daily: { ...(p.daily || {}), [day]: lesson.id } }));
+      return openLesson(lesson);
     }
     if (!providers || noAI(providers)) return openLesson(CHALLENGE);
     const nid = askLesson(topic, { mode: 'challenge', lang: settings.lang });
@@ -1719,17 +1721,17 @@ export default function App() {
     // the next stop on the path you picked (or the first one you haven't finished)
     const paths = tracksWith([...(progress.tracks || []), ...packStuff.paths]);
     const picked = paths.find((x) => x.k === localStorage.getItem('bento.track'));
-    const T = [picked, ...paths].find((x) => x && x.stops.some((s) => !progress.path?.[s.id]));
-    const si = T ? T.stops.findIndex((s) => !progress.path?.[s.id]) : -1;
-    const stop = T?.stops[si];
+    const track = [picked, ...paths].find((x) => x && x.stops.some((s) => !progress.path?.[s.id]));
+    const si = track ? track.stops.findIndex((s) => !progress.path?.[s.id]) : -1;
+    const stop = track?.stops[si];
     if (stop)
       out.push({
         k: 'path',
         icon: '⤳',
         label: stop.t,
         sub: t('next on the path'),
-        track: T.own ? T.title : t(T.title),
-        step: { i: si + 1, n: T.stops.length },
+        track: track.own ? track.title : t(track.title),
+        step: { i: si + 1, n: track.stops.length },
         go: () => goStop(stop),
       });
     const pz = PUZZLES.find((p) => (progress.puzzles?.[p.id]?.s || []).filter(Boolean).length < 3);
@@ -1796,7 +1798,7 @@ export default function App() {
     // which stop on its path a lesson is (any path, built-in or your own)
     const stopNo = Object.fromEntries(
       tracksWith(progress.tracks || [])
-        .flatMap((T) => T.stops.map((x, i) => [progress.path?.[x.id], i + 1]))
+        .flatMap((track) => track.stops.map((x, i) => [progress.path?.[x.id], i + 1]))
         .filter(([id]) => id && id !== 'x'),
     );
     const ls = lessons
@@ -1861,14 +1863,14 @@ export default function App() {
       hint: 'algorithm race',
       run: () => openLesson(l),
     })),
-    ...tracksWith().flatMap((T) =>
-      T.stops
+    ...tracksWith().flatMap((track) =>
+      track.stops
         .filter((st) => PRE.path[st.id])
         .map((st) => ({
           label: st.t,
           alt: PRE.path[st.id].title,
           find: `${st.t} ${PRE.path[st.id].title} ${st.q} ${st.d}`,
-          hint: T.title,
+          hint: track.title,
           run: () => startStop(st),
         })),
     ),
@@ -1890,30 +1892,30 @@ export default function App() {
       .map((l) => [l.context.ideaId, true]),
   );
 
-  const compareAsk = async (A, B, q) => {
-    const side = async (X) => {
+  const compareAsk = async (atlasA, atlasB, q) => {
+    const side = async (site) => {
       const key = [];
-      for (const p of filesForQuestion(X.facts, X.narr, q).slice(0, 2)) {
+      for (const p of filesForQuestion(site.facts, site.narr, q).slice(0, 2)) {
         try {
-          key.push({ path: p, text: (await api.readFile(X.src.root, p)).slice(0, 8000) });
+          key.push({ path: p, text: (await api.readFile(site.src.root, p)).slice(0, 8000) });
         } catch {}
       }
       return {
-        repo: X.name,
-        repoKey: X.key,
-        gist: X.narr?.gist?.one,
+        repo: site.name,
+        repoKey: site.key,
+        gist: site.narr?.gist?.one,
         key,
-        files: X.facts.files
+        files: site.facts.files
           .filter((f) => f.lang)
           .slice(0, 80)
-          .map((f) => `${f.p} — ${X.narr?.roles?.[f.p] || guessRole(f)}`),
+          .map((f) => `${f.p} — ${site.narr?.roles?.[f.p] || guessRole(f)}`),
       };
     };
-    const [a, b] = await Promise.all([side(A), side(B)]);
-    const py = (X) => Object.keys(X.facts.langs)[0] === 'Python';
+    const [a, b] = await Promise.all([side(atlasA), side(atlasB)]);
+    const py = (site) => Object.keys(site.facts.langs)[0] === 'Python';
     askLesson(q, {
       mode: 'compare',
-      lang: py(A) && py(B) ? 'python' : 'javascript',
+      lang: py(atlasA) && py(atlasB) ? 'python' : 'javascript',
       context: { a, b },
     });
   };
@@ -1933,34 +1935,34 @@ export default function App() {
   };
 
   // questions about a repo become lessons built on its real files
-  const askRepo = async (A, q, focus) => {
+  const askRepo = async (atlas, q, focus) => {
     const paths = focus
       ? [
           focus,
-          ...filesForQuestion(A.facts, A.narr, q)
+          ...filesForQuestion(atlas.facts, atlas.narr, q)
             .filter((x) => x !== focus)
             .slice(0, 2),
         ]
-      : filesForQuestion(A.facts, A.narr, q);
+      : filesForQuestion(atlas.facts, atlas.narr, q);
     const key = [];
     for (const p of paths) {
       try {
-        const t = await api.readFile(A.src.root, p);
+        const t = await api.readFile(atlas.src.root, p);
         key.push({ path: p, text: t.slice(0, 12000) });
       } catch {}
     }
-    const tree = A.facts.files
+    const tree = atlas.facts.files
       .filter((f) => f.lang || f.layer !== 'support')
       .slice(0, 200)
-      .map((f) => `${f.p} — ${A.narr?.roles?.[f.p] || guessRole(f)}`);
+      .map((f) => `${f.p} — ${atlas.narr?.roles?.[f.p] || guessRole(f)}`);
     const lang = /\.py$/.test(paths[0] || '') ? 'python' : 'javascript';
     askLesson(q, {
       mode: 'code',
       lang,
       context: {
-        repo: A.name,
-        repoKey: A.key,
-        gist: A.narr?.gist?.one,
+        repo: atlas.name,
+        repoKey: atlas.key,
+        gist: atlas.narr?.gist?.one,
         files: tree,
         key,
         code: key[0]?.text || '',

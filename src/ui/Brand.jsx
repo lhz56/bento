@@ -26,8 +26,8 @@ export default function Brand({ slug, name = '', color, size = 34, plain, title 
   const ic = (slug && ICONS[slug]) || ICONS[guess];
   const inner = size * 0.56;
   if (ic) {
-    const L = lum(ic[0]);
-    const fill = L < 0.16 || L > 0.9 ? 'var(--ink)' : `#${ic[0]}`;
+    const luminance = lum(ic[0]);
+    const fill = luminance < 0.16 || luminance > 0.9 ? 'var(--ink)' : `#${ic[0]}`;
     const svg = (
       <svg viewBox="0 0 24 24" width={inner} height={inner} aria-hidden="true">
         <path d={ic[1]} fill={fill} />

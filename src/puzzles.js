@@ -2931,7 +2931,7 @@ export function puzzleLesson(p) {
 
 // ─────────────────────────────────────────────── how it scales
 // Classes and how to extrapolate them
-const F = {
+const GROWTH = {
   'O(1)': () => 1,
   'O(log n)': (n) => Math.log2(Math.max(2, n)),
   'O(n)': (n) => n,
@@ -2969,12 +2969,12 @@ export function fitScale(pts, target = 'O(n)') {
   }
   // small sizes stepped one by one (4, 6, 8…): the only question there is "exponential or not",
   // and microsecond timings can't tell O(n) from O(n²), so report the target rather than noise
-  if (linear && F[target])
+  if (linear && GROWTH[target])
     return {
       label: target,
       tier: tierOf(target),
       k: null,
-      at: (N) => (t0 * F[target](N)) / F[target](n0),
+      at: (N) => (t0 * GROWTH[target](N)) / GROWTH[target](n0),
     };
   // the median of every pairwise slope (Theil–Sen): one hiccup in one measurement can't swing it
   const sl = [];
@@ -2990,13 +2990,13 @@ export function fitScale(pts, target = 'O(n)') {
   // generous bands: O(n log n) code bends up to ~1.45 at big sizes (memory effects); real O(n²) settles near 2
   let tier = k < 0.5 ? 0 : k < 1.7 ? 1 : k < 2.6 ? 2 : 3;
   // never claim better than the target: at small sizes fixed costs hide the real shape
-  if (tier < tierOf(target) && F[target]) tier = tierOf(target);
+  if (tier < tierOf(target) && GROWTH[target]) tier = tierOf(target);
   let label =
     tier === tierOf(target)
       ? target
       : ['O(log n)', k < 1.15 ? 'O(n)' : 'O(n log n)', 'O(n²)', 'O(n³)'][tier];
-  if (!F[label]) label = ['O(log n)', 'O(n)', 'O(n²)', 'O(n³)'][tier];
-  return { label, tier, k, at: (N) => (t0 * F[label](N)) / F[label](n0) };
+  if (!GROWTH[label]) label = ['O(log n)', 'O(n)', 'O(n²)', 'O(n³)'][tier];
+  return { label, tier, k, at: (N) => (t0 * GROWTH[label](N)) / GROWTH[label](n0) };
 }
 
 export const DEFAULT_RUNGS = [

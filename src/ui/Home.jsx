@@ -595,16 +595,16 @@ export default function Home({
           <span className="rm-grid" aria-hidden="true">
             {[REGIONS.slice(0, 3), REGIONS.slice(3)].map((row, k) => (
               <span key={k} className="rm-row">
-                {row.map((R) => {
-                  const ds = skyDots.filter((d) => d.r === R.id);
+                {row.map((region) => {
+                  const ds = skyDots.filter((d) => d.r === region.id);
                   return (
                     <span
-                      key={R.id}
+                      key={region.id}
                       className="rm-area"
-                      title={R.name}
+                      title={region.name}
                       style={{
                         flexGrow: Math.max(1, ds.length),
-                        '--c': R.color,
+                        '--c': region.color,
                         gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(Math.sqrt(ds.length * 2.2)))}, 1fr)`,
                       }}
                     >

@@ -2,7 +2,7 @@
 // Each: [id, name, langs, regex, plain explanation, everyday comparison]
 /** Each construct: [id, name, language ('py' | 'js' | 'both'), pattern, what it does, an everyday comparison]
  * @type {Array<[string, string, string, RegExp, string, string]>} */
-const C = [
+const CONSTRUCTS = [
   [
     'listcomp',
     'list comprehension',
@@ -222,10 +222,10 @@ const C = [
 ];
 
 export function spotConstructs(code = '', lang = 'python') {
-  const L = lang === 'python' ? 'py' : 'js';
+  const langKey = lang === 'python' ? 'py' : 'js';
   const out = [];
-  for (const [id, name, langs, rx, plain, like] of C) {
-    if (langs !== 'both' && langs !== L) continue;
+  for (const [id, name, langs, rx, plain, like] of CONSTRUCTS) {
+    if (langs !== 'both' && langs !== langKey) continue;
     const m = rx.exec(code);
     if (!m) continue;
     out.push({ id, name, plain, like, line: code.slice(0, m.index).split('\n').length });

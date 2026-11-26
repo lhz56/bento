@@ -87,9 +87,9 @@ export default function LessonScreen({
         }
         onFollowUp={(q) => askLesson(q, { prev: current, lang: current.lang })}
         onSecondOpinion={async (i) => {
-          const L = current;
-          const id = L.id;
-          const c = L.chat[i];
+          const lesson = current;
+          const id = lesson.id;
+          const c = lesson.chat[i];
           const altModel = altFor(c.by || settings.model);
           if (!altModel) return;
           const set = (second) =>
@@ -101,7 +101,7 @@ export default function LessonScreen({
               ),
             );
           set({ who: modelLabel(altModel), loading: true });
-          const code = (L.work ?? L.code ?? '')
+          const code = (lesson.work ?? lesson.code ?? '')
             .split('\n')
             .map((x, k) => `${k + 1}| ${x}`)
             .join('\n')
@@ -110,7 +110,7 @@ export default function LessonScreen({
             const j = parseJSONLoose(
               await api.quick(
                 altModel,
-                `You are tutoring a ${settings.level} learner inside a lesson titled "${L.title}".\nThe lesson's ${L.lang} code (with line numbers):\n${code}\n\nThe learner asks: ${c.q}\nAnother tutor already answered: "${c.a}"\nGive YOUR answer in at most 90 words: agree, add what they missed, or politely correct them. You may use **bold**, \`code\` and [[line|links]].\nReply JSON: {"answer":"..."}`,
+                `You are tutoring a ${settings.level} learner inside a lesson titled "${lesson.title}".\nThe lesson's ${lesson.lang} code (with line numbers):\n${code}\n\nThe learner asks: ${c.q}\nAnother tutor already answered: "${c.a}"\nGive YOUR answer in at most 90 words: agree, add what they missed, or politely correct them. You may use **bold**, \`code\` and [[line|links]].\nReply JSON: {"answer":"..."}`,
               ),
             );
             set({ who: modelLabel(altModel), a: j?.answer || 'No answer this time.' });
@@ -124,21 +124,21 @@ export default function LessonScreen({
         onTeachBack={
           noAI(providers)
             ? null
-            : async (L, said) => {
-                const id = L.id;
-                const story = (L.story || [])
+            : async (lesson, said) => {
+                const id = lesson.id;
+                const story = (lesson.story || [])
                   .map((b) => b.md || b.text || '')
                   .filter(Boolean)
                   .join('\n')
                   .slice(0, 3500);
                 let j = null;
-                const pz = L.puzzle ? puzzleById(L.puzzle) : null;
+                const pz = lesson.puzzle ? puzzleById(lesson.puzzle) : null;
                 if (pz) {
                   try {
                     j = parseJSONLoose(
                       await api.quick(
                         settings.model,
-                        `You are a warm, fair coding interviewer. The candidate (a ${settings.level}) is solving the puzzle "${pz.title}":\n${pz.md}\nThe best known approach runs in ${pz.target}.\nTheir current Python code:\n${(desk.current?.getCode?.() ?? L.work ?? L.code).slice(0, 4000)}\n\nThey talk you through their solution:\n"${said}"\n\nJudge the explanation the way a good interviewer would: is the idea right, do they know why it works, and do they state its time complexity correctly (for THEIR code)? Judge understanding, not grammar. Score 0–3 (3 = you'd hire on this answer).\nReply JSON: {"score":0-3,"got":["what they explained well, ≤ 14 words each, max 2"],"missing":["the most important gap, said plainly, ≤ 22 words, max 2; empty if score is 3"],"next":"the follow-up question an interviewer would ask next, ≤ 18 words"}`,
+                        `You are a warm, fair coding interviewer. The candidate (a ${settings.level}) is solving the puzzle "${pz.title}":\n${pz.md}\nThe best known approach runs in ${pz.target}.\nTheir current Python code:\n${(desk.current?.getCode?.() ?? lesson.work ?? lesson.code).slice(0, 4000)}\n\nThey talk you through their solution:\n"${said}"\n\nJudge the explanation the way a good interviewer would: is the idea right, do they know why it works, and do they state its time complexity correctly (for THEIR code)? Judge understanding, not grammar. Score 0–3 (3 = you'd hire on this answer).\nReply JSON: {"score":0-3,"got":["what they explained well, ≤ 14 words each, max 2"],"missing":["the most important gap, said plainly, ≤ 22 words, max 2; empty if score is 3"],"next":"the follow-up question an interviewer would ask next, ≤ 18 words"}`,
                       ),
                     );
                   } catch (e) {
@@ -149,7 +149,7 @@ export default function LessonScreen({
                     j = parseJSONLoose(
                       await api.quick(
                         settings.model,
-                        `A ${settings.level} learner just finished a lesson titled "${L.title}" (concepts: ${(L.concepts || []).join(', ')}).\nLESSON TEXT:\n${story}\n\nThey explained it back in their own words:\n"${said}"\n\nBe a warm, honest tutor. Judge understanding, not grammar or spelling. Score 0–3 (0 = wrong idea, 1 = partly, 2 = right but missing one key piece, 3 = solid).\nReply JSON: {"score":0-3,"got":["what they got right, ≤ 14 words each, max 2"],"missing":["the most important missing or wrong piece, said plainly, ≤ 22 words, max 2; empty if score is 3"],"next":"one short question that would push them further, ≤ 18 words"}`,
+                        `A ${settings.level} learner just finished a lesson titled "${lesson.title}" (concepts: ${(lesson.concepts || []).join(', ')}).\nLESSON TEXT:\n${story}\n\nThey explained it back in their own words:\n"${said}"\n\nBe a warm, honest tutor. Judge understanding, not grammar or spelling. Score 0–3 (0 = wrong idea, 1 = partly, 2 = right but missing one key piece, 3 = solid).\nReply JSON: {"score":0-3,"got":["what they got right, ≤ 14 words each, max 2"],"missing":["the most important missing or wrong piece, said plainly, ≤ 22 words, max 2; empty if score is 3"],"next":"one short question that would push them further, ≤ 18 words"}`,
                       ),
                     );
                   } catch (e) {
@@ -172,16 +172,19 @@ export default function LessonScreen({
                 setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, teach } : l)));
               }
         }
-        onPractice={(L) =>
+        onPractice={(lesson) =>
           askLesson(
-            `${L.title}: ${(L.concepts || []).join(', ') || L.kicker || ''}`.slice(0, 120),
-            { mode: 'challenge', lang: L.lang === 'typescript' ? 'typescript' : L.lang },
+            `${lesson.title}: ${(lesson.concepts || []).join(', ') || lesson.kicker || ''}`.slice(
+              0,
+              120,
+            ),
+            { mode: 'challenge', lang: lesson.lang === 'typescript' ? 'typescript' : lesson.lang },
           )
         }
         onQuickAsk={async (q) => {
-          const L = current;
-          const id = L.id;
-          const n = (L.chat || []).length;
+          const lesson = current;
+          const id = lesson.id;
+          const n = (lesson.chat || []).length;
           const put = (c) =>
             setLessons((ls) =>
               ls.map((l) => (l.id === id ? { ...l, chat: [...(l.chat || []).slice(0, n), c] } : l)),
@@ -194,12 +197,12 @@ export default function LessonScreen({
             return;
           }
           put({ q, loading: true });
-          const code = (L.work ?? L.code ?? '')
+          const code = (lesson.work ?? lesson.code ?? '')
             .split('\n')
             .map((x, i) => `${i + 1}| ${x}`)
             .join('\n')
             .slice(0, 5000);
-          const hist = (L.chat || [])
+          const hist = (lesson.chat || [])
             .slice(-3)
             .map((c) => `Q: ${c.q}\nA: ${c.a}`)
             .join('\n');
@@ -207,7 +210,7 @@ export default function LessonScreen({
             const j = parseJSONLoose(
               await api.quick(
                 settings.model,
-                `You are tutoring a ${settings.level} learner inside a lesson titled "${L.title}".\nThe lesson's ${L.lang} code (with line numbers):\n${code}\n${hist ? `\nEarlier in this chat:\n${hist}\n` : ''}\nThe learner asks: ${q}\nAnswer warmly and precisely in at most 110 words. You may use **bold**, \`code\` and line links like [[3-5|the loop]] that point at lines of the code above.\nAlso suggest 2 short questions they might ask next (at most 8 words each). If, and only if, the answer teaches something checkable, add one quick multiple-choice check about it (3 choices, one right); otherwise check is null.\nReply JSON: {"answer":"...","term":"a technical term you used that they may not know, or null","plain":"one-line definition of it, or null","next":["...","..."],"check":{"q":"...","choices":["...","...","..."],"answer":0,"why":"one sentence"}}`,
+                `You are tutoring a ${settings.level} learner inside a lesson titled "${lesson.title}".\nThe lesson's ${lesson.lang} code (with line numbers):\n${code}\n${hist ? `\nEarlier in this chat:\n${hist}\n` : ''}\nThe learner asks: ${q}\nAnswer warmly and precisely in at most 110 words. You may use **bold**, \`code\` and line links like [[3-5|the loop]] that point at lines of the code above.\nAlso suggest 2 short questions they might ask next (at most 8 words each). If, and only if, the answer teaches something checkable, add one quick multiple-choice check about it (3 choices, one right); otherwise check is null.\nReply JSON: {"answer":"...","term":"a technical term you used that they may not know, or null","plain":"one-line definition of it, or null","next":["...","..."],"check":{"q":"...","choices":["...","...","..."],"answer":0,"why":"one sentence"}}`,
               ),
             );
             const ck =
@@ -246,7 +249,7 @@ export default function LessonScreen({
                       term: j.term,
                       plain: j.plain,
                       from: id,
-                      title: L.title,
+                      title: lesson.title,
                       at: Date.now(),
                     },
                   },
@@ -345,7 +348,7 @@ export default function LessonScreen({
         puzzleTop={
           current.puzzle ? (
             <PuzzlePanel
-              L={current}
+              lesson={current}
               rec={progress.puzzles?.[current.puzzle]}
               getCode={() => desk.current?.getCode()}
               setPuzzleCode={setPuzzleCode}
@@ -358,7 +361,7 @@ export default function LessonScreen({
         puzzleEnd={
           current.puzzle ? (
             <PuzzleEnd
-              L={current}
+              lesson={current}
               rec={progress.puzzles?.[current.puzzle]}
               setPuzzleCode={setPuzzleCode}
               onIdea={readIdea}

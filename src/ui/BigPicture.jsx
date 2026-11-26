@@ -32,16 +32,16 @@ const KIND = {
 };
 
 // A sensible picture before the model has spoken: you → the layers this repo has → its outside tools.
-export function fallbackFlow(F, tools) {
-  const has = (l) => F.files.some((f) => f.layer === l && f.lang);
+export function fallbackFlow(facts, tools) {
+  const has = (l) => facts.files.some((f) => f.layer === l && f.lang);
   const nodes = [{ id: 'you', label: 'You', kind: 'person', does: 'Use the app', term: 'user' }];
-  const L = [
+  const layers = [
     ['ui', 'What you see', 'Shows screens and buttons', 'front end'],
     ['server', 'The front door', 'Takes requests in', 'server'],
     ['logic', 'The brains', 'Does the real work', 'business logic'],
     ['data', 'Memory', 'Remembers things', 'data layer'],
   ];
-  for (const [id, label, does, term] of L)
+  for (const [id, label, does, term] of layers)
     if (has(id))
       nodes.push({ id, label, kind: id === 'data' ? 'store' : 'part', does, term, layer: id });
   const edges = nodes.slice(1).map((n, i) => ({ from: nodes[i].id, to: n.id }));
@@ -80,27 +80,27 @@ function layout(flow, width) {
   nodes.forEach((n) => {
     (cols[depth[n.id]] ||= []).push(n);
   });
-  const C = cols.filter(Boolean);
-  const nc = C.length;
+  const columns = cols.filter(Boolean);
+  const nc = columns.length;
   const pad = 8,
     colW = (width - pad * 2) / Math.max(1, nc),
     nw = Math.min(196, colW - 34);
   const tall = 136,
     small = 64,
     gap = 14;
-  const heights = C.map((col) => (col.length > 3 ? small : tall));
-  const totals = C.map((col, i) => col.length * heights[i] + (col.length - 1) * gap);
-  const H = Math.max(...totals, tall) + 24;
+  const heights = columns.map((col) => (col.length > 3 ? small : tall));
+  const totals = columns.map((col, i) => col.length * heights[i] + (col.length - 1) * gap);
+  const height = Math.max(...totals, tall) + 24;
   const pos = {};
-  C.forEach((col, ci) => {
+  columns.forEach((col, ci) => {
     const h = heights[ci];
-    let y = (H - totals[ci]) / 2;
+    let y = (height - totals[ci]) / 2;
     col.forEach((n) => {
       pos[n.id] = { x: pad + ci * colW + (colW - nw) / 2, y, w: nw, h, compact: h === small };
       y += h + gap;
     });
   });
-  return { nodes: C.flat(), edges, pos, H, roomy: colW - nw > 120 };
+  return { nodes: columns.flat(), edges, pos, H: height, roomy: colW - nw > 120 };
 }
 
 function MakePathBtn({ go }) {
@@ -150,7 +150,7 @@ export default function BigPicture({
       .replace(/\*\*|`/g, '');
   useEffect(() => {
     if (walk == null) return;
-    const nodes = L.nodes;
+    const nodes = flowLayout.nodes;
     if (walk >= nodes.length) {
       setWalk(null);
       setSel(null);
@@ -200,9 +200,9 @@ export default function BigPicture({
     setW(el.clientWidth);
     return () => ro.disconnect();
   }, []);
-  const L = useMemo(() => layout(flow, w), [flow, w]);
-  const narrow = Math.min(999, ...Object.values(L.pos).map((q) => q.w)) < 120; // cards too thin to read → go vertical
-  const node = L.nodes.find((n) => n.id === sel);
+  const flowLayout = useMemo(() => layout(flow, w), [flow, w]);
+  const narrow = Math.min(999, ...Object.values(flowLayout.pos).map((q) => q.w)) < 120; // cards too thin to read → go vertical
+  const node = flowLayout.nodes.find((n) => n.id === sel);
   useEffect(() => {
     if (!narrow || !sel) return undefined;
     const t = setTimeout(
@@ -229,8 +229,8 @@ export default function BigPicture({
   };
 
   const path = (e) => {
-    const a = L.pos[e.from],
-      b = L.pos[e.to];
+    const a = flowLayout.pos[e.from],
+      b = flowLayout.pos[e.to];
     const x1 = a.x + a.w,
       y1 = a.y + a.h / 2,
       x2 = b.x,
@@ -316,7 +316,9 @@ export default function BigPicture({
                   className={`walk-btn ${walk != null ? 'on' : ''}`}
                   onClick={() => (walk != null ? stopWalk() : setWalk(0))}
                 >
-                  {walk != null ? `■ Stop (${walk + 1}/${L.nodes.length})` : '▶ Walk me through it'}
+                  {walk != null
+                    ? `■ Stop (${walk + 1}/${flowLayout.nodes.length})`
+                    : '▶ Walk me through it'}
                 </button>
               )}
             </>
@@ -325,10 +327,10 @@ export default function BigPicture({
       </div>
       {narrow ? (
         <div className={`vflow ${flow.fallback ? 'is-fallback' : ''}`} ref={box}>
-          {L.nodes.map((n, i) => {
+          {flowLayout.nodes.map((n, i) => {
             const t = toolFor(n);
             const [c, glyph] = KIND[n.kind] || KIND.part;
-            const into = L.edges.find((e) => e.to === n.id);
+            const into = flowLayout.edges.find((e) => e.to === n.id);
             return (
               <div key={n.id}>
                 {i > 0 && (
@@ -366,10 +368,10 @@ export default function BigPicture({
         <div
           className={`flow ${flow.fallback ? 'is-fallback' : ''}`}
           ref={box}
-          style={{ height: L.H }}
+          style={{ height: flowLayout.H }}
         >
-          <svg className="flow-svg" width={w} height={L.H}>
-            {L.edges.map((e, i) => {
+          <svg className="flow-svg" width={w} height={flowLayout.H}>
+            {flowLayout.edges.map((e, i) => {
               const d = path(e);
               const on = sel && (e.from === sel || e.to === sel);
               return (
@@ -387,15 +389,16 @@ export default function BigPicture({
               );
             })}
           </svg>
-          {L.edges
+          {flowLayout.edges
             .filter(
               (e) =>
                 e.label &&
-                ((L.roomy && L.edges.length <= 9) || (sel && (e.from === sel || e.to === sel))),
+                ((flowLayout.roomy && flowLayout.edges.length <= 9) ||
+                  (sel && (e.from === sel || e.to === sel))),
             )
             .map((e, i) => {
-              const a = L.pos[e.from],
-                b = L.pos[e.to];
+              const a = flowLayout.pos[e.from],
+                b = flowLayout.pos[e.to];
               return (
                 <span
                   key={`l${i}`}
@@ -406,8 +409,8 @@ export default function BigPicture({
                 </span>
               );
             })}
-          {L.nodes.map((n, i) => {
-            const p = L.pos[n.id];
+          {flowLayout.nodes.map((n, i) => {
+            const p = flowLayout.pos[n.id];
             const t = toolFor(n);
             const [c, glyph] = KIND[n.kind] || KIND.part;
             return (

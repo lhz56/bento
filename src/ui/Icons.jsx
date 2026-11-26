@@ -1,5 +1,5 @@
 // One small set of drawn icons (1.6px strokes, rounded) so the sidebar and buttons read as one family.
-const P = {
+const PATHS = {
   learn: (
     <>
       <path d="M12 3.5l1.9 4.6 4.6 1.9-4.6 1.9L12 16.5l-1.9-4.6L5.5 10l4.6-1.9z" />
@@ -81,7 +81,7 @@ export default function Icon({ name, size = 18, className = '' }) {
       aria-hidden="true"
       focusable="false"
     >
-      {P[name] || null}
+      {PATHS[name] || null}
     </svg>
   );
 }

@@ -2,9 +2,9 @@
 // Everything here opens instantly (built-in lessons and pre-written simulations), so nothing waits on the AI.
 import { t } from '../i18n.js';
 
-const V = { w: 120, h: 70 };
+const BOX = { w: 120, h: 70 };
 const Box = ({ children }) => (
-  <svg viewBox={`0 0 ${V.w} ${V.h}`} className="if-art" aria-hidden="true">
+  <svg viewBox={`0 0 ${BOX.w} ${BOX.h}`} className="if-art" aria-hidden="true">
     {children}
   </svg>
 );

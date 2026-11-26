@@ -28,15 +28,15 @@ export default function Compare({
   useEffect(() => {
     pair.forEach((k) => k && ensure(k));
   }, [pair[0], pair[1]]);
-  const A = atlases[pair[0]],
-    B = atlases[pair[1]];
-  const tools = (X) => (X?.facts ? detectStack(X.facts).filter((s) => !s.workshop) : []);
-  const ta = useMemo(() => tools(A), [A?.facts]);
-  const tb = useMemo(() => tools(B), [B?.facts]);
+  const atlasA = atlases[pair[0]],
+    atlasB = atlases[pair[1]];
+  const tools = (site) => (site?.facts ? detectStack(site.facts).filter((s) => !s.workshop) : []);
+  const ta = useMemo(() => tools(atlasA), [atlasA?.facts]);
+  const tb = useMemo(() => tools(atlasB), [atlasB?.facts]);
   const both = ta.filter((t) => tb.some((u) => u.id === t.id));
   const onlyA = ta.filter((t) => !tb.some((u) => u.id === t.id));
   const onlyB = tb.filter((t) => !ta.some((u) => u.id === t.id));
-  const ready = A?.facts && B?.facts;
+  const ready = atlasA?.facts && atlasB?.facts;
   const Pick = ({ i }) => (
     <select
       className="cmp-pick"
@@ -66,7 +66,7 @@ export default function Compare({
       )}
     </select>
   );
-  const Side = ({ X, k }) => {
+  const Side = ({ site, k }) => {
     if (!k)
       return (
         <div className="cmp-empty">
@@ -74,24 +74,24 @@ export default function Compare({
           apart any GitHub project first.
         </div>
       );
-    if (!X?.facts)
+    if (!site?.facts)
       return (
         <div className="cmp-empty">
           <span className="lens-spin" /> bringing it in…
         </div>
       );
-    const langs = Object.entries(X.facts.langs).sort((a, b) => b[1] - a[1]);
+    const langs = Object.entries(site.facts.langs).sort((a, b) => b[1] - a[1]);
     const tot = langs.reduce((s, [, n]) => s + n, 0) || 1;
     return (
       <div className="cmp-side">
-        <div className="cmp-kind">{X.narr?.gist?.kind || ''}</div>
-        <div className="cmp-one">{X.narr?.gist?.one || X.meta?.description || X.name}</div>
+        <div className="cmp-kind">{site.narr?.gist?.kind || ''}</div>
+        <div className="cmp-one">{site.narr?.gist?.one || site.meta?.description || site.name}</div>
         <div className="cmp-stats">
           <span>
-            <b>{X.facts.totals.code}</b> files
+            <b>{site.facts.totals.code}</b> files
           </span>
           <span>
-            <b>{fmtN(X.facts.totals.lines)}</b> lines
+            <b>{fmtN(site.facts.totals.lines)}</b> lines
           </span>
           {langs.slice(0, 2).map(([l, n]) => (
             <span key={l}>
@@ -102,10 +102,10 @@ export default function Compare({
         </div>
         <div className="cmp-flow">
           <BigPicture
-            flow={X.narr?.flow || fallbackFlow(X.facts, tools(X))}
+            flow={site.narr?.flow || fallbackFlow(site.facts, tools(site))}
             terms={[]}
-            tools={tools(X)}
-            pathIdx={new Map(X.facts.files.map((f, i) => [f.p, i]))}
+            tools={tools(site)}
+            pathIdx={new Map(site.facts.files.map((f, i) => [f.p, i]))}
             onOpen={() => onOpenProject(k)}
             onAsk={() => {}}
             narrating={false}
@@ -128,12 +128,12 @@ export default function Compare({
         <div className="cmp-cols">
           <div>
             <Pick i={0} />
-            <Side X={A} k={pair[0]} />
+            <Side site={atlasA} k={pair[0]} />
           </div>
           <div className="cmp-vs">vs</div>
           <div>
             <Pick i={1} />
-            <Side X={B} k={pair[1]} />
+            <Side site={atlasB} k={pair[1]} />
           </div>
         </div>
         {pair[0] && pair[0] === pair[1] && (
@@ -143,7 +143,7 @@ export default function Compare({
           <>
             <div className="venn">
               <div className="vn a">
-                <div className="mini-h">only {A.name.split('/').pop()}</div>
+                <div className="mini-h">only {atlasA.name.split('/').pop()}</div>
                 <div className="vn-ic">
                   {onlyA.map((t) => (
                     <span key={t.id} title={`${t.name}: ${t.what}`}>
@@ -167,7 +167,7 @@ export default function Compare({
                 </div>
               </div>
               <div className="vn b">
-                <div className="mini-h">only {B.name.split('/').pop()}</div>
+                <div className="mini-h">only {atlasB.name.split('/').pop()}</div>
                 <div className="vn-ic">
                   {onlyB.map((t) => (
                     <span key={t.id} title={`${t.name}: ${t.what}`}>
@@ -186,7 +186,7 @@ export default function Compare({
               <div className="mini-h">ask how each one does it</div>
               <div className="nexts">
                 {QUESTIONS.map((x) => (
-                  <button key={x} className="next" onClick={() => onCompareAsk(A, B, x)}>
+                  <button key={x} className="next" onClick={() => onCompareAsk(atlasA, atlasB, x)}>
                     {x}
                     <span>→</span>
                   </button>
@@ -196,7 +196,7 @@ export default function Compare({
                 className="cv-feature"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (q.trim()) onCompareAsk(A, B, q.trim());
+                  if (q.trim()) onCompareAsk(atlasA, atlasB, q.trim());
                 }}
               >
                 <span className="cv-fi">⇄</span>

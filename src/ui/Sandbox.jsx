@@ -191,10 +191,13 @@ export default function Sandbox({ done = {}, onDone, onAsk }) {
   });
   const [rps, setRps] = useState(LEVELS[first].rps);
   const [info, setInfo] = useState(null);
-  const L = LEVELS[lv];
+  const level = LEVELS[lv];
   const sim = useMemo(() => simulate(c, rps), [c, rps]);
   const pass =
-    rps >= L.rps && sim.errors < L.goal.errors && sim.ms < L.goal.ms && sim.cost <= L.budget;
+    rps >= level.rps &&
+    sim.errors < level.goal.errors &&
+    sim.ms < level.goal.ms &&
+    sim.cost <= level.budget;
   if (pass && !done[lv]) setTimeout(() => onDone(lv), 0);
   const set = (k, v) => setC((x) => ({ ...x, [k]: v }));
   const node = (k, x, y, label, extra) => {
@@ -251,12 +254,12 @@ export default function Sandbox({ done = {}, onDone, onAsk }) {
         ))}
       </div>
       <div className="sb-mission">
-        <b>{t(L.title)}</b>
-        <span>{t(L.story)}</span>
+        <b>{t(level.title)}</b>
+        <span>{t(level.story)}</span>
         <em>
-          {t('Goal')}: {fmt(L.rps)} {t('requests a second')}, {t('under')} {L.goal.errors}%{' '}
-          {t('errors')}, {t('under')} {L.goal.ms} ms, {t('under')} ${L.budget.toLocaleString()}/
-          {t('month')}.
+          {t('Goal')}: {fmt(level.rps)} {t('requests a second')}, {t('under')} {level.goal.errors}%{' '}
+          {t('errors')}, {t('under')} {level.goal.ms} ms, {t('under')} $
+          {level.budget.toLocaleString()}/{t('month')}.
         </em>
       </div>
       <div className="sb-grid">
@@ -344,22 +347,22 @@ export default function Sandbox({ done = {}, onDone, onAsk }) {
             />
           </div>
           <div className="sb-meters">
-            <div className={sim.errors < L.goal.errors ? 'ok' : 'bad'}>
+            <div className={sim.errors < level.goal.errors ? 'ok' : 'bad'}>
               <span>{t('errors')}</span>
               <b>{sim.errors < 0.1 ? '0' : sim.errors.toFixed(sim.errors < 10 ? 1 : 0)}%</b>
             </div>
-            <div className={sim.ms < L.goal.ms ? 'ok' : 'bad'}>
+            <div className={sim.ms < level.goal.ms ? 'ok' : 'bad'}>
               <span>{t('wait')}</span>
               <b>{sim.ms >= 9999 ? '∞' : Math.round(sim.ms)} ms</b>
             </div>
-            <div className={sim.cost <= L.budget ? 'ok' : 'bad'}>
+            <div className={sim.cost <= level.budget ? 'ok' : 'bad'}>
               <span>{t('cost')}</span>
               <b>${sim.cost.toLocaleString()}</b>
             </div>
           </div>
           {pass && (
             <div className="sb-pass" role="status">
-              ✓ {t('It holds!')} {t(L.teach)}
+              ✓ {t('It holds!')} {t(level.teach)}
               {lv + 1 < LEVELS.length && (
                 <button
                   className="btn tiny"
@@ -435,29 +438,29 @@ export default function Sandbox({ done = {}, onDone, onAsk }) {
 }
 
 function PartInfo({ k, onAsk, onClose }) {
-  const P = PARTS[k];
-  const I = P.idea && ideaById[P.idea];
+  const part = PARTS[k];
+  const idea = part.idea && ideaById[part.idea];
   return (
     <div className="sb-info fade-in">
       <div className="sb-info-h">
-        <b>{t(P.name)}</b>
+        <b>{t(part.name)}</b>
         <button className="link" aria-label={t('Close')} onClick={onClose}>
           ✕
         </button>
       </div>
-      <p>{t(P.what)}</p>
-      <i>≈ {t(P.like)}</i>
+      <p>{t(part.what)}</p>
+      <i>≈ {t(part.like)}</i>
       <div className="sb-info-acts">
-        {I && (
+        {idea && (
           <span className="muted small">
-            {t('In real life')}: {I.title}
+            {t('In real life')}: {idea.title}
           </span>
         )}
         <button
           className="link"
           onClick={() =>
             onAsk(
-              `How does a ${P.name.toLowerCase()} work in a real web app? Show me a tiny simulation.`,
+              `How does a ${part.name.toLowerCase()} work in a real web app? Show me a tiny simulation.`,
             )
           }
         >

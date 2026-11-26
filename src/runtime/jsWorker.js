@@ -237,7 +237,7 @@ async function netFetch(url, opts = {}) {
     headers: { 'content-type': r.headers.get('x-content-type') || 'text/plain' },
   });
 }
-const H = {
+const host = {
   print: logf('log'),
   console: {
     log: logf('log'),
@@ -273,7 +273,7 @@ const H = {
   line: (x1, y1, x2, y2, c, w) => cap(canvas()).cmds.push(['line', x1, y1, x2, y2, c, w]),
   text: (s, x, y, c) => cap(canvas()).cmds.push(['text', String(s), x, y, c]),
 };
-const HN = Object.keys(H);
+const HN = Object.keys(host);
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 
 // Line offset of user code inside a `new AsyncFunction` body
@@ -458,7 +458,7 @@ function makeTracer({ snapshots }) {
   const stack = [{ name: 'main', args: '', line: 1 }];
   let count = 0;
   let line = 1;
-  const T = {
+  const tracer = {
     __v: (f) => {
       try {
         return f();
@@ -519,7 +519,7 @@ function makeTracer({ snapshots }) {
     },
   };
   return {
-    T,
+    T: tracer,
     steps,
     get count() {
       return count;
@@ -533,7 +533,7 @@ function makeTracer({ snapshots }) {
 async function exec(code, extraNames = [], extraVals = [], suffix = '') {
   const names = [...HN, ...extraNames];
   const fn = new AsyncFunction(...names, `\n${code}\n${suffix}`);
-  return fn(...HN.map((k) => H[k]), ...extraVals);
+  return fn(...HN.map((k) => host[k]), ...extraVals);
 }
 const tick = (ms) => new Promise((r) => setTimeout(r, ms));
 // after the program's own code: wait for its timers and fetches, then a moment for the promises they settle
@@ -687,7 +687,7 @@ function mapLine(_orig, _inst, l) {
 
 function fitGrowth(pts) {
   if (pts.length < 3) return null;
-  const F = {
+  const GROWTH = {
     'O(1)': () => 1,
     'O(log n)': (n) => Math.log2(n),
     'O(n)': (n) => n,
@@ -697,7 +697,7 @@ function fitGrowth(pts) {
     'O(2ⁿ)': (n) => Math.pow(2, Math.min(n, 60)),
   };
   let best = null;
-  for (const [k, f] of Object.entries(F)) {
+  for (const [k, f] of Object.entries(GROWTH)) {
     const use = pts.slice(Math.floor(pts.length / 3));
     const a =
       use.reduce((s, [n, c]) => s + c * f(n), 0) / use.reduce((s, [n]) => s + f(n) * f(n), 0);

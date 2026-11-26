@@ -3,14 +3,14 @@ import { useEffect, useState } from 'react';
 import { deviceName } from '../remote.js';
 import { STANDALONE, IN_APP, native } from './touch.js';
 
-const R = () => window.bentoRemote;
+const remote = () => window.bentoRemote;
 
 function useRemote() {
-  const [st, setSt] = useState(() => ({ state: R().state, host: R().host }));
+  const [st, setSt] = useState(() => ({ state: remote().state, host: remote().host }));
   // (read it again once listening: the state can change between the first render and this effect)
   useEffect(() => {
-    const off = R().on((state, host) => setSt({ state, host }));
-    setSt({ state: R().state, host: R().host });
+    const off = remote().on((state, host) => setSt({ state, host }));
+    setSt({ state: remote().state, host: remote().host });
     return off;
   }, []);
   return st;
@@ -24,7 +24,7 @@ const codeInLink = () => {
 
 function Pair() {
   // (or the code a link brought while this device still had a key, which turned out to be stale: remote.js)
-  const [spare] = useState(() => (codeInLink() ? '' : R().takeSpareCode?.() || ''));
+  const [spare] = useState(() => (codeInLink() ? '' : remote().takeSpareCode?.() || ''));
   const [fromLink] = useState(() => codeInLink() || spare);
   const [code, setCode] = useState(fromLink);
   const [busy, setBusy] = useState(false);
@@ -37,7 +37,7 @@ function Pair() {
     if (/^#pair=/.test(location.hash))
       history.replaceState(history.state, '', location.pathname + location.search);
     try {
-      await R().pair(c, deviceName());
+      await remote().pair(c, deviceName());
     } catch (e) {
       // in Bento Code, the app connects again its own way (Allow on the Mac), never with this page's form
       if (IN_APP) {
@@ -150,7 +150,7 @@ function Offline() {
       <span>Can’t reach your Mac. Is Bento open on it?</span>
       <button
         onClick={() =>
-          R()
+          remote()
             .connect()
             .catch(() => {})
         }
@@ -172,7 +172,7 @@ function HomeScreenTip() {
   );
   useEffect(() => {
     if (show)
-      R()
+      remote()
         .armHomeScreen()
         .catch(() => {});
   }, [show]);

@@ -7,7 +7,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const fsp = require('node:fs').promises;
-const P = require('../providers.cjs');
+const providers = require('../providers.cjs');
 const { app, ipcMain } = require('electron');
 const { spawn } = require('node:child_process');
 const { SYSTEM, QUICK_SYSTEM, ATLAS_SYSTEM, SITE_SYSTEM } = require('../prompts.cjs');
@@ -80,7 +80,7 @@ module.exports = function registerAsk(ctx) {
   function labelOf(prompt) {
     const p = String(prompt).slice(0, 400);
     /** @type {Array<[RegExp, string]>} */
-    const L = [
+    const purposes = [
       [/Translate these short labels/, 'translating the menus'],
       [/checking a beginner coding lesson/, 'checking a lesson'],
       [/interviewer/i, 'interview practice'],
@@ -93,7 +93,7 @@ module.exports = function registerAsk(ctx) {
       [/learning path|stops/i, 'designing a path'],
       [/tutoring/i, 'answering a question'],
     ];
-    return (L.find(([r]) => r.test(p)) || [null, 'a quick answer'])[1];
+    return (purposes.find(([r]) => r.test(p)) || [null, 'a quick answer'])[1];
   }
 
   // What a CLI printed when it failed, minus stack traces and dumped request details: the lines that say what went wrong
@@ -119,15 +119,18 @@ module.exports = function registerAsk(ctx) {
           : system === SITE_SYSTEM
             ? 'reading a website'
             : 'writing a lesson';
-    const { prov, name, id: modelId } = P.parseModel(model);
-    const A = P.ADAPTERS[prov],
-      bin = P.BY[prov].bin;
+    const { prov, name, id: modelId } = providers.parseModel(model);
+    const adapter = providers.ADAPTERS[prov],
+      bin = providers.BY[prov].bin;
     // a hidden CLI (tests, demos of a brand-new Mac) is never started: hiding it must not quietly spend your plan
     if (isHidden(bin))
-      return { promise: Promise.reject(new Error(P.humanize(prov, 'ENOENT'))), kill: () => {} };
+      return {
+        promise: Promise.reject(new Error(providers.humanize(prov, 'ENOENT'))),
+        kill: () => {},
+      };
     if (FAKE_LIMIT && prov === FAKE_LIMIT)
       return {
-        promise: Promise.reject(new Error(P.humanize(prov, 'usage limit reached'))),
+        promise: Promise.reject(new Error(providers.humanize(prov, 'usage limit reached'))),
         kill: () => {},
       };
     const t0 = Date.now();
@@ -136,7 +139,7 @@ module.exports = function registerAsk(ctx) {
       sysFile = null;
     const promise = (async () => {
       await envReady;
-      await A.prepare?.(aiCtx(prov));
+      await adapter.prepare?.(aiCtx(prov));
       // instructions go in a private temporary file and the request on standard input, never on the command line
       const sys = withVoice(system);
       sysFile = path.join(WORKDIR, `instructions-${crypto.randomBytes(6).toString('hex')}.md`);
@@ -146,11 +149,18 @@ module.exports = function registerAsk(ctx) {
         prov === 'copilot' && !(ENV.COPILOT_GITHUB_TOKEN || ENV.GH_TOKEN || ENV.GITHUB_TOKEN)
           ? await ghToken()
           : null;
-      const b = A.build({ name, system: sys, prompt, sysFile, files: await AI_FILES(), token });
+      const b = adapter.build({
+        name,
+        system: sys,
+        prompt,
+        sysFile,
+        files: await AI_FILES(),
+        token,
+      });
       if (killed) throw new Error('Stopped.');
       if (b.noModel)
         throw new Error(
-          `${P.label(prov)} doesn’t offer ${modelId.split(':')[1]} on this account right now. Choose another model in the bottom-left.`,
+          `${providers.label(prov)} doesn’t offer ${modelId.split(':')[1]} on this account right now. Choose another model in the bottom-left.`,
         );
       const env = { ...ENV, ...b.env };
       for (const [k, v] of Object.entries(b.env || {})) if (v === undefined) delete env[k];
@@ -190,8 +200,8 @@ module.exports = function registerAsk(ctx) {
           requests: (n) => {
             requests = n;
           },
-          limits: (L) => {
-            limits = L;
+          limits: (planLimits) => {
+            limits = planLimits;
           },
           full: () => full,
           seen: (id, check) => {
@@ -210,7 +220,7 @@ module.exports = function registerAsk(ctx) {
         };
         let last = Date.now(),
           stalled = false;
-        const quietLimit = P.BY[prov].slow ? 360000 : 150000; // Codex says nothing until it's done; the others stream constantly
+        const quietLimit = providers.BY[prov].slow ? 360000 : 150000; // Codex says nothing until it's done; the others stream constantly
         const dog = setInterval(() => {
           if (Date.now() - last > quietLimit) {
             stalled = true;
@@ -234,7 +244,7 @@ module.exports = function registerAsk(ctx) {
             } catch {
               continue;
             }
-            A.parse(o, sink);
+            adapter.parse(o, sink);
           }
         });
         child.stderr.on('data', (d) => {
@@ -243,7 +253,7 @@ module.exports = function registerAsk(ctx) {
         });
         child.on('error', (e) => {
           clearInterval(dog);
-          reject(new Error(P.humanize(prov, `Couldn't start ${bin}: ${e.message}`)));
+          reject(new Error(providers.humanize(prov, `Couldn't start ${bin}: ${e.message}`)));
         });
         child.on('close', (code) => {
           clearInterval(dog);
@@ -260,16 +270,19 @@ module.exports = function registerAsk(ctx) {
             ...(requests != null ? { requests } : {}),
           });
           if (limits) saveLimits(prov, limits);
-          if (full && A.limits) setTimeout(() => refreshLimits(prov).catch(() => {}), 1500); // the meter moves after each answer
+          if (full && adapter.limits) setTimeout(() => refreshLimits(prov).catch(() => {}), 1500); // the meter moves after each answer
           if (aborted) return reject(new Error(aborted));
           if (stalled && !full)
             return reject(
               new Error(
-                `${P.label(prov)} went quiet for too long, so Bento stopped waiting. Try again, or switch model.`,
+                `${providers.label(prov)} went quiet for too long, so Bento stopped waiting. Try again, or switch model.`,
               ),
             );
           if (full) resolve(full);
-          else reject(new Error(P.humanize(prov, errorLines(err) || `${bin} exited with ${code}`)));
+          else
+            reject(
+              new Error(providers.humanize(prov, errorLines(err) || `${bin} exited with ${code}`)),
+            );
         });
       });
     })().finally(() => {
@@ -358,7 +371,7 @@ module.exports = function registerAsk(ctx) {
     await envReady;
     await usageReady;
     // quick calls use the fast model of the same AI
-    const fast = P.fastOf(model);
+    const fast = providers.fastOf(model);
     // the same question (same model, same language) within 14 days: answer from the saved copy
     const key = crypto.createHash('sha1').update(`${fast}\n${ctx.VOICE}\n${prompt}`).digest('hex');
     const hit = quickCache()[key];
@@ -367,7 +380,7 @@ module.exports = function registerAsk(ctx) {
         at: Date.now(),
         what: labelOf(prompt),
         model: fast,
-        prov: P.parseModel(fast).prov,
+        prov: providers.parseModel(fast).prov,
         ms: 0,
         ok: true,
         in: 0,
@@ -387,12 +400,15 @@ module.exports = function registerAsk(ctx) {
       // this AI can't answer right now (limit, signed out, missing): with "Retry with another AI" on, try the next one you
       // have, in order, and say which one answered (its plan pays). Off, the answer is the honest error.
       if (!ctx.FALLBACK || !ACCOUNT_TROUBLE.test(err.message)) throw err;
-      const mine = P.parseModel(fast).prov;
-      for (const id of P.IDS.filter((x) => x !== mine)) {
-        if (!(await which(P.BY[id].bin))) continue;
+      const mine = providers.parseModel(fast).prov;
+      for (const id of providers.IDS.filter((x) => x !== mine)) {
+        if (!(await which(providers.BY[id].bin))) continue;
         try {
-          const a = keep(await runModel(P.BY[id].fast, QUICK_SYSTEM, prompt).promise);
-          _e.sender?.send?.('ai:fallback', { from: P.label(mine), to: P.label(id) });
+          const a = keep(await runModel(providers.BY[id].fast, QUICK_SYSTEM, prompt).promise);
+          _e.sender?.send?.('ai:fallback', {
+            from: providers.label(mine),
+            to: providers.label(id),
+          });
           return a;
         } catch (e2) {
           if (!ACCOUNT_TROUBLE.test(e2.message)) throw err;
@@ -419,18 +435,18 @@ module.exports = function registerAsk(ctx) {
     );
     const by = {}; // today, per AI: requests and tokens
     for (const e of u) {
-      const D = days.find((x) => x.d === day(e.at));
-      if (!D) continue;
+      const todayRow = days.find((x) => x.d === day(e.at));
+      if (!todayRow) continue;
       if (e.saved) {
-        D.saved++;
+        todayRow.saved++;
         continue;
       }
       if (e.ok === false) continue; // it never got an answer (signed out, not installed, stopped): none of the plan was used
-      if (e.what === 'writing a lesson') D.lessons++;
-      else if (/^reading/.test(e.what)) D.other++;
-      else D.quick++;
-      D.tokens += (e.in || 0) + (e.out || 0);
-      if (D.d === today) {
+      if (e.what === 'writing a lesson') todayRow.lessons++;
+      else if (/^reading/.test(e.what)) todayRow.other++;
+      else todayRow.quick++;
+      todayRow.tokens += (e.in || 0) + (e.out || 0);
+      if (todayRow.d === today) {
         const k = e.prov || String(e.model || '').split(':')[0] || 'claude';
         const b = (by[k] ||= { n: 0, lessons: 0, tokens: 0 });
         b.n++;

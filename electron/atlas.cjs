@@ -881,9 +881,9 @@ function analyze(root, meta = {}) {
     .sort((a, b) => b.used - a.used)
     .slice(0, 5)
     .forEach((f) => f.used > 1 && pick.add(f.p));
-  for (const L of ['server', 'data', 'ui', 'logic'])
+  for (const layer of ['server', 'data', 'ui', 'logic'])
     [...files]
-      .filter((f) => f.layer === L && f.lang && !/\.(css|scss|html)$/.test(f.p))
+      .filter((f) => f.layer === layer && f.lang && !/\.(css|scss|html)$/.test(f.p))
       .sort((a, b) => b.lines - a.lines)
       .slice(0, 2)
       .forEach((f) => pick.add(f.p));

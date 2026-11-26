@@ -107,23 +107,26 @@ const NO_READING = {
   copilot: 'Connect GitHub (⌘K → Connections & setup) to see your monthly allowance here.',
 };
 // one AI: its plan, how full, when it resets, and what Bento used of it today
-export function PlanRow({ id, L, today, now = Date.now() }) {
+export function PlanRow({ id, limits, today, now = Date.now() }) {
   const p = provider(id);
-  const w = mainWindow(L);
+  const w = mainWindow(limits);
   const lv = level(w);
   const L1 = today?.lessons || 0,
     Q1 = (today?.n || 0) - L1;
   const bento = today?.n
     ? `${t('Bento today')}: ${[L1 && `${L1} ${L1 === 1 ? t('lesson') : t('lessons')}`, Q1 && `${Q1} ${Q1 === 1 ? t('quick answer') : t('quick answers')}`].filter(Boolean).join(', ')}`
     : null;
-  const old = L?.at && now - L.at > 3 * 3600e3 ? ` · ${t('as of')} ${ageText(L.at, now, t)}` : '';
+  const old =
+    limits?.at && now - limits.at > 3 * 3600e3
+      ? ` · ${t('as of')} ${ageText(limits.at, now, t)}`
+      : '';
   return (
     <div className={`plan-ai lv-${lv}`}>
       <AIMark id={id} size={22} />
       <div className="pa-main">
         <div className="pa-top">
           <b>{p.short || p.name}</b>
-          {L?.plan && <span className="pa-plan">{L.plan}</span>}
+          {limits?.plan && <span className="pa-plan">{limits.plan}</span>}
           {w && <span className="pa-pct">{w.unlimited ? '∞' : `${w.used}%`}</span>}
         </div>
         {w ? (
@@ -153,7 +156,7 @@ export function PlanList({ providers, limits, usage }) {
   return (
     <div className="plan-list">
       {ids.map((id) => (
-        <PlanRow key={id} id={id} L={limits?.[id]} today={usage?.by?.[id]} now={now} />
+        <PlanRow key={id} id={id} limits={limits?.[id]} today={usage?.by?.[id]} now={now} />
       ))}
     </div>
   );
@@ -165,15 +168,15 @@ export function PlanMeter({ model, providers }) {
   const [open, setOpen] = useState(false);
   const [at, setAt] = useState(null);
   const id = provOf(model);
-  const L = limits[id];
-  const w = mainWindow(L);
+  const planLimits = limits[id];
+  const w = mainWindow(planLimits);
   const lv = level(w);
   const p = provider(id);
   const place = (btn) => {
     const r = btn.getBoundingClientRect();
-    const W = 300;
+    const width = 300;
     setAt({
-      left: Math.max(8, Math.min(r.left, innerWidth - W - 8)),
+      left: Math.max(8, Math.min(r.left, innerWidth - width - 8)),
       bottom: Math.max(8, innerHeight - r.top + 6),
     });
   };
@@ -196,9 +199,9 @@ export function PlanMeter({ model, providers }) {
       removeEventListener('resize', shut);
     };
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!usage && !L) return null;
-  const T = usage?.today || { lessons: 0, quick: 0, other: 0, saved: 0 };
-  const n = T.lessons + T.quick + T.other;
+  if (!usage && !planLimits) return null;
+  const today = usage?.today || { lessons: 0, quick: 0, other: 0, saved: 0 };
+  const n = today.lessons + today.quick + today.other;
   const mine = usage?.by?.[id]?.n || 0;
   const said = w
     ? `${p.short || p.name}: ${usedText(w, t)}${w.resetsAt ? `, ${resetText(w.resetsAt, Date.now(), t)}` : ''}`
@@ -242,19 +245,19 @@ export function PlanMeter({ model, providers }) {
           <PlanList providers={providers} limits={limits} usage={usage} />
           <div className="plans-today">
             <span>
-              ✦ {T.lessons} {T.lessons === 1 ? t('lesson') : t('lessons')}
+              ✦ {today.lessons} {today.lessons === 1 ? t('lesson') : t('lessons')}
             </span>
             <span>
-              ↵ {T.quick} {t('quick')}
+              ↵ {today.quick} {t('quick')}
             </span>
-            {T.other > 0 && (
+            {today.other > 0 && (
               <span>
-                ◈ {T.other} {t('read')}
+                ◈ {today.other} {t('read')}
               </span>
             )}
-            {T.saved > 0 && (
+            {today.saved > 0 && (
               <span className="free">
-                ♻ {T.saved} {t('free')}
+                ♻ {today.saved} {t('free')}
               </span>
             )}
             <em>

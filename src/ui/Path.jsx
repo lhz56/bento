@@ -14,9 +14,9 @@ export default function Path({ done, onGo, onIdeas, custom = [], onMakePath, onD
   const [track, setTrack] = useState(() => localStorage.getItem('bento.track') || 'app');
   useEffect(() => localStorage.setItem('bento.track', track), [track]);
   const ALL = tracksWith(custom);
-  const T = ALL.find((x) => x.k === track) || ALL[0];
-  const mine = !!T.own;
-  const LIST = T.stops;
+  const shownTrack = ALL.find((x) => x.k === track) || ALL[0];
+  const mine = !!shownTrack.own;
+  const LIST = shownTrack.stops;
   const [goal, setGoal] = useState('');
   const [making, setMaking] = useState(null);
   const n = LIST.filter((s) => done[s.id]).length;
@@ -35,7 +35,7 @@ export default function Path({ done, onGo, onIdeas, custom = [], onMakePath, onD
   const go = (s) => onGo(s);
   const nextI = next ? LIST.indexOf(next) : -1;
   // a finished path offers the next built-in one you haven't finished
-  const at = ALL.indexOf(T);
+  const at = ALL.indexOf(shownTrack);
   const after = [...ALL.slice(at + 1), ...ALL.slice(0, at)].find(
     (x) => !x.own && x.stops.some((s) => !done[s.id]),
   );
@@ -132,14 +132,14 @@ export default function Path({ done, onGo, onIdeas, custom = [], onMakePath, onD
               {mine ? 'your path' : 'path'} · {LIST.length} stops · about {Math.round(mins / 5) * 5}{' '}
               min
             </div>
-            <h2>{T.title}</h2>
-            <p>{T.d}</p>
-            {T.end && (
+            <h2>{shownTrack.title}</h2>
+            <p>{shownTrack.d}</p>
+            {shownTrack.end && (
               <div className="phero-end">
                 <span>🏁</span>
                 <div>
                   <i>Where it ends</i>
-                  {T.end}
+                  {shownTrack.end}
                 </div>
               </div>
             )}
@@ -235,10 +235,10 @@ export default function Path({ done, onGo, onIdeas, custom = [], onMakePath, onD
               </div>
             );
           })}
-          {T.end && (
+          {shownTrack.end && (
             <div className={`stop-flag ${next ? '' : 'done'}`}>
               <span>🏁</span>
-              <b>{T.end}</b>
+              <b>{shownTrack.end}</b>
             </div>
           )}
           <div className="stop-end">

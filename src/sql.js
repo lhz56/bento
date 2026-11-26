@@ -203,9 +203,9 @@ export function sameResult(a, b, ordered) {
   if (!a || !b || a.error || b.error) return false;
   const key = (r) =>
     JSON.stringify(r.map((v) => (typeof v === 'number' ? Math.round(v * 100) / 100 : v)));
-  const A = a.rows.map(key),
-    B = b.rows.map(key);
-  if (A.length !== B.length || a.cols.length !== b.cols.length) return false;
-  if (ordered) return A.every((x, i) => x === B[i]);
-  return JSON.stringify([...A].sort()) === JSON.stringify([...B].sort());
+  const rowsA = a.rows.map(key),
+    rowsB = b.rows.map(key);
+  if (rowsA.length !== rowsB.length || a.cols.length !== b.cols.length) return false;
+  if (ordered) return rowsA.every((x, i) => x === rowsB[i]);
+  return JSON.stringify([...rowsA].sort()) === JSON.stringify([...rowsB].sort());
 }

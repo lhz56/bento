@@ -2,30 +2,36 @@
 import { SAMPLES } from './lesson.js';
 import { WEB, webBridge } from './web.js';
 
-function toNdjson(L) {
+function toNdjson(lesson) {
   const out = [
-    { t: 'title', title: L.title, kicker: L.kicker, lang: L.lang, concepts: L.concepts },
-    L.story[0],
-    { t: 'code', file: L.file, code: L.code },
-    { t: 'pseudo', lines: L.pseudo },
-    { t: 'notes', items: L.notes },
-    ...L.story.slice(1),
+    {
+      t: 'title',
+      title: lesson.title,
+      kicker: lesson.kicker,
+      lang: lesson.lang,
+      concepts: lesson.concepts,
+    },
+    lesson.story[0],
+    { t: 'code', file: lesson.file, code: lesson.code },
+    { t: 'pseudo', lines: lesson.pseudo },
+    { t: 'notes', items: lesson.notes },
+    ...lesson.story.slice(1),
   ];
-  if (L.growth) out.splice(5, 0, { t: 'growth', ...L.growth });
+  if (lesson.growth) out.splice(5, 0, { t: 'growth', ...lesson.growth });
   return out.map((b) => JSON.stringify(b)).join('\n') + '\n';
 }
 
 export const mockBridge = {
   providers: async () => ({ claude: true, codex: true, gh: false, mock: true }),
   ask(_model, prompt, { chunk, done }) {
-    const L = /closure/i.test(prompt)
+    const lesson = /closure/i.test(prompt)
       ? SAMPLES[3]
       : /art|draw|spiral/i.test(prompt)
         ? SAMPLES[2]
         : /big-?o|complex/i.test(prompt)
           ? SAMPLES[1]
           : SAMPLES[0];
-    const text = toNdjson(L);
+    const text = toNdjson(lesson);
     let i = 0;
     let stop = false;
     const tick = () => {

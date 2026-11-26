@@ -94,7 +94,7 @@ export default function Atlas({
   onIdeaInstead,
   onPlanIssue,
   onMakePath,
-  atlas: A,
+  atlas,
   onStopReading,
   onBig,
   onOthers,
@@ -113,9 +113,9 @@ export default function Atlas({
   onRetry,
   modelLabel,
 }) {
-  const F = A.facts;
-  const N = A.narr;
-  const meta = A.meta || {};
+  const facts = atlas.facts;
+  const narration = atlas.narr;
+  const meta = atlas.meta || {};
   const scroller = useRef(null);
   const [drawer, setDrawer] = useState(null);
   const [tourAt, setTourAt] = useState(null);
@@ -128,37 +128,40 @@ export default function Atlas({
   const phone = useNarrow(); // a phone (or a narrow window): the Atlas as a phone page (AtlasPhone.jsx)
 
   const stack = useMemo(() => {
-    if (F) setDupes(F.files);
-    return F ? detectStack(F) : [];
-  }, [F]);
-  const tools = useMemo(() => mergeTools(stack, N?.stack), [stack, N?.stack]);
-  const pathIdx = useMemo(() => new Map((F?.files || []).map((f, i) => [f.p, i])), [F]);
+    if (facts) setDupes(facts.files);
+    return facts ? detectStack(facts) : [];
+  }, [facts]);
+  const tools = useMemo(() => mergeTools(stack, narration?.stack), [stack, narration?.stack]);
+  const pathIdx = useMemo(() => new Map((facts?.files || []).map((f, i) => [f.p, i])), [facts]);
   const hot = useMemo(
     () =>
-      F
+      facts
         ? [
-            ...(N?.hot || []),
-            ...measuredHotspots(F).filter((m) => !(N?.hot || []).some((h) => h.p && h.p === m.p)),
+            ...(narration?.hot || []),
+            ...measuredHotspots(facts).filter(
+              (m) => !(narration?.hot || []).some((h) => h.p && h.p === m.p),
+            ),
           ]
         : [],
-    [F, N?.hot],
+    [facts, narration?.hot],
   );
   const role = (p) =>
-    N?.roles?.[p] || (F && pathIdx.has(p) ? guessRole(F.files[pathIdx.get(p)]) : '');
+    narration?.roles?.[p] ||
+    (facts && pathIdx.has(p) ? guessRole(facts.files[pathIdx.get(p)]) : '');
   // any file in the project can open, even ones the big-project sampling didn't analyse (answers can point at them)
   const openFile = (p) => {
     if (
       pathIdx.has(p) ||
-      (A.src?.root && typeof p === 'string' && /^[\w@.\-+/ ]+$/.test(p) && !p.includes('..'))
+      (atlas.src?.root && typeof p === 'string' && /^[\w@.\-+/ ]+$/.test(p) && !p.includes('..'))
     )
       setDrawer(p);
   };
   useEffect(() => {
-    if (initialFile && F && pathIdx.has(initialFile)) {
+    if (initialFile && facts && pathIdx.has(initialFile)) {
       setDrawer(initialFile);
       onInitialFileShown?.();
     }
-  }, [initialFile, F]);
+  }, [initialFile, facts]);
 
   useEffect(() => {
     const el = scroller.current;
@@ -175,12 +178,14 @@ export default function Atlas({
     );
     el.querySelectorAll('.asec').forEach((s) => io.observe(s));
     return () => io.disconnect();
-  }, [F, phone]);
+  }, [facts, phone]);
   // (on a phone: a tool's alternatives)
   const altsOf = (s) => {
     const n =
-      N?.stack?.[s.id] ||
-      Object.values(N?.stack || {}).find((x) => x.name?.toLowerCase() === s.name.toLowerCase());
+      narration?.stack?.[s.id] ||
+      Object.values(narration?.stack || {}).find(
+        (x) => x.name?.toLowerCase() === s.name.toLowerCase(),
+      );
     return (
       n?.alts?.length
         ? n.alts.map((a) => ({ name: a.name, when: a.when, tool: findTool(a.name) }))
@@ -205,38 +210,38 @@ export default function Atlas({
     return () => removeEventListener('atlas-layer', h);
   }, []);
 
-  const narrating = A.status === 'narrating';
-  const gist = N?.gist;
-  const langs = F
-    ? Object.entries(F.langs)
+  const narrating = atlas.status === 'narrating';
+  const gist = narration?.gist;
+  const langs = facts
+    ? Object.entries(facts.langs)
         .filter(([, n]) => n > 0)
         .sort((a, b) => b[1] - a[1])
     : [];
   const totalL = langs.reduce((s, [, n]) => s + n, 0) || 1;
   const mainLang =
-    N?.lang?.name && LANGS[N.lang.name]
-      ? N.lang.name
+    narration?.lang?.name && LANGS[narration.lang.name]
+      ? narration.lang.name
       : langs.find(([l]) => !['HTML', 'CSS', 'Shell', 'SQL'].includes(l))?.[0] || langs[0]?.[0];
 
   // a fresh download keeps the three steps on screen long enough to read; reopening a saved project stays instant
   const shownAt = useRef(Date.now());
   const worked = useRef(false);
-  if (A.status === 'reading' || (A.progress && A.progress.phase !== 'cached'))
+  if (atlas.status === 'reading' || (atlas.progress && atlas.progress.phase !== 'cached'))
     worked.current = true;
-  const [hold, setHold] = useState(!F);
+  const [hold, setHold] = useState(!facts);
   // once the project is on screen it stays there: a featured one shows at once and its code downloads afterwards,
   // and that download's progress used to bring the steps back over it for a second
   const shown = useRef(false);
-  const holding = !shown.current && hold && (!F || worked.current);
-  if (F && !holding) shown.current = true;
+  const holding = !shown.current && hold && (!facts || worked.current);
+  if (facts && !holding) shown.current = true;
   useEffect(() => {
-    if (!F || !holding) return;
+    if (!facts || !holding) return;
     const t = setTimeout(
       () => setHold(false),
       Math.max(1100, 1800 - (Date.now() - shownAt.current)),
     );
     return () => clearTimeout(t);
-  }, [F, holding]);
+  }, [facts, holding]);
 
   // more sections than fit? fade the edge you can scroll towards, and keep the one you picked in view
   const navRef = useRef(null);
@@ -312,9 +317,9 @@ export default function Atlas({
         tourAt != null
           ? {
               i: tourAt,
-              steps: (N?.tour || []).filter((t) => pathIdx.has(t.p)),
+              steps: (narration?.tour || []).filter((t) => pathIdx.has(t.p)),
               go: (i) => {
-                const st = (N?.tour || []).filter((t) => pathIdx.has(t.p));
+                const st = (narration?.tour || []).filter((t) => pathIdx.has(t.p));
                 if (i < 0 || i >= st.length) {
                   setTourAt(null);
                   setDrawer(null);
@@ -327,7 +332,7 @@ export default function Atlas({
           : null
       }
       p={drawer}
-      F={F}
+      facts={facts}
       pathIdx={pathIdx}
       role={role}
       stack={stack}
@@ -345,8 +350,8 @@ export default function Atlas({
   if (holding)
     return (
       <AtlasLoading
-        A={A}
-        F={F}
+        atlas={atlas}
+        facts={facts}
         onRetry={onRetry}
         onBig={onBig}
         asked={asked}
@@ -361,16 +366,16 @@ export default function Atlas({
           {meta.avatar ? <img src={meta.avatar} alt="" /> : <span className="ab-folder">▢</span>}
           <span className="ab-name">
             <span className="muted">
-              {(meta.full || A.name).includes('/')
-                ? (meta.full || A.name).split('/')[0] + ' / '
+              {(meta.full || atlas.name).includes('/')
+                ? (meta.full || atlas.name).split('/')[0] + ' / '
                 : ''}
             </span>
-            {(meta.full || A.name).split('/').pop()}
+            {(meta.full || atlas.name).split('/').pop()}
           </span>
         </div>
         <nav className={`ab-nav ${navMore}`} ref={navRef} aria-label="Sections">
           {(phone ? PHONE_SECTIONS : SECTIONS)
-            .filter(([id]) => !['grow', 'help'].includes(id) || A.src?.kind === 'github')
+            .filter(([id]) => !['grow', 'help'].includes(id) || atlas.src?.kind === 'github')
             .map(([id, l]) => (
               <button key={id} className={section === id ? 'on' : ''} onClick={() => go(id)}>
                 {l}
@@ -417,17 +422,17 @@ export default function Atlas({
                     reading
                   </button>
                 )}
-                {A.status === 'narr-error' &&
-                  (/^You stopped/.test(A.error || '') ? (
-                    <button className="chip" onClick={onRetry} title={A.error}>
+                {atlas.status === 'narr-error' &&
+                  (/^You stopped/.test(atlas.error || '') ? (
+                    <button className="chip" onClick={onRetry} title={atlas.error}>
                       ❚❚ Reading paused · continue
                     </button>
                   ) : (
-                    <button className="chip warnchip" onClick={onRetry} title={A.error}>
+                    <button className="chip warnchip" onClick={onRetry} title={atlas.error}>
                       Explanations failed · retry
                     </button>
                   ))}
-                {A.src?.kind === 'github' && (
+                {atlas.src?.kind === 'github' && (
                   <>
                     <button
                       className="chip"
@@ -458,7 +463,7 @@ export default function Atlas({
                       className="chip"
                       title="Open on GitHub"
                       aria-label="Open on GitHub"
-                      onClick={() => onOpenUrl(meta.url || `https://github.com/${A.src.full}`)}
+                      onClick={() => onOpenUrl(meta.url || `https://github.com/${atlas.src.full}`)}
                     >
                       <span className="lbl">GitHub </span>↗
                     </button>
@@ -477,7 +482,7 @@ export default function Atlas({
                   title="Copy as study notes (Markdown)"
                   aria-label="Copy as study notes"
                   onClick={() => {
-                    navigator.clipboard?.writeText(notesMd(A, tools, hot));
+                    navigator.clipboard?.writeText(notesMd(atlas, tools, hot));
                     setCopied(true);
                     setTimeout(() => setCopied(false), 1500);
                   }}
@@ -510,15 +515,20 @@ export default function Atlas({
         {forkState?.err && <div className="fork-note err">{forkState.err}</div>}
       </div>
       {asked && (
-        <AskedBanner asked={asked} A={A} onIdeaInstead={onIdeaInstead} onClose={onAskedDone} />
+        <AskedBanner
+          asked={asked}
+          atlas={atlas}
+          onIdeaInstead={onIdeaInstead}
+          onClose={onAskedDone}
+        />
       )}
 
       {phone ? (
         // a phone: the app for anyone first, then the technical side, then the code (AtlasPhone.jsx)
         <PhoneAtlas
-          A={A}
-          F={F}
-          N={N}
+          atlas={atlas}
+          facts={facts}
+          narration={narration}
           meta={meta}
           tools={tools}
           hot={hot}
@@ -536,22 +546,27 @@ export default function Atlas({
           ago={ago}
           altsOf={altsOf}
           onMore={openActs}
-          tour={(N?.tour || []).filter((t) => pathIdx.has(t.p))}
+          tour={(narration?.tour || []).filter((t) => pathIdx.has(t.p))}
           onTour={(i) => {
-            const st = (N?.tour || []).filter((t) => pathIdx.has(t.p));
+            const st = (narration?.tour || []).filter((t) => pathIdx.has(t.p));
             setTourAt(i);
             setDrawer(st[i].p);
           }}
           slots={{
-            grow: A.src?.kind === 'github' ? <Grow full={A.src.full || meta.full} /> : null,
+            grow: atlas.src?.kind === 'github' ? <Grow full={atlas.src.full || meta.full} /> : null,
             detective:
               !narrating && readFile ? (
-                <Detective F={F} N={N} readFile={readFile} onOpen={openFile} />
+                <Detective
+                  facts={facts}
+                  narration={narration}
+                  readFile={readFile}
+                  onOpen={openFile}
+                />
               ) : null,
             contribute:
-              A.src?.kind === 'github' ? (
+              atlas.src?.kind === 'github' ? (
                 <Contribute
-                  full={A.src.full || meta.full}
+                  full={atlas.src.full || meta.full}
                   onPlan={onPlanIssue}
                   onOpen={openFile}
                   onOpenUrl={onOpenUrl}
@@ -567,13 +582,13 @@ export default function Atlas({
             <div className="over-top">
               <div className="over-text">
                 <div className="kicker">
-                  {gist?.kind || (A.src?.kind === 'local' ? 'your project' : 'open source')}
+                  {gist?.kind || (atlas.src?.kind === 'local' ? 'your project' : 'open source')}
                 </div>
                 <h1 className={gist ? '' : 'pending'}>
                   {gist?.one ||
                     meta.description ||
-                    F.sig?.pkgDesc ||
-                    `What is ${A.name.split('/').pop()}?`}
+                    facts.sig?.pkgDesc ||
+                    `What is ${atlas.name.split('/').pop()}?`}
                 </h1>
                 {gist?.analogy ? (
                   <p className="analogy">{gist.analogy}</p>
@@ -585,11 +600,11 @@ export default function Atlas({
                 <Donut langs={langs} total={totalL} />
                 <div className="vt-rows">
                   <div>
-                    <b>{F.totals.code}</b>
+                    <b>{facts.totals.code}</b>
                     <span>code files</span>
                   </div>
                   <div>
-                    <b>{fmtN(F.totals.lines)}</b>
+                    <b>{fmtN(facts.totals.lines)}</b>
                     <span>lines</span>
                   </div>
                   <div>
@@ -612,12 +627,12 @@ export default function Atlas({
               </div>
             </div>
             <BigPicture
-              appName={(meta.full || A.name).split('/').pop()}
+              appName={(meta.full || atlas.name).split('/').pop()}
               onMakePath={onMakePath}
-              build={N?.build}
+              build={narration?.build}
               onBuild={onBuild}
-              flow={N?.flow || fallbackFlow(F, tools)}
-              terms={N?.terms || []}
+              flow={narration?.flow || fallbackFlow(facts, tools)}
+              terms={narration?.terms || []}
               tools={tools}
               pathIdx={pathIdx}
               onOpen={openFile}
@@ -637,7 +652,7 @@ export default function Atlas({
                         window.dispatchEvent(new CustomEvent('atlas-tool', { detail: t.id }));
                         go('stack');
                       }}
-                      title={`${t.name}: ${N?.stack?.[t.id]?.role || t.what}`}
+                      title={`${t.name}: ${narration?.stack?.[t.id]?.role || t.what}`}
                     >
                       <Brand slug={t.slug} name={t.name} color={t.color} size={34} />
                       <span>{t.name}</span>
@@ -650,8 +665,8 @@ export default function Atlas({
           </section>
 
           <City
-            F={F}
-            N={N}
+            facts={facts}
+            narration={narration}
             tools={tools}
             pathIdx={pathIdx}
             role={role}
@@ -659,47 +674,53 @@ export default function Atlas({
             narrating={narrating}
             hot={hot}
           />
-          {A.src?.kind === 'github' && <Grow full={A.src.full || meta.full} />}
+          {atlas.src?.kind === 'github' && <Grow full={atlas.src.full || meta.full} />}
           <Toolbelt
             tools={tools}
             stack={stack}
-            N={N}
+            narration={narration}
             narrating={narrating}
             onShowFiles={(ids) => {
               window.dispatchEvent(new CustomEvent('atlas-focus', { detail: ids }));
               go('anatomy');
             }}
           />
-          <Language langs={langs} totalL={totalL} main={mainLang} N={N} narrating={narrating} />
+          <Language
+            langs={langs}
+            totalL={totalL}
+            main={mainLang}
+            narration={narration}
+            narrating={narrating}
+          />
           <Hotspots
             hot={hot}
             role={role}
             onOpen={openFile}
             narrating={narrating}
-            F={F}
+            facts={facts}
             pathIdx={pathIdx}
           />
-          <FileList F={F} role={role} onOpen={openFile} />
+          <FileList facts={facts} role={role} onOpen={openFile} />
           <Study
-            F={F}
+            facts={facts}
             readFile={readFile}
             onOpen={openFile}
-            A={A}
-            N={N}
+            atlas={atlas}
+            narration={narration}
             onAsk={onAsk}
             onFeature={onFeature}
             narrating={narrating}
-            tour={(N?.tour || []).filter((t) => pathIdx.has(t.p))}
+            tour={(narration?.tour || []).filter((t) => pathIdx.has(t.p))}
             role={role}
             onTour={(i) => {
-              const st = (N?.tour || []).filter((t) => pathIdx.has(t.p));
+              const st = (narration?.tour || []).filter((t) => pathIdx.has(t.p));
               setTourAt(i);
               setDrawer(st[i].p);
             }}
           />
-          {A.src?.kind === 'github' && (
+          {atlas.src?.kind === 'github' && (
             <Contribute
-              full={A.src.full || meta.full}
+              full={atlas.src.full || meta.full}
               onPlan={onPlanIssue}
               onOpen={openFile}
               onOpenUrl={onOpenUrl}
@@ -710,13 +731,13 @@ export default function Atlas({
       )}
       <div style={{ height: 110 }} />
       <AskBar
-        name={(meta.full || A.name).split('/').pop()}
-        threadKey={A.key}
+        name={(meta.full || atlas.name).split('/').pop()}
+        threadKey={atlas.key}
         onAsk={onAsk}
         onQuick={onQuick}
         onOpen={openFile}
         pathIdx={pathIdx}
-        initial={asked && A.src?.root ? asked : null}
+        initial={asked && atlas.src?.root ? asked : null}
         onFeature={onFeature}
       />
       {fileSheet && (phone ? onTop(fileSheet) : fileSheet)}
@@ -725,53 +746,55 @@ export default function Atlas({
 }
 
 // Everything Bento learned about a repo, as Markdown notes you can paste anywhere.
-function notesMd(A, tools, hot) {
-  const N = A.narr || {};
-  const g = N.gist || {};
-  const L = [
-    `# ${A.name}`,
+function notesMd(atlas, tools, hot) {
+  const narration = atlas.narr || {};
+  const g = narration.gist || {};
+  const lines = [
+    `# ${atlas.name}`,
     '',
-    g.one ? `**${g.one}**` : A.meta?.description || '',
+    g.one ? `**${g.one}**` : atlas.meta?.description || '',
     g.analogy ? `\n> ${g.analogy}` : '',
     '',
   ];
-  if (N.flow?.nodes?.length) {
-    L.push('## The big picture');
-    N.flow.nodes.forEach((n) => L.push(`- **${n.label}** (${n.term || n.kind}): ${n.does || ''}`));
-    L.push('');
+  if (narration.flow?.nodes?.length) {
+    lines.push('## The big picture');
+    narration.flow.nodes.forEach((n) =>
+      lines.push(`- **${n.label}** (${n.term || n.kind}): ${n.does || ''}`),
+    );
+    lines.push('');
   }
-  if (N.terms?.length) {
-    L.push('## Words');
-    N.terms.forEach((t) => L.push(`- **${t.term}**: ${t.plain}`));
-    L.push('');
+  if (narration.terms?.length) {
+    lines.push('## Words');
+    narration.terms.forEach((t) => lines.push(`- **${t.term}**: ${t.plain}`));
+    lines.push('');
   }
   if (tools.length) {
-    L.push('## Toolbelt');
+    lines.push('## Toolbelt');
     tools.forEach((t) => {
-      const n = N.stack?.[t.id];
-      L.push(`- **${t.name}**: ${n?.role || t.what}${n?.why ? ` _Why:_ ${n.why}` : ''}`);
+      const n = narration.stack?.[t.id];
+      lines.push(`- **${t.name}**: ${n?.role || t.what}${n?.why ? ` _Why:_ ${n.why}` : ''}`);
     });
-    L.push('');
+    lines.push('');
   }
-  if (N.tour?.length) {
-    L.push('## Read it in this order');
-    N.tour.forEach((t, i) => L.push(`${i + 1}. \`${t.p}\`: ${t.why}`));
-    L.push('');
+  if (narration.tour?.length) {
+    lines.push('## Read it in this order');
+    narration.tour.forEach((t, i) => lines.push(`${i + 1}. \`${t.p}\`: ${t.why}`));
+    lines.push('');
   }
   if (hot.length) {
-    L.push('## Hot spots');
-    hot.forEach((h) => L.push(`- **${h.title}**${h.p ? ` (\`${h.p}\`)` : ''}: ${h.md}`));
-    L.push('');
+    lines.push('## Hot spots');
+    hot.forEach((h) => lines.push(`- **${h.title}**${h.p ? ` (\`${h.p}\`)` : ''}: ${h.md}`));
+    lines.push('');
   }
-  L.push(
-    `_Made with Bento${A.src?.kind === 'github' ? ` · https://github.com/${A.src.full}` : ''}_`,
+  lines.push(
+    `_Made with Bento${atlas.src?.kind === 'github' ? ` · https://github.com/${atlas.src.full}` : ''}_`,
   );
-  return L.join('\n');
+  return lines.join('\n');
 }
 
 function Donut({ langs, total }) {
   let a = -Math.PI / 2;
-  const R = 30,
+  const radius = 30,
     r = 19;
   const arcs = langs.slice(0, 6).map(([l, n]) => {
     const da = (n / total) * Math.PI * 2;
@@ -779,15 +802,15 @@ function Donut({ langs, total }) {
     a += da;
     const a1 = a - 0.02;
     const big = da > Math.PI ? 1 : 0;
-    const P = (rad, ang) =>
+    const polar = (rad, ang) =>
       `${(36 + rad * Math.cos(ang)).toFixed(2)},${(36 + rad * Math.sin(ang)).toFixed(2)}`;
     return (
       <path
         key={l}
         d={
           da >= Math.PI * 2 - 0.03
-            ? `M36,${36 - R} A${R},${R} 0 1 1 35.99,${36 - R} L35.99,${36 - r} A${r},${r} 0 1 0 36,${36 - r} Z`
-            : `M${P(R, a0)} A${R},${R} 0 ${big} 1 ${P(R, a1)} L${P(r, a1)} A${r},${r} 0 ${big} 0 ${P(r, a0)} Z`
+            ? `M36,${36 - radius} A${radius},${radius} 0 1 1 35.99,${36 - radius} L35.99,${36 - r} A${r},${r} 0 1 0 36,${36 - r} Z`
+            : `M${polar(radius, a0)} A${radius},${radius} 0 ${big} 1 ${polar(radius, a1)} L${polar(r, a1)} A${r},${r} 0 ${big} 0 ${polar(r, a0)} Z`
         }
         fill={langColor(l)}
       >
@@ -814,37 +837,37 @@ function Donut({ langs, total }) {
   );
 }
 
-function AtlasLoading({ A, F, onRetry, onBig, asked, onIdeaInstead }) {
+function AtlasLoading({ atlas, facts, onRetry, onBig, asked, onIdeaInstead }) {
   const steps = [
     ['clone', 'Bringing the code onto your Mac'],
     ['read', 'Reading every file and following the imports'],
     ['narr', 'Asking your model to explain it'],
   ];
-  const real = F ? 2 : A.status === 'cloning' ? 0 : A.status === 'reading' ? 1 : 2;
+  const real = facts ? 2 : atlas.status === 'cloning' ? 0 : atlas.status === 'reading' ? 1 : 2;
   const [at, setAt] = useState(0);
   useEffect(() => {
     if (at >= real) return;
     const t = setTimeout(() => setAt((x) => x + 1), 480);
     return () => clearTimeout(t);
   }, [at, real]);
-  const counts = F && {
-    files: F.totals.code,
-    lines: F.totals.lines,
-    links: F.files.reduce((a, f) => a + (f.imp?.length || 0), 0),
-    outside: new Set(F.files.flatMap((f) => f.ext || [])).size,
+  const counts = facts && {
+    files: facts.totals.code,
+    lines: facts.totals.lines,
+    links: facts.files.reduce((a, f) => a + (f.imp?.length || 0), 0),
+    outside: new Set(facts.files.flatMap((f) => f.ext || [])).size,
   };
   return (
     <div className="atlas-loading">
-      {asked && <AskedBanner asked={asked} A={A} onIdeaInstead={onIdeaInstead} waiting />}
-      <h1 className="sr-only">Reading {A.name}</h1>
+      {asked && <AskedBanner asked={asked} atlas={atlas} onIdeaInstead={onIdeaInstead} waiting />}
+      <h1 className="sr-only">Reading {atlas.name}</h1>
       <div className="al-name" aria-hidden="true">
-        {A.name}
+        {atlas.name}
       </div>
-      {A.status === 'big' ? (
+      {atlas.status === 'big' ? (
         <div className="big-warn">
-          <b>This one is huge.</b> GitHub lists {A.meta?.full} at{' '}
-          {(A.meta.size / 1024 / 1024).toFixed(1)} GB with its whole history. Bento only downloads
-          the latest version, but that can still take a few minutes and real disk space.
+          <b>This one is huge.</b> GitHub lists {atlas.meta?.full} at{' '}
+          {(atlas.meta.size / 1024 / 1024).toFixed(1)} GB with its whole history. Bento only
+          downloads the latest version, but that can still take a few minutes and real disk space.
           <div className="big-acts">
             <button className="btn" onClick={onBig}>
               Take it apart anyway
@@ -852,9 +875,9 @@ function AtlasLoading({ A, F, onRetry, onBig, asked, onIdeaInstead }) {
             <span className="muted small">or try a “bite-size” project in Explore</span>
           </div>
         </div>
-      ) : A.status === 'error' ? (
+      ) : atlas.status === 'error' ? (
         <div className="story-err">
-          <b>Couldn’t open it.</b> {A.error}
+          <b>Couldn’t open it.</b> {atlas.error}
           <div>
             <button className="btn tiny" onClick={onRetry}>
               Try again
@@ -867,9 +890,9 @@ function AtlasLoading({ A, F, onRetry, onBig, asked, onIdeaInstead }) {
             <div key={k} className={`al-step ${i < at ? 'done' : i === at ? 'now' : ''}`}>
               <span className="al-dot">{i < at ? '✓' : ''}</span>
               {l}
-              {i === 0 && at === 0 && A.progress?.pct != null && (
+              {i === 0 && at === 0 && atlas.progress?.pct != null && (
                 <span className="al-pct">
-                  {A.progress.phase === 'cached' ? 'already here' : `${A.progress.pct}%`}
+                  {atlas.progress.phase === 'cached' ? 'already here' : `${atlas.progress.pct}%`}
                 </span>
               )}
               {i === 1 && at >= 1 && counts && (
@@ -903,7 +926,7 @@ function AtlasLoading({ A, F, onRetry, onBig, asked, onIdeaInstead }) {
 
 // =====================================================================================================
 // Toolbelt: logos first. Pick one to see what it does here, why it was chosen, and what else would work.
-export function Toolbelt({ tools, stack, N, narrating, onShowFiles }) {
+export function Toolbelt({ tools, stack, narration, narrating, onShowFiles }) {
   const [sel, setSel] = useState(null);
   const [alt, setAlt] = useState(null);
   useEffect(() => {
@@ -911,7 +934,7 @@ export function Toolbelt({ tools, stack, N, narrating, onShowFiles }) {
     addEventListener('atlas-tool', h);
     return () => removeEventListener('atlas-tool', h);
   }, []);
-  const narrStack = N?.stack || {};
+  const narrStack = narration?.stack || {};
   const shop = stack.filter((s) => s.workshop && !s.side);
   const side = stack.filter((s) => s.side);
   const groups = [];
@@ -1076,12 +1099,12 @@ export function Toolbelt({ tools, stack, N, narrating, onShowFiles }) {
 }
 
 // =====================================================================================================
-function Language({ langs, totalL, main, N, narrating }) {
-  const L = LANGS[main] || {};
-  const why = N?.lang?.why || L.why;
-  const alts = N?.lang?.alts?.length
-    ? N.lang.alts
-    : (L.alt || []).map((a) => ({ name: a, when: LANGS[a]?.why }));
+function Language({ langs, totalL, main, narration, narrating }) {
+  const langInfo = LANGS[main] || {};
+  const why = narration?.lang?.why || langInfo.why;
+  const alts = narration?.lang?.alts?.length
+    ? narration.lang.alts
+    : (langInfo.alt || []).map((a) => ({ name: a, when: LANGS[a]?.why }));
   return (
     <section className="asec" id="sec-language">
       <div className="sec-head">
@@ -1092,7 +1115,7 @@ function Language({ langs, totalL, main, N, narrating }) {
       </div>
       <div className="lang-wrap">
         <div className="lang-main">
-          <Brand slug={L.slug} name={main} color={L.color} size={64} />
+          <Brand slug={langInfo.slug} name={main} color={langInfo.color} size={64} />
           <div>
             <p className="lang-why">
               {why ? (
@@ -1102,7 +1125,7 @@ function Language({ langs, totalL, main, N, narrating }) {
               ) : (
                 'The authors’ choice.'
               )}
-              {!N?.lang && narrating && (
+              {!narration?.lang && narrating && (
                 <span className="muted small"> (a general answer for now)</span>
               )}
             </p>
@@ -1163,9 +1186,9 @@ const HOT_ICON = {
   security: ['⛨', 'Security'],
   scale: ['⇡', 'Scale'],
 };
-function Hotspots({ hot, role, onOpen, narrating, F, pathIdx }) {
-  const maxL = Math.max(100, ...F.files.filter((f) => f.lang).map((f) => f.lines));
-  const maxU = Math.max(3, ...F.files.map((f) => f.used));
+function Hotspots({ hot, role, onOpen, narrating, facts, pathIdx }) {
+  const maxL = Math.max(100, ...facts.files.filter((f) => f.lang).map((f) => f.lines));
+  const maxU = Math.max(3, ...facts.files.map((f) => f.used));
   const kinds = Object.entries(
     hot.reduce((m, h) => {
       const k = h.kind || 'fragile';
@@ -1208,7 +1231,12 @@ function Hotspots({ hot, role, onOpen, narrating, F, pathIdx }) {
           return (
             <div key={i} className={`hot k-${h.kind || 'fragile'}`}>
               {h.p && pathIdx.has(h.p) ? (
-                <MiniBuilding f={F.files[pathIdx.get(h.p)]} maxL={maxL} maxU={maxU} kind={h.kind} />
+                <MiniBuilding
+                  f={facts.files[pathIdx.get(h.p)]}
+                  maxL={maxL}
+                  maxU={maxU}
+                  kind={h.kind}
+                />
               ) : (
                 <span className="hot-ic">{ic}</span>
               )}
@@ -1299,7 +1327,7 @@ function squarify(items, x, y, w, h) {
 }
 function FileMap({ files, role, onOpen }) {
   const box = useRef(null);
-  const [W, setW] = useState(900);
+  const [width, setW] = useState(900);
   const [hov, setHov] = useState(null);
   useEffect(() => {
     const el = box.current;
@@ -1309,7 +1337,7 @@ function FileMap({ files, role, onOpen }) {
     setW(el.clientWidth);
     return () => ro.disconnect();
   }, []);
-  const H = Math.round(Math.min(560, Math.max(320, W * 0.48)));
+  const height = Math.round(Math.min(560, Math.max(320, width * 0.48)));
   const code = files.filter((f) => f.lines > 0);
   const groups = new Map();
   for (const f of code) {
@@ -1326,11 +1354,11 @@ function FileMap({ files, role, onOpen }) {
     [...groups].map(([d, fs]) => ({ d, fs, v: fs.reduce((s, f) => s + f.lines, 0) })),
     0,
     0,
-    W,
-    H,
+    width,
+    height,
   );
   return (
-    <div className="fmap" ref={box} style={{ height: H }}>
+    <div className="fmap" ref={box} style={{ height }}>
       {blocks.map((b) => {
         const pad = 3,
           head = b.h > 46 && b.w > 70 ? 18 : 0;
@@ -1429,7 +1457,7 @@ function MiniBuilding({ f, maxL, maxU, kind }) {
 }
 
 // =====================================================================================================
-function FileList({ F, role, onOpen }) {
+function FileList({ facts, role, onOpen }) {
   const [q, setQ] = useState('');
   const [layer, setLayer] = useState('all');
   const [open, setOpen] = useState({});
@@ -1443,7 +1471,7 @@ function FileList({ F, role, onOpen }) {
     addEventListener('atlas-layer', h);
     return () => removeEventListener('atlas-layer', h);
   }, []);
-  const files = F.files.filter(
+  const files = facts.files.filter(
     (f) =>
       (layer === 'all' || f.layer === layer) &&
       (!q ||
@@ -1528,17 +1556,17 @@ function FileList({ F, role, onOpen }) {
 // =====================================================================================================
 // Code detective: read the top of a real file and guess its job. Reading code is a skill; this makes it a game.
 const LEAD = /^\s*(\/\*|\*|\/\/|#(?!include|!|\[)|"""|'''|<!--|-->|$)/;
-function Detective({ F, N, readFile, onOpen }) {
+function Detective({ facts, narration, readFile, onOpen }) {
   const pool = useMemo(() => {
-    const roles = N?.roles || {};
-    const idx = new Map(F.files.map((f) => [f.p, f]));
+    const roles = narration?.roles || {};
+    const idx = new Map(facts.files.map((f) => [f.p, f]));
     return Object.entries(roles)
       .filter(
         ([p, r]) =>
           r && idx.get(p)?.lines >= 12 && idx.get(p)?.lang && idx.get(p).layer !== 'support',
       )
       .map(([p, r]) => ({ p, r, layer: idx.get(p).layer }));
-  }, [F, N]);
+  }, [facts, narration]);
   const [game, setGame] = useState(null); // { rounds: [...], i, score, picked, code }
   const deal = async () => {
     const pick = [...pool].sort(() => Math.random() - 0.5).slice(0, 5);
@@ -1552,10 +1580,10 @@ function Detective({ F, N, readFile, onOpen }) {
     setGame({ rounds, i: 0, score: 0, picked: null, code: null });
     load(rounds[0]);
   };
-  const load = async (R) => {
+  const load = async (round) => {
     let t = '';
     try {
-      t = await readFile(R.p);
+      t = await readFile(round.p);
     } catch {}
     const lines = t.split('\n');
     let k = 0;
@@ -1565,7 +1593,7 @@ function Detective({ F, N, readFile, onOpen }) {
       .filter((l, j, a) => !(l.trim() === '' && a[j - 1]?.trim() === ''))
       .slice(0, 18)
       .join('\n');
-    setGame((g) => (g && g.rounds.includes(R) ? { ...g, code } : g));
+    setGame((g) => (g && g.rounds.includes(round) ? { ...g, code } : g));
   };
   if (pool.length < 4) return null;
   if (!game)
@@ -1584,7 +1612,7 @@ function Detective({ F, N, readFile, onOpen }) {
         </button>
       </div>
     );
-  const R = game.rounds[game.i];
+  const round = game.rounds[game.i];
   const done = game.i >= game.rounds.length;
   if (done)
     return (
@@ -1607,7 +1635,7 @@ function Detective({ F, N, readFile, onOpen }) {
         </button>
       </div>
     );
-  const right = game.picked != null && game.picked === R.r;
+  const right = game.picked != null && game.picked === round.r;
   return (
     <div className="detective">
       <div className="dt-top">
@@ -1623,13 +1651,13 @@ function Detective({ F, N, readFile, onOpen }) {
         <pre className="dt-code">{game.code == null ? '…' : game.code || '(empty file)'}</pre>
         <div className="dt-q">
           <b>What does this file do?</b>
-          {R.opts.map((o) => (
+          {round.opts.map((o) => (
             <button
               key={o}
               disabled={game.picked != null}
-              className={`dt-opt ${game.picked != null && o === R.r ? 'ok' : ''} ${game.picked === o && o !== R.r ? 'no' : ''}`}
+              className={`dt-opt ${game.picked != null && o === round.r ? 'ok' : ''} ${game.picked === o && o !== round.r ? 'no' : ''}`}
               onClick={() =>
-                setGame({ ...game, picked: o, score: game.score + (o === R.r ? 1 : 0) })
+                setGame({ ...game, picked: o, score: game.score + (o === round.r ? 1 : 0) })
               }
             >
               {o}
@@ -1638,10 +1666,10 @@ function Detective({ F, N, readFile, onOpen }) {
           {game.picked != null && (
             <div className="dt-reveal">
               <span>
-                {right ? '✓ Right!' : '✗ Not quite.'} It’s <code>{R.p}</code>
+                {right ? '✓ Right!' : '✗ Not quite.'} It’s <code>{round.p}</code>
               </span>
               <div>
-                <button className="link" onClick={() => onOpen(R.p)}>
+                <button className="link" onClick={() => onOpen(round.p)}>
                   Open the file
                 </button>
                 <button
@@ -1663,10 +1691,21 @@ function Detective({ F, N, readFile, onOpen }) {
   );
 }
 
-function Study({ F, readFile, onOpen, A, N, onAsk, onFeature, narrating, tour = [], onTour }) {
+function Study({
+  facts,
+  readFile,
+  onOpen,
+  atlas,
+  narration,
+  onAsk,
+  onFeature,
+  narrating,
+  tour = [],
+  onTour,
+}) {
   const [feat, setFeat] = useState('');
-  const qs = N?.learn?.length
-    ? N.learn
+  const qs = narration?.learn?.length
+    ? narration.learn
     : [
         'Where does this app start?',
         'How does data flow through it?',
@@ -1704,7 +1743,9 @@ function Study({ F, readFile, onOpen, A, N, onAsk, onFeature, narrating, tour = 
           </ol>
         </div>
       )}
-      {!narrating && readFile && <Detective F={F} N={N} readFile={readFile} onOpen={onOpen} />}
+      {!narrating && readFile && (
+        <Detective facts={facts} narration={narration} readFile={readFile} onOpen={onOpen} />
+      )}
       <div className="study">
         <div className="nexts">
           {qs.map((q, i) => (
@@ -1713,7 +1754,7 @@ function Study({ F, readFile, onOpen, A, N, onAsk, onFeature, narrating, tour = 
               <span>→</span>
             </button>
           ))}
-          {narrating && !N?.learn?.length && (
+          {narrating && !narration?.learn?.length && (
             <div className="muted small" style={{ marginTop: 8 }}>
               Better questions arrive when the reading is done.
             </div>
@@ -1733,7 +1774,7 @@ function Study({ F, readFile, onOpen, A, N, onAsk, onFeature, narrating, tour = 
           <input
             value={feat}
             onChange={(e) => setFeat(e.target.value)}
-            placeholder={`Build a feature in ${A.name.split('/').pop()}: “add a dark mode toggle”…`}
+            placeholder={`Build a feature in ${atlas.name.split('/').pop()}: “add a dark mode toggle”…`}
           />
           <button className="btn" disabled={!feat.trim()}>
             Show me how
@@ -1745,15 +1786,15 @@ function Study({ F, readFile, onOpen, A, N, onAsk, onFeature, narrating, tour = 
 }
 
 // Why you're here: you asked about a real project, and this is its real code (found on your Mac or on GitHub)
-const asIcon = (asked, A) =>
+const asIcon = (asked, atlas) =>
   asked.d?.pick?.app?.icon ||
-  A.meta?.avatar ||
+  atlas.meta?.avatar ||
   (asked.d?.pick?.full
     ? `https://avatars.githubusercontent.com/${asked.d.pick.full.split('/')[0]}?size=96`
     : null);
-function AskedBanner({ asked, A, onIdeaInstead, onClose, waiting }) {
+function AskedBanner({ asked, atlas, onIdeaInstead, onClose, waiting }) {
   const pick = asked.d?.pick || {};
-  const icon = asIcon(asked, A);
+  const icon = asIcon(asked, atlas);
   const home = (p) => String(p || '').replace(/^\/Users\/[^/]+/, '~');
   return (
     <div className={`asked fade-in ${waiting ? 'waiting' : ''}`} role="status">
@@ -2055,18 +2096,18 @@ function AskBar({ name, threadKey, onAsk, onQuick, onOpen, initial, onFeature })
 
 // Ripple: change this file, and who could feel it? Rings = how many hops away (direct users, their users, …).
 const revCache = new WeakMap();
-function reverseOf(F) {
-  let r = revCache.get(F);
+function reverseOf(facts) {
+  let r = revCache.get(facts);
   if (r) return r;
-  r = F.files.map(() => []);
-  F.files.forEach((g, j) => g.imp.forEach((i) => r[i]?.push(j)));
-  revCache.set(F, r);
+  r = facts.files.map(() => []);
+  facts.files.forEach((g, j) => g.imp.forEach((i) => r[i]?.push(j)));
+  revCache.set(facts, r);
   return r;
 }
-function Ripple({ F, idx, onOpen }) {
+function Ripple({ facts, idx, onOpen }) {
   const [hov, setHov] = useState(null);
   const rings = useMemo(() => {
-    const rev = reverseOf(F);
+    const rev = reverseOf(facts);
     const seen = new Set([idx]);
     const out = [];
     let front = [idx];
@@ -2096,36 +2137,36 @@ function Ripple({ F, idx, onOpen }) {
       if (more) out.more = more;
     }
     return out;
-  }, [F, idx]);
+  }, [facts, idx]);
   const total = rings.reduce((a, r) => a + r.length, 0) + (rings.more || 0);
   if (!total) return null;
-  const pct = Math.max(1, Math.round((total / F.files.length) * 100));
-  const W = 260,
-    C = W / 2,
-    R = [44, 78, 112];
+  const pct = Math.max(1, Math.round((total / facts.files.length) * 100));
+  const width = 260,
+    center = width / 2,
+    radius = [44, 78, 112];
   return (
     <div className="ripple">
-      <svg viewBox={`0 0 ${W} ${W}`} width={W} height={W} aria-hidden="true">
+      <svg viewBox={`0 0 ${width} ${width}`} width={width} height={width} aria-hidden="true">
         {rings.map((_, d) => (
           <circle
             key={d}
-            cx={C}
-            cy={C}
-            r={R[d]}
+            cx={center}
+            cy={center}
+            r={radius[d]}
             className="rp-ring"
             style={{ animationDelay: `${d * 0.25}s` }}
           />
         ))}
         {rings.map((ring, d) =>
-          ring.slice(0, Math.floor(R[d] / 1.6)).map((j, k, arr) => {
-            const dr = Math.max(2.2, Math.min(5.5, ((Math.PI * R[d]) / arr.length) * 0.55));
+          ring.slice(0, Math.floor(radius[d] / 1.6)).map((j, k, arr) => {
+            const dr = Math.max(2.2, Math.min(5.5, ((Math.PI * radius[d]) / arr.length) * 0.55));
             const a = (k / arr.length) * Math.PI * 2 - Math.PI / 2 + d * 0.4;
-            const g = F.files[j];
+            const g = facts.files[j];
             return (
               <circle
                 key={j}
-                cx={C + Math.cos(a) * R[d]}
-                cy={C + Math.sin(a) * R[d]}
+                cx={center + Math.cos(a) * radius[d]}
+                cy={center + Math.sin(a) * radius[d]}
                 r={hov === j ? dr + 2.5 : dr}
                 fill={LAYER[g.layer]?.[3] || 'var(--ink-3)'}
                 className="rp-dot"
@@ -2137,7 +2178,7 @@ function Ripple({ F, idx, onOpen }) {
             );
           }),
         )}
-        <circle cx={C} cy={C} r={13} className="rp-core" />
+        <circle cx={center} cy={center} r={13} className="rp-core" />
       </svg>
       <div className="rp-text">
         <div className="mini-h">if this file changes</div>
@@ -2147,7 +2188,7 @@ function Ripple({ F, idx, onOpen }) {
         <div className="rp-sub">
           {hov != null ? (
             <>
-              <b>{displayName(F.files[hov].p)}</b> · {F.files[hov].p}
+              <b>{displayName(facts.files[hov].p)}</b> · {facts.files[hov].p}
             </>
           ) : (
             <>
@@ -2167,7 +2208,7 @@ function Ripple({ F, idx, onOpen }) {
         <div className="rp-term">
           The word for this is <b>coupling</b>. The ring of files a change can reach is its{' '}
           <b>blast radius</b>.{' '}
-          {total / F.files.length > 0.25
+          {total / facts.files.length > 0.25
             ? 'This one is wide, so change it carefully and test a lot.'
             : 'This one is contained, so it’s fairly safe to change.'}
         </div>
@@ -2206,7 +2247,7 @@ function Drawer({
   onOthers,
   tour,
   p,
-  F,
+  facts,
   pathIdx,
   role,
   stack,
@@ -2222,14 +2263,15 @@ function Drawer({
   // (a file nothing uses and that uses nothing opens on its code: there'd be nothing to say about it)
   const first = () => {
     const i = pathIdx.get(p);
-    return i != null && (F.files[i].imp.length > 0 || F.files.some((g) => g.imp.includes(i)))
+    return i != null &&
+      (facts.files[i].imp.length > 0 || facts.files.some((g) => g.imp.includes(i)))
       ? 'about'
       : 'code';
   };
   const [tab, setTab] = useState(first);
   useEffect(() => setTab(first()), [p]); // eslint-disable-line react-hooks/exhaustive-deps
   // a file outside the analysed sample: what we know from its name and its text
-  const f = F.files[pathIdx.get(p)] || {
+  const f = facts.files[pathIdx.get(p)] || {
     p,
     lang: EXT_LANG[(/\.([^./]+)$/.exec(p)?.[1] || '').toLowerCase()] || null,
     lines: text ? text.split('\n').length : 0,
@@ -2257,8 +2299,8 @@ function Drawer({
   }, []);
   if (!f) return null;
   const idx = pathIdx.get(p);
-  const usedBy = F.files.filter((g) => g.imp.includes(idx));
-  const uses = f.imp.map((j) => F.files[j]);
+  const usedBy = facts.files.filter((g) => g.imp.includes(idx));
+  const uses = f.imp.map((j) => facts.files[j]);
   const tools = stack.filter((s) => s.used.includes(idx));
   const [, lname, , lcolor] = LAYER[f.layer];
   return (
@@ -2399,7 +2441,9 @@ function Drawer({
               )}
             </div>
           )}
-        {(!phone || tab === 'about') && idx != null && <Ripple F={F} idx={idx} onOpen={onOpen} />}
+        {(!phone || tab === 'about') && idx != null && (
+          <Ripple facts={facts} idx={idx} onOpen={onOpen} />
+        )}
         {(!phone || tab === 'code') && (
           <div className="dr-code">
             {text == null ? (

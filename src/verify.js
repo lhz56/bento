@@ -45,8 +45,8 @@ export function fixLinks(code, md) {
     n <= c.length &&
     new RegExp(`(^|[^A-Za-z0-9_])${esc(t)}($|[^A-Za-z0-9_])`, 'i').test(c[n - 1]);
   const out = String(md || '').replace(LINK, (m, a, z, text) => {
-    const A = +a;
-    if (z && +z !== A) return m;
+    const numA = +a;
+    if (z && +z !== numA) return m;
     const toks = (text.match(/[A-Za-z_][A-Za-z0-9_]*/g) || []).filter(
       (w) => w.length >= 3 && !COMMON.has(w.toLowerCase()),
     );
@@ -56,27 +56,27 @@ export function fixLinks(code, md) {
         text,
       );
     let to = null;
-    if (A >= 1 && A <= c.length && !c[A - 1].trim()) {
+    if (numA >= 1 && numA <= c.length && !c[numA - 1].trim()) {
       for (const d of [1, -1, 2, -2])
-        if (c[A + d - 1]?.trim() && toks.some((t) => has(A + d, t))) {
-          to = A + d;
+        if (c[numA + d - 1]?.trim() && toks.some((t) => has(numA + d, t))) {
+          to = numA + d;
           break;
         }
       if (to == null)
         for (const d of [1, -1])
-          if (c[A + d - 1]?.trim()) {
-            to = A + d;
+          if (c[numA + d - 1]?.trim()) {
+            to = numA + d;
             break;
           }
-    } else if (codey && toks.length && !toks.some((t) => has(A, t))) {
+    } else if (codey && toks.length && !toks.some((t) => has(numA, t))) {
       for (const d of [1, -1, 2, -2])
-        if (toks.some((t) => has(A + d, t))) {
-          to = A + d;
+        if (toks.some((t) => has(numA + d, t))) {
+          to = numA + d;
           break;
         }
     }
     if (to == null) return m;
-    moved.push({ from: A, to, text });
+    moved.push({ from: numA, to, text });
     return `[[${to}|${text}]]`;
   });
   return { md: out, moved };
@@ -91,11 +91,11 @@ export function fixNotes(code, notes) {
     n >= 1 &&
     n <= c.length &&
     new RegExp(`(^|[^A-Za-z0-9_])${esc(t)}($|[^A-Za-z0-9_])`, 'i').test(c[n - 1]);
-  const out = (notes || []).map((N) => {
-    const a = +N.from,
-      b = +(N.to || N.from);
-    if (!(a >= 1 && b <= c.length && a <= b)) return N; // past the end: the free checks drop it
-    const label = String(N.label || '');
+  const out = (notes || []).map((note) => {
+    const a = +note.from,
+      b = +(note.to || note.from);
+    if (!(a >= 1 && b <= c.length && a <= b)) return note; // past the end: the free checks drop it
+    const label = String(note.label || '');
     const toks = (label.match(/[A-Za-z_][A-Za-z0-9_]*/g) || []).filter(
       (w) => w.length >= 3 && !COMMON.has(w.toLowerCase()),
     );
@@ -117,9 +117,9 @@ export function fixNotes(code, notes) {
           break;
         }
     }
-    if (d == null) return N;
+    if (d == null) return note;
     moved.push({ from: a, to: a + d, label });
-    return { ...N, from: a + d, to: b + d };
+    return { ...note, from: a + d, to: b + d };
   });
   return { notes: out, moved };
 }
@@ -127,38 +127,38 @@ export function fixNotes(code, notes) {
 // When a lesson finishes writing, before anyone reads it (web pages too, which Bento never runs): line links and margin
 // notes that slipped are moved back, plain English that slipped off its lines is cleared (the Desk writes it again, by
 // line number), and the free checks drop what points past the code or can't be answered. Returns a lesson patch.
-export function tidyLesson(L) {
+export function tidyLesson(lesson) {
   const patch = {};
-  if (L.code && !L.steps?.length) {
+  if (lesson.code && !lesson.steps?.length) {
     let n = 0;
-    const story = (L.story || []).map((b) => {
+    const story = (lesson.story || []).map((b) => {
       if (b.t !== 'p' || !b.md) return b;
-      const r = fixLinks(L.code, b.md);
+      const r = fixLinks(lesson.code, b.md);
       n += r.moved.length;
       return r.moved.length ? { ...b, md: r.md } : b;
     });
     if (n) patch.story = story;
-    const N = fixNotes(L.code, L.notes);
-    if (N.moved.length) patch.notes = N.notes;
+    const notes = fixNotes(lesson.code, lesson.notes);
+    if (notes.moved.length) patch.notes = notes.notes;
   }
-  if (L.code) Object.assign(patch, localChecks({ ...L, ...patch }).patch);
+  if (lesson.code) Object.assign(patch, localChecks({ ...lesson, ...patch }).patch);
   return patch;
 }
 
 // Free checks. Returns { lesson patch, notes[] }
-export function localChecks(L) {
+export function localChecks(lesson) {
   const notes = [];
   const patch = {};
-  const lines = String(L.code || '').split('\n').length;
+  const lines = String(lesson.code || '').split('\n').length;
   // line links that point past the end of the code become plain text
-  const story = (L.story || [])
+  const story = (lesson.story || [])
     .map((b) => {
       if (b.t !== 'p' || !b.md) return b;
       let bad = 0;
       const md = b.md.replace(LINK, (m, a, z, text) => {
-        const A = +a,
-          Z = +(z || a);
-        if (A >= 1 && Z <= lines && A <= Z) return m;
+        const numA = +a,
+          numZ = +(z || a);
+        if (numA >= 1 && numZ <= lines && numA <= numZ) return m;
         bad++;
         return text;
       });
@@ -175,16 +175,16 @@ export function localChecks(L) {
       return b;
     })
     .filter(Boolean);
-  if (story.length !== (L.story || []).length || story.some((b, i) => b !== L.story[i]))
+  if (story.length !== (lesson.story || []).length || story.some((b, i) => b !== lesson.story[i]))
     patch.story = story;
-  const notesOk = (L.notes || []).filter(
+  const notesOk = (lesson.notes || []).filter(
     (n) => n.from >= 1 && (n.to || n.from) <= lines && n.from <= (n.to || n.from),
   );
-  if (notesOk.length !== (L.notes || []).length) {
+  if (notesOk.length !== (lesson.notes || []).length) {
     patch.notes = notesOk;
     notes.push('notes pointing past the code');
   }
-  if (L.pseudo?.length && !pseudoFits(L.code, L.pseudo)) {
+  if (lesson.pseudo?.length && !pseudoFits(lesson.code, lesson.pseudo)) {
     patch.pseudo = [];
     notes.push('plain-words lines that didn’t match the code (they’ll be rewritten)');
   }
@@ -192,8 +192,8 @@ export function localChecks(L) {
 }
 
 // The fast model's fact-check prompt: the code, what it really printed, the quizzes and the claims
-export function checkPrompt(L, run) {
-  const code = String(L.code || '')
+export function checkPrompt(lesson, run) {
+  const code = String(lesson.code || '')
     .split('\n')
     .map((x, i) => `${i + 1}| ${x}`)
     .join('\n')
@@ -207,12 +207,12 @@ export function checkPrompt(L, run) {
     .slice(0, 6)
     .map((v) => v.type + (v.label ? ` "${v.label}"` : ''))
     .join(', ');
-  const text = (L.story || [])
+  const text = (lesson.story || [])
     .filter((b) => b.t === 'p')
     .map((b, i) => `[${i}] ${b.md}`)
     .join('\n')
     .slice(0, 5000);
-  const quizzes = (L.story || [])
+  const quizzes = (lesson.story || [])
     .filter((b) => b.t === 'quiz')
     .map(
       (b, i) =>
@@ -220,7 +220,7 @@ export function checkPrompt(L, run) {
     )
     .join('\n');
   return `You are checking a beginner coding lesson for factual mistakes, using what its code ACTUALLY did when run.
-LESSON: "${L.title}" (${L.lang})
+LESSON: "${lesson.title}" (${lesson.lang})
 CODE:
 ${code}
 
@@ -240,9 +240,9 @@ Reply JSON only: {"quizzes":[{"i":0,"correct":1,"sure":true,"why":"only when the
 }
 
 // Apply the model's verdict (only what it's sure of, and only exact quotes). Returns { patch, corrections[] }
-export function applyCheck(L, j) {
+export function applyCheck(lesson, j) {
   const corrections = [];
-  let story = [...(L.story || [])];
+  let story = [...(lesson.story || [])];
   let qi = -1;
   story = story.map((b) => {
     if (b.t !== 'quiz') return b;

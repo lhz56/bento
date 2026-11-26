@@ -38,8 +38,8 @@ export const usableModel = (model, providers) =>
 // ---------------------------------------------------------------- plan usage, in plain words
 // A limits reading from the app: { plan, windows: [{ label, used (0-100), n, of, unit, resetsAt, warn, out }], at }
 // The window that matters most: the fullest one
-export const mainWindow = (L) =>
-  (L?.windows || [])
+export const mainWindow = (lesson) =>
+  (lesson?.windows || [])
     .filter((w) => w.used != null || w.n != null)
     .sort((a, b) => (b.used ?? 0) - (a.used ?? 0))[0] || null;
 export const level = (w) =>
@@ -54,42 +54,42 @@ export const level = (w) =>
           : 'low';
 // "resets Thursday 9:00" / "resets in 2 h" / "resets Dec 1". T translates the fixed words (never the numbers: each
 // new string would otherwise be sent off for translation); dates and times come in the Mac's own language.
-export function resetText(at, now = Date.now(), T = (x) => x) {
+export function resetText(at, now = Date.now(), translate = (x) => x) {
   if (!at) return '';
   const ms = at - now;
-  if (ms <= 0) return T('resets soon');
+  if (ms <= 0) return translate('resets soon');
   const d = new Date(at);
   if (ms < 3 * 3600e3) {
     const m = Math.round(ms / 60000);
     return m < 60
-      ? `${T('resets in')} ${m} ${T('min')}`
-      : `${T('resets in')} ${Math.round(m / 60)} ${T('h')}`;
+      ? `${translate('resets in')} ${m} ${translate('min')}`
+      : `${translate('resets in')} ${Math.round(m / 60)} ${translate('h')}`;
   }
   const tm = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   if (ms < 6 * 864e5)
     return new Date(now).toDateString() === d.toDateString()
-      ? `${T('resets at')} ${tm}`
-      : `${T('resets')} ${d.toLocaleDateString(undefined, { weekday: 'long' })} ${tm}`;
-  return `${T('resets')} ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+      ? `${translate('resets at')} ${tm}`
+      : `${translate('resets')} ${d.toLocaleDateString(undefined, { weekday: 'long' })} ${tm}`;
+  return `${translate('resets')} ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
 }
 // "53% of this week" / "12 of 200 requests this month"
-export const usedText = (w, T = (x) => x) =>
+export const usedText = (w, translate = (x) => x) =>
   !w
     ? ''
     : w.unlimited
-      ? `${T('unlimited')} ${T(w.label)}`
+      ? `${translate('unlimited')} ${translate(w.label)}`
       : w.of
-        ? `${w.n} ${T('of')} ${w.of} ${T(w.unit || 'requests')} ${T(w.label)}`
-        : `${w.used}% ${T('of')} ${T(w.label)}`;
+        ? `${w.n} ${translate('of')} ${w.of} ${translate(w.unit || 'requests')} ${translate(w.label)}`
+        : `${w.used}% ${translate('of')} ${translate(w.label)}`;
 // how old a reading is, so a meter never pretends to be live
-export const ageText = (at, now = Date.now(), T = (x) => x) => {
+export const ageText = (at, now = Date.now(), translate = (x) => x) => {
   if (!at) return '';
   const m = Math.round((now - at) / 60000);
   return m < 2
-    ? T('just now')
+    ? translate('just now')
     : m < 60
-      ? `${m} ${T('min ago')}`
+      ? `${m} ${translate('min ago')}`
       : m < 1440
-        ? `${Math.round(m / 60)} ${T('h ago')}`
-        : `${Math.round(m / 1440)} ${T('d ago')}`;
+        ? `${Math.round(m / 60)} ${translate('h ago')}`
+        : `${Math.round(m / 1440)} ${translate('d ago')}`;
 };

@@ -157,11 +157,11 @@ export default function Ideas({
   );
 }
 
-const O = '#ff8a5b',
-  V = '#a78bfa',
-  M = '#4cc9a0',
-  S = '#5aa9ff',
-  Y = '#f5b82e';
+const orange = '#ff8a5b',
+  violet = '#a78bfa',
+  mint = '#4cc9a0',
+  sky = '#5aa9ff',
+  yellow = '#f5b82e';
 export function IdeaArt({ kind, big }) {
   const vb = '0 0 200 110';
   const wrap = (children) => (
@@ -186,7 +186,7 @@ export function IdeaArt({ kind, big }) {
             <path
               key={`${r}-${c}`}
               d={hexPath(x, y, 9.6)}
-              fill={d < 6 ? O : d < 22 ? '#ffc4ab' : d < 38 ? '#ffe6db' : 'none'}
+              fill={d < 6 ? orange : d < 22 ? '#ffc4ab' : d < 38 ? '#ffe6db' : 'none'}
               stroke="var(--line-2)"
               strokeWidth=".8"
             />,
@@ -201,7 +201,7 @@ export function IdeaArt({ kind, big }) {
             [90, 82],
             [140, 28],
           ].map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r="3" fill={S} />
+            <circle key={i} cx={x} cy={y} r="3" fill={sky} />
           ))}
         </>,
       );
@@ -217,7 +217,7 @@ export function IdeaArt({ kind, big }) {
               width="9"
               height="11"
               rx="2"
-              fill={[2, 5, 9, 13, 17, 22, 27, 30].includes(i) ? V : 'var(--bg-3)'}
+              fill={[2, 5, 9, 13, 17, 22, 27, 30].includes(i) ? violet : 'var(--bg-3)'}
             />
           ))}
           {[
@@ -228,7 +228,7 @@ export function IdeaArt({ kind, big }) {
             <path
               key={i}
               d={`M${x} 12 Q ${x} 26 ${12 + (b % 16) * 11.2 + 4.5} ${b < 16 ? 38 : 52}`}
-              stroke={O}
+              stroke={orange}
               fill="none"
               strokeWidth="1.2"
             />
@@ -257,7 +257,7 @@ export function IdeaArt({ kind, big }) {
                 cx={100 + 38 * Math.cos(a)}
                 cy={55 + 38 * Math.sin(a)}
                 r="7"
-                fill={[O, V, M, S, Y][k]}
+                fill={[orange, violet, mint, sky, yellow][k]}
               />
             );
           })}
@@ -310,7 +310,7 @@ export function IdeaArt({ kind, big }) {
             />
           ))}
           {n.map(([x, y, r], i) => (
-            <circle key={i} cx={x} cy={y} r={r} fill={i === 4 ? O : V} />
+            <circle key={i} cx={x} cy={y} r={r} fill={i === 4 ? orange : violet} />
           ))}
         </>,
       );
@@ -321,9 +321,9 @@ export function IdeaArt({ kind, big }) {
           {
             [
               [1, 'var(--bg-3)'],
-              [41, S],
-              [10, O],
-              [12, M],
+              [41, sky],
+              [10, orange],
+              [12, mint],
             ].reduce(
               (acc, [w, c], i) => {
                 const x = acc.x;
@@ -384,12 +384,12 @@ export function IdeaArt({ kind, big }) {
               cx={88 + (i % 3) * 12}
               cy={84 - Math.floor(i / 3) * 11}
               r="5"
-              fill={Y}
+              fill={yellow}
             />
           ))}
-          <circle cx="100" cy="14" r="5" fill={Y} opacity=".6" />
-          <path d="M140 60 H180" stroke={M} strokeWidth="2" markerEnd="" />
-          <path d="M20 60 H60" stroke={O} strokeWidth="2" strokeDasharray="3 3" />
+          <circle cx="100" cy="14" r="5" fill={yellow} opacity=".6" />
+          <path d="M140 60 H180" stroke={mint} strokeWidth="2" markerEnd="" />
+          <path d="M20 60 H60" stroke={orange} strokeWidth="2" strokeDasharray="3 3" />
         </>,
       );
     case 'zeros':
@@ -405,12 +405,19 @@ export function IdeaArt({ kind, big }) {
                   width="11"
                   height="11"
                   rx="2"
-                  fill={c === '0' ? (b.length > 5 ? O : 'var(--bg-3)') : M}
+                  fill={c === '0' ? (b.length > 5 ? orange : 'var(--bg-3)') : mint}
                 />
               ))}
             </g>
           ))}
-          <text x="150" y="58" fontSize="22" fill={O} fontFamily="ui-serif" textAnchor="middle">
+          <text
+            x="150"
+            y="58"
+            fontSize="22"
+            fill={orange}
+            fontFamily="ui-serif"
+            textAnchor="middle"
+          >
             ≈ n
           </text>
         </>,
@@ -444,7 +451,7 @@ export function IdeaArt({ kind, big }) {
                 width="28"
                 height="16"
                 rx="4"
-                fill={[0, 2, 5].includes(i) ? O : 'var(--bg-3)'}
+                fill={[0, 2, 5].includes(i) ? orange : 'var(--bg-3)'}
               />
             </g>
           ))}
@@ -482,7 +489,7 @@ export function IdeaArt({ kind, big }) {
           })}
           <path
             d="M22 56 H70 V38 H118 V73 H178"
-            stroke={V}
+            stroke={violet}
             strokeWidth="3"
             fill="none"
             strokeLinejoin="round"
@@ -501,12 +508,12 @@ export function IdeaArt({ kind, big }) {
             height="42"
             rx="6"
             fill="#ffe3d6"
-            stroke={O}
+            stroke={orange}
             strokeWidth="1.5"
           />
           {[
-            [56, 26, V, 'Ana'],
-            [138, 80, M, 'Ben'],
+            [56, 26, violet, 'Ana'],
+            [138, 80, mint, 'Ben'],
           ].map(([x, y, c, n], i) => (
             <g key={i}>
               <path d={`M${x} ${y} l9 22 l3 -9 l9 -3 Z`} fill={c} />
@@ -540,7 +547,9 @@ export function IdeaArt({ kind, big }) {
                 width="13"
                 height="12"
                 rx="3"
-                fill={v === 0 ? 'var(--bg-3)' : `color-mix(in srgb, ${O} ${v * 18}%, var(--panel))`}
+                fill={
+                  v === 0 ? 'var(--bg-3)' : `color-mix(in srgb, ${orange} ${v * 18}%, var(--panel))`
+                }
               />
             );
           })}
@@ -551,7 +560,7 @@ export function IdeaArt({ kind, big }) {
             height="17"
             rx="4"
             fill="none"
-            stroke={V}
+            stroke={violet}
             strokeWidth="1.5"
           />
         </>,
@@ -582,8 +591,15 @@ export function IdeaArt({ kind, big }) {
               </text>
             </g>
           ))}
-          <path d="M68 54 h10 M122 54 h10" stroke={O} strokeDasharray="2 2" />
-          <text x="100" y="92" fontSize="9.5" textAnchor="middle" fill={M} fontFamily="ui-rounded">
+          <path d="M68 54 h10 M122 54 h10" stroke={orange} strokeDasharray="2 2" />
+          <text
+            x="100"
+            y="92"
+            fontSize="9.5"
+            textAnchor="middle"
+            fill={mint}
+            fontFamily="ui-rounded"
+          >
             key 7f3a → charged once ✓
           </text>
         </>,
@@ -613,7 +629,7 @@ export function IdeaArt({ kind, big }) {
                 x="36"
                 y={17 + i * 13.5}
                 fontSize="9"
-                fill={m === '+' ? M : m === '-' ? '#e5484d' : 'var(--ink-3)'}
+                fill={m === '+' ? mint : m === '-' ? '#e5484d' : 'var(--ink-3)'}
                 fontFamily="ui-monospace"
               >
                 {m || ' '}
@@ -658,18 +674,18 @@ export function IdeaArt({ kind, big }) {
                   y1={y}
                   x2={a[i + 1][0]}
                   y2={a[i + 1][1]}
-                  stroke={O}
+                  stroke={orange}
                   strokeWidth="1.3"
                   strokeDasharray="3 2"
                 />
               )}
-              <circle cx={x} cy={y} r="4" fill={O} />
+              <circle cx={x} cy={y} r="4" fill={orange} />
             </g>
           ))}
         </>,
       );
     case 'shuffle': {
-      const cs = [O, V, M, S];
+      const cs = [orange, violet, mint, sky];
       const r = [0, 0, 0, 1, 2, 2, 3, 1, 1, 0];
       const g = [0, 1, 2, 0, 3, 1, 0, 2, 1, 0];
       return wrap(
@@ -713,17 +729,25 @@ export function IdeaArt({ kind, big }) {
               <rect x="18" y={10 + i * 23} width="40" height="16" rx="4" fill="var(--bg-3)" />
               <path
                 d={`M60 ${18 + i * 23} C 85 ${18 + i * 23}, 85 ${[38, 72][i % 2]}, 110 ${[38, 72][i % 2]}`}
-                stroke={V}
+                stroke={violet}
                 fill="none"
                 strokeWidth="1.3"
               />
             </g>
           ))}
           {[38, 72].map((y, i) => (
-            <rect key={i} x="110" y={y - 10} width="36" height="20" rx="5" fill={[O, M][i]} />
+            <rect
+              key={i}
+              x="110"
+              y={y - 10}
+              width="36"
+              height="20"
+              rx="5"
+              fill={[orange, mint][i]}
+            />
           ))}
           <path d="M148 38 L170 55 M148 72 L170 55" stroke="var(--ink-3)" strokeWidth="1.3" />
-          <circle cx="176" cy="55" r="7" fill={Y} />
+          <circle cx="176" cy="55" r="7" fill={yellow} />
         </>,
       );
     case 'lru':
@@ -737,7 +761,9 @@ export function IdeaArt({ kind, big }) {
               width="20"
               height="24"
               rx="5"
-              fill={i === 0 ? '#fde0df' : `color-mix(in srgb, ${S} ${25 + i * 12}%, var(--panel))`}
+              fill={
+                i === 0 ? '#fde0df' : `color-mix(in srgb, ${sky} ${25 + i * 12}%, var(--panel))`
+              }
               stroke={i === 0 ? '#e5484d' : 'none'}
               strokeDasharray="3 2"
             />
@@ -753,14 +779,14 @@ export function IdeaArt({ kind, big }) {
           >
             oldest ← · → newest
           </text>
-          <path d="M178 56 h12" stroke={M} strokeWidth="2" />
+          <path d="M178 56 h12" stroke={mint} strokeWidth="2" />
         </>,
       );
     case 'lock':
       return wrap(
         <>
-          <circle cx="44" cy="52" r="16" fill={O} opacity=".9" />
-          <circle cx="156" cy="52" r="16" fill={V} opacity=".9" />
+          <circle cx="44" cy="52" r="16" fill={orange} opacity=".9" />
+          <circle cx="156" cy="52" r="16" fill={violet} opacity=".9" />
           <text x="44" y="56" fontSize="10" fill="#fff" textAnchor="middle" fontFamily="ui-rounded">
             A
           </text>
@@ -780,8 +806,8 @@ export function IdeaArt({ kind, big }) {
             strokeWidth="1.5"
             strokeDasharray="4 3"
           />
-          <rect x="88" y="70" width="24" height="20" rx="4" fill={M} />
-          <path d="M93 70 v-6 a7 7 0 0 1 14 0 v6" stroke={M} strokeWidth="2.4" fill="none" />
+          <rect x="88" y="70" width="24" height="20" rx="4" fill={mint} />
+          <path d="M93 70 v-6 a7 7 0 0 1 14 0 v6" stroke={mint} strokeWidth="2.4" fill="none" />
         </>,
       );
     case 'monkey':
@@ -807,7 +833,7 @@ export function IdeaArt({ kind, big }) {
                   width="20"
                   height="5"
                   rx="2"
-                  fill={i === 1 ? '#f4a5a6' : M}
+                  fill={i === 1 ? '#f4a5a6' : mint}
                   opacity=".8"
                 />
               ))}
@@ -816,7 +842,7 @@ export function IdeaArt({ kind, big }) {
           <text x="98" y="26" fontSize="18" textAnchor="middle">
             🐒
           </text>
-          <path d="M20 54 H40 M164 54 H184" stroke={V} strokeWidth="2" />
+          <path d="M20 54 H40 M164 54 H184" stroke={violet} strokeWidth="2" />
           <text
             x="100"
             y="92"
@@ -866,7 +892,7 @@ export function IdeaArt({ kind, big }) {
               {i < 3 && (
                 <path
                   d={`M${50 + i * 46} 53 h10`}
-                  stroke={i >= 1 ? '#e5484d' : Y}
+                  stroke={i >= 1 ? '#e5484d' : yellow}
                   strokeWidth="2"
                   strokeDasharray={i >= 1 ? '3 2' : ''}
                 />
@@ -898,13 +924,13 @@ export function IdeaArt({ kind, big }) {
                 width="5"
                 height={slow ? 64 : 20}
                 rx="2"
-                fill={slow ? '#e5484d' : M}
+                fill={slow ? '#e5484d' : mint}
                 opacity={slow ? 0.85 : 0.7}
               />
             );
           })}
-          <path d="M20 50 H186" stroke={V} strokeDasharray="4 3" />
-          <text x="186" y="46" fontSize="8" textAnchor="end" fill={V} fontFamily="ui-rounded">
+          <path d="M20 50 H186" stroke={violet} strokeDasharray="4 3" />
+          <text x="186" y="46" fontSize="8" textAnchor="end" fill={violet} fontFamily="ui-rounded">
             ask a backup here
           </text>
         </>,
@@ -920,14 +946,14 @@ export function IdeaArt({ kind, big }) {
               width="7"
               height="7"
               rx="2"
-              fill={Y}
+              fill={yellow}
             />
           ))}
           <path d="M80 34 H96" stroke="var(--ink-3)" strokeWidth="1.5" />
-          <rect x="100" y="22" width="34" height="10" rx="3" fill={S} />
-          <rect x="100" y="36" width="34" height="10" rx="3" fill={S} />
+          <rect x="100" y="22" width="34" height="10" rx="3" fill={sky} />
+          <rect x="100" y="36" width="34" height="10" rx="3" fill={sky} />
           <path d="M138 34 H150" stroke="var(--ink-3)" strokeWidth="1.5" />
-          <rect x="154" y="22" width="30" height="24" rx="4" fill={V} />
+          <rect x="154" y="22" width="30" height="24" rx="4" fill={violet} />
           <text
             x="100"
             y="80"
@@ -943,7 +969,7 @@ export function IdeaArt({ kind, big }) {
     case 'fanout':
       return wrap(
         <>
-          <circle cx="36" cy="55" r="12" fill={O} />
+          <circle cx="36" cy="55" r="12" fill={orange} />
           {Array.from({ length: 7 }, (_, i) => {
             const y = 16 + i * 13;
             return (
@@ -954,7 +980,7 @@ export function IdeaArt({ kind, big }) {
                   fill="none"
                   strokeWidth="1.2"
                 />
-                <rect x="152" y={y - 4} width="26" height="8" rx="3" fill={M} opacity=".8" />
+                <rect x="152" y={y - 4} width="26" height="8" rx="3" fill={mint} opacity=".8" />
               </g>
             );
           })}
@@ -971,11 +997,11 @@ export function IdeaArt({ kind, big }) {
               width="12"
               height="12"
               rx="2.5"
-              fill={i === 7 || i === 16 ? O : 'var(--bg-3)'}
+              fill={i === 7 || i === 16 ? orange : 'var(--bg-3)'}
             />
           ))}
-          <path d="M100 66 V84" stroke={O} strokeWidth="2" strokeDasharray="3 3" />
-          <path d="M94 80 L100 88 L106 80" fill="none" stroke={O} strokeWidth="2" />
+          <path d="M100 66 V84" stroke={orange} strokeWidth="2" strokeDasharray="3 3" />
+          <path d="M94 80 L100 88 L106 80" fill="none" stroke={orange} strokeWidth="2" />
           <rect
             x="70"
             y="90"
@@ -994,8 +1020,8 @@ export function IdeaArt({ kind, big }) {
       return wrap(
         <>
           {[
-            ['A', 40, S, '[2,1]'],
-            ['B', 160, V, '[1,2]'],
+            ['A', 40, sky, '[2,1]'],
+            ['B', 160, violet, '[1,2]'],
           ].map(([n, x, c, v]) => (
             <g key={n}>
               <circle cx={x} cy="40" r="14" fill={c} />
@@ -1015,8 +1041,8 @@ export function IdeaArt({ kind, big }) {
             </g>
           ))}
           <path d="M56 40 H144" stroke="var(--line-2)" strokeWidth="2" strokeDasharray="4 4" />
-          <path d="M58 76 Q100 104 142 76" fill="none" stroke={M} strokeWidth="2" />
-          <text x="100" y="96" fontSize="9" textAnchor="middle" fill={M} fontWeight="700">
+          <path d="M58 76 Q100 104 142 76" fill="none" stroke={mint} strokeWidth="2" />
+          <text x="100" y="96" fontSize="9" textAnchor="middle" fill={mint} fontWeight="700">
             merge
           </text>
         </>,
@@ -1032,13 +1058,13 @@ export function IdeaArt({ kind, big }) {
               width="13"
               height="20"
               rx="3"
-              fill={i === 10 ? O : 'var(--bg-3)'}
+              fill={i === 10 ? orange : 'var(--bg-3)'}
             />
           ))}
           {[
-            [36, S, 'email'],
-            [98, V, 'stats'],
-            [20, M, 'new'],
+            [36, sky, 'email'],
+            [98, violet, 'stats'],
+            [20, mint, 'new'],
           ].map(([x, c, t], i) => (
             <g key={i}>
               <path
@@ -1052,7 +1078,7 @@ export function IdeaArt({ kind, big }) {
               </text>
             </g>
           ))}
-          <text x="178" y="58" fontSize="12" fill={O}>
+          <text x="178" y="58" fontSize="12" fill={orange}>
             +
           </text>
         </>,
@@ -1076,7 +1102,7 @@ export function IdeaArt({ kind, big }) {
               />
               <path
                 d={`M${x} 44 L${x + 13 * Math.sin((a * Math.PI) / 180 + 1.1)} ${44 - 13 * Math.cos((a * Math.PI) / 180 + 1.1)}`}
-                stroke={[S, V, M][i]}
+                stroke={[sky, violet, mint][i]}
                 strokeWidth="2.5"
                 strokeLinecap="round"
               />
@@ -1084,7 +1110,7 @@ export function IdeaArt({ kind, big }) {
             </g>
           ))}
           <rect x="40" y="80" width="120" height="10" rx="5" fill="var(--bg-3)" />
-          <rect x="84" y="80" width="34" height="10" rx="5" fill={O} opacity=".75" />
+          <rect x="84" y="80" width="34" height="10" rx="5" fill={orange} opacity=".75" />
           <text x="100" y="104" fontSize="8.5" textAnchor="middle" fill="var(--ink-3)">
             wait out the uncertainty
           </text>
@@ -1099,12 +1125,12 @@ export function IdeaArt({ kind, big }) {
               cx={22 + (i % 6) * 13}
               cy={30 + Math.floor(i / 6) * 22}
               r="5"
-              fill={i === 7 ? O : S}
+              fill={i === 7 ? orange : sky}
               opacity={i === 7 ? 1 : 0.55}
             />
           ))}
-          <path d="M100 52 H128" stroke={O} strokeWidth="2.4" />
-          <path d="M123 46 L130 52 L123 58" fill="none" stroke={O} strokeWidth="2.4" />
+          <path d="M100 52 H128" stroke={orange} strokeWidth="2.4" />
+          <path d="M123 46 L130 52 L123 58" fill="none" stroke={orange} strokeWidth="2.4" />
           <rect
             x="136"
             y="34"
@@ -1133,7 +1159,7 @@ export function IdeaArt({ kind, big }) {
               width="7"
               height="7"
               rx="2"
-              fill={O}
+              fill={orange}
               opacity=".8"
             />
           ))}
@@ -1145,13 +1171,13 @@ export function IdeaArt({ kind, big }) {
               width="7"
               height="7"
               rx="2"
-              fill={M}
+              fill={mint}
             />
           ))}
           <text x="16" y="104" fontSize="8.5" fill="var(--ink-3)">
             in step
           </text>
-          <text x="150" y="104" fontSize="8.5" fill={M}>
+          <text x="150" y="104" fontSize="8.5" fill={mint}>
             spread out
           </text>
         </>,
@@ -1179,8 +1205,8 @@ export function IdeaArt({ kind, big }) {
                   cx={x}
                   cy={y}
                   r={k === 0 ? 11 : 8}
-                  fill={k === 0 ? Y : 'var(--panel)'}
-                  stroke={k === 0 ? Y : S}
+                  fill={k === 0 ? yellow : 'var(--panel)'}
+                  stroke={k === 0 ? yellow : sky}
                   strokeWidth="2.2"
                 />
                 {k === 0 && (
@@ -1206,13 +1232,13 @@ export function IdeaArt({ kind, big }) {
                 width="6.5"
                 height="9"
                 rx="1.5"
-                fill={yes ? O : 'var(--bg-3)'}
+                fill={yes ? orange : 'var(--bg-3)'}
               />
             );
           })}
           <path d="M100 54 V66" stroke="var(--ink-3)" strokeWidth="1.6" />
           <rect x="40" y="72" width="120" height="12" rx="6" fill="var(--bg-3)" />
-          <rect x="40" y="72" width="36" height="12" rx="6" fill={M} />
+          <rect x="40" y="72" width="36" height="12" rx="6" fill={mint} />
           <text x="100" y="102" fontSize="8.5" textAnchor="middle" fill="var(--ink-3)">
             noisy answers, true total
           </text>
@@ -1229,14 +1255,21 @@ export function IdeaArt({ kind, big }) {
             fill="var(--ink)"
             fontFamily="ui-monospace"
           >
-            the <tspan fill={O}>big</tspan> cat sat
+            the <tspan fill={orange}>big</tspan> cat sat
           </text>
-          <path d="M56 44 L56 60" stroke={V} strokeWidth="2" />
-          <path d="M100 44 L100 60" stroke={M} strokeWidth="2" />
-          <text x="56" y="74" fontSize="9" textAnchor="middle" fill={V} fontFamily="ui-rounded">
+          <path d="M56 44 L56 60" stroke={violet} strokeWidth="2" />
+          <path d="M100 44 L100 60" stroke={mint} strokeWidth="2" />
+          <text
+            x="56"
+            y="74"
+            fontSize="9"
+            textAnchor="middle"
+            fill={violet}
+            fontFamily="ui-rounded"
+          >
             Ana
           </text>
-          <text x="100" y="74" fontSize="9" textAnchor="middle" fill={M} fontFamily="ui-rounded">
+          <text x="100" y="74" fontSize="9" textAnchor="middle" fill={mint} fontFamily="ui-rounded">
             Ben
           </text>
           <text

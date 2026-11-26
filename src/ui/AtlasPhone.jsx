@@ -254,17 +254,17 @@ const CAT_LAYER = {
   tidy: 'support',
   watch: 'support',
 };
-const layerOfTool = (t, F) => {
+const layerOfTool = (t, facts) => {
   const n = {};
   (t.used || []).forEach((i) => {
-    const l = F.files[i]?.layer;
+    const l = facts.files[i]?.layer;
     if (l) n[l] = (n[l] || 0) + 1;
   });
   return Object.entries(n).sort((a, b) => b[1] - a[1])[0]?.[0] || CAT_LAYER[t.cat] || 'support';
 };
-const sayOf = (N, t) =>
-  N?.stack?.[t.id] ||
-  Object.values(N?.stack || {}).find((x) => x.name?.toLowerCase() === t.name.toLowerCase());
+const sayOf = (narration, t) =>
+  narration?.stack?.[t.id] ||
+  Object.values(narration?.stack || {}).find((x) => x.name?.toLowerCase() === t.name.toLowerCase());
 const UNIT = {
   year: 'yr',
   years: 'yrs',
@@ -312,11 +312,11 @@ function glyphOf(n) {
 }
 
 // ---------------------------------------------------------------- the page
-export default function PhoneAtlas(P) {
+export default function PhoneAtlas(props) {
   const {
-    A,
-    F,
-    N,
+    atlas,
+    facts,
+    narration,
     meta,
     tools,
     hot,
@@ -337,12 +337,15 @@ export default function PhoneAtlas(P) {
     ago,
     altsOf,
     slots = {},
-  } = P;
+  } = props;
   const [sheet, setSheet] = useState(null); // { k: 'node' | 'part' | 'tool' | 'hot' | 'story', id }
   const [city, setCity] = useState(false);
-  const flow = useMemo(() => N?.flow || fallbackFlow(F, tools), [N?.flow, F, tools]);
-  const journeys = (N?.journeys || []).filter((j) => j.steps?.length);
-  const name = (meta.full || A.name).split('/').pop();
+  const flow = useMemo(
+    () => narration?.flow || fallbackFlow(facts, tools),
+    [narration?.flow, facts, tools],
+  );
+  const journeys = (narration?.journeys || []).filter((j) => j.steps?.length);
+  const name = (meta.full || atlas.name).split('/').pop();
   const pick = (k, id) => setSheet({ k, id });
   const close = () => setSheet(null);
   // a file opens over everything (the city included); the sheet it came from steps aside
@@ -372,7 +375,7 @@ export default function PhoneAtlas(P) {
           flow={flow}
           tool={toolOf(n)}
           toolOf={toolOf}
-          terms={N?.terms || []}
+          terms={narration?.terms || []}
           pathIdx={pathIdx}
           role={role}
           onPick={(id) => pick('node', id)}
@@ -386,8 +389,8 @@ export default function PhoneAtlas(P) {
     shown = (
       <PartSheet
         k={sheet.id}
-        F={F}
-        N={N}
+        facts={facts}
+        narration={narration}
         tools={tools}
         role={role}
         onClose={close}
@@ -402,7 +405,7 @@ export default function PhoneAtlas(P) {
       shown = (
         <ToolSheet
           t={t}
-          n={sayOf(N, t)}
+          n={sayOf(narration, t)}
           alts={altsOf(t)}
           narrating={narrating}
           onClose={close}
@@ -414,7 +417,7 @@ export default function PhoneAtlas(P) {
     shown = (
       <HotSheet
         h={hot[sheet.id]}
-        F={F}
+        facts={facts}
         pathIdx={pathIdx}
         role={role}
         onClose={close}
@@ -437,9 +440,9 @@ export default function PhoneAtlas(P) {
   return (
     <>
       <Hero
-        A={A}
-        F={F}
-        N={N}
+        atlas={atlas}
+        facts={facts}
+        narration={narration}
         meta={meta}
         tools={tools}
         langs={langs}
@@ -475,7 +478,7 @@ export default function PhoneAtlas(P) {
             ))}
           </Group>
         )}
-        {N?.terms?.length > 0 && (
+        {narration?.terms?.length > 0 && (
           <>
             <SubHead title="Words you’ll meet" />
             <div
@@ -484,7 +487,7 @@ export default function PhoneAtlas(P) {
               tabIndex={0}
               aria-label="Words you’ll meet"
             >
-              {N.terms.map((t) => (
+              {narration.terms.map((t) => (
                 <div key={t.term} className="pw">
                   <b>{t.term}</b>
                   <p>{t.plain}</p>
@@ -495,12 +498,12 @@ export default function PhoneAtlas(P) {
           </>
         )}
       </section>
-      <Parts F={F} N={N} tools={tools} onPick={(k) => pick('part', k)} />
-      <Services tools={tools} N={N} onPick={(id) => pick('tool', id)} />
+      <Parts facts={facts} tools={tools} onPick={(k) => pick('part', k)} />
+      <Services tools={tools} narration={narration} onPick={(id) => pick('tool', id)} />
       <Chapter />
       <CityCard
-        F={F}
-        N={N}
+        facts={facts}
+        narration={narration}
         tools={tools}
         pathIdx={pathIdx}
         role={role}
@@ -508,12 +511,18 @@ export default function PhoneAtlas(P) {
         onExplore={() => setCity(true)}
       />
       <Risks hot={hot} narrating={narrating} onPick={(i) => pick('hot', i)} />
-      <Language langs={langs} totalL={totalL} main={mainLang} N={N} narrating={narrating} />
+      <Language
+        langs={langs}
+        totalL={totalL}
+        main={mainLang}
+        narration={narration}
+        narrating={narrating}
+      />
       {slots.grow}
-      <Code F={F} role={role} onOpen={onOpen} name={name} />
+      <Code facts={facts} role={role} onOpen={onOpen} name={name} />
       <Learn
         name={name}
-        N={N}
+        narration={narration}
         tour={tour}
         onTour={onTour}
         onAsk={onAsk}
@@ -528,8 +537,8 @@ export default function PhoneAtlas(P) {
       {city && (
         <CityViewer onClose={() => setCity(false)}>
           <City
-            F={F}
-            N={N}
+            facts={facts}
+            narration={narration}
             tools={tools}
             pathIdx={pathIdx}
             role={role}
@@ -647,9 +656,9 @@ function FileRow({ f, sub, onOpen, n }) {
 }
 
 // ---------------------------------------------------------------- the top: the app's page in the App Store
-function Hero({ A, F, N, meta, tools, langs, totalL, narrating, ago, onMore }) {
-  const gist = N?.gist;
-  const full = meta.full || A.name;
+function Hero({ atlas, facts, narration, meta, tools, langs, totalL, narrating, ago, onMore }) {
+  const gist = narration?.gist;
+  const full = meta.full || atlas.name;
   const name = full.split('/').pop();
   const owner = full.includes('/') ? full.split('/')[0] : '';
   const main = langs[0];
@@ -680,12 +689,12 @@ function Hero({ A, F, N, meta, tools, langs, totalL, narrating, ago, onMore }) {
             : main[0],
       `${Math.round((main[1] / totalL) * 100)}% of it`,
     ],
-    ['Files', fmtN(F.totals.code), 'of code'],
-    ['Lines', fmtN(F.totals.lines), 'of code'],
+    ['Files', fmtN(facts.totals.code), 'of code'],
+    ['Lines', fmtN(facts.totals.lines), 'of code'],
     tools.length > 0 && ['Tools', String(tools.length), 'from outside'],
     pushed && ['Updated', short(pushed), /\d/.test(pushed) ? 'ago' : ''],
   ].filter(Boolean);
-  const one = gist?.one || meta.description || F.sig?.pkgDesc || `What is ${name}?`;
+  const one = gist?.one || meta.description || facts.sig?.pkgDesc || `What is ${name}?`;
   return (
     <section className="asec ph-hero" id="sec-overview">
       <div className="ph-id">
@@ -699,7 +708,7 @@ function Hero({ A, F, N, meta, tools, langs, totalL, narrating, ago, onMore }) {
         <div className="ph-idt">
           <h1 className="ph-name">{name}</h1>
           <div className="ph-by">
-            {A.src?.kind === 'local' ? 'Your project' : owner || 'Open source'}
+            {atlas.src?.kind === 'local' ? 'Your project' : owner || 'Open source'}
           </div>
           <div className="ph-acts">
             <button
@@ -767,7 +776,7 @@ function Hero({ A, F, N, meta, tools, langs, totalL, narrating, ago, onMore }) {
 // ---------------------------------------------------------------- how it works: one picture of the whole thing
 // Rows from the top (who starts things) down to the bottom (where things end up); a box sits under what leads to it.
 // Lines show which box talks to which, a dot travelling along each in the direction it talks.
-function treeLayout(flow, W) {
+function treeLayout(flow, width) {
   const nodes = (flow?.nodes || []).slice(0, 10);
   const ids = new Set(nodes.map((n) => n.id));
   const edges = (flow?.edges || []).filter(
@@ -820,7 +829,7 @@ function treeLayout(flow, W) {
       const ps = fwd
         .filter((e) => e.to === n.id && pos[e.from])
         .map((e) => pos[e.from].x + pos[e.from].w / 2);
-      return ps.length ? ps.reduce((a, b) => a + b, 0) / ps.length : W / 2;
+      return ps.length ? ps.reduce((a, b) => a + b, 0) / ps.length : width / 2;
     };
     lv.sort((a, b) => under(a) - under(b));
     const rows =
@@ -833,15 +842,15 @@ function treeLayout(flow, W) {
       const wide = row.length === 1;
       const h = wide ? 68 : 104;
       const w = wide
-        ? Math.min(W, Math.max(240, W * 0.8))
-        : (W - GAP * (row.length - 1)) / row.length;
+        ? Math.min(width, Math.max(240, width * 0.8))
+        : (width - GAP * (row.length - 1)) / row.length;
       row.forEach((n, i) => {
-        pos[n.id] = { x: wide ? (W - w) / 2 : i * (w + GAP), y, w, h, wide };
+        pos[n.id] = { x: wide ? (width - w) / 2 : i * (w + GAP), y, w, h, wide };
       });
       y += h + VG;
     }
   }
-  const H = Math.max(80, y - VG + 4);
+  const height = Math.max(80, y - VG + 4);
   const twin = (e) => edges.some((x) => x !== e && x.from === e.to && x.to === e.from);
   const links = edges
     .map((e) => {
@@ -860,7 +869,7 @@ function treeLayout(flow, W) {
       return { d, up, key: `${e.from}>${e.to}` };
     })
     .filter(Boolean);
-  return { nodes: nodes.filter((n) => pos[n.id]), pos, links, H };
+  return { nodes: nodes.filter((n) => pos[n.id]), pos, links, H: height };
 }
 
 function NodeIcon({ n, tool, size = 40 }) {
@@ -892,7 +901,7 @@ function NodeIcon({ n, tool, size = 40 }) {
 
 function FlowMap({ flow, toolOf, onPick }) {
   const box = useRef(null);
-  const [W, setW] = useState(340);
+  const [width, setW] = useState(340);
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return undefined;
@@ -901,15 +910,15 @@ function FlowMap({ flow, toolOf, onPick }) {
     setW(el.clientWidth);
     return () => ro.disconnect();
   }, []);
-  const L = useMemo(() => treeLayout(flow, W), [flow, W]);
+  const layout = useMemo(() => treeLayout(flow, width), [flow, width]);
   const calm =
     typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const kinds = Object.keys(KIND).filter((k) => L.nodes.some((n) => (n.kind || 'part') === k));
+  const kinds = Object.keys(KIND).filter((k) => layout.nodes.some((n) => (n.kind || 'part') === k));
   return (
     <>
-      <div className="fx" ref={box} style={{ height: L.H }}>
-        <svg className="fx-svg" width={W} height={L.H} aria-hidden="true">
-          {L.links.map((k, i) => (
+      <div className="fx" ref={box} style={{ height: layout.H }}>
+        <svg className="fx-svg" width={width} height={layout.H} aria-hidden="true">
+          {layout.links.map((k, i) => (
             <g key={k.key} className={`fx-l ${k.up ? 'up' : ''}`}>
               <path d={k.d} />
               {!calm && (
@@ -928,8 +937,8 @@ function FlowMap({ flow, toolOf, onPick }) {
             </g>
           ))}
         </svg>
-        {L.nodes.map((n, i) => {
-          const q = L.pos[n.id];
+        {layout.nodes.map((n, i) => {
+          const q = layout.pos[n.id];
           const t = toolOf(n);
           return (
             <button
@@ -1121,9 +1130,9 @@ function StorySheet({ j, tools, pathIdx, onClose, onOpenFile, onAsk }) {
 }
 
 // ---------------------------------------------------------------- what it's made of: the kinds of part, like iPhone Storage
-function Parts({ F, tools, onPick }) {
+function Parts({ facts, tools, onPick }) {
   const tot = {};
-  for (const f of F.files) {
+  for (const f of facts.files) {
     const x = (tot[f.layer] ||= { n: 0, l: 0 });
     x.n++;
     x.l += f.lines || 0;
@@ -1132,7 +1141,7 @@ function Parts({ F, tools, onPick }) {
   const parts = LAYERS.filter(([k]) => tot[k]?.n);
   const pct = (k) => Math.max(1, Math.round((tot[k].l / all) * 100));
   const by = {};
-  for (const t of tools) (by[layerOfTool(t, F)] ||= []).push(t);
+  for (const t of tools) (by[layerOfTool(t, facts)] ||= []).push(t);
   return (
     <section className="asec" id="sec-parts">
       <Head
@@ -1141,8 +1150,8 @@ function Parts({ F, tools, onPick }) {
       />
       <div className="pk-card">
         <div className="pk-top">
-          <b>{fmtN(F.totals.code)} files</b>
-          <span>{fmtN(F.totals.lines)} lines of code</span>
+          <b>{fmtN(facts.totals.code)} files</b>
+          <span>{fmtN(facts.totals.lines)} lines of code</span>
         </div>
         <div className="pk-bar" aria-hidden="true">
           {parts
@@ -1186,16 +1195,16 @@ function Parts({ F, tools, onPick }) {
   );
 }
 
-function PartSheet({ k, F, N, tools, role, onClose, onOpenFile, onTool, onAll }) {
+function PartSheet({ k, facts, narration, tools, role, onClose, onOpenFile, onTool, onAll }) {
   const [, nm, desc] = LAYER[k];
-  const files = F.files.filter((f) => f.layer === k);
+  const files = facts.files.filter((f) => f.layer === k);
   const lines = files.reduce((a, f) => a + (f.lines || 0), 0);
-  const all = F.files.reduce((a, f) => a + (f.lines || 0), 0) || 1;
+  const all = facts.files.reduce((a, f) => a + (f.lines || 0), 0) || 1;
   const big = [...files]
     .filter((f) => f.lines)
     .sort((a, b) => b.lines - a.lines)
     .slice(0, 5);
-  const made = tools.filter((t) => layerOfTool(t, F) === k);
+  const made = tools.filter((t) => layerOfTool(t, facts) === k);
   return (
     <Sheet label={nm} onClose={onClose}>
       <div className="ps-in">
@@ -1225,9 +1234,9 @@ function PartSheet({ k, F, N, tools, role, onClose, onOpenFile, onTool, onAll })
             <span>tools</span>
           </div>
         </div>
-        {N?.layers?.[k] && (
+        {narration?.layers?.[k] && (
           <p className="ps-p">
-            <Md text={N.layers[k]} />
+            <Md text={narration.layers[k]} />
           </p>
         )}
         {made.length > 0 && (
@@ -1237,7 +1246,7 @@ function PartSheet({ k, F, N, tools, role, onClose, onOpenFile, onTool, onAll })
                 <Brand slug={t.slug} name={t.name} color={t.color} size={32} />
                 <span className="ph-ct">
                   <b>{t.name}</b>
-                  <span>{sayOf(N, t)?.role || t.what}</span>
+                  <span>{sayOf(narration, t)?.role || t.what}</span>
                 </span>
                 <Chev />
               </button>
@@ -1262,7 +1271,7 @@ function PartSheet({ k, F, N, tools, role, onClose, onOpenFile, onTool, onAll })
 }
 
 // ---------------------------------------------------------------- the services it signs up for, and the code it's built from
-function Services({ tools, N, onPick }) {
+function Services({ tools, narration, onPick }) {
   const svc = tools.filter((t) => SERVICE.has(t.cat));
   const libs = tools.filter((t) => !SERVICE.has(t.cat));
   return (
@@ -1278,7 +1287,7 @@ function Services({ tools, N, onPick }) {
               <Brand slug={t.slug} name={t.name} color={t.color} size={44} />
               <span className="sv-cat">{CATS[t.cat]?.[0] || t.cat}</span>
               <b>{t.name}</b>
-              <span className="sv-what">{sayOf(N, t)?.role || t.what}</span>
+              <span className="sv-what">{sayOf(narration, t)?.role || t.what}</span>
             </button>
           ))}
         </div>
@@ -1308,7 +1317,7 @@ function Services({ tools, N, onPick }) {
                 <Brand slug={t.slug} name={t.name} color={t.color} size={44} />
                 <span className="ph-ct">
                   <b>{t.name}</b>
-                  <span>{sayOf(N, t)?.role || t.what}</span>
+                  <span>{sayOf(narration, t)?.role || t.what}</span>
                 </span>
               </button>
             ))}
@@ -1392,7 +1401,7 @@ function Chapter() {
 
 // ---------------------------------------------------------------- the code city: a picture of it here, the city itself full screen
 const CITY_W = 760; // the size the city is laid out at on a phone (City.jsx)
-function CityCard({ F, N, tools, pathIdx, role, hot, onExplore }) {
+function CityCard({ facts, narration, tools, pathIdx, role, hot, onExplore }) {
   const box = useRef(null);
   const inner = useRef(null);
   const [fit, setFit] = useState({ s: 0.45, h: 260 });
@@ -1425,8 +1434,8 @@ function CityCard({ F, N, tools, pathIdx, role, hot, onExplore }) {
           inert
         >
           <City
-            F={F}
-            N={N}
+            facts={facts}
+            narration={narration}
             tools={tools}
             pathIdx={pathIdx}
             role={role}
@@ -1557,9 +1566,9 @@ function Risks({ hot, narrating, onPick }) {
     </section>
   );
 }
-function HotSheet({ h, F, pathIdx, role, onClose, onOpenFile, onAsk }) {
+function HotSheet({ h, facts, pathIdx, role, onClose, onOpenFile, onAsk }) {
   const [ic, label, c] = hotOf(h);
-  const f = h.p && pathIdx.has(h.p) ? F.files[pathIdx.get(h.p)] : null;
+  const f = h.p && pathIdx.has(h.p) ? facts.files[pathIdx.get(h.p)] : null;
   return (
     <Sheet label={h.title} onClose={onClose}>
       <div className="ps-in">
@@ -1606,13 +1615,13 @@ function HotSheet({ h, F, pathIdx, role, onClose, onOpenFile, onAsk }) {
 }
 
 // ---------------------------------------------------------------- the language
-function Language({ langs, totalL, main, N, narrating }) {
-  const L = LANGS[main] || {};
-  const why = N?.lang?.why || L.why;
+function Language({ langs, totalL, main, narration, narrating }) {
+  const langInfo = LANGS[main] || {};
+  const why = narration?.lang?.why || langInfo.why;
   const alts = (
-    N?.lang?.alts?.length
-      ? N.lang.alts
-      : (L.alt || []).map((a) => ({ name: a, when: LANGS[a]?.why }))
+    narration?.lang?.alts?.length
+      ? narration.lang.alts
+      : (langInfo.alt || []).map((a) => ({ name: a, when: LANGS[a]?.why }))
   ).slice(0, 3);
   if (!main) return null;
   return (
@@ -1620,7 +1629,7 @@ function Language({ langs, totalL, main, N, narrating }) {
       <Head title={`Written in ${main}`} />
       <div className="lg-card">
         <div className="lg-top">
-          <Brand slug={L.slug} name={main} color={L.color} size={48} />
+          <Brand slug={langInfo.slug} name={main} color={langInfo.color} size={48} />
           <p>
             {why ? (
               <Md text={why} />
@@ -1671,7 +1680,7 @@ function Language({ langs, totalL, main, N, narrating }) {
 }
 
 // ---------------------------------------------------------------- the code, as a code app's file browser: folders you open, a file a sheet
-function Code({ F, role, onOpen, name }) {
+function Code({ facts, role, onOpen, name }) {
   const [q, setQ] = useState('');
   const [layer, setLayer] = useState('all');
   const [dir, setDir] = useState('');
@@ -1702,7 +1711,7 @@ function Code({ F, role, onOpen, name }) {
   const ql = q.trim().toLowerCase();
   let rows;
   if (flat) {
-    rows = F.files
+    rows = facts.files
       .filter(
         (f) =>
           (layer === 'all' || f.layer === layer) &&
@@ -1714,7 +1723,7 @@ function Code({ F, role, onOpen, name }) {
     const pre = dir ? `${dir}/` : '';
     const sub = new Map();
     const fs = [];
-    for (const f of F.files) {
+    for (const f of facts.files) {
       if (!f.p.startsWith(pre)) continue;
       const rest = f.p.slice(pre.length);
       const i = rest.indexOf('/');
@@ -1840,7 +1849,7 @@ function Code({ F, role, onOpen, name }) {
 // ---------------------------------------------------------------- learning from it
 function Learn({
   name,
-  N,
+  narration,
   tour,
   onTour,
   onAsk,
@@ -1852,14 +1861,14 @@ function Learn({
 }) {
   const [feat, setFeat] = useState('');
   const [path, setPath] = useState(null);
-  const qs = N?.learn?.length
-    ? N.learn
+  const qs = narration?.learn?.length
+    ? narration.learn
     : [
         'Where does this app start?',
         'How does data flow through it?',
         'Which file should I read first?',
       ];
-  const build = N?.build;
+  const build = narration?.build;
   return (
     <section className="asec" id="sec-study">
       <Head
@@ -1935,7 +1944,7 @@ function Learn({
       <Group
         title="Questions to explore"
         foot={
-          narrating && !N?.learn?.length
+          narrating && !narration?.learn?.length
             ? 'Better questions arrive when the reading is done.'
             : 'Each one opens a lesson built on the real files.'
         }

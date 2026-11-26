@@ -31,35 +31,35 @@ export default function useLibrary({
       ...m,
       [key]: { ...m[key], ...(typeof p === 'function' ? p(m[key]) : p) },
     }));
-  const asProject = (A) => ({
-    kind: A.src.kind,
-    root: A.src.root,
-    name: A.name,
-    atlasKey: A.key,
-    files: A.facts.files.map((f) => f.p),
+  const asProject = (atlas) => ({
+    kind: atlas.src.kind,
+    root: atlas.src.root,
+    name: atlas.name,
+    atlasKey: atlas.key,
+    files: atlas.facts.files.map((f) => f.p),
   });
-  const remember = (A) => {
-    const lang = Object.entries(A.facts?.langs || {})
+  const remember = (atlas) => {
+    const lang = Object.entries(atlas.facts?.langs || {})
       .sort((a, b) => b[1] - a[1])
       .find(([l]) => !['HTML', 'CSS', 'Shell'].includes(l))?.[0];
     setProjects((ps) => [
       {
-        key: A.key,
-        name: A.name,
-        kind: A.src.kind,
-        full: A.src.full,
-        root: A.src.root,
+        key: atlas.key,
+        name: atlas.name,
+        kind: atlas.src.kind,
+        full: atlas.src.full,
+        root: atlas.src.root,
         lang,
         at: Date.now(),
       },
-      ...ps.filter((p) => p.key !== A.key),
+      ...ps.filter((p) => p.key !== atlas.key),
     ]);
   };
   const stoppers = useRef({});
   const stopReading = (key) => stoppers.current[key]?.();
   const narrate = (key, model = settings.model, firstErr = null) => {
-    const A = atlasRef.current[key];
-    if (!A?.facts) return;
+    const atlas = atlasRef.current[key];
+    if (!atlas?.facts) return;
     patchAtlas(key, { status: 'narrating', narr: emptyNarr(), error: null });
     const parser = ndjsonParser((b) => {
       patchAtlas(key, (a) => ({ narr: applyNarr(a.narr || emptyNarr(), b) }));
@@ -76,20 +76,25 @@ export default function useLibrary({
                 plain: b.plain,
                 like: b.like,
                 from: null,
-                title: A.name,
+                title: atlas.name,
                 at: Date.now(),
               },
             },
           };
         });
     });
-    const prompt = buildAtlasPrompt(A.facts, A.meta, detectStack(A.facts), settings.level);
+    const prompt = buildAtlasPrompt(
+      atlas.facts,
+      atlas.meta,
+      detectStack(atlas.facts),
+      settings.level,
+    );
     const finish = (status, error, stopped = false) => {
       parser.end();
       if (status === 'done' && !document.hasFocus()) {
         try {
           new Notification('Bento finished reading', {
-            body: `${A.name} is ready to explore.`,
+            body: `${atlas.name} is ready to explore.`,
             silent: true,
           });
         } catch {}
@@ -170,7 +175,7 @@ export default function useLibrary({
             api.cachePut(key, { ...cached });
           } catch {}
         }
-        const A = {
+        const atlas = {
           key,
           name,
           src: cached.src,
@@ -184,19 +189,19 @@ export default function useLibrary({
               ? 'You stopped the reading. Press retry to continue.'
               : 'The explanation stopped early.',
         };
-        setAtlases((m) => ({ ...m, [key]: A }));
-        atlasRef.current = { ...atlasRef.current, [key]: A };
-        setProjectRaw(asProject(A));
-        remember(A);
+        setAtlases((m) => ({ ...m, [key]: atlas }));
+        atlasRef.current = { ...atlasRef.current, [key]: atlas };
+        setProjectRaw(asProject(atlas));
+        remember(atlas);
         // the app was closed before the reading wrote anything: just start it again instead of showing an error
         if (!cached.done && !cached.narr?.gist && !cached.stopped && !quiet)
           setTimeout(() => narrate(key), 0); // but never restart one you stopped yourself
-        return A;
+        return atlas;
       }
       // featured projects ship already taken apart: show them now, fetch the code quietly for reading files
       const F0 = src.kind === 'github' && FEATURED[key];
       if (F0) {
-        const A = {
+        const atlas = {
           key,
           name,
           src: { kind: 'github', full: src.full, root: null },
@@ -206,13 +211,13 @@ export default function useLibrary({
           status: 'done',
           featured: true,
         };
-        setAtlases((m) => ({ ...m, [key]: A }));
-        atlasRef.current = { ...atlasRef.current, [key]: A };
+        setAtlases((m) => ({ ...m, [key]: atlas }));
+        atlasRef.current = { ...atlasRef.current, [key]: atlas };
         api
           .atlasFetch(src.full)
           .then((s2) => {
             patchAtlas(key, { src: s2 });
-            const A2 = { ...A, src: s2 };
+            const A2 = { ...atlas, src: s2 };
             setProjectRaw(asProject(A2));
             remember(A2);
             api.cachePut(key, {
@@ -226,7 +231,7 @@ export default function useLibrary({
             });
           })
           .catch((e) => patchAtlas(key, { fetchError: cleanErr(e) }));
-        return A;
+        return atlas;
       }
       const metaP =
         src.kind === 'github' ? api.atlasMeta(src.full).catch(() => null) : Promise.resolve(null);
@@ -243,7 +248,7 @@ export default function useLibrary({
       patchAtlas(key, { status: 'reading', src: s2 });
       const facts = await api.atlasAnalyze(s2.root, name);
       const meta = await metaP;
-      const A = {
+      const atlas = {
         key,
         name,
         src: s2,
@@ -252,13 +257,13 @@ export default function useLibrary({
         narr: emptyNarr(),
         status: quiet ? 'done-quiet' : 'narrating',
       };
-      setAtlases((m) => ({ ...m, [key]: { ...m[key], ...A } }));
-      atlasRef.current = { ...atlasRef.current, [key]: A };
-      setProjectRaw(asProject(A));
-      remember(A);
+      setAtlases((m) => ({ ...m, [key]: { ...m[key], ...atlas } }));
+      atlasRef.current = { ...atlasRef.current, [key]: atlas };
+      setProjectRaw(asProject(atlas));
+      remember(atlas);
       api.cachePut(key, { facts, meta, narr: null, src: s2, name, done: false, at: Date.now() });
       if (!quiet) narrate(key);
-      return A;
+      return atlas;
     } catch (e) {
       patchAtlas(key, { status: 'error', error: cleanErr(e) });
       return null;
@@ -355,9 +360,9 @@ export default function useLibrary({
     setPendingFile({ key: full, path });
     openRepo(full);
   };
-  const findWild = async (L) => {
-    const code = L.work ?? L.code ?? '';
-    const py = L.lang === 'python';
+  const findWild = async (lesson) => {
+    const code = lesson.work ?? lesson.code ?? '';
+    const py = lesson.lang === 'python';
     const fn = (
       py ? /^def\s+(\w+)/m : /^(?:function\s+(\w+)|const\s+(\w+)\s*=\s*(?:\(|function|async))/m
     ).exec(code);
@@ -365,7 +370,7 @@ export default function useLibrary({
     const q =
       name && name.length > 3 && !/^(main|show|draw|run|test|demo)$/.test(name)
         ? `${py ? 'def' : 'function'} ${name}`
-        : (L.terms?.[0]?.term || L.concepts?.[0] || L.title).replace(/-/g, ' ');
+        : (lesson.terms?.[0]?.term || lesson.concepts?.[0] || lesson.title).replace(/-/g, ' ');
     return api.ghCode(q, py ? 'python' : 'javascript');
   };
   const openFolderAtlas = async () => {
@@ -409,8 +414,8 @@ export default function useLibrary({
     }
     if (p.repo) {
       setProjectRaw({ kind: 'github', name: p.repo, files: [], loading: true });
-      const A = await openAtlas({ kind: 'github', full: p.repo }, { quiet: true });
-      if (!A) setProjectRaw(null);
+      const atlas = await openAtlas({ kind: 'github', full: p.repo }, { quiet: true });
+      if (!atlas) setProjectRaw(null);
     }
   };
 

@@ -59,14 +59,14 @@ export default function Grow({ full }) {
       .map(([k]) => k);
   }, [frames]);
   if (!window.bento?.atlasHistory || !full) return null;
-  const F = frames[i];
+  const frame = frames[i];
   const max = Math.max(1, ...frames.map((f) => f.total));
   const dmax = Math.max(1, ...dirs.map((d) => frames[frames.length - 1]?.dirs[d] || 0));
-  const W = 860,
-    H = 150,
-    P = 10;
-  const X = (k) => P + (k / Math.max(1, frames.length - 1)) * (W - 2 * P),
-    Y = (v) => H - 22 - (v / max) * (H - 40);
+  const width = 860,
+    height = 150,
+    pad = 10;
+  const xAt = (k) => pad + (k / Math.max(1, frames.length - 1)) * (width - 2 * pad),
+    yAt = (v) => height - 22 - (v / max) * (height - 40);
   const momentAt = (m) =>
     frames.reduce(
       (best, f, k) => (Math.abs(f.n - m.n) < Math.abs(frames[best].n - m.n) ? k : best),
@@ -106,19 +106,19 @@ export default function Grow({ full }) {
           <span className="err-msg">{st.err}</span>
         </div>
       )}
-      {F && (
+      {frame && (
         <div className="grow">
           <div className="grow-top">
-            <div className="gt-date">{fmtDate(F.at)}</div>
+            <div className="gt-date">{fmtDate(frame.at)}</div>
             <div className="gt-stats">
               <span>
-                <b>{F.total.toLocaleString()}</b> {t('files')}
+                <b>{frame.total.toLocaleString()}</b> {t('files')}
               </span>
               <span>
-                <b>{F.n.toLocaleString()}</b> {t('commits')}
+                <b>{frame.n.toLocaleString()}</b> {t('commits')}
               </span>
               <span>
-                <b>{F.people}</b> {F.people === 1 ? t('person') : t('people')}
+                <b>{frame.people}</b> {frame.people === 1 ? t('person') : t('people')}
               </span>
             </div>
             <button
@@ -133,10 +133,10 @@ export default function Grow({ full }) {
             </button>
           </div>
           <div className="gt-msg">
-            “{F.msg}” <span>· {F.author}</span>
+            “{frame.msg}” <span>· {frame.author}</span>
           </div>
           <svg
-            viewBox={`0 0 ${W} ${H}`}
+            viewBox={`0 0 ${width} ${height}`}
             className="grow-chart"
             tabIndex={0}
             role="slider"
@@ -144,7 +144,7 @@ export default function Grow({ full }) {
             aria-valuemin={0}
             aria-valuemax={frames.length - 1}
             aria-valuenow={i}
-            aria-valuetext={`${fmtDate(F.at)}: ${F.total} ${t('files')}, ${F.n} ${t('commits')}. ${F.msg}`}
+            aria-valuetext={`${fmtDate(frame.at)}: ${frame.total} ${t('files')}, ${frame.n} ${t('commits')}. ${frame.msg}`}
             onKeyDown={(e) => {
               const d = {
                 ArrowRight: 1,
@@ -167,26 +167,27 @@ export default function Grow({ full }) {
             onMouseMove={(e) => {
               const r = e.currentTarget.getBoundingClientRect();
               const k = Math.round(
-                ((((e.clientX - r.left) / r.width) * W - P) / (W - 2 * P)) * (frames.length - 1),
+                ((((e.clientX - r.left) / r.width) * width - pad) / (width - 2 * pad)) *
+                  (frames.length - 1),
               );
               if (!playing && k >= 0 && k < frames.length) setI(k);
             }}
           >
             <path
-              d={`M${X(0)},${Y(0)} ${frames.map((f, k) => `L${X(k)},${Y(f.total)}`).join(' ')} L${X(frames.length - 1)},${Y(0)} Z`}
+              d={`M${xAt(0)},${yAt(0)} ${frames.map((f, k) => `L${xAt(k)},${yAt(f.total)}`).join(' ')} L${xAt(frames.length - 1)},${yAt(0)} Z`}
               className="gc-area"
             />
             <path
               d={frames
                 .slice(0, i + 1)
-                .map((f, k) => `${k ? 'L' : 'M'}${X(k)},${Y(f.total)}`)
+                .map((f, k) => `${k ? 'L' : 'M'}${xAt(k)},${yAt(f.total)}`)
                 .join(' ')}
               className="gc-line"
             />
             {[...new Set(frames.map((f) => new Date(f.at).getFullYear()))].map((y) => {
               const k = frames.findIndex((f) => new Date(f.at).getFullYear() === y);
               return (
-                <text key={y} x={X(k)} y={H - 6} className="gc-year">
+                <text key={y} x={xAt(k)} y={height - 6} className="gc-year">
                   {y}
                 </text>
               );
@@ -203,12 +204,12 @@ export default function Grow({ full }) {
                     setI(k);
                   }}
                 >
-                  <circle cx={X(k)} cy={Y(frames[k].total)} r="5" />
+                  <circle cx={xAt(k)} cy={yAt(frames[k].total)} r="5" />
                   <title>{`${fmtDate(m.at)}: ${m.msg} (+${m.add} −${m.del} files)`}</title>
                 </g>
               );
             })}
-            <line x1={X(i)} x2={X(i)} y1={8} y2={H - 22} className="gc-now" />
+            <line x1={xAt(i)} x2={xAt(i)} y1={8} y2={height - 22} className="gc-now" />
           </svg>
           <div className="grow-moments">
             {st.moments.map((m, j) => {
@@ -234,7 +235,7 @@ export default function Grow({ full }) {
           </div>
           <div className="grow-dirs">
             {dirs.map((d, k) => {
-              const n = F.dirs[d] || 0;
+              const n = frame.dirs[d] || 0;
               return (
                 <div key={d} className={`gd ${n ? '' : 'none'}`}>
                   <span className="gd-name">{d}</span>

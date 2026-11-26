@@ -653,8 +653,8 @@ const ADAPTERS = { claude, codex, antigravity, gemini, copilot };
 
 // Turn a CLI's error into something a learner can act on, in its own words for each AI
 function humanize(id, msg) {
-  const P = BY[id] || BY.claude;
-  const who = label(P.id);
+  const provider = BY[id] || BY.claude;
+  const who = label(provider.id);
   const m = String(msg || '');
   if (id === 'antigravity' && /please sign in|not logged in|sign in to/i.test(m))
     return `Gemini (Antigravity) isn’t signed in on this Mac. Open Terminal and run \`agy\` to sign in with your Google account, then try again.`;
@@ -703,14 +703,14 @@ function humanize(id, msg) {
       m,
     )
   )
-    return `${who} isn’t signed in on this Mac. Open Terminal and run \`${P.signIn}\` to sign in, then try again.`;
+    return `${who} isn’t signed in on this Mac. Open Terminal and run \`${provider.signIn}\` to sign in, then try again.`;
   // an update renamed or dropped an option Bento passes: say what to do, not the raw parser error
   if (
     /unknown option|unexpected argument|unrecognized (option|argument)|unknown argument|invalid value for '--|unknown feature flag/i.test(
       m,
     )
   )
-    return `${who} on this Mac is a version Bento can’t talk to yet. Update it in Terminal (\`${P.update}\`), then try again.`;
+    return `${who} on this Mac is a version Bento can’t talk to yet. Update it in Terminal (\`${provider.update}\`), then try again.`;
   if (/ENOENT|not found|command not found/i.test(m))
     return `${who} isn’t installed. Open Settings → Connections to see how to install it.`;
   if (/network|ENOTFOUND|ECONNRESET|ETIMEDOUT|getaddrinfo/i.test(m))

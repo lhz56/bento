@@ -5,7 +5,7 @@
 // counts its own requests instead (usage:get).
 const path = require('node:path');
 const fsp = require('node:fs').promises;
-const P = require('../providers.cjs');
+const providers = require('../providers.cjs');
 const { app, ipcMain } = require('electron');
 const { writeSafeAsync } = require('../safewrite.cjs');
 
@@ -25,10 +25,10 @@ module.exports = function registerPlanLimits(ctx) {
     LIMITS = v && typeof v === 'object' ? v : {};
   });
   const limitsAll = () => LIMITS;
-  function saveLimits(id, L) {
-    if (!L) return;
+  function saveLimits(id, limits) {
+    if (!limits) return;
     const all = limitsAll();
-    all[id] = { ...all[id], ...L, plan: L.plan || all[id]?.plan || null, at: Date.now() };
+    all[id] = { ...all[id], ...limits, plan: limits.plan || all[id]?.plan || null, at: Date.now() };
     clearTimeout(limitsTimer);
     limitsTimer = setTimeout(() => writeSafeAsync(LIMITS_FILE, JSON.stringify(all)), 600);
     if (ctx.win && !ctx.win.isDestroyed()) ctx.win.webContents.send('limits', all);
@@ -38,16 +38,16 @@ module.exports = function registerPlanLimits(ctx) {
   async function refreshLimits(only) {
     await limitsReady;
     await Promise.all(
-      P.IDS.filter(
+      providers.IDS.filter(
         (id) =>
           (!only || id === only) &&
-          P.ADAPTERS[id].limits &&
+          providers.ADAPTERS[id].limits &&
           Date.now() - (limitsAsked[id] || 0) > 45000,
       ).map(async (id) => {
-        if (!(await which(P.BY[id].bin))) return;
+        if (!(await which(providers.BY[id].bin))) return;
         limitsAsked[id] = Date.now();
         try {
-          saveLimits(id, await P.ADAPTERS[id].limits(aiCtx(id)));
+          saveLimits(id, await providers.ADAPTERS[id].limits(aiCtx(id)));
         } catch {}
       }),
     );

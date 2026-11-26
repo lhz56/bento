@@ -13,27 +13,27 @@ const inline = (md) =>
     .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
     .replace(/(^|[\s(])\*([^*\s][^*]*)\*/g, '$1<i>$2</i>');
 
-export function lessonHtml(L) {
-  const code = L.work ?? L.code ?? '';
-  const lang = L.lang === 'typescript' ? 'javascript' : L.lang;
-  const runnable = code && (L.lang === 'python' || L.lang === 'javascript'); // TypeScript would need a compiler in the page
+export function lessonHtml(lesson) {
+  const code = lesson.work ?? lesson.code ?? '';
+  const lang = lesson.lang === 'typescript' ? 'javascript' : lesson.lang;
+  const runnable = code && (lesson.lang === 'python' || lesson.lang === 'javascript'); // TypeScript would need a compiler in the page
   const parts = [];
   let codeDone = false;
   const codeBlock = () => {
     codeDone = true;
-    if (L.lang === 'html')
-      return `<figure class="code"><figcaption>${esc(L.file || 'page.html')}</figcaption><iframe sandbox="allow-scripts" srcdoc="${esc(code)}"></iframe><details><summary>See the code</summary><pre>${esc(code)}</pre></details></figure>`;
-    return `<figure class="code"><figcaption>${esc(L.file || (lang === 'python' ? 'main.py' : 'main.js'))}${runnable ? `<button onclick="run()">▶ Run</button>` : ''}</figcaption><pre id="src" contenteditable="true" spellcheck="false">${esc(code)}</pre><pre id="out" hidden></pre><div id="vis"></div></figure>`;
+    if (lesson.lang === 'html')
+      return `<figure class="code"><figcaption>${esc(lesson.file || 'page.html')}</figcaption><iframe sandbox="allow-scripts" srcdoc="${esc(code)}"></iframe><details><summary>See the code</summary><pre>${esc(code)}</pre></details></figure>`;
+    return `<figure class="code"><figcaption>${esc(lesson.file || (lang === 'python' ? 'main.py' : 'main.js'))}${runnable ? `<button onclick="run()">▶ Run</button>` : ''}</figcaption><pre id="src" contenteditable="true" spellcheck="false">${esc(code)}</pre><pre id="out" hidden></pre><div id="vis"></div></figure>`;
   };
-  for (const b of L.story || []) {
+  for (const b of lesson.story || []) {
     if (b.t === 'p') parts.push(`<p>${inline(b.md)}</p>`);
     else if (b.t === 'h') parts.push(`<h2>${esc(b.text)}</h2>`);
     else if (b.t === 'term')
       parts.push(
         `<aside class="term"><b>${esc(b.term)}</b> ${inline(b.plain || '')}${b.like ? `<span>${inline(b.like)}</span>` : ''}</aside>`,
       );
-    else if (b.t === 'step' && L.steps?.[b.i]) {
-      const st = L.steps[b.i];
+    else if (b.t === 'step' && lesson.steps?.[b.i]) {
+      const st = lesson.steps[b.i];
       parts.push(`<h3>${b.i + 1}. ${esc(st.title)}</h3><p>${inline(st.md || '')}</p>`);
     } else if (b.t === 'quiz')
       parts.push(
@@ -42,7 +42,7 @@ export function lessonHtml(L) {
     if (!codeDone && code && b.t === 'p' && parts.length >= 2) parts.push(codeBlock());
   }
   if (!codeDone && code) parts.push(codeBlock());
-  const words = (L.story || []).filter((b) => b.t === 'term').length;
+  const words = (lesson.story || []).filter((b) => b.t === 'term').length;
   // The page's own tiny versions of Bento's helpers: show() draws bars for lists of numbers, the canvas helpers draw.
   const common = `
 function draw(vis){const box=document.getElementById('vis');box.innerHTML='';for(const v of vis){const c=document.createElement('canvas');const f=document.createElement('figure');f.appendChild(c);box.appendChild(f);
@@ -90,7 +90,7 @@ const H={size:(w,h)=>{C().w=w;C().h=h},background:(c)=>C().cmds.push(['bg',c]),c
 try{new Function('console','show',...Object.keys(H),document.getElementById('src').innerText)(con,show,...Object.values(H));}catch(e){lines.push(e.name+': '+e.message)}o.textContent=lines.join('\\n')||'(nothing printed)';draw(vis);}`;
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(L.title)}</title>
+<title>${esc(lesson.title)}</title>
 <style>
 :root{--bg:#faf7f2;--ink:#1f1b16;--ink2:#5b544b;--line:#e9e2d6;--accent:#ff5f2e;--mint:#2fb380;--code:#fffdf9}
 @media(prefers-color-scheme:dark){:root{--bg:#17150f;--ink:#f3eee6;--ink2:#a9a196;--line:#2d2a24;--code:#1f1c16}}
@@ -113,9 +113,9 @@ iframe{width:100%;height:360px;border:0;background:#fff}details{padding:8px 14px
 .quiz button.yes{border-color:var(--mint);background:color-mix(in srgb,var(--mint) 14%,transparent)}.quiz button.no{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
 footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font:14px system-ui;color:var(--ink2)}
 </style></head><body><main>
-<div class="kicker">${esc(L.kicker || (L.mode === 'idea' ? `clever idea${L.context?.company ? ' · ' + L.context.company : ''}` : 'lesson'))}</div>
-<h1>${esc(L.title)}</h1>
-${L.q && L.q !== L.title ? `<p class="q">“${esc(L.q)}”</p>` : ''}
+<div class="kicker">${esc(lesson.kicker || (lesson.mode === 'idea' ? `clever idea${lesson.context?.company ? ' · ' + lesson.context.company : ''}` : 'lesson'))}</div>
+<h1>${esc(lesson.title)}</h1>
+${lesson.q && lesson.q !== lesson.title ? `<p class="q">“${esc(lesson.q)}”</p>` : ''}
 ${parts.join('\n')}
 <footer>Made with Bento, the learning app that uses your own AI. ${runnable ? 'You can edit the code above and press Run again.' : ''}${words ? ` ${words} new words in this post.` : ''}</footer>
 </main>${runnable ? `<script>${runner}</script>` : ''}</body></html>`;

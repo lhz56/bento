@@ -99,10 +99,13 @@ export function spring(response = 0.4, damping = 0.86) {
     wd = w * Math.sqrt(1 - z * z);
   const x = (t) =>
     1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + ((z * w) / wd) * Math.sin(wd * t));
-  const T = Math.log(1000) / (z * w); // within a thousandth of where it's going
+  const settleTime = Math.log(1000) / (z * w); // within a thousandth of where it's going
   const pts = [];
-  for (let i = 0; i <= 40; i++) pts.push(i === 40 ? 1 : +x((T * i) / 40).toFixed(4));
-  const s = { easing: LINEAR ? `linear(${pts.join(', ')})` : SPRING, ms: Math.round(T * 1000) };
+  for (let i = 0; i <= 40; i++) pts.push(i === 40 ? 1 : +x((settleTime * i) / 40).toFixed(4));
+  const s = {
+    easing: LINEAR ? `linear(${pts.join(', ')})` : SPRING,
+    ms: Math.round(settleTime * 1000),
+  };
   springs.set(k, s);
   return s;
 }
@@ -416,7 +419,7 @@ export function useTouch(on, o) {
   useEffect(() => {
     if (!on) return undefined;
     let g = null; // the gesture in progress
-    const W = () => innerWidth;
+    const width = () => innerWidth;
 
     // ---------------------------------------------------------------- a button answers as soon as you touch it
     let pressed = null,
@@ -563,7 +566,7 @@ export function useTouch(on, o) {
       e.preventDefault();
       g.trail.push([e.timeStamp, dx, dy]);
       if (g.trail.length > 6) g.trail.shift();
-      const w = W();
+      const w = width();
       if (g.mode === 'sheet') {
         const y = Math.max(0, dy);
         g.el.style.transform = `translateY(${y}px)`;
@@ -604,7 +607,7 @@ export function useTouch(on, o) {
       const vx = (b[1] - a[1]) / dt,
         vy = (b[2] - a[2]) / dt;
       const [, dx, dy] = b;
-      const w = W();
+      const w = width();
       const x = ref.current;
       if (k.mode === 'sheet') {
         const h = k.el.getBoundingClientRect().height;

@@ -5,7 +5,7 @@ import BigPicture from './BigPicture.jsx';
 import { Md } from './Story.jsx';
 
 // Take apart a website: what it is, how it reached your screen, and what it's built with.
-const fallback = (F, tools) => {
+const fallback = (facts, tools) => {
   const edge = tools.find((t) =>
     ['cloudflare', 'fastly', 'akamai', 'cloudfront', 'vercel', 'netlify'].includes(t.id),
   );
@@ -51,19 +51,19 @@ const fallback = (F, tools) => {
   };
 };
 
-export default function Site({ site: X, onAsk, onRetry, onOpenUrl, onOpenRepo }) {
-  const F = X.facts;
-  const N = X.narr || {};
-  const found = useMemo(() => (F ? detectSite(F) : []), [F]);
-  const tools = useMemo(() => mergeTools(found, N.stack), [found, N.stack]);
-  const narrating = X.status === 'narrating';
-  if (!F)
+export default function Site({ site, onAsk, onRetry, onOpenUrl, onOpenRepo }) {
+  const facts = site.facts;
+  const narration = site.narr || {};
+  const found = useMemo(() => (facts ? detectSite(facts) : []), [facts]);
+  const tools = useMemo(() => mergeTools(found, narration.stack), [found, narration.stack]);
+  const narrating = site.status === 'narrating';
+  if (!facts)
     return (
       <div className="atlas-loading">
-        <div className="al-name">{X.host}</div>
-        {X.status === 'error' ? (
+        <div className="al-name">{site.host}</div>
+        {site.status === 'error' ? (
           <div className="story-err">
-            <b>Couldn’t open it.</b> {X.error}
+            <b>Couldn’t open it.</b> {site.error}
             <div>
               <button className="btn tiny" onClick={onRetry}>
                 Try again
@@ -84,15 +84,15 @@ export default function Site({ site: X, onAsk, onRetry, onOpenUrl, onOpenRepo })
         )}
       </div>
     );
-  const g = N.gist;
-  const kb = Math.round(F.bytes / 1024);
-  const j = N.journeys?.[0];
+  const g = narration.gist;
+  const kb = Math.round(facts.bytes / 1024);
+  const j = narration.journeys?.[0];
   return (
     <div className="atlas">
       <div className="atlas-bar">
         <div className="ab-id">
           <span className="ab-folder">◎</span>
-          <span className="ab-name">{F.host}</span>
+          <span className="ab-name">{facts.host}</span>
         </div>
         <div className="ab-act" style={{ marginLeft: 'auto' }}>
           {narrating && (
@@ -105,12 +105,12 @@ export default function Site({ site: X, onAsk, onRetry, onOpenUrl, onOpenRepo })
               reading
             </span>
           )}
-          {X.status === 'narr-error' && (
+          {site.status === 'narr-error' && (
             <button className="chip warnchip" onClick={onRetry}>
               Explanations failed · retry
             </button>
           )}
-          <button className="chip" onClick={() => onOpenUrl(F.final)}>
+          <button className="chip" onClick={() => onOpenUrl(facts.final)}>
             Visit ↗
           </button>
         </div>
@@ -119,7 +119,7 @@ export default function Site({ site: X, onAsk, onRetry, onOpenUrl, onOpenRepo })
         <div className="over-top">
           <div className="over-text">
             <div className="kicker">{g?.kind || 'website'}</div>
-            <h1 className={g ? '' : 'pending'}>{g?.one || F.title || F.host}</h1>
+            <h1 className={g ? '' : 'pending'}>{g?.one || facts.title || facts.host}</h1>
             {g?.analogy ? (
               <p className="analogy">{g.analogy}</p>
             ) : narrating ? (
@@ -129,7 +129,7 @@ export default function Site({ site: X, onAsk, onRetry, onOpenUrl, onOpenRepo })
           <div className="vitals site-vitals">
             <div className="vt-rows">
               <div>
-                <b>{F.ms < 1000 ? `${F.ms} ms` : `${(F.ms / 1000).toFixed(1)} s`}</b>
+                <b>{facts.ms < 1000 ? `${facts.ms} ms` : `${(facts.ms / 1000).toFixed(1)} s`}</b>
                 <span>to answer</span>
               </div>
               <div>
@@ -137,7 +137,7 @@ export default function Site({ site: X, onAsk, onRetry, onOpenUrl, onOpenRepo })
                 <span>of HTML</span>
               </div>
               <div>
-                <b>{F.counts.scripts}</b>
+                <b>{facts.counts.scripts}</b>
                 <span>scripts</span>
               </div>
               <div>
@@ -154,8 +154,8 @@ export default function Site({ site: X, onAsk, onRetry, onOpenUrl, onOpenRepo })
           </div>
         </div>
         <BigPicture
-          flow={N.flow || fallback(F, found)}
-          terms={N.terms || []}
+          flow={narration.flow || fallback(facts, found)}
+          terms={narration.terms || []}
           tools={tools}
           pathIdx={new Map()}
           onOpen={() => {}}
@@ -163,10 +163,10 @@ export default function Site({ site: X, onAsk, onRetry, onOpenUrl, onOpenRepo })
           narrating={narrating}
           role={() => ''}
         />
-        {F.repos?.length > 0 && onOpenRepo && (
+        {facts.repos?.length > 0 && onOpenRepo && (
           <div className="site-repos">
             <span className="mini-h">this site links to code on GitHub</span>
-            {F.repos.map((r) => (
+            {facts.repos.map((r) => (
               <button key={r} className="file-chip" onClick={() => onOpenRepo(r)}>
                 ◈ {r}
                 <span>take apart the code</span>
@@ -190,7 +190,13 @@ export default function Site({ site: X, onAsk, onRetry, onOpenUrl, onOpenRepo })
           </div>
         )}
       </section>
-      <Toolbelt tools={tools} stack={found} N={N} narrating={narrating} onShowFiles={() => {}} />
+      <Toolbelt
+        tools={tools}
+        stack={found}
+        narration={narration}
+        narrating={narrating}
+        onShowFiles={() => {}}
+      />
       <section className="asec">
         <div className="sec-head">
           <div>
@@ -204,7 +210,7 @@ export default function Site({ site: X, onAsk, onRetry, onOpenUrl, onOpenRepo })
         <div className="clues">
           <div>
             <div className="mini-h">headers</div>
-            {Object.entries(F.headers).map(([k, v]) => (
+            {Object.entries(facts.headers).map(([k, v]) => (
               <div key={k} className="clue">
                 <b>{k}</b>
                 <span>{v}</span>
@@ -213,12 +219,12 @@ export default function Site({ site: X, onAsk, onRetry, onOpenUrl, onOpenRepo })
           </div>
           <div>
             <div className="mini-h">scripts</div>
-            {F.scripts.slice(0, 12).map((s) => (
+            {facts.scripts.slice(0, 12).map((s) => (
               <div key={s} className="clue">
                 <span>{s}</span>
               </div>
             ))}
-            {F.scripts.length === 0 && <div className="muted small">No external scripts.</div>}
+            {facts.scripts.length === 0 && <div className="muted small">No external scripts.</div>}
           </div>
         </div>
       </section>
@@ -230,8 +236,8 @@ export default function Site({ site: X, onAsk, onRetry, onOpenUrl, onOpenRepo })
           </div>
         </div>
         <div className="nexts" style={{ maxWidth: 640 }}>
-          {(N.learn?.length
-            ? N.learn
+          {(narration.learn?.length
+            ? narration.learn
             : [
                 'What happens when I type a web address?',
                 'What is a CDN?',

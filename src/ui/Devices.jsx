@@ -88,7 +88,7 @@ const ICON = {
 // Settings → Your phone and iPad, on the Mac: turn it on, then connect a phone (tap this Mac in the Bento Code app and
 // click Allow, or scan the code), see where your phone can reach this Mac, keep it awake, and see your devices.
 export default function DevicesRow() {
-  const H = window.bento?.host;
+  const host = window.bento?.host;
   const [st, setSt] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -97,11 +97,12 @@ export default function DevicesRow() {
   const known = useRef(null);
   const auto = useRef(false);
   useEffect(() => {
-    if (!H) return undefined;
-    H.get()
+    if (!host) return undefined;
+    host
+      .get()
       .then(setSt)
       .catch(() => {});
-    return H.on(setSt);
+    return host.on(setSt);
   }, []);
   // the code's countdown
   useEffect(() => {
@@ -140,11 +141,11 @@ export default function DevicesRow() {
       (auto.current && st.pairing && left <= 0)
     ) {
       auto.current = true;
-      act(() => H.pair());
+      act(() => host.pair());
     }
   }, [st?.on, st?.urls?.length, st?.devices?.length, !!st?.pairing, left <= 0]);
-  if (!H || !st) return null;
-  const set = (p) => act(() => H.set({ on: st.on, wifi: st.wifi, awake: st.awake, ...p }));
+  if (!host || !st) return null;
+  const set = (p) => act(() => host.set({ on: st.on, wifi: st.wifi, awake: st.awake, ...p }));
   const ts = st.urls.find((u) => u.kind === 'tailscale'),
     wifi = st.urls.find((u) => u.kind === 'wifi');
   const code = st.pairing?.code ? `${st.pairing.code.slice(0, 4)}-${st.pairing.code.slice(4)}` : '';
@@ -289,7 +290,7 @@ export default function DevicesRow() {
                   disabled={busy || !st.urls.length}
                   onClick={() => {
                     auto.current = true;
-                    act(() => H.pair());
+                    act(() => host.pair());
                   }}
                 >
                   {t('Show a code to scan')}
@@ -423,7 +424,7 @@ export default function DevicesRow() {
                             `${t('Remove')} ${d.name}? ${t('It will need to connect again to use Bento.')}`,
                           )
                         )
-                          act(() => H.forget(d.id));
+                          act(() => host.forget(d.id));
                       }}
                     >
                       {t('Remove')}
@@ -446,15 +447,15 @@ export default function DevicesRow() {
 
 // Settings on a phone or iPad: which Mac this device uses, and a way to stop
 export function ThisDeviceRow() {
-  const R = window.bentoRemote;
-  const [st, setSt] = useState(() => ({ state: R?.state, host: R?.host }));
+  const remote = window.bentoRemote;
+  const [st, setSt] = useState(() => ({ state: remote?.state, host: remote?.host }));
   useEffect(() => {
-    if (!R) return undefined;
-    const off = R.on((state, host) => setSt({ state, host }));
-    setSt({ state: R.state, host: R.host });
+    if (!remote) return undefined;
+    const off = remote.on((state, host) => setSt({ state, host }));
+    setSt({ state: remote.state, host: remote.host });
     return off;
   }, []);
-  if (!R) return null;
+  if (!remote) return null;
   const me =
     /iPad/.test(navigator.userAgent) ||
     (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent))
@@ -497,7 +498,7 @@ export function ThisDeviceRow() {
                   t('Disconnect this device? You can pair it again with a new code from the Mac.'),
                 )
               )
-                R.disconnect();
+                remote.disconnect();
             }}
           >
             {t('Disconnect')}

@@ -11,8 +11,9 @@ const { spawn, execFile } = require('node:child_process');
 /** @param {Record<string, any>} ctx what main.cjs shares with this module (see "const ctx" there) */
 module.exports = function registerConnections(ctx) {
   const { ENV, MAC, OFFSCREEN, TEST_BUILD, WIN, WORKDIR, envReady, launch, workdirReady } = ctx;
-  const P = require('../providers.cjs');
-  const AI_FILES = () => (aiFiles ??= P.setupFilesAsync(path.join(app.getPath('userData'), 'ai')));
+  const providers = require('../providers.cjs');
+  const AI_FILES = () =>
+    (aiFiles ??= providers.setupFilesAsync(path.join(app.getPath('userData'), 'ai')));
   let aiFiles = null;
   // BENTO_PRETEND_MISSING=claude,codex,gemini,copilot,gh hides CLIs, to test what a brand-new user sees.
   const HIDDEN = new Set(
@@ -38,11 +39,11 @@ module.exports = function registerConnections(ctx) {
       'BENTO_FAKE_AI is set, but this build doesn’t use pretend AIs: every AI is hidden, so none of your real ones runs',
     );
   // an AI can be named by its id ("antigravity") or its program ("agy")
-  const idOfBin = (cmd) => P.IDS.find((id) => P.BY[id].bin === cmd) || cmd;
+  const idOfBin = (cmd) => providers.IDS.find((id) => providers.BY[id].bin === cmd) || cmd;
   const isHidden = (cmd) =>
     HIDDEN.has(cmd) ||
     HIDDEN.has(idOfBin(cmd)) ||
-    (HOOKS.hideAllAIs && P.IDS.includes(idOfBin(cmd)));
+    (HOOKS.hideAllAIs && providers.IDS.includes(idOfBin(cmd)));
   const isFake = (cmd) => !!FAKE_AI && (FAKE_AS.has(cmd) || FAKE_AS.has(idOfBin(cmd)));
   const viaFake = (cmd, args) =>
     isFake(cmd) ? ['node', [FAKE_AI, '--as', cmd, ...args]] : [cmd, args];
@@ -141,18 +142,18 @@ module.exports = function registerConnections(ctx) {
     return r.timedOut ? runQuiet(bin, args, t * 3) : r;
   };
   const aiCtx = (id) => ({
-    run: (args, t) => runPatient(P.BY[id].bin, args, t),
+    run: (args, t) => runPatient(providers.BY[id].bin, args, t),
     env: ENV,
     ghToken,
     ghApi,
-    spawnJson: (args, msgs, wait) => spawnJson(P.BY[id].bin, args, msgs, wait),
+    spawnJson: (args, msgs, wait) => spawnJson(providers.BY[id].bin, args, msgs, wait),
   });
 
   // what each AI tool says about itself: installed, a version Bento can talk to, signed in (and with which plan)
   async function scanConnections() {
     await ctx.limitsReady;
     const bins = [
-      ...P.IDS.map((id) => P.BY[id].bin),
+      ...providers.IDS.map((id) => providers.BY[id].bin),
       'gh',
       'npm',
       'brew',
@@ -167,27 +168,27 @@ module.exports = function registerConnections(ctx) {
     };
     await Promise.all(
       [
-        ...P.IDS.map(async (id) => {
-          const A = P.ADAPTERS[id],
-            bin = P.BY[id].bin,
+        ...providers.IDS.map(async (id) => {
+          const adapter = providers.ADAPTERS[id],
+            bin = providers.BY[id].bin,
             x = (r[id] = /** @type {Record<string, any>} */ ({ installed: !!at[bin] }));
           if (!at[bin]) return;
           x.brew = /\/(Cellar|Caskroom)\//.test(await fsp.realpath(at[bin]).catch(() => at[bin])); // updates go the way it was installed
           const [v, h] = await Promise.all([
             runPatient(bin, ['--version']),
-            runPatient(bin, A.compat.help),
+            runPatient(bin, adapter.compat.help),
           ]);
-          x.version = A.version(v.out || '') || null;
-          x.outdated = P.missingFlags(h, A.compat.flags);
+          x.version = adapter.version(v.out || '') || null;
+          x.outdated = providers.missingFlags(h, adapter.compat.flags);
           // a pretend CLI in tests only knows the commands real ones have; sign-in that's read from files is assumed
           Object.assign(
             x,
             isFake(bin) && !['claude', 'codex', 'antigravity'].includes(id)
               ? { loggedIn: true, method: 'test' }
-              : await A.auth(aiCtx(id)),
+              : await adapter.auth(aiCtx(id)),
           );
-          const L = ctx.limitsAll()[id];
-          if (L?.plan && !x.plan) x.plan = L.plan;
+          const limits = ctx.limitsAll()[id];
+          if (limits?.plan && !x.plan) x.plan = limits.plan;
         }),
         at.gh &&
           (async () => {
@@ -211,7 +212,7 @@ module.exports = function registerConnections(ctx) {
     const scan = await scanOnce();
     const ready = {},
       accounts = {};
-    for (const id of P.IDS) {
+    for (const id of providers.IDS) {
       const state = scan[id];
       ready[id] = !!(state.installed && state.loggedIn && !state.outdated);
       accounts[id] = [state.method, state.plan].filter(Boolean).join(' · ');
@@ -229,7 +230,7 @@ module.exports = function registerConnections(ctx) {
   const wincmd = require('../wincmd.cjs');
   ipcMain.handle('ai:terminal', async (_e, id, action, tools = {}) => {
     if (!MAC && !WIN) return false;
-    const p = wincmd.forPlatform(id === 'gh' ? P.CAT.github : P.BY[id]);
+    const p = wincmd.forPlatform(id === 'gh' ? providers.CAT.github : providers.BY[id]);
     if (!p || !['install', 'signIn', 'update'].includes(action)) return false;
     const cmd =
       action === 'install'
@@ -263,7 +264,7 @@ module.exports = function registerConnections(ctx) {
     );
   });
   return {
-    P,
+    P: providers,
     AI_FILES,
     HIDDEN,
     HOOKS,

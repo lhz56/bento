@@ -248,9 +248,9 @@ function layoutTree(root) {
 }
 
 function TreeViz({ root }) {
-  const L = useMemo(() => layoutTree(root), [root]);
+  const layout = useMemo(() => layoutTree(root), [root]);
   const prev = useRef(new Set());
-  const fresh = new Set(L.nodes.map((n) => n.path + ':' + n.v));
+  const fresh = new Set(layout.nodes.map((n) => n.path + ':' + n.v));
   const isNew = (n) => prev.current.size > 0 && !prev.current.has(n.path + ':' + n.v);
   useEffect(() => {
     prev.current = fresh;
@@ -258,23 +258,23 @@ function TreeViz({ root }) {
   const sx = 46,
     sy = 58,
     pad = 26;
-  const W = Math.max(L.width * sx, 120) + pad * 2 - sx + 40,
-    H = (L.depth + 1) * sy + pad;
+  const width = Math.max(layout.width * sx, 120) + pad * 2 - sx + 40,
+    height = (layout.depth + 1) * sy + pad;
   const pos = Object.fromEntries(
-    L.nodes.map((n) => [n.path, [pad + 20 + n.x * sx, pad + n.d * sy]]),
+    layout.nodes.map((n) => [n.path, [pad + 20 + n.x * sx, pad + n.d * sy]]),
   );
   return (
     <svg
       className="tree"
-      viewBox={`0 0 ${W} ${H}`}
+      viewBox={`0 0 ${width} ${height}`}
       role="img"
-      aria-label={`A tree with ${L.nodes.length} nodes, ${L.depth + 1} levels deep: ${L.nodes
+      aria-label={`A tree with ${layout.nodes.length} nodes, ${layout.depth + 1} levels deep: ${layout.nodes
         .slice(0, 30)
         .map((n) => n.v)
         .join(', ')}`}
-      style={{ width: '100%', maxWidth: W * 1.2, maxHeight: 340 }}
+      style={{ width: '100%', maxWidth: width * 1.2, maxHeight: 340 }}
     >
-      {L.edges.map(
+      {layout.edges.map(
         ([a, b]) =>
           pos[a] &&
           pos[b] && (
@@ -288,7 +288,7 @@ function TreeViz({ root }) {
             />
           ),
       )}
-      {L.nodes.map((n) => (
+      {layout.nodes.map((n) => (
         <g
           key={n.path}
           className={`tree-node ${isNew(n) ? 'new' : ''}`}

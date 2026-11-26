@@ -189,11 +189,11 @@ export default function Puzzles({ progress = {}, onOpen, onIdeas, onIdea, races 
                 {['ring', 'bloom', 'mapreduce', 'lsm', 'lru', 'hll']
                   .map((id) => ideaById[id])
                   .filter(Boolean)
-                  .map((I) => (
-                    <button key={I.id} className="pz-chip idea" onClick={() => onIdea(I)}>
+                  .map((idea) => (
+                    <button key={idea.id} className="pz-chip idea" onClick={() => onIdea(idea)}>
                       <span className="pz-tier">⬡</span>
-                      <span className="pz-name">{I.title}</span>
-                      <span className="pz-lc">{I.company}</span>
+                      <span className="pz-name">{idea.title}</span>
+                      <span className="pz-lc">{idea.company}</span>
                     </button>
                   ))}
                 <button className="pz-chip idea more" onClick={onIdeas}>
@@ -239,7 +239,7 @@ function ScaleChart({ onOpen }) {
   }, [k, auto]);
   const n = NS[k];
   const secs = CLASSES.map(([, , f]) => f(n) / 1e7);
-  const L = (s) => Math.max(0, Math.log10(s * 1e7));
+  const logScale = (s) => Math.max(0, Math.log10(s * 1e7));
   const max = Math.log10(13.8e9 * 365.25 * 86400 * 1e7);
   return (
     <div className="scalechart">
@@ -277,7 +277,9 @@ function ScaleChart({ onOpen }) {
               <span className="sc-bar">
                 <i
                   className={`c${h.c}`}
-                  style={{ width: `${Math.max(2, Math.min(100, (L(secs[i]) / max) * 100))}%` }}
+                  style={{
+                    width: `${Math.max(2, Math.min(100, (logScale(secs[i]) / max) * 100))}%`,
+                  }}
                 />
               </span>
               <span className={`sc-t c${h.c}`}>
@@ -418,19 +420,19 @@ async function measureBase(p, which) {
   return baseline.get(k);
 }
 
-export function PuzzlePanel({ L, rec, getCode, setPuzzleCode, onResult, pyReady, onOpenUrl }) {
-  const p = puzzleById(L.puzzle);
+export function PuzzlePanel({ lesson, rec, getCode, setPuzzleCode, onResult, pyReady, onOpenUrl }) {
+  const p = puzzleById(lesson.puzzle);
   const [phase, setPhase] = useState(null); // null | { lane } | 'done'
   const [res, setRes] = useState(null);
   const [party, setParty] = useState(0);
   useEffect(() => {
     setPhase(null);
     setRes(null);
-  }, [L.id]);
+  }, [lesson.id]);
   if (!p) return null;
   const s = rec?.s || [];
   const check = async () => {
-    const code = getCode?.() ?? L.work ?? L.code;
+    const code = getCode?.() ?? lesson.work ?? lesson.code;
     setRes(null);
     setPhase({ lane: 'tests' });
     const t = await runCode('python', 'tests', code, {
@@ -641,7 +643,7 @@ function Ladder({ p, lanes }) {
   const mine = lanes.yours;
   const ob = lanes.obvious;
   const cl = lanes.clever;
-  const M = 1e6 > rungs[rungs.length - 1][0] ? rungs[rungs.length - 1][0] : 1e6;
+  const cap = 1e6 > rungs[rungs.length - 1][0] ? rungs[rungs.length - 1][0] : 1e6;
   const sentence = (() => {
     if (mine?.skipped) return 'Make the tests pass first, then Bento will race your code.';
     if (mine?.crash)
@@ -654,15 +656,15 @@ function Ladder({ p, lanes }) {
         </>
       );
     if (!mine?.fit) return null;
-    const y = mine.fit.at(M);
-    const vs = ob?.fit && !ob.crash ? ob.fit.at(M) / y : null;
+    const y = mine.fit.at(cap);
+    const vs = ob?.fit && !ob.crash ? ob.fit.at(cap) / y : null;
     if (lanes.yours === lanes.obvious)
       return (
         <>
-          At {fmtN(M)}, the obvious way would take <b>{humanTime(y).t}</b>
+          At {fmtN(cap)}, the obvious way would take <b>{humanTime(y).t}</b>
           {cl?.fit ? (
             <>
-              ; the clever way, <b>{humanTime(cl.fit.at(M)).t}</b>
+              ; the clever way, <b>{humanTime(cl.fit.at(cap)).t}</b>
             </>
           ) : (
             ''
@@ -673,17 +675,17 @@ function Ladder({ p, lanes }) {
     if (ob?.crash)
       return (
         <>
-          The obvious way crashes at n = {fmtN(ob.crash.n)}. Yours handles {fmtN(M)} in{' '}
+          The obvious way crashes at n = {fmtN(ob.crash.n)}. Yours handles {fmtN(cap)} in{' '}
           <b>{humanTime(y).t}</b>.
         </>
       );
     return (
       <>
-        At {fmtN(M)}, your code would take <b>{humanTime(y).t}</b>
+        At {fmtN(cap)}, your code would take <b>{humanTime(y).t}</b>
         {vs && vs > 3 ? (
           <>
-            ; the obvious way, <b>{humanTime(ob.fit.at(M)).t}</b> ({Math.round(vs).toLocaleString()}
-            × slower)
+            ; the obvious way, <b>{humanTime(ob.fit.at(cap)).t}</b> (
+            {Math.round(vs).toLocaleString()}× slower)
           </>
         ) : (
           ''
@@ -760,9 +762,9 @@ function Ladder({ p, lanes }) {
 function Curves({ rows }) {
   const all = rows.flatMap((r) => r.pts || []);
   if (all.length < 2) return null;
-  const W = 520,
-    H = 120,
-    P = { l: 44, r: 10, t: 8, b: 20 };
+  const width = 520,
+    height = 120,
+    pad = { l: 44, r: 10, t: 8, b: 20 };
   const lin = rows.some(
     (r) => r.pts?.length > 2 && r.pts[1][0] - r.pts[0][0] === r.pts[2][0] - r.pts[1][0],
   );
@@ -773,9 +775,11 @@ function Curves({ rows }) {
     x1 = Math.max(...xs.map(fx));
   const y0 = Math.log10(Math.min(...ts)),
     y1 = Math.log10(Math.max(...ts));
-  const X = (n) => P.l + ((fx(n) - x0) / Math.max(1e-9, x1 - x0)) * (W - P.l - P.r);
-  const Y = (t) =>
-    H - P.b - ((Math.log10(Math.max(t, 1e-7)) - y0) / Math.max(0.5, y1 - y0)) * (H - P.t - P.b);
+  const xAt = (n) => pad.l + ((fx(n) - x0) / Math.max(1e-9, x1 - x0)) * (width - pad.l - pad.r);
+  const yAt = (t) =>
+    height -
+    pad.b -
+    ((Math.log10(Math.max(t, 1e-7)) - y0) / Math.max(0.5, y1 - y0)) * (height - pad.t - pad.b);
   const lab = (t) =>
     t < 1e-3
       ? `${(t * 1e6).toFixed(0)}µs`
@@ -785,7 +789,7 @@ function Curves({ rows }) {
   return (
     <svg
       className="ld-curves"
-      viewBox={`0 0 ${W} ${H}`}
+      viewBox={`0 0 ${width} ${height}`}
       role="img"
       aria-label={rows
         .filter((r) => r.pts?.length)
@@ -796,30 +800,30 @@ function Curves({ rows }) {
         .join('. ')}
     >
       {[Math.min(...ts), Math.max(...ts)].map((t, i) => (
-        <text key={i} x={P.l - 6} y={Y(t) + 4} textAnchor="end">
+        <text key={i} x={pad.l - 6} y={yAt(t) + 4} textAnchor="end">
           {lab(t)}
         </text>
       ))}
-      <text x={P.l} y={H - 5}>
+      <text x={pad.l} y={height - 5}>
         n = {fmtN(Math.min(...xs))}
       </text>
-      <text x={W - P.r} y={H - 5} textAnchor="end">
+      <text x={width - pad.r} y={height - 5} textAnchor="end">
         {fmtN(Math.max(...xs))} →
       </text>
       {rows.map(
         (r) =>
           r.pts?.length > 0 && (
             <g key={r.k} className={`lc-${r.k}`}>
-              <polyline points={r.pts.map(([n, t]) => `${X(n)},${Y(t)}`).join(' ')} />
+              <polyline points={r.pts.map(([n, t]) => `${xAt(n)},${yAt(t)}`).join(' ')} />
               {r.pts.map(([n, t]) => (
-                <circle key={n} cx={X(n)} cy={Y(t)} r="2.6">
+                <circle key={n} cx={xAt(n)} cy={yAt(t)} r="2.6">
                   <title>{`n = ${fmtN(n)}: ${lab(t)} per call`}</title>
                 </circle>
               ))}
               {r.crash && (
                 <text
-                  x={Math.min(W - 20, X(r.pts[r.pts.length - 1]?.[0] || xs[0]) + 8)}
-                  y={Y(r.pts[r.pts.length - 1]?.[1] || ts[0]) + 4}
+                  x={Math.min(width - 20, xAt(r.pts[r.pts.length - 1]?.[0] || xs[0]) + 8)}
+                  y={yAt(r.pts[r.pts.length - 1]?.[1] || ts[0]) + 4}
                   className="boom"
                 >
                   💥
@@ -833,11 +837,11 @@ function Curves({ rows }) {
 }
 
 // After the story: the solution, and where this puzzle lives at real scale
-export function PuzzleEnd({ L, rec, setPuzzleCode, onIdea, onOpenAt, onOpenUrl, onSeen }) {
-  const p = puzzleById(L.puzzle);
+export function PuzzleEnd({ lesson, rec, setPuzzleCode, onIdea, onOpenAt, onOpenUrl, onSeen }) {
+  const p = puzzleById(lesson.puzzle);
   const [sure, setSure] = useState(false);
   if (!p) return null;
-  const I = p.scale?.idea ? ideaById[p.scale.idea] : null;
+  const idea = p.scale?.idea ? ideaById[p.scale.idea] : null;
   const real = p.scale?.real;
   return (
     <div className="pz-end fade-in">
@@ -868,9 +872,9 @@ export function PuzzleEnd({ L, rec, setPuzzleCode, onIdea, onOpenAt, onOpenUrl, 
           <Md text={p.scale?.text || ''} />
         </p>
         <div className="pz-scale-acts">
-          {I && (
-            <button className="idea-src strong" onClick={() => onIdea(I)}>
-              ⬡ Clever idea: <b>{I.title}</b>
+          {idea && (
+            <button className="idea-src strong" onClick={() => onIdea(idea)}>
+              ⬡ Clever idea: <b>{idea.title}</b>
             </button>
           )}
           {real &&
@@ -891,10 +895,10 @@ export function PuzzleEnd({ L, rec, setPuzzleCode, onIdea, onOpenAt, onOpenUrl, 
 
 // ─────────────────────────────────────────────── pictures of each way of thinking
 export function PatternArt({ kind, big }) {
-  const A = 'var(--accent)',
-    V = 'var(--violet)',
-    M = 'var(--mint)',
-    I = 'var(--ink-4)';
+  const accent = 'var(--accent)',
+    violet = 'var(--violet)',
+    mint = 'var(--mint)',
+    ink = 'var(--ink-4)';
   const ref = useRef(null);
   useEffect(() => {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) ref.current?.pauseAnimations?.();
@@ -909,7 +913,7 @@ export function PatternArt({ kind, big }) {
       {kids}
     </svg>
   );
-  const bars = (hs, x0 = 10, w = 9, gap = 3, fill = I) =>
+  const bars = (hs, x0 = 10, w = 9, gap = 3, fill = ink) =>
     hs.map((h, i) => (
       <rect key={i} x={x0 + i * (w + gap)} y={56 - h} width={w} height={h} rx="2" fill={fill} />
     ));
@@ -925,15 +929,22 @@ export function PatternArt({ kind, big }) {
             height="32"
             rx="8"
             fill="none"
-            stroke={A}
+            stroke={accent}
             strokeWidth="2.4"
           />
-          <text x="60" y="37" textAnchor="middle" fontFamily="var(--mono)" fontSize="14" fill={A}>
+          <text
+            x="60"
+            y="37"
+            textAnchor="middle"
+            fontFamily="var(--mono)"
+            fontSize="14"
+            fill={accent}
+          >
             f
           </text>
-          <path d="M33 32 H42 M78 32 H88" stroke={I} strokeWidth="2" />
-          <circle cx="100" cy="32" r="7" fill={M} />
-          <circle r="3.2" fill={V}>
+          <path d="M33 32 H42 M78 32 H88" stroke={ink} strokeWidth="2" />
+          <circle cx="100" cy="32" r="7" fill={mint} />
+          <circle r="3.2" fill={violet}>
             <animateMotion dur="2.6s" repeatCount="indefinite" path="M18,32 L100,32" />
           </circle>
         </>,
@@ -950,12 +961,12 @@ export function PatternArt({ kind, big }) {
               height="20"
               rx="3"
               fill="none"
-              stroke={I}
+              stroke={ink}
               strokeWidth="1.6"
             />
           ))}
-          <rect x="62" y="34" width="14" height="20" rx="3" fill={A} opacity=".18" />
-          <circle cx="69" r="4" fill={A}>
+          <rect x="62" y="34" width="14" height="20" rx="3" fill={accent} opacity=".18" />
+          <circle cx="69" r="4" fill={accent}>
             <animate
               attributeName="cy"
               values="8;44;44;8"
@@ -964,7 +975,7 @@ export function PatternArt({ kind, big }) {
               repeatCount="indefinite"
             />
           </circle>
-          <text x="69" y="22" textAnchor="middle" fontSize="8" fill={I} fontFamily="var(--mono)">
+          <text x="69" y="22" textAnchor="middle" fontSize="8" fill={ink} fontFamily="var(--mono)">
             #
           </text>
         </>,
@@ -973,7 +984,7 @@ export function PatternArt({ kind, big }) {
       return svg(
         <>
           {bars([14, 22, 30, 18, 26, 12, 34, 20], 10, 9, 3)}
-          <path d="M0 0 L5 8 L-5 8 Z" fill={A}>
+          <path d="M0 0 L5 8 L-5 8 Z" fill={accent}>
             <animateTransform
               attributeName="transform"
               type="translate"
@@ -982,7 +993,7 @@ export function PatternArt({ kind, big }) {
               repeatCount="indefinite"
             />
           </path>
-          <path d="M0 0 L5 8 L-5 8 Z" fill={V}>
+          <path d="M0 0 L5 8 L-5 8 Z" fill={violet}>
             <animateTransform
               attributeName="transform"
               type="translate"
@@ -1002,9 +1013,9 @@ export function PatternArt({ kind, big }) {
             width="34"
             height="46"
             rx="5"
-            fill={A}
+            fill={accent}
             fillOpacity=".12"
-            stroke={A}
+            stroke={accent}
             strokeWidth="2"
           >
             <animate attributeName="x" values="4;76;4" dur="4s" repeatCount="indefinite" />
@@ -1022,10 +1033,10 @@ export function PatternArt({ kind, big }) {
               width="48"
               height="7"
               rx="3.5"
-              fill={i === 2 ? V : I}
+              fill={i === 2 ? violet : ink}
             />
           ))}
-          <rect x="36" width="48" height="7" rx="3.5" fill={A}>
+          <rect x="36" width="48" height="7" rx="3.5" fill={accent}>
             <animate
               attributeName="y"
               values="4;21;21;4"
@@ -1040,7 +1051,15 @@ export function PatternArt({ kind, big }) {
       return svg(
         <>
           {bars([6, 10, 14, 18, 22, 26, 30, 34, 38, 42], 8, 8, 3)}
-          <rect y="8" height="50" rx="4" fill={A} fillOpacity=".14" stroke={A} strokeWidth="1.6">
+          <rect
+            y="8"
+            height="50"
+            rx="4"
+            fill={accent}
+            fillOpacity=".14"
+            stroke={accent}
+            strokeWidth="1.6"
+          >
             <animate
               attributeName="x"
               values="6;61;61;83;6"
@@ -1063,7 +1082,7 @@ export function PatternArt({ kind, big }) {
         <>
           <path
             d="M60 14 L38 34 M60 14 L82 34 M38 34 L28 52 M38 34 L48 52 M82 34 L72 52 M82 34 L92 52"
-            stroke={I}
+            stroke={ink}
             strokeWidth="1.6"
           />
           {[
@@ -1074,9 +1093,9 @@ export function PatternArt({ kind, big }) {
             [72, 52],
             [92, 52],
           ].map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r="5.5" fill={I} />
+            <circle key={i} cx={x} cy={y} r="5.5" fill={ink} />
           ))}
-          <circle cx="60" cy="14" r="8" fill={A}>
+          <circle cx="60" cy="14" r="8" fill={accent}>
             <animate attributeName="r" values="7;9;7" dur="1.8s" repeatCount="indefinite" />
           </circle>
         </>,
@@ -1086,7 +1105,7 @@ export function PatternArt({ kind, big }) {
         <>
           <path
             d="M60 10 L36 30 M60 10 L84 30 M36 30 L24 50 M36 30 L48 50 M84 30 L96 50"
-            stroke={I}
+            stroke={ink}
             strokeWidth="1.6"
           />
           {[
@@ -1097,9 +1116,9 @@ export function PatternArt({ kind, big }) {
             [48, 50],
             [96, 50],
           ].map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r="5.5" fill={i ? I : V} />
+            <circle key={i} cx={x} cy={y} r="5.5" fill={i ? ink : violet} />
           ))}
-          <circle r="3.4" fill={A}>
+          <circle r="3.4" fill={accent}>
             <animateMotion
               dur="3.2s"
               repeatCount="indefinite"
@@ -1116,7 +1135,15 @@ export function PatternArt({ kind, big }) {
               y = Math.floor(i / 7),
               d = Math.abs(x - 3) + Math.abs(y - 1);
             return (
-              <rect key={i} x={10 + x * 15} y={8 + y * 17} width="12" height="14" rx="3" fill={M}>
+              <rect
+                key={i}
+                x={10 + x * 15}
+                y={8 + y * 17}
+                width="12"
+                height="14"
+                rx="3"
+                fill={mint}
+              >
                 <animate
                   attributeName="opacity"
                   values=".12;.12;1;1;.12"
@@ -1141,10 +1168,10 @@ export function PatternArt({ kind, big }) {
                 height="20"
                 rx="3"
                 fill="none"
-                stroke={I}
+                stroke={ink}
                 strokeWidth="1.4"
               />
-              <rect x={8 + i * 15.5} y="22" width="13" height="20" rx="3" fill={A}>
+              <rect x={8 + i * 15.5} y="22" width="13" height="20" rx="3" fill={accent}>
                 <animate
                   attributeName="opacity"
                   values="0;0;.85;.85;0"
@@ -1155,7 +1182,12 @@ export function PatternArt({ kind, big }) {
               </rect>
             </g>
           ))}
-          <path d="M14 50 q8 8 16 0 M30 50 q8 8 16 0" stroke={V} strokeWidth="1.4" fill="none" />
+          <path
+            d="M14 50 q8 8 16 0 M30 50 q8 8 16 0"
+            stroke={violet}
+            strokeWidth="1.4"
+            fill="none"
+          />
         </>,
       );
     case 'backtrack':
@@ -1163,7 +1195,7 @@ export function PatternArt({ kind, big }) {
         <>
           <path
             d="M60 8 L34 30 L22 54 M34 30 L46 54 M60 8 L86 30 L74 54 M86 30 L98 54"
-            stroke={I}
+            stroke={ink}
             strokeWidth="1.6"
             fill="none"
           />
@@ -1173,10 +1205,10 @@ export function PatternArt({ kind, big }) {
           <text x="46" y="62" textAnchor="middle" fontSize="9" fill="var(--rose-ink)">
             ✕
           </text>
-          <text x="74" y="62" textAnchor="middle" fontSize="9" fill={M}>
+          <text x="74" y="62" textAnchor="middle" fontSize="9" fill={mint}>
             ✓
           </text>
-          <circle r="3.6" fill={A}>
+          <circle r="3.6" fill={accent}>
             <animateMotion
               dur="4s"
               repeatCount="indefinite"
@@ -1188,7 +1220,7 @@ export function PatternArt({ kind, big }) {
     case 'intervals':
       return svg(
         <>
-          <rect y="14" width="40" height="8" rx="4" fill={A}>
+          <rect y="14" width="40" height="8" rx="4" fill={accent}>
             <animate
               attributeName="x"
               values="10;18;18;10"
@@ -1197,7 +1229,7 @@ export function PatternArt({ kind, big }) {
               repeatCount="indefinite"
             />
           </rect>
-          <rect y="28" width="44" height="8" rx="4" fill={V}>
+          <rect y="28" width="44" height="8" rx="4" fill={violet}>
             <animate
               attributeName="y"
               values="28;14;14;28"
@@ -1213,9 +1245,9 @@ export function PatternArt({ kind, big }) {
               repeatCount="indefinite"
             />
           </rect>
-          <rect x="20" y="44" width="80" height="4" rx="2" fill={I} />
+          <rect x="20" y="44" width="80" height="4" rx="2" fill={ink} />
           {[20, 40, 60, 80, 100].map((x) => (
-            <rect key={x} x={x - 0.6} y="42" width="1.2" height="8" fill={I} />
+            <rect key={x} x={x - 0.6} y="42" width="1.2" height="8" fill={ink} />
           ))}
         </>,
       );
@@ -1230,11 +1262,11 @@ export function PatternArt({ kind, big }) {
               width="18"
               height="18"
               rx="4"
-              fill={i === 3 ? A : I}
+              fill={i === 3 ? accent : ink}
               opacity={i === 0 ? 0.45 : 1}
             />
           ))}
-          <rect width="18" height="18" rx="4" fill={M}>
+          <rect width="18" height="18" rx="4" fill={mint}>
             <animate
               attributeName="x"
               values="110;86;86;110"
@@ -1244,11 +1276,11 @@ export function PatternArt({ kind, big }) {
             />
             <animate attributeName="y" values="4;4;4;4" dur="3s" repeatCount="indefinite" />
           </rect>
-          <path d="M20 50 H100" stroke={I} strokeWidth="1.4" strokeDasharray="3 3" />
-          <text x="14" y="60" fontSize="7" fill={I} fontFamily="var(--round)">
+          <path d="M20 50 H100" stroke={ink} strokeWidth="1.4" strokeDasharray="3 3" />
+          <text x="14" y="60" fontSize="7" fill={ink} fontFamily="var(--round)">
             oldest
           </text>
-          <text x="106" y="60" fontSize="7" fill={I} textAnchor="end" fontFamily="var(--round)">
+          <text x="106" y="60" fontSize="7" fill={ink} textAnchor="end" fontFamily="var(--round)">
             newest
           </text>
         </>,
@@ -1256,9 +1288,9 @@ export function PatternArt({ kind, big }) {
     case 'beyond':
       return svg(
         <>
-          <circle cx="60" cy="32" r="24" fill="none" stroke={I} strokeWidth="1.4" />
-          <ellipse cx="60" cy="32" rx="10" ry="24" fill="none" stroke={I} strokeWidth="1" />
-          <path d="M36 32 H84" stroke={I} strokeWidth="1" />
+          <circle cx="60" cy="32" r="24" fill="none" stroke={ink} strokeWidth="1.4" />
+          <ellipse cx="60" cy="32" rx="10" ry="24" fill="none" stroke={ink} strokeWidth="1" />
+          <path d="M36 32 H84" stroke={ink} strokeWidth="1" />
           {[
             [40, 20],
             [80, 22],
@@ -1267,7 +1299,7 @@ export function PatternArt({ kind, big }) {
             [60, 8],
             [60, 56],
           ].map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r="3.4" fill={[A, V, M][i % 3]}>
+            <circle key={i} cx={x} cy={y} r="3.4" fill={[accent, violet, mint][i % 3]}>
               <animate
                 attributeName="opacity"
                 values=".3;1;.3"

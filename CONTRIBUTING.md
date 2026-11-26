@@ -2,6 +2,18 @@
 
 Thanks for helping people learn how software works.
 
+## Code style
+
+- **Formatting is Prettier's** (`npm run format`), at 100 columns. Don't hand-format.
+- **Names say what a thing is**: `lesson`, `atlas`, `facts`, `narration`, not `L`, `A`, `F`, `N`. Single letters
+  are fine for loop indices, coordinates and callbacks a line or two long (`(x) => x.id`).
+- **One job per file.** A new group of IPC handlers is a module in `electron/ipc/` that exports `register(ctx)`. A
+  new screen is a component in `src/screens/`, with its own styles in `src/styles/app/` (added to `index.css` in
+  cascade order).
+- **Types live in JSDoc** (`/** @param {string} q */`), checked by `npm run typecheck`. New non-component modules
+  must pass it.
+- See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#code-layout) for where things live.
+
 ## Add a clever idea
 
 Ideas live in `src/ideas.js`. Each one needs:
@@ -21,6 +33,7 @@ Ideas live in `src/ideas.js`. Each one needs:
 ## Before you open a pull request
 
 ```bash
+npm run check                   # ESLint, Prettier, TypeScript (checkJs), then npm test (CI runs the same on every push)
 npm test                        # runtime tests, repo analysis, and every puzzle in real Python (needs python3)
 npx vite build                  # make sure it builds
 node scripts/smoke-app.mjs      # open the real app (hidden) and use it: lessons, Python, JavaScript, SQL, the terminal

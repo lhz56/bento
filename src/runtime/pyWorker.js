@@ -410,7 +410,7 @@ async function boot() {
 
 function fitGrowth(pts) {
   if (pts.length < 3) return null;
-  const F = {
+  const GROWTH = {
     'O(1)': () => 1,
     'O(log n)': (n) => Math.log2(n),
     'O(n)': (n) => n,
@@ -421,7 +421,7 @@ function fitGrowth(pts) {
   };
   let best = null;
   const use = pts.slice(Math.floor(pts.length / 3));
-  for (const [k, f] of Object.entries(F)) {
+  for (const [k, f] of Object.entries(GROWTH)) {
     const a =
       use.reduce((s, [n, c]) => s + c * f(n), 0) / use.reduce((s, [n]) => s + f(n) * f(n), 0);
     const err = use.reduce((s, [n, c]) => s + Math.pow((c - a * f(n)) / Math.max(c, 1), 2), 0);

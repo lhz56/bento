@@ -45,15 +45,15 @@ export default function SkillMap({
   const fromLessons = (ids) => {
     const want = new Set(ids);
     const items = [];
-    for (const L of lessons) {
+    for (const lesson of lessons) {
       if (
-        L.status !== 'done' ||
-        !(L.concepts || []).some((c) => skillsFor(c).some((s) => want.has(s)))
+        lesson.status !== 'done' ||
+        !(lesson.concepts || []).some((c) => skillsFor(c).some((s) => want.has(s)))
       )
         continue;
-      for (const b of L.story || [])
+      for (const b of lesson.story || [])
         if (b.t === 'quiz' && Array.isArray(b.choices) && b.choices.length > 1)
-          items.push({ ...b, from: L.title, lid: L.id });
+          items.push({ ...b, from: lesson.title, lid: lesson.id });
     }
     return items.sort(() => Math.random() - 0.5).slice(0, 4);
   };
@@ -88,8 +88,8 @@ export default function SkillMap({
     }
     setQuiz({ items, i: 0, pick: null, score: 0, skills: ids });
   };
-  const S = sel && SKILLS.find((s) => s[0] === sel);
-  const M = sel && mastery[sel];
+  const skill = sel && SKILLS.find((s) => s[0] === sel);
+  const mastered = sel && mastery[sel];
   const ready = sel ? readyFor?.(sel) : null; // a path lesson on this skill that opens instantly
   // in a narrow window the card sits below the map: bring it into view when a skill is picked
   const cardRef = useRef(null);
@@ -125,14 +125,14 @@ export default function SkillMap({
       ).includes(sel),
     );
   const next =
-    M &&
-    (M.level === 0
+    mastered &&
+    (mastered.level === 0
       ? t('Open a lesson about it to begin.')
-      : M.level === 1
+      : mastered.level === 1
         ? t('Ask a few questions about it, or take a quick quiz, to make it glow.')
-        : M.level === 2
+        : mastered.level === 2
           ? t('Get two checks right, or solve a puzzle, to make it shine.')
-          : isFading(M)
+          : isFading(mastered)
             ? t('It’s fading: a quick quiz brings it back.')
             : t('Shining. Come back in a week for a quick quiz.'));
   return (
@@ -172,7 +172,7 @@ export default function SkillMap({
             onAsk={onAsk}
           />
         )}
-        <div className={`tm-wrap ${S ? 'open' : ''}`}>
+        <div className={`tm-wrap ${skill ? 'open' : ''}`}>
           <div
             className="tm"
             ref={tmRef}
@@ -184,14 +184,17 @@ export default function SkillMap({
                 key={ri}
                 className="tm-row"
                 style={{
-                  flexGrow: row.reduce((n, R) => n + SKILLS.filter((x) => x[1] === R.id).length, 0),
+                  flexGrow: row.reduce(
+                    (n, region) => n + SKILLS.filter((x) => x[1] === region.id).length,
+                    0,
+                  ),
                 }}
               >
-                {row.map((R) => {
-                  const mine = SKILLS.filter((x) => x[1] === R.id);
+                {row.map((region) => {
+                  const mine = SKILLS.filter((x) => x[1] === region.id);
                   const lit = mine.filter(([id]) => (mastery[id]?.level || 0) >= 2).length;
                   const rowTotal = row.reduce(
-                    (n, Q) => n + SKILLS.filter((x) => x[1] === Q.id).length,
+                    (n, region) => n + SKILLS.filter((x) => x[1] === region.id).length,
                     0,
                   );
                   const areaW = ((tmW - 12 * (row.length - 1)) * mine.length) / rowTotal - 20;
@@ -200,13 +203,13 @@ export default function SkillMap({
                   const tileW = areaW / cols - 24; // room for the name inside a tile
                   return (
                     <section
-                      key={R.id}
-                      className={`tm-area a-${R.id}`}
-                      style={{ flexGrow: mine.length, '--c': R.color }}
-                      aria-label={t(R.name)}
+                      key={region.id}
+                      className={`tm-area a-${region.id}`}
+                      style={{ flexGrow: mine.length, '--c': region.color }}
+                      aria-label={t(region.name)}
                     >
                       <div className="tm-h">
-                        <b>{t(R.name)}</b>
+                        <b>{t(region.name)}</b>
                         <span>
                           {lit}/{mine.length}
                         </span>
@@ -222,12 +225,12 @@ export default function SkillMap({
                           return (
                             <button
                               key={id}
-                              className={`tm-cell lv${lv} ${sel === id ? 'sel' : ''} ${fad ? 'fading' : ''} ${fresh && id === 'program' && !S ? 'start' : ''}`}
+                              className={`tm-cell lv${lv} ${sel === id ? 'sel' : ''} ${fad ? 'fading' : ''} ${fresh && id === 'program' && !skill ? 'start' : ''}`}
                               aria-pressed={sel === id}
                               onClick={() => setSel(sel === id ? null : id)}
                               title={`${t(name)}: ${t(LEVEL[lv])}${fad ? ` · ${t('fading')}` : ''}`}
                             >
-                              {fresh && id === 'program' && !S && (
+                              {fresh && id === 'program' && !skill && (
                                 <span className="tm-start">{t('start here')}</span>
                               )}
                               <span
@@ -258,31 +261,31 @@ export default function SkillMap({
               </div>
             ))}
           </div>
-          {S && (
+          {skill && (
             <aside
               ref={cardRef}
               className="tm-card fade-in"
-              aria-label={t(S[2])}
-              style={{ '--c': REGIONS.find((r) => r.id === S[1]).color }}
+              aria-label={t(skill[2])}
+              style={{ '--c': REGIONS.find((r) => r.id === skill[1]).color }}
             >
               <button className="ib tm-x" aria-label={t('Close')} onClick={() => setSel(null)}>
                 ✕
               </button>
-              <div className="tc-region">{t(REGIONS.find((r) => r.id === S[1]).name)}</div>
-              <b className="tc-name">{t(S[2])}</b>
-              <p>{t(S[4])}</p>
+              <div className="tc-region">{t(REGIONS.find((r) => r.id === skill[1]).name)}</div>
+              <b className="tc-name">{t(skill[2])}</b>
+              <p>{t(skill[4])}</p>
               <div className="tc-steps">
                 {[1, 2, 3].map((k) => (
-                  <span key={k} className={(M.level || 0) >= k ? 'on' : ''}>
+                  <span key={k} className={(mastered.level || 0) >= k ? 'on' : ''}>
                     <i />
                     {t(LEVEL[k])}
                   </span>
                 ))}
               </div>
               <div className="tc-next">{next}</div>
-              {M.from.length > 0 && (
+              {mastered.from.length > 0 && (
                 <div className="tc-ev">
-                  {M.from
+                  {mastered.from
                     .slice()
                     .sort(
                       (a, b) =>
@@ -313,7 +316,7 @@ export default function SkillMap({
                 )}
                 <button
                   className="btn ghost"
-                  onClick={() => onAsk(`Teach me ${S[2].toLowerCase()} with a small example`)}
+                  onClick={() => onAsk(`Teach me ${skill[2].toLowerCase()} with a small example`)}
                 >
                   {t('Teach me')}
                 </button>

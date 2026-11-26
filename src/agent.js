@@ -60,9 +60,9 @@ export function lessonFromAgent(a, client) {
     ...(a.try.length ? [{ t: 'try', items: a.try }] : []),
     ...(a.next.length ? [{ t: 'next', items: a.next }] : []),
   ];
-  let L = emptyLesson(a.question || a.title, { mode: 'explain', lang: a.language });
-  for (const b of blocks) L = applyBlock(L, b);
-  return { ...L, status: 'done', agent: agentName(client) };
+  let lesson = emptyLesson(a.question || a.title, { mode: 'explain', lang: a.language });
+  for (const b of blocks) lesson = applyBlock(lesson, b);
+  return { ...lesson, status: 'done', agent: agentName(client) };
 }
 
 // what a run did, for the agent to read

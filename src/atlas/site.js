@@ -621,24 +621,27 @@ export const SITE_SIGNS = [
   ),
 ];
 
-export function detectSite(F) {
-  const all = [F.html || '', ...(F.scripts || []), ...(F.styles || []), F.generator || ''].join(
-    '\n',
-  );
-  const clues = { all, headers: F.headers || {} };
+export function detectSite(facts) {
+  const all = [
+    facts.html || '',
+    ...(facts.scripts || []),
+    ...(facts.styles || []),
+    facts.generator || '',
+  ].join('\n');
+  const clues = { all, headers: facts.headers || {} };
   const out = [];
   for (const s of SITE_SIGNS) {
     const ev = s.test(clues);
     if (ev) out.push({ ...s, evidence: [ev], used: [] });
   }
   // trust the page's own generator tag if nothing else matched it
-  if (F.generator && !out.some((x) => x.cat === 'frame'))
+  if (facts.generator && !out.some((x) => x.cat === 'frame'))
     out.push({
       id: 'gen',
-      name: F.generator.split(/[ ;]/)[0],
+      name: facts.generator.split(/[ ;]/)[0],
       slug: '',
       cat: 'frame',
-      what: `The page says it was made with ${F.generator}.`,
+      what: `The page says it was made with ${facts.generator}.`,
       when: '',
       alt: [],
       evidence: ['generator tag'],
@@ -657,15 +660,15 @@ export function detectSite(F) {
   return out;
 }
 
-export function buildSitePrompt(F, found, level) {
+export function buildSitePrompt(facts, found, level) {
   let p = `LEVEL: ${level === 'kid' ? 'kid (lots of analogies, zero jargon)' : level === 'engineer' ? 'engineer' : 'curious beginner'}\n`;
-  p += `SITE: ${F.final} (status ${F.status}, ${F.ms} ms, ${Math.round(F.bytes / 1024)} KB of HTML)\nTITLE: ${F.title}\nDESCRIPTION: ${F.description}\n${F.generator ? `GENERATOR: ${F.generator}\n` : ''}`;
-  p += `HEADERS:\n${Object.entries(F.headers)
+  p += `SITE: ${facts.final} (status ${facts.status}, ${facts.ms} ms, ${Math.round(facts.bytes / 1024)} KB of HTML)\nTITLE: ${facts.title}\nDESCRIPTION: ${facts.description}\n${facts.generator ? `GENERATOR: ${facts.generator}\n` : ''}`;
+  p += `HEADERS:\n${Object.entries(facts.headers)
     .map(([k, v]) => `${k}: ${v}`)
     .join('\n')}\n`;
-  p += `COUNTS: ${JSON.stringify(F.counts)}\n`;
+  p += `COUNTS: ${JSON.stringify(facts.counts)}\n`;
   p += `DETECTED (use these ids): ${found.map((s) => `${s.id} = ${s.name} [${s.cat}] (${s.evidence[0]})`).join('; ') || 'nothing obvious'}\n`;
-  p += `SCRIPT URLS (first ones):\n${(F.scripts || []).slice(0, 30).join('\n')}\n`;
-  p += `PAGE TEXT (excerpt):\n${(F.text || '').slice(0, 1800)}\n`;
+  p += `SCRIPT URLS (first ones):\n${(facts.scripts || []).slice(0, 30).join('\n')}\n`;
+  p += `PAGE TEXT (excerpt):\n${(facts.text || '').slice(0, 1800)}\n`;
   return p;
 }

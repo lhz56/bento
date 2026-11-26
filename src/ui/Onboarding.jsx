@@ -690,7 +690,7 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
 
 // Three tiny living scenes for the welcome screen: a city that builds itself, code that runs, your AI plugging in.
 function SeeIt() {
-  const B = [
+  const blocks = [
     [18, 30, '#ff8a5b'],
     [40, 52, '#5aa9ff'],
     [62, 22, '#a78bfa'],
@@ -702,7 +702,7 @@ function SeeIt() {
   return (
     <svg viewBox="0 0 180 84" className="pr-art see" aria-hidden="true">
       <path d="M6 76 H174" stroke="var(--line-2)" strokeDasharray="2 4" />
-      {B.map(([x, h, c], i) => (
+      {blocks.map(([x, h, c], i) => (
         <g key={i} className="pr-b" style={{ '--d': `${i * 0.18}s` }}>
           <rect x={x} y={76 - h} width="16" height={h} rx="3" fill={c} />
           <rect x={x} y={76 - h} width="16" height="5" rx="2" fill="#fff" opacity=".35" />
@@ -719,7 +719,7 @@ function RunIt() {
   }, []);
   const line = [0, 1, 2, 1, 2, 1, 2, 3][t];
   const n = [0, 0, 1, 1, 2, 2, 3, 3][t];
-  const L = [
+  const codeLines = [
     ['total', ' = 0'],
     ['for', ' i in 1..3'],
     ['  total', ' += i'],
@@ -728,7 +728,7 @@ function RunIt() {
   return (
     <div className="pr-art run" aria-hidden="true">
       <div className="pr-code">
-        {L.map(([a, b], i) => (
+        {codeLines.map(([a, b], i) => (
           <div key={i} className={i === line ? 'on' : ''}>
             <em>{a}</em>
             {b}

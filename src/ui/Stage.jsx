@@ -157,12 +157,12 @@ function Predict({ pred, setPred, run, onWhyDiff }) {
         </div>
       </div>
     );
-  const R = pred.result || {};
-  const out = (R.logs || []).map((l) => l.s).join('\n');
+  const result = pred.result || {};
+  const out = (result.logs || []).map((l) => l.s).join('\n');
   const g = pred.guess.trim().split('\n').map(norm).filter(Boolean);
   const o = out.split('\n').map(norm).filter(Boolean);
   const hits = g.filter((x, i) => o[i] === x).length;
-  const verdict = R.error
+  const verdict = result.error
     ? 'crash'
     : !o.length
       ? 'quiet'
@@ -233,7 +233,9 @@ function Predict({ pred, setPred, run, onWhyDiff }) {
             className="btn tiny"
             onClick={async () => {
               setWhy('…');
-              setWhy(await onWhyDiff(pred.guess, R.error ? `ERROR: ${R.error.msg}` : out));
+              setWhy(
+                await onWhyDiff(pred.guess, result.error ? `ERROR: ${result.error.msg}` : out),
+              );
             }}
           >
             Why is it different?
@@ -316,19 +318,19 @@ function Output({
             )}
           </div>
           {(() => {
-            const E =
+            const explained =
               ex ||
               (document.documentElement.lang.startsWith('en') ? explainLocal(error.msg) : null);
-            return E ? (
+            return explained ? (
               <div className="err-ex">
-                <b>What happened:</b> <Tick s={E.plain} />
-                {E.fix && (
+                <b>What happened:</b> <Tick s={explained.plain} />
+                {explained.fix && (
                   <>
                     <br />
-                    <b>Try:</b> <Tick s={E.fix} />
+                    <b>Try:</b> <Tick s={explained.fix} />
                   </>
                 )}
-                {E.local && onExplainError && (
+                {explained.local && onExplainError && (
                   <div>
                     <button
                       className="link"
@@ -990,29 +992,29 @@ function RaceBars({ series }) {
 }
 
 function GrowthSvg({ series, log }) {
-  const W = 560,
-    H = 190,
-    P = { l: 52, r: 16, t: 12, b: 28 };
+  const width = 560,
+    height = 190,
+    pad = { l: 52, r: 16, t: 12, b: 28 };
   const allN = series.flatMap((s) => s.pts.map((p) => p[0]));
   const maxN = Math.max(...allN, 8),
     minN = Math.min(...allN, 4);
   const maxC = Math.max(...series.flatMap((s) => s.pts.map((p) => p[1])), 1);
   const x = (n) =>
-    P.l +
+    pad.l +
     ((Math.log2(n) - Math.log2(minN)) / Math.max(1, Math.log2(maxN) - Math.log2(minN))) *
-      (W - P.l - P.r);
+      (width - pad.l - pad.r);
   const minC = Math.max(
     1,
     Math.min(...series.flatMap((s) => s.pts.map((p) => p[1])).filter((v) => v > 0)),
   );
   const y = log
     ? (c) =>
-        H -
-        P.b -
+        height -
+        pad.b -
         ((Math.log10(Math.max(c, minC)) - Math.log10(minC)) /
           Math.max(0.5, Math.log10(maxC) - Math.log10(minC))) *
-          (H - P.t - P.b)
-    : (c) => H - P.b - (c / maxC) * (H - P.t - P.b);
+          (height - pad.t - pad.b)
+    : (c) => height - pad.b - (c / maxC) * (height - pad.t - pad.b);
   const fmt = (v) =>
     v >= 1e6
       ? (v / 1e6).toFixed(1) + 'M'
@@ -1022,7 +1024,7 @@ function GrowthSvg({ series, log }) {
   return (
     <svg
       className="gchart"
-      viewBox={`0 0 ${W} ${H}`}
+      viewBox={`0 0 ${width} ${height}`}
       role="img"
       aria-label={series
         .map(
@@ -1033,18 +1035,18 @@ function GrowthSvg({ series, log }) {
     >
       {(log ? [minC, Math.sqrt(minC * maxC), maxC] : [0, maxC / 2, maxC]).map((v, k) => (
         <g key={k}>
-          <line x1={P.l} x2={W - P.r} y1={y(v)} y2={y(v)} className="grid-l" />
-          <text x={P.l - 8} y={y(v) + 4} textAnchor="end">
+          <line x1={pad.l} x2={width - pad.r} y1={y(v)} y2={y(v)} className="grid-l" />
+          <text x={pad.l - 8} y={y(v) + 4} textAnchor="end">
             {fmt(Math.round(v))}
           </text>
         </g>
       ))}
       {series[0]?.pts.map(([n]) => (
-        <text key={n} x={x(n)} y={H - 8} textAnchor="middle">
+        <text key={n} x={x(n)} y={height - 8} textAnchor="middle">
           {n}
         </text>
       ))}
-      <text x={W - P.r} y={H - 8} textAnchor="end" className="axis-l">
+      <text x={width - pad.r} y={height - 8} textAnchor="end" className="axis-l">
         n →
       </text>
       {series.map((s, i) => (

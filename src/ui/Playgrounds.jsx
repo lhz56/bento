@@ -84,7 +84,7 @@ function SqlPlay({ done, onDone, quick, model, pyReady }) {
   const [hint, setHint] = useState(false);
   const [verdict, setVerdict] = useState(null);
   const [plain, setPlain] = useState(null);
-  const C = CHALLENGES[ci];
+  const challenge = CHALLENGES[ci];
   const go = async (query = q) => {
     if (!query.trim()) return;
     setBusy(true);
@@ -97,11 +97,11 @@ function SqlPlay({ done, onDone, quick, model, pyReady }) {
     setRes({ ...r, steps: st });
     setBusy(false);
     // does it answer the challenge?
-    if (C && !r.error) {
-      if (!refCache.has(C[0])) refCache.set(C[0], await runSql(C[3]));
-      const ok = sameResult(r, refCache.get(C[0]), /\border\s+by\b/i.test(C[3]));
+    if (challenge && !r.error) {
+      if (!refCache.has(challenge[0])) refCache.set(challenge[0], await runSql(challenge[3]));
+      const ok = sameResult(r, refCache.get(challenge[0]), /\border\s+by\b/i.test(challenge[3]));
       setVerdict(ok ? 'ok' : 'no');
-      if (ok) onDone(C[0]);
+      if (ok) onDone(challenge[0]);
     } else setVerdict(null);
   };
   useEffect(() => {
@@ -167,13 +167,13 @@ function SqlPlay({ done, onDone, quick, model, pyReady }) {
         ))}
       </div>
       <div className="pg-main">
-        {C && (
+        {challenge && (
           <div className={`ch-goal ${verdict || ''}`}>
             <div>
               <span className="mini-h">
                 {t('challenge')} {ci + 1}
               </span>
-              <b>{t(C[2])}</b>
+              <b>{t(challenge[2])}</b>
             </div>
             {verdict === 'ok' ? (
               <span className="ch-ok">
@@ -195,7 +195,7 @@ function SqlPlay({ done, onDone, quick, model, pyReady }) {
             )}
             {hint && (
               <div className="ch-hint">
-                {C[4]
+                {challenge[4]
                   .split(/(`[^`]+`)/)
                   .map((x, i) => (x.startsWith('`') ? <code key={i}>{x.slice(1, -1)}</code> : x))}
               </div>
@@ -347,7 +347,7 @@ function ResultTable({ res }) {
 
 // ─────────────────────────────────────────────── Terminal & Git
 function GitPlay({ done, onDone }) {
-  const [S, setS] = useState(() => G.fresh());
+  const [sim, setS] = useState(() => G.fresh());
   const [line, setLine] = useState('');
   const [hist, setHist] = useState([]);
   const [hi, setHi] = useState(-1);
@@ -356,9 +356,11 @@ function GitPlay({ done, onDone }) {
   const inp = useRef(null);
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'nearest' });
-  }, [S.out.length]);
+  }, [sim.out.length]);
   useEffect(() => {
-    const add = G.MISSIONS.map((m, i) => (m[3](S) ? i : -1)).filter((i) => i >= 0 && !seen.has(i));
+    const add = G.MISSIONS.map((m, i) => (m[3](sim) ? i : -1)).filter(
+      (i) => i >= 0 && !seen.has(i),
+    );
     if (add.length) {
       const n = new Set(seen);
       add.forEach((i) => {
@@ -367,20 +369,20 @@ function GitPlay({ done, onDone }) {
       });
       setSeen(n);
     }
-  }, [S]);
+  }, [sim]);
   const next = G.MISSIONS.findIndex((_, i) => !seen.has(i));
   const submit = (e) => {
     e.preventDefault();
     if (!line.trim()) return;
-    setS(G.run(S, line));
+    setS(G.run(sim, line));
     setHist([line, ...hist].slice(0, 50));
     setHi(-1);
     setLine('');
   };
-  const st = G.status(S) || [];
-  const E = S.last && G.EXPLAIN[S.last];
-  const prompt = (cwd, branch = S.repo?.head) =>
-    `you@bento ${cwd.replace('/home', '~')}${S.repo && branch && cwd.startsWith(S.repo.root) ? ` (${branch})` : ''} $`;
+  const st = G.status(sim) || [];
+  const explain = sim.last && G.EXPLAIN[sim.last];
+  const prompt = (cwd, branch = sim.repo?.head) =>
+    `you@bento ${cwd.replace('/home', '~')}${sim.repo && branch && cwd.startsWith(sim.repo.root) ? ` (${branch})` : ''} $`;
   return (
     <div className="pg-git">
       <div className="pg-side">
@@ -429,7 +431,7 @@ function GitPlay({ done, onDone }) {
       </div>
       <div className="pg-main git-main">
         <div className="gterm" onClick={() => inp.current?.focus()}>
-          {S.out.map((o, i) =>
+          {sim.out.map((o, i) =>
             o.k === 'cmd' ? (
               <div key={i} className="t-cmd">
                 <span>{prompt(o.cwd, o.branch)}</span> {o.s}
@@ -443,7 +445,7 @@ function GitPlay({ done, onDone }) {
             ),
           )}
           <form onSubmit={submit} className="t-line">
-            <span>{prompt(S.cwd)}</span>
+            <span>{prompt(sim.cwd)}</span>
             <input
               ref={inp}
               autoFocus
@@ -471,28 +473,28 @@ function GitPlay({ done, onDone }) {
           </form>
           <div ref={end} />
         </div>
-        {E && (
-          <div className="t-explain fade-in" key={S.out.length}>
-            <b>{t(E[0])}</b> {t(E[1])} <i>≈ {t(E[2])}</i>
+        {explain && (
+          <div className="t-explain fade-in" key={sim.out.length}>
+            <b>{t(explain[0])}</b> {t(explain[1])} <i>≈ {t(explain[2])}</i>
           </div>
         )}
         <div className="git-viz">
-          <Folder S={S} st={st} />
-          <Stages S={S} st={st} />
-          <Graph S={S} />
+          <Folder sim={sim} st={st} />
+          <Stages sim={sim} st={st} />
+          <Graph sim={sim} />
         </div>
       </div>
     </div>
   );
 }
 
-function Folder({ S, st }) {
-  const paths = Object.keys(S.files)
+function Folder({ sim, st }) {
+  const paths = Object.keys(sim.files)
     .filter((p) => p !== '/home')
     .sort();
   const mark = (p) => {
-    if (!S.repo || !p.startsWith(S.repo.root + '/')) return '';
-    const n = p.slice(S.repo.root.length + 1);
+    if (!sim.repo || !p.startsWith(sim.repo.root + '/')) return '';
+    const n = p.slice(sim.repo.root.length + 1);
     const x = st.find((y) => y.name === n);
     return x ? (x.work === 'untracked' ? 'untracked' : x.work ? 'modified' : 'staged') : 'clean';
   };
@@ -506,18 +508,18 @@ function Folder({ S, st }) {
       )}
       {paths.map((p) => {
         const depth = p.split('/').length - 3;
-        const dir = S.files[p] === null;
+        const dir = sim.files[p] === null;
         const m = mark(p);
         return (
           <div
             key={p}
-            className={`gv-file ${m} ${p === S.cwd ? 'gv-cwd' : ''}`}
+            className={`gv-file ${m} ${p === sim.cwd ? 'gv-cwd' : ''}`}
             style={{ paddingLeft: depth * 14 }}
-            title={dir ? '' : S.files[p]}
+            title={dir ? '' : sim.files[p]}
           >
             {dir ? '📁' : '📄'} {p.split('/').pop()}
             {m && m !== 'clean' && <em>{t(m)}</em>}
-            {p === S.cwd && <span className="gv-here">{t('you are here')}</span>}
+            {p === sim.cwd && <span className="gv-here">{t('you are here')}</span>}
           </div>
         );
       })}
@@ -525,8 +527,8 @@ function Folder({ S, st }) {
   );
 }
 
-function Stages({ S, st }) {
-  if (!S.repo)
+function Stages({ sim, st }) {
+  if (!sim.repo)
     return (
       <div className="gv-box">
         <div className="mini-h">{t('git')}</div>
@@ -537,7 +539,7 @@ function Stages({ S, st }) {
     );
   const work = st.filter((x) => x.work),
     staged = st.filter((x) => x.staged);
-  const commits = Object.keys(S.repo.commits).length;
+  const commits = Object.keys(sim.repo.commits).length;
   return (
     <div className="gv-box stages">
       <div className="mini-h">{t('where your changes are')}</div>
@@ -574,35 +576,35 @@ function Stages({ S, st }) {
 }
 
 // The commit graph: one lane per branch, newest on the right
-function Graph({ S }) {
-  if (!S.repo || !Object.keys(S.repo.commits).length)
+function Graph({ sim }) {
+  if (!sim.repo || !Object.keys(sim.repo.commits).length)
     return (
       <div className="gv-box">
         <div className="mini-h">{t('history')}</div>
         <div className="muted small">{t('Your snapshots will appear here as a timeline.')}</div>
       </div>
     );
-  const R = S.repo;
-  const cs = Object.values(R.commits).sort((a, b) => a.at - b.at);
-  const lanes = [...new Set(['main', ...cs.map((c) => c.branch), ...Object.keys(R.branches)])];
+  const repo = sim.repo;
+  const cs = Object.values(repo.commits).sort((a, b) => a.at - b.at);
+  const lanes = [...new Set(['main', ...cs.map((c) => c.branch), ...Object.keys(repo.branches)])];
   const x = (i) => 96 + i * 70,
     y = (b) => 30 + lanes.indexOf(b) * 50;
   const idx = Object.fromEntries(cs.map((c, i) => [c.id, i]));
-  const W = Math.max(300, x(cs.length) + 60),
-    H = 34 + lanes.length * 50;
+  const width = Math.max(300, x(cs.length) + 60),
+    height = 34 + lanes.length * 50;
   return (
     <div className="gv-box graph">
       <div className="mini-h">{t('history')}</div>
       <div className="gv-scroll">
         <svg
-          width={W}
-          height={H}
+          width={width}
+          height={height}
           role="img"
           aria-label={`${cs.length} commits on ${lanes.length} branch${lanes.length > 1 ? 'es' : ''}: ${cs.map((c) => `${c.msg} (${c.branch})`).join(', ') || 'none yet'}`}
         >
           {lanes.map((b) => (
             <g key={b}>
-              <line x1={70} x2={W - 10} y1={y(b)} y2={y(b)} className="gl-lane" />
+              <line x1={70} x2={width - 10} y1={y(b)} y2={y(b)} className="gl-lane" />
               <text x={4} y={y(b) + 4} className="gl-name">
                 {b}
               </text>
@@ -611,10 +613,10 @@ function Graph({ S }) {
           {cs.flatMap((c) =>
             c.parents.map(
               (p) =>
-                R.commits[p] && (
+                repo.commits[p] && (
                   <path
                     key={c.id + p}
-                    d={`M${x(idx[p])},${y(R.commits[p].branch)} C${x(idx[p]) + 30},${y(R.commits[p].branch)} ${x(idx[c.id]) - 30},${y(c.branch)} ${x(idx[c.id])},${y(c.branch)}`}
+                    d={`M${x(idx[p])},${y(repo.commits[p].branch)} C${x(idx[p]) + 30},${y(repo.commits[p].branch)} ${x(idx[c.id]) - 30},${y(c.branch)} ${x(idx[c.id])},${y(c.branch)}`}
                     className="gl-edge"
                   />
                 ),
@@ -634,16 +636,16 @@ function Graph({ S }) {
               </text>
             </g>
           ))}
-          {Object.entries(R.branches)
+          {Object.entries(repo.branches)
             .filter(([, v]) => v)
             .map(([b, v]) => (
               <g key={b}>
                 <rect
                   x={x(idx[v]) + 10}
                   y={
-                    y(R.commits[v].branch) -
+                    y(repo.commits[v].branch) -
                     24 -
-                    Object.entries(R.branches)
+                    Object.entries(repo.branches)
                       .filter(([, w]) => w === v)
                       .findIndex(([n]) => n === b) *
                       15
@@ -651,14 +653,14 @@ function Graph({ S }) {
                   width={b.length * 6.5 + 14}
                   height="14"
                   rx="7"
-                  className={`gl-tag ${b === R.head ? 'head' : ''}`}
+                  className={`gl-tag ${b === repo.head ? 'head' : ''}`}
                 />
                 <text
                   x={x(idx[v]) + 17}
                   y={
-                    y(R.commits[v].branch) -
+                    y(repo.commits[v].branch) -
                     14 -
-                    Object.entries(R.branches)
+                    Object.entries(repo.branches)
                       .filter(([, w]) => w === v)
                       .findIndex(([n]) => n === b) *
                       15
@@ -666,7 +668,7 @@ function Graph({ S }) {
                   className="gl-tagt"
                 >
                   {b}
-                  {b === R.head ? ' ◀' : ''}
+                  {b === repo.head ? ' ◀' : ''}
                 </text>
               </g>
             ))}
