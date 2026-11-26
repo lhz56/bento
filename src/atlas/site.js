@@ -9,7 +9,7 @@ const has = (re) => (c) => {
 const hdr = (k, re) => (c) =>
   c.headers[k] && (!re || re.test(c.headers[k])) ? `${k}: ${c.headers[k].slice(0, 40)}` : null;
 
-const S = (id, name, slug, cat, test, what, when, alt = []) => ({
+const tool = (id, name, slug, cat, test, what, when, alt = []) => ({
   id,
   name,
   slug,
@@ -21,7 +21,7 @@ const S = (id, name, slug, cat, test, what, when, alt = []) => ({
 });
 export const SITE_SIGNS = [
   // platforms & frameworks
-  S(
+  tool(
     'wordpress',
     'WordPress',
     'wordpress',
@@ -31,7 +31,7 @@ export const SITE_SIGNS = [
     'you want lots of plugins and a familiar editor.',
     ['webflow', 'ghost', 'squarespace'],
   ),
-  S(
+  tool(
     'shopify',
     'Shopify',
     'shopify',
@@ -41,7 +41,7 @@ export const SITE_SIGNS = [
     'you sell products and want checkout handled.',
     ['woocommerce', 'squarespace'],
   ),
-  S(
+  tool(
     'webflow',
     'Webflow',
     'webflow',
@@ -51,7 +51,7 @@ export const SITE_SIGNS = [
     'designers want full control without coding.',
     ['wordpress', 'framersite'],
   ),
-  S(
+  tool(
     'squarespace',
     'Squarespace',
     'squarespace',
@@ -61,7 +61,7 @@ export const SITE_SIGNS = [
     'you want a polished site with no setup.',
     ['wix', 'webflow'],
   ),
-  S(
+  tool(
     'wix',
     'Wix',
     'wix',
@@ -71,7 +71,7 @@ export const SITE_SIGNS = [
     'beginners want a site in an afternoon.',
     ['squarespace'],
   ),
-  S(
+  tool(
     'ghost',
     'Ghost',
     'ghost',
@@ -81,7 +81,7 @@ export const SITE_SIGNS = [
     'writing and memberships are the core.',
     ['wordpress'],
   ),
-  S(
+  tool(
     'framersite',
     'Framer',
     'framer',
@@ -91,7 +91,7 @@ export const SITE_SIGNS = [
     'designers want animated sites quickly.',
     ['webflow'],
   ),
-  S(
+  tool(
     'next',
     'Next.js',
     'nextdotjs',
@@ -101,10 +101,17 @@ export const SITE_SIGNS = [
     BY_ID.next.when,
     ['remix', 'astro', 'nuxt'],
   ),
-  S('nuxt', 'Nuxt', 'nuxt', 'frame', has(/\/_nuxt\/|__NUXT__/i), BY_ID.nuxt.what, BY_ID.nuxt.when, [
-    'next',
-  ]),
-  S(
+  tool(
+    'nuxt',
+    'Nuxt',
+    'nuxt',
+    'frame',
+    has(/\/_nuxt\/|__NUXT__/i),
+    BY_ID.nuxt.what,
+    BY_ID.nuxt.when,
+    ['next'],
+  ),
+  tool(
     'gatsby',
     'Gatsby',
     'gatsby',
@@ -114,7 +121,7 @@ export const SITE_SIGNS = [
     BY_ID.gatsby.when,
     ['astro', 'next'],
   ),
-  S(
+  tool(
     'astro',
     'Astro',
     'astro',
@@ -124,7 +131,7 @@ export const SITE_SIGNS = [
     BY_ID.astro.when,
     ['next'],
   ),
-  S(
+  tool(
     'sveltekit',
     'SvelteKit',
     'svelte',
@@ -134,7 +141,7 @@ export const SITE_SIGNS = [
     BY_ID.sveltekit.when,
     ['next'],
   ),
-  S(
+  tool(
     'angular',
     'Angular',
     'angular',
@@ -144,7 +151,7 @@ export const SITE_SIGNS = [
     BY_ID.angular.when,
     ['react'],
   ),
-  S(
+  tool(
     'react',
     'React',
     'react',
@@ -154,7 +161,7 @@ export const SITE_SIGNS = [
     BY_ID.react.when,
     ['vue', 'svelte'],
   ),
-  S(
+  tool(
     'vue',
     'Vue',
     'vuedotjs',
@@ -164,7 +171,7 @@ export const SITE_SIGNS = [
     BY_ID.vue.when,
     ['react'],
   ),
-  S(
+  tool(
     'jquery',
     'jQuery',
     'jquery',
@@ -174,7 +181,7 @@ export const SITE_SIGNS = [
     BY_ID.jquery.when,
     ['react'],
   ),
-  S(
+  tool(
     'tailwind',
     'Tailwind CSS',
     'tailwindcss',
@@ -184,7 +191,7 @@ export const SITE_SIGNS = [
     BY_ID.tailwind.when,
     ['bootstrap'],
   ),
-  S(
+  tool(
     'bootstrap',
     'Bootstrap',
     'bootstrap',
@@ -194,7 +201,7 @@ export const SITE_SIGNS = [
     BY_ID.bootstrap.when,
     ['tailwind'],
   ),
-  S(
+  tool(
     'gfonts',
     'Google Fonts',
     'googlefonts',
@@ -204,7 +211,7 @@ export const SITE_SIGNS = [
     'you want nice type for free.',
     [],
   ),
-  S(
+  tool(
     'fontawesome',
     'Font Awesome',
     'fontawesome',
@@ -214,7 +221,7 @@ export const SITE_SIGNS = [
     'you need lots of icons quickly.',
     ['lucide'],
   ),
-  S(
+  tool(
     'mediawiki',
     'MediaWiki',
     'wikipedia',
@@ -224,7 +231,7 @@ export const SITE_SIGNS = [
     'many people edit pages together.',
     ['wordpress'],
   ),
-  S(
+  tool(
     'drupal',
     'Drupal',
     'drupal',
@@ -234,7 +241,7 @@ export const SITE_SIGNS = [
     'big organisations manage lots of content.',
     ['wordpress'],
   ),
-  S(
+  tool(
     'docusaurus',
     'Docusaurus',
     'docusaurus',
@@ -244,7 +251,7 @@ export const SITE_SIGNS = [
     'you write docs for a project.',
     ['mkdocs'],
   ),
-  S(
+  tool(
     'discourse',
     'Discourse',
     'discourse',
@@ -254,7 +261,7 @@ export const SITE_SIGNS = [
     'you run an online community.',
     [],
   ),
-  S(
+  tool(
     'substack',
     'Substack',
     'substack',
@@ -264,7 +271,7 @@ export const SITE_SIGNS = [
     'writers want subscribers fast.',
     ['ghost'],
   ),
-  S(
+  tool(
     'ats',
     'Apache Traffic Server',
     'apache',
@@ -274,7 +281,7 @@ export const SITE_SIGNS = [
     'huge sites serve the same pages to millions.',
     ['fastly', 'cloudflare'],
   ),
-  S(
+  tool(
     'varnish',
     'Varnish',
     '',
@@ -285,7 +292,7 @@ export const SITE_SIGNS = [
     ['fastly'],
   ),
   // delivery
-  S(
+  tool(
     'cloudflare',
     'Cloudflare',
     'cloudflare',
@@ -295,7 +302,7 @@ export const SITE_SIGNS = [
     'you want speed and protection worldwide.',
     ['fastly', 'akamai'],
   ),
-  S(
+  tool(
     'vercel',
     'Vercel',
     'vercel',
@@ -305,7 +312,7 @@ export const SITE_SIGNS = [
     BY_ID.vercel.when,
     ['netlify', 'cloudflare'],
   ),
-  S(
+  tool(
     'netlify',
     'Netlify',
     'netlify',
@@ -315,7 +322,7 @@ export const SITE_SIGNS = [
     BY_ID.netlify.when,
     ['vercel'],
   ),
-  S(
+  tool(
     'fastly',
     'Fastly',
     'fastly',
@@ -325,7 +332,7 @@ export const SITE_SIGNS = [
     'huge sites need fast, controllable caching.',
     ['cloudflare', 'akamai'],
   ),
-  S(
+  tool(
     'akamai',
     'Akamai',
     'akamai',
@@ -335,7 +342,7 @@ export const SITE_SIGNS = [
     'big enterprises serve the whole world.',
     ['cloudflare', 'fastly'],
   ),
-  S(
+  tool(
     'cloudfront',
     'Amazon CloudFront',
     '',
@@ -345,7 +352,7 @@ export const SITE_SIGNS = [
     'the site already runs on AWS.',
     ['cloudflare', 'fastly'],
   ),
-  S(
+  tool(
     'ghpages',
     'GitHub Pages',
     'githubpages',
@@ -355,7 +362,7 @@ export const SITE_SIGNS = [
     BY_ID.ghpages.when,
     ['netlify', 'vercel'],
   ),
-  S(
+  tool(
     'nginx',
     'nginx',
     'nginx',
@@ -365,7 +372,7 @@ export const SITE_SIGNS = [
     BY_ID.nginx.when,
     ['apache', 'cloudflare'],
   ),
-  S(
+  tool(
     'apache',
     'Apache',
     'apache',
@@ -375,10 +382,10 @@ export const SITE_SIGNS = [
     'traditional hosting, often with PHP.',
     ['nginx'],
   ),
-  S('fly', 'Fly.io', 'flydotio', 'host', hdr('fly-request-id'), BY_ID.fly.what, BY_ID.fly.when, [
+  tool('fly', 'Fly.io', 'flydotio', 'host', hdr('fly-request-id'), BY_ID.fly.what, BY_ID.fly.when, [
     'railway',
   ]),
-  S(
+  tool(
     'jsdelivr',
     'jsDelivr',
     'jsdelivr',
@@ -389,7 +396,7 @@ export const SITE_SIGNS = [
     ['unpkg'],
   ),
   // services
-  S(
+  tool(
     'stripe',
     'Stripe',
     'stripe',
@@ -399,7 +406,7 @@ export const SITE_SIGNS = [
     BY_ID.stripe.when,
     ['paypal'],
   ),
-  S(
+  tool(
     'paypal',
     'PayPal',
     'paypal',
@@ -409,7 +416,7 @@ export const SITE_SIGNS = [
     BY_ID.paypal.when,
     ['stripe'],
   ),
-  S(
+  tool(
     'klarna',
     'Klarna',
     'klarna',
@@ -419,7 +426,7 @@ export const SITE_SIGNS = [
     'shops want buy-now-pay-later.',
     ['paypal'],
   ),
-  S(
+  tool(
     'ga',
     'Google Analytics',
     'googleanalytics',
@@ -429,7 +436,7 @@ export const SITE_SIGNS = [
     BY_ID.ga.when,
     ['plausible', 'posthog'],
   ),
-  S(
+  tool(
     'gtm',
     'Google Tag Manager',
     'googletagmanager',
@@ -439,7 +446,7 @@ export const SITE_SIGNS = [
     'marketers add tools without developers.',
     [],
   ),
-  S(
+  tool(
     'plausible',
     'Plausible',
     'plausibleanalytics',
@@ -449,7 +456,7 @@ export const SITE_SIGNS = [
     'you want stats without cookies.',
     ['ga'],
   ),
-  S(
+  tool(
     'posthog',
     'PostHog',
     'posthog',
@@ -459,7 +466,7 @@ export const SITE_SIGNS = [
     BY_ID.posthog.when,
     ['mixpanel'],
   ),
-  S(
+  tool(
     'mixpanel',
     'Mixpanel',
     'mixpanel',
@@ -469,7 +476,7 @@ export const SITE_SIGNS = [
     'you study user behaviour in detail.',
     ['posthog'],
   ),
-  S(
+  tool(
     'hotjar',
     'Hotjar',
     'hotjar',
@@ -479,7 +486,7 @@ export const SITE_SIGNS = [
     'you want to see how people use pages.',
     [],
   ),
-  S(
+  tool(
     'sentry',
     'Sentry',
     'sentry',
@@ -489,7 +496,7 @@ export const SITE_SIGNS = [
     BY_ID.sentry.when,
     [],
   ),
-  S(
+  tool(
     'datadog',
     'Datadog',
     'datadog',
@@ -499,7 +506,7 @@ export const SITE_SIGNS = [
     'teams run many services.',
     ['sentry'],
   ),
-  S(
+  tool(
     'newrelic',
     'New Relic',
     'newrelic',
@@ -509,7 +516,7 @@ export const SITE_SIGNS = [
     'performance matters to the business.',
     ['datadog'],
   ),
-  S(
+  tool(
     'fbpixel',
     'Meta Pixel',
     'meta',
@@ -519,7 +526,7 @@ export const SITE_SIGNS = [
     'the site advertises on Meta.',
     [],
   ),
-  S(
+  tool(
     'tiktokpixel',
     'TikTok Pixel',
     'tiktok',
@@ -529,7 +536,7 @@ export const SITE_SIGNS = [
     'the site advertises on TikTok.',
     [],
   ),
-  S(
+  tool(
     'intercom',
     'Intercom',
     'intercom',
@@ -539,7 +546,7 @@ export const SITE_SIGNS = [
     'you want live chat with customers.',
     ['zendesk'],
   ),
-  S(
+  tool(
     'zendesk',
     'Zendesk',
     'zendesk',
@@ -549,7 +556,7 @@ export const SITE_SIGNS = [
     'support teams handle many requests.',
     ['intercom'],
   ),
-  S(
+  tool(
     'hubspot',
     'HubSpot',
     'hubspot',
@@ -559,7 +566,7 @@ export const SITE_SIGNS = [
     'marketing and sales share data.',
     ['mailchimp'],
   ),
-  S(
+  tool(
     'mailchimp',
     'Mailchimp',
     'mailchimp',
@@ -569,7 +576,7 @@ export const SITE_SIGNS = [
     'you run a newsletter.',
     ['hubspot'],
   ),
-  S(
+  tool(
     'recaptcha',
     'reCAPTCHA',
     'google',
@@ -579,7 +586,7 @@ export const SITE_SIGNS = [
     'forms get spam.',
     [],
   ),
-  S(
+  tool(
     'youtube',
     'YouTube embeds',
     'youtube',
@@ -589,7 +596,7 @@ export const SITE_SIGNS = [
     'you show video without hosting it.',
     ['vimeo'],
   ),
-  S(
+  tool(
     'vimeo',
     'Vimeo',
     'vimeo',
@@ -599,7 +606,7 @@ export const SITE_SIGNS = [
     'brands want clean video.',
     ['youtube'],
   ),
-  S(
+  tool(
     'cloudinary',
     'Cloudinary',
     'cloudinary',
@@ -609,7 +616,7 @@ export const SITE_SIGNS = [
     BY_ID.cloudinary.when,
     [],
   ),
-  S(
+  tool(
     'algolia',
     'Algolia',
     'algolia',
@@ -661,14 +668,14 @@ export function detectSite(facts) {
 }
 
 export function buildSitePrompt(facts, found, level) {
-  let p = `LEVEL: ${level === 'kid' ? 'kid (lots of analogies, zero jargon)' : level === 'engineer' ? 'engineer' : 'curious beginner'}\n`;
-  p += `SITE: ${facts.final} (status ${facts.status}, ${facts.ms} ms, ${Math.round(facts.bytes / 1024)} KB of HTML)\nTITLE: ${facts.title}\nDESCRIPTION: ${facts.description}\n${facts.generator ? `GENERATOR: ${facts.generator}\n` : ''}`;
-  p += `HEADERS:\n${Object.entries(facts.headers)
+  let prompt = `LEVEL: ${level === 'kid' ? 'kid (lots of analogies, zero jargon)' : level === 'engineer' ? 'engineer' : 'curious beginner'}\n`;
+  prompt += `SITE: ${facts.final} (status ${facts.status}, ${facts.ms} ms, ${Math.round(facts.bytes / 1024)} KB of HTML)\nTITLE: ${facts.title}\nDESCRIPTION: ${facts.description}\n${facts.generator ? `GENERATOR: ${facts.generator}\n` : ''}`;
+  prompt += `HEADERS:\n${Object.entries(facts.headers)
     .map(([k, v]) => `${k}: ${v}`)
     .join('\n')}\n`;
-  p += `COUNTS: ${JSON.stringify(facts.counts)}\n`;
-  p += `DETECTED (use these ids): ${found.map((s) => `${s.id} = ${s.name} [${s.cat}] (${s.evidence[0]})`).join('; ') || 'nothing obvious'}\n`;
-  p += `SCRIPT URLS (first ones):\n${(facts.scripts || []).slice(0, 30).join('\n')}\n`;
-  p += `PAGE TEXT (excerpt):\n${(facts.text || '').slice(0, 1800)}\n`;
-  return p;
+  prompt += `COUNTS: ${JSON.stringify(facts.counts)}\n`;
+  prompt += `DETECTED (use these ids): ${found.map((s) => `${s.id} = ${s.name} [${s.cat}] (${s.evidence[0]})`).join('; ') || 'nothing obvious'}\n`;
+  prompt += `SCRIPT URLS (first ones):\n${(facts.scripts || []).slice(0, 30).join('\n')}\n`;
+  prompt += `PAGE TEXT (excerpt):\n${(facts.text || '').slice(0, 1800)}\n`;
+  return prompt;
 }

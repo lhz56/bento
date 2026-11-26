@@ -35,11 +35,11 @@ export default function Ideas({
           {t(`${IDEAS.length} real tricks from Uber, Google, Discord and more, with code you run.`)}
         </p>
         <div className="shelves">
-          {THEMES.map(([k, l]) => (
+          {THEMES.map(([themeId, l]) => (
             <button
-              key={k}
-              className={`shelf ${theme === k ? 'on' : ''}`}
-              onClick={() => setTheme(k)}
+              key={themeId}
+              className={`shelf ${theme === themeId ? 'on' : ''}`}
+              onClick={() => setTheme(themeId)}
             >
               {l}
             </button>
@@ -181,12 +181,12 @@ export function IdeaArt({ kind, big }) {
         for (let c = 0; c < 10; c++) {
           const x = 22 + c * 17.3 + (r % 2) * 8.65,
             y = 14 + r * 15;
-          const d = Math.hypot(x - 100, y - 52);
+          const dist = Math.hypot(x - 100, y - 52);
           cells.push(
             <path
               key={`${r}-${c}`}
               d={hexPath(x, y, 9.6)}
-              fill={d < 6 ? orange : d < 22 ? '#ffc4ab' : d < 38 ? '#ffe6db' : 'none'}
+              fill={dist < 6 ? orange : dist < 22 ? '#ffc4ab' : dist < 38 ? '#ffe6db' : 'none'}
               stroke="var(--line-2)"
               strokeWidth=".8"
             />,
@@ -536,14 +536,14 @@ export function IdeaArt({ kind, big }) {
       return wrap(
         <>
           {Array.from({ length: 6 * 9 }, (_, i) => {
-            const r = Math.floor(i / 9),
+            const row = Math.floor(i / 9),
               c = i % 9;
-            const v = (r * 7 + c * 3) % 6;
+            const v = (row * 7 + c * 3) % 6;
             return (
               <rect
                 key={i}
                 x={30 + c * 16}
-                y={10 + r * 15}
+                y={10 + row * 15}
                 width="13"
                 height="12"
                 rx="3"

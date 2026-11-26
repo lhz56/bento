@@ -9,13 +9,13 @@ const swap = (s) =>
     .replace(/\bMac's\b/g, "PC's")
     .replace(/\bon Mac\b/g, 'on PC');
 export function winWords(root = document.body) {
-  const fix = (n) => {
-    const p = n.parentElement;
-    if (!p || p.closest(KEEP)) return;
-    const v = n.nodeValue;
-    if (!v || !v.includes('Mac')) return;
-    const w = swap(v);
-    if (w !== v) n.nodeValue = w;
+  const fix = (count) => {
+    const parent = count.parentElement;
+    if (!parent || parent.closest(KEEP)) return;
+    const text = count.nodeValue;
+    if (!text || !text.includes('Mac')) return;
+    const w = swap(text);
+    if (w !== text) count.nodeValue = w;
   };
   const walk = (el) => {
     const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -33,16 +33,16 @@ export function winWords(root = document.body) {
   walk(root);
   root.querySelectorAll('[title], [aria-label], [placeholder]').forEach(attrs);
   new MutationObserver((ms) => {
-    for (const m of ms) {
-      if (m.type === 'characterData') fix(m.target);
-      else if (m.type === 'attributes') attrs(m.target);
+    for (const match of ms) {
+      if (match.type === 'characterData') fix(match.target);
+      else if (match.type === 'attributes') attrs(match.target);
       else
-        m.addedNodes.forEach((n) => {
-          if (n.nodeType === 3) fix(n);
-          else if (n.nodeType === 1) {
-            walk(n);
-            attrs(n);
-            /** @type {Element} */ (n)
+        match.addedNodes.forEach((node) => {
+          if (node.nodeType === 3) fix(node);
+          else if (node.nodeType === 1) {
+            walk(node);
+            attrs(node);
+            /** @type {Element} */ (node)
               .querySelectorAll?.('[title], [aria-label], [placeholder]')
               .forEach(attrs);
           }

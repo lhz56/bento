@@ -67,9 +67,9 @@ export default function AtlasScreen({
       initialFile={pendingFile?.key === atlas.key ? pendingFile.path : null}
       onInitialFileShown={() => setPendingFile(null)}
       modelLabel={modelLabel(settings.model)}
-      readFile={(p) =>
+      readFile={(filePath) =>
         atlas.src.root
-          ? api.readFile(atlas.src.root, p)
+          ? api.readFile(atlas.src.root, filePath)
           : Promise.reject(
               new Error(
                 atlas.fetchError
@@ -103,9 +103,9 @@ export default function AtlasScreen({
       }
       onOthers={
         providers?.gh
-          ? async (p, text) => {
+          ? async (filePath, text) => {
               // find the most telling name in this file, look for it in other public projects, compare the two real files
-              const py = /\.py$/.test(p);
+              const py = /\.py$/.test(filePath);
               const names = [
                 ...text.matchAll(
                   py
@@ -115,7 +115,7 @@ export default function AtlasScreen({
               ]
                 .map((m) => m[1] || m[2])
                 .filter((n) => !/^(main|App|Page|Home|Layout|default|handler|GET|POST)$/.test(n));
-              const base = p
+              const base = filePath
                 .split('/')
                 .pop()
                 .replace(/\.[^.]+$/, '');
@@ -123,7 +123,7 @@ export default function AtlasScreen({
               const rows = (
                 await api.ghCode(
                   query,
-                  py ? 'python' : /\.tsx?$/.test(p) ? 'typescript' : 'javascript',
+                  py ? 'python' : /\.tsx?$/.test(filePath) ? 'typescript' : 'javascript',
                 )
               ).filter((r) => r.repo.toLowerCase() !== (atlas.src.full || '').toLowerCase());
               if (!rows.length)
@@ -140,7 +140,7 @@ export default function AtlasScreen({
                       repo: atlas.name,
                       repoKey: atlas.key,
                       gist: atlas.narr?.gist?.one,
-                      key: [{ path: p, text: text.slice(0, 8000) }],
+                      key: [{ path: filePath, text: text.slice(0, 8000) }],
                       files: [],
                     },
                     b: {
@@ -154,12 +154,12 @@ export default function AtlasScreen({
             }
           : null
       }
-      onQuick={async (q, history = []) => {
+      onQuick={async (question, history = []) => {
         // an overview question reads the README and the top file of each main part; others read the best-matching files
-        const overview = !history.length && isOverviewQuestion(q);
+        const overview = !history.length && isOverviewQuestion(question);
         const mainParts = overview ? projectParts(atlas.facts, 8) : [];
         // specific questions: files whose names match, plus files whose contents mention the words (searched on this Mac)
-        const asked = [q, ...history.slice(-2).map((h) => h.q)].join(' ');
+        const asked = [question, ...history.slice(-2).map((h) => h.q)].join(' ');
         const byName = overview ? [] : filesForQuestion(atlas.facts, atlas.narr, asked);
         const code = atlas.facts.files
           .filter((f) => f.lang && f.sub !== 'tests' && f.sub !== 'docs')
@@ -191,14 +191,14 @@ export default function AtlasScreen({
           ? mainParts.slice(0, 4).map((x) => x.top.p)
           : [...new Set([...chosen.map((h) => h.p), ...byName.slice(0, 2)])].slice(0, 4);
         const parts = [];
-        for (const p of paths) {
+        for (const path of paths) {
           try {
-            const text = await api.readFile(atlas.src.root, p);
-            const k = at.get(p) ?? 0;
+            const text = await api.readFile(atlas.src.root, path);
+            const hit = at.get(path) ?? 0;
             // show the part of the file where the words are, not just its first lines
-            const from = k > 3500 ? Math.max(0, text.lastIndexOf('\n', k - 1500)) : 0;
+            const from = hit > 3500 ? Math.max(0, text.lastIndexOf('\n', hit - 1500)) : 0;
             parts.push(
-              `--- ${p}${from ? ` (from character ${from})` : ''} ---\n${text.slice(from, from + 5000)}`,
+              `--- ${path}${from ? ` (from character ${from})` : ''} ---\n${text.slice(from, from + 5000)}`,
             );
           } catch {}
         }
@@ -221,7 +221,7 @@ export default function AtlasScreen({
         const j = parseJSONLoose(
           await api.quick(
             settings.model,
-            `A ${settings.level} learner is studying the repository ${atlas.name}${atlas.narr?.gist?.one ? ` (${atlas.narr.gist.one})` : ''} and asks: ${q}${big}\n${
+            `A ${settings.level} learner is studying the repository ${atlas.name}${atlas.narr?.gist?.one ? ` (${atlas.narr.gist.one})` : ''} and asks: ${question}${big}\n${
               history.length
                 ? `\nEARLIER IN THIS CONVERSATION (answer the new question in that light):\n${history
                     .slice(-3)
@@ -247,10 +247,10 @@ export default function AtlasScreen({
           lang: /\.py$/.test(p) ? 'python' : 'javascript',
         })
       }
-      onFeature={async (q) =>
-        askLesson(q, {
+      onFeature={async (question) =>
+        askLesson(question, {
           mode: 'feature',
-          context: await buildContext(asProject(atlas), q),
+          context: await buildContext(asProject(atlas), question),
           lang:
             Object.keys(atlas.facts.langs).includes('Python') &&
             !Object.keys(atlas.facts.langs).some((l) => /Script/.test(l))

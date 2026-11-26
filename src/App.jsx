@@ -52,15 +52,15 @@ import useAtlasQuestions from './hooks/useAtlasQuestions.js';
 
 // how much you learned each day (lessons + new words), for the activity grid on Home
 const activityByDay = (ls, words = {}) => {
-  const m = {};
+  const byDay = {};
   const add = (t) => {
     if (!t) return;
     const k = new Date(t).toDateString();
-    m[k] = (m[k] || 0) + 1;
+    byDay[k] = (byDay[k] || 0) + 1;
   };
   ls.forEach((l) => !l.builtin && l.status === 'done' && add(l.createdAt));
   Object.values(words).forEach((w) => add(w.at));
-  return m;
+  return byDay;
 };
 // days in a row (ending today or yesterday) with at least one finished lesson
 const streakOf = (ls) => {
@@ -69,14 +69,14 @@ const streakOf = (ls) => {
       .filter((l) => !l.builtin && l.status === 'done' && l.createdAt)
       .map((l) => new Date(l.createdAt).toDateString()),
   );
-  let n = 0;
-  const d = new Date();
-  if (!days.has(d.toDateString())) d.setDate(d.getDate() - 1);
-  while (days.has(d.toDateString())) {
-    n++;
-    d.setDate(d.getDate() - 1);
+  let streak = 0;
+  const date = new Date();
+  if (!days.has(date.toDateString())) date.setDate(date.getDate() - 1);
+  while (days.has(date.toDateString())) {
+    streak++;
+    date.setDate(date.getDate() - 1);
   }
-  return n;
+  return streak;
 };
 
 export default function App() {
@@ -670,13 +670,13 @@ export default function App() {
           return (
             <div className="gtabs">
               <div className="gt-list" role="tablist" aria-label={t(group.label)}>
-                {group.views.map(([v, label]) => (
+                {group.views.map(([id, label]) => (
                   <button
-                    key={v}
+                    key={id}
                     role="tab"
-                    aria-selected={view === v}
-                    className={view === v ? 'on' : ''}
-                    onClick={() => setView(v)}
+                    aria-selected={view === id}
+                    className={view === id ? 'on' : ''}
+                    onClick={() => setView(id)}
                   >
                     {t(label)}
                   </button>
@@ -867,17 +867,17 @@ export default function App() {
             quick={noAI(providers) ? null : (m, q) => api.quick(m, q)}
             model={settings.model}
             onReviewed={(ids, score = 0, total = 0) =>
-              setProgress((p) => ({
-                ...p,
+              setProgress((prev) => ({
+                ...prev,
                 reviewed: {
-                  ...(p.reviewed || {}),
+                  ...(prev.reviewed || {}),
                   ...Object.fromEntries(ids.map((id) => [id, Date.now()])),
                 },
                 reviewScores: {
-                  ...(p.reviewScores || {}),
+                  ...(prev.reviewScores || {}),
                   ...Object.fromEntries(
                     ids.map((id) => {
-                      const old = p.reviewScores?.[id] || { right: 0, total: 0 };
+                      const old = prev.reviewScores?.[id] || { right: 0, total: 0 };
                       return [
                         id,
                         {

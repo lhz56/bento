@@ -341,8 +341,8 @@ const ROWS = [
 
 export default function IdeaFlow({ samples = [], onOpen, onSim, onScratch, onAsk }) {
   const go = (key) => {
-    const s = samples.find((x) => x.id === key);
-    if (s) return onOpen(s);
+    const sample = samples.find((x) => x.id === key);
+    if (sample) return onOpen(sample);
     if (key === 'scratch') return onScratch?.();
     if (key === 'sort')
       return onAsk?.('How does sorting work? Show the bars moving.', { mode: 'explain' });

@@ -84,8 +84,8 @@ export default function useLearningPath({
   const startStop = (st) => {
     if (!PRE.ready) return void loadPrebuilt().then(() => startStop(st));
     const id = progress.path?.[st.id];
-    const l = id && lessons.find((x) => x.id === id);
-    if (l) return openLesson(l);
+    const lesson = id && lessons.find((x) => x.id === id);
+    if (lesson) return openLesson(lesson);
     const pre = PRE.path[st.id];
     if (pre && (!settings.voice || settings.voice === 'English') && settings.level !== 'engineer') {
       openLesson({ ...pre, createdAt: Date.now() });
@@ -116,8 +116,15 @@ export default function useLearningPath({
         )
         .map((st) => ({ T: track, st })),
     );
-    const c = all.find((x) => !progress.path?.[x.st.id]) || all[0];
-    return c ? { icon: c.T.icon, label: c.st.t, path: c.T.title, go: () => goStop(c.st) } : null;
+    const candidate = all.find((x) => !progress.path?.[x.st.id]) || all[0];
+    return candidate
+      ? {
+          icon: candidate.T.icon,
+          label: candidate.st.t,
+          path: candidate.T.title,
+          go: () => goStop(candidate.st),
+        }
+      : null;
   };
   const trailBar = () =>
     trail && view === trail.view ? (

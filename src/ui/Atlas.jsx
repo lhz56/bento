@@ -48,17 +48,17 @@ const ago = (d) => {
     [60, 'minute'],
   ].find((x) => s >= x[0]);
   if (!u) return 'just now';
-  const n = Math.floor(s / u[0]);
-  return `${n} ${u[1]}${n > 1 ? 's' : ''} ago`;
+  const count = Math.floor(s / u[0]);
+  return `${count} ${u[1]}${count > 1 ? 's' : ''} ago`;
 };
 const lc = (t) => (/^[A-Z][a-z]/.test(t) ? t[0].toLowerCase() + t.slice(1) : t);
 const byName = Object.fromEntries(CATALOG.map((e) => [e.name.toLowerCase(), e]));
 const findTool = (name) => {
-  const n = String(name).toLowerCase().trim();
+  const norm = String(name).toLowerCase().trim();
   return (
-    byName[n] ||
-    BY_ID[n] ||
-    CATALOG.find((e) => e.name.toLowerCase() === n.split(/\s*[(/]/)[0].trim())
+    byName[norm] ||
+    BY_ID[norm] ||
+    CATALOG.find((e) => e.name.toLowerCase() === norm.split(/\s*[(/]/)[0].trim())
   );
 };
 
@@ -71,15 +71,15 @@ export function mergeTools(stack, narrStack = {}) {
         !stack.some((s) => s.id === x.id || s.name.toLowerCase() === x.name.toLowerCase()),
     )
     .map((x) => {
-      const c = findTool(x.name);
+      const tool = findTool(x.name);
       return {
-        ...(c || {}),
+        ...(tool || {}),
         id: x.id || x.name,
         name: x.name,
-        cat: x.cat || c?.cat || 'frame',
-        slug: c?.slug,
-        what: c?.what || x.role,
-        alt: c?.alt || [],
+        cat: x.cat || tool?.cat || 'frame',
+        slug: tool?.slug,
+        what: tool?.what || x.role,
+        alt: tool?.alt || [],
         used: [],
         evidence: ['spotted by reading the code'],
         added: true,
@@ -236,11 +236,11 @@ export default function Atlas({
   if (facts && !holding) shown.current = true;
   useEffect(() => {
     if (!facts || !holding) return;
-    const t = setTimeout(
+    const timer = setTimeout(
       () => setHold(false),
       Math.max(1100, 1800 - (Date.now() - shownAt.current)),
     );
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [facts, holding]);
 
   // more sections than fit? fade the edge you can scroll towards, and keep the one you picked in view
@@ -273,14 +273,17 @@ export default function Atlas({
   }, [holding]); // the bar only exists once the project has loaded
   // keep the lit section in view in the bar, by moving the bar only (scrolling anything else would stop the page's glide)
   useEffect(() => {
-    const n = navRef.current;
-    const b = n?.querySelector('button.on');
-    if (!b || n.scrollWidth <= n.clientWidth) return;
-    const r = b.getBoundingClientRect();
+    const nav = navRef.current;
+    const b = nav?.querySelector('button.on');
+    if (!b || nav.scrollWidth <= nav.clientWidth) return;
+    const rect = b.getBoundingClientRect();
     const left =
-      n.scrollLeft + r.left - n.getBoundingClientRect().left - (n.clientWidth - r.width) / 2;
-    n.scrollTo({
-      left: Math.max(0, Math.min(left, n.scrollWidth - n.clientWidth)),
+      nav.scrollLeft +
+      rect.left -
+      nav.getBoundingClientRect().left -
+      (nav.clientWidth - rect.width) / 2;
+    nav.scrollTo({
+      left: Math.max(0, Math.min(left, nav.scrollWidth - nav.clientWidth)),
       behavior: 'smooth',
     });
   }, [section, holding]);
@@ -644,19 +647,19 @@ export default function Atlas({
               <div className="stack-strip">
                 <span className="mini-h">built with</span>
                 <div className="ss-row">
-                  {tools.slice(0, 14).map((t) => (
+                  {tools.slice(0, 14).map((tool) => (
                     <button
-                      key={t.id}
+                      key={tool.id}
                       className="ss-t"
                       onClick={() => {
-                        window.dispatchEvent(new CustomEvent('atlas-tool', { detail: t.id }));
+                        window.dispatchEvent(new CustomEvent('atlas-tool', { detail: tool.id }));
                         go('stack');
                       }}
-                      title={`${t.name}: ${narration?.stack?.[t.id]?.role || t.what}`}
+                      title={`${tool.name}: ${narration?.stack?.[tool.id]?.role || tool.what}`}
                     >
-                      <Brand slug={t.slug} name={t.name} color={t.color} size={34} />
-                      <span>{t.name}</span>
-                      <i>{CATS[t.cat]?.[0]}</i>
+                      <Brand slug={tool.slug} name={tool.name} color={tool.color} size={34} />
+                      <span>{tool.name}</span>
+                      <i>{CATS[tool.cat]?.[0]}</i>
                     </button>
                   ))}
                 </div>
@@ -943,22 +946,22 @@ export function Toolbelt({ tools, stack, narration, narrating, onShowFiles }) {
     if (g) g.items.push(s);
     else groups.push({ cat: s.cat, items: [s] });
   }
-  const s = tools.find((t) => t.id === sel) || tools[0];
+  const tool = tools.find((t) => t.id === sel) || tools[0];
   const n =
-    s &&
-    (narrStack[s.id] ||
-      Object.values(narrStack).find((x) => x.name?.toLowerCase() === s.name.toLowerCase()));
-  const alts = s
+    tool &&
+    (narrStack[tool.id] ||
+      Object.values(narrStack).find((x) => x.name?.toLowerCase() === tool.name.toLowerCase()));
+  const alts = tool
     ? (n?.alts?.length
         ? n.alts.map((a) => ({ name: a.name, when: a.when, tool: findTool(a.name) }))
-        : (s.alt || [])
+        : (tool.alt || [])
             .map((id) => BY_ID[id])
             .filter(Boolean)
             .map((t) => ({ name: t.name, when: t.when, tool: t }))
       ).slice(0, 4)
     : [];
   const shownAlt = alts.find((a) => a.name === alt) || null;
-  useEffect(() => setAlt(null), [s?.id]);
+  useEffect(() => setAlt(null), [tool?.id]);
   return (
     <section className="asec" id="sec-stack">
       <div className="sec-head">
@@ -975,23 +978,23 @@ export function Toolbelt({ tools, stack, narration, narrating, onShowFiles }) {
       {tools.length > 0 && (
         <div className="belt2">
           <div className="belt-tiles">
-            {groups.map((g) => (
-              <div key={g.cat} className="tg">
-                <div className="tg-h">{CATS[g.cat]?.[0] || g.cat}</div>
+            {groups.map((group) => (
+              <div key={group.cat} className="tg">
+                <div className="tg-h">{CATS[group.cat]?.[0] || group.cat}</div>
                 <div className="tg-row">
-                  {g.items.map((t) => (
+                  {group.items.map((item) => (
                     <button
-                      key={t.id}
-                      className={`tile ${s?.id === t.id ? 'on' : ''}`}
-                      onClick={() => setSel(t.id)}
-                      onMouseEnter={() => setSel(t.id)}
+                      key={item.id}
+                      className={`tile ${tool?.id === item.id ? 'on' : ''}`}
+                      onClick={() => setSel(item.id)}
+                      onMouseEnter={() => setSel(item.id)}
                     >
-                      <Brand slug={t.slug} name={t.name} color={t.color} size={46} />
-                      <span className="tile-n">{t.name}</span>
-                      {t.used?.length > 0 && (
-                        <span className="tile-use" title={`used in ${t.used.length} files`}>
+                      <Brand slug={item.slug} name={item.name} color={item.color} size={46} />
+                      <span className="tile-n">{item.name}</span>
+                      {item.used?.length > 0 && (
+                        <span className="tile-use" title={`used in ${item.used.length} files`}>
                           {Array.from(
-                            { length: Math.min(6, Math.ceil(Math.log2(t.used.length + 1))) },
+                            { length: Math.min(6, Math.ceil(Math.log2(item.used.length + 1))) },
                             (_, i) => (
                               <i key={i} />
                             ),
@@ -1004,24 +1007,25 @@ export function Toolbelt({ tools, stack, narration, narrating, onShowFiles }) {
               </div>
             ))}
           </div>
-          {s && (
-            <div className="tool-card" key={s.id}>
+          {tool && (
+            <div className="tool-card" key={tool.id}>
               <div className="tc-top">
-                <Brand slug={s.slug} name={s.name} color={s.color} size={58} />
+                <Brand slug={tool.slug} name={tool.name} color={tool.color} size={58} />
                 <div>
-                  <div className="tc-cat">{CATS[s.cat]?.[0]}</div>
-                  <div className="tc-name">{s.name}</div>
-                  {s.used?.length > 0 && (
+                  <div className="tc-cat">{CATS[tool.cat]?.[0]}</div>
+                  <div className="tc-name">{tool.name}</div>
+                  {tool.used?.length > 0 && (
                     <button
                       className="tool-used"
-                      onClick={() => onShowFiles([...s.used, `s:${s.id}`])}
+                      onClick={() => onShowFiles([...tool.used, `s:${tool.id}`])}
                     >
-                      show the {s.used.length} file{s.used.length > 1 ? 's' : ''} that use it →
+                      show the {tool.used.length} file{tool.used.length > 1 ? 's' : ''} that use it
+                      →
                     </button>
                   )}
                 </div>
               </div>
-              <div className="tc-what">{n?.role || s.what}</div>
+              <div className="tc-what">{n?.role || tool.what}</div>
               {n?.why ? (
                 <div className="tc-why">
                   <Md text={n.why} />
@@ -1033,19 +1037,24 @@ export function Toolbelt({ tools, stack, narration, narrating, onShowFiles }) {
                 <div className="tc-vs">
                   <div className="tc-vs-row">
                     <span className="vs-pick">
-                      <Brand slug={s.slug} name={s.name} color={s.color} size={30} />
+                      <Brand slug={tool.slug} name={tool.name} color={tool.color} size={30} />
                     </span>
                     <span className="vs">vs</span>
-                    {alts.map((a) => (
+                    {alts.map((alt) => (
                       <button
-                        key={a.name}
-                        className={`vs-alt ${shownAlt?.name === a.name ? 'on' : ''}`}
-                        onMouseEnter={() => setAlt(a.name)}
-                        onClick={() => setAlt(a.name)}
-                        title={a.name}
+                        key={alt.name}
+                        className={`vs-alt ${shownAlt?.name === alt.name ? 'on' : ''}`}
+                        onMouseEnter={() => setAlt(alt.name)}
+                        onClick={() => setAlt(alt.name)}
+                        title={alt.name}
                       >
-                        <Brand slug={a.tool?.slug} name={a.name} color={a.tool?.color} size={30} />
-                        <span>{a.name}</span>
+                        <Brand
+                          slug={alt.tool?.slug}
+                          name={alt.name}
+                          color={alt.tool?.color}
+                          size={30}
+                        />
+                        <span>{alt.name}</span>
                       </button>
                     ))}
                   </div>
@@ -1210,10 +1219,10 @@ function Hotspots({ hot, role, onOpen, narrating, facts, pathIdx }) {
       </div>
       {kinds.length > 0 && (
         <div className="hot-sum">
-          {kinds.map(([k, n]) => {
-            const [ic, label] = HOT_ICON[k] || HOT_ICON.fragile;
+          {kinds.map(([kind, n]) => {
+            const [ic, label] = HOT_ICON[kind] || HOT_ICON.fragile;
             return (
-              <span key={k} className={`hs k-${k}`}>
+              <span key={kind} className={`hs k-${kind}`}>
                 <i>{ic}</i>
                 <b>{n}</b>
                 {label.toLowerCase()}
@@ -1359,42 +1368,44 @@ function FileMap({ files, role, onOpen }) {
   );
   return (
     <div className="fmap" ref={box} style={{ height }}>
-      {blocks.map((b) => {
+      {blocks.map((block) => {
         const pad = 3,
-          head = b.h > 46 && b.w > 70 ? 18 : 0;
+          head = block.h > 46 && block.w > 70 ? 18 : 0;
         const tiles = squarify(
-          b.fs.map((f) => ({ f, v: f.lines })),
-          b.x + pad,
-          b.y + pad + head,
-          Math.max(0, b.w - pad * 2),
-          Math.max(0, b.h - pad * 2 - head),
+          block.fs.map((f) => ({ f, v: f.lines })),
+          block.x + pad,
+          block.y + pad + head,
+          Math.max(0, block.w - pad * 2),
+          Math.max(0, block.h - pad * 2 - head),
         );
         return (
           <div
-            key={b.d}
+            key={block.d}
             className="fm-block"
-            style={{ left: b.x, top: b.y, width: b.w, height: b.h }}
+            style={{ left: block.x, top: block.y, width: block.w, height: block.h }}
           >
-            {head > 0 && <span className="fm-dir">{b.d === '·' ? 'top level' : b.d}/</span>}
-            {tiles.map((t) => (
+            {head > 0 && <span className="fm-dir">{block.d === '·' ? 'top level' : block.d}/</span>}
+            {tiles.map((tile) => (
               <button
-                key={t.f.p}
-                data-p={t.f.p}
-                className={`fm-tile ${hov === t.f.p ? 'on' : ''}`}
+                key={tile.f.p}
+                data-p={tile.f.p}
+                className={`fm-tile ${hov === tile.f.p ? 'on' : ''}`}
                 style={{
-                  left: t.x - b.x,
-                  top: t.y - b.y,
-                  width: Math.max(0, t.w - 2),
-                  height: Math.max(0, t.h - 2),
-                  '--c': LAYER[t.f.layer][3],
+                  left: tile.x - block.x,
+                  top: tile.y - block.y,
+                  width: Math.max(0, tile.w - 2),
+                  height: Math.max(0, tile.h - 2),
+                  '--c': LAYER[tile.f.layer][3],
                 }}
-                onMouseEnter={() => setHov(t.f.p)}
+                onMouseEnter={() => setHov(tile.f.p)}
                 onMouseLeave={() => setHov(null)}
-                onClick={() => onOpen(t.f.p)}
-                title={`${t.f.p}\n${role(t.f.p)}\n${t.f.lines} lines`}
+                onClick={() => onOpen(tile.f.p)}
+                title={`${tile.f.p}\n${role(tile.f.p)}\n${tile.f.lines} lines`}
               >
-                {t.w > 64 && t.h > 22 && <span className="fm-n">{t.f.p.split('/').pop()}</span>}
-                {t.w > 110 && t.h > 44 && <span className="fm-r">{role(t.f.p)}</span>}
+                {tile.w > 64 && tile.h > 22 && (
+                  <span className="fm-n">{tile.f.p.split('/').pop()}</span>
+                )}
+                {tile.w > 110 && tile.h > 44 && <span className="fm-r">{role(tile.f.p)}</span>}
               </button>
             ))}
           </div>
@@ -1651,16 +1662,20 @@ function Detective({ facts, narration, readFile, onOpen }) {
         <pre className="dt-code">{game.code == null ? '…' : game.code || '(empty file)'}</pre>
         <div className="dt-q">
           <b>What does this file do?</b>
-          {round.opts.map((o) => (
+          {round.opts.map((option) => (
             <button
-              key={o}
+              key={option}
               disabled={game.picked != null}
-              className={`dt-opt ${game.picked != null && o === round.r ? 'ok' : ''} ${game.picked === o && o !== round.r ? 'no' : ''}`}
+              className={`dt-opt ${game.picked != null && option === round.r ? 'ok' : ''} ${game.picked === option && option !== round.r ? 'no' : ''}`}
               onClick={() =>
-                setGame({ ...game, picked: o, score: game.score + (o === round.r ? 1 : 0) })
+                setGame({
+                  ...game,
+                  picked: option,
+                  score: game.score + (option === round.r ? 1 : 0),
+                })
               }
             >
-              {o}
+              {option}
             </button>
           ))}
           {game.picked != null && (
@@ -1897,16 +1912,16 @@ function AskBar({ name, threadKey, onAsk, onQuick, onOpen, initial, onFeature })
   const [opened, setOpened] = useState(null); // an earlier answer you reopened (the latest one is always open)
   const list = useRef(null);
   const inp = useRef(null);
-  const ask = async (q, full) => {
-    q = String(q || '').trim();
-    if (!q) return;
-    if (full || !onQuick) return onAsk(q);
+  const ask = async (question, full) => {
+    question = String(question || '').trim();
+    if (!question) return;
+    if (full || !onQuick) return onAsk(question);
     const id = Date.now() + Math.random();
     const history = thread.filter((x) => !x.loading && x.a).map(({ q: hq, a }) => ({ q: hq, a }));
-    setThread((th) => [...th.slice(-7), { id, q, loading: true }]);
+    setThread((th) => [...th.slice(-7), { id, q: question, loading: true }]);
     let r;
     try {
-      r = await onQuick(q, history);
+      r = await onQuick(question, history);
     } catch {
       r = {
         a: `That didn’t work. Try again, or press ${keys('⌘↵')} for a full lesson.`,
@@ -2193,11 +2208,11 @@ function Ripple({ facts, idx, onOpen }) {
           ) : (
             <>
               That’s {pct}% of the project.{' '}
-              {rings.map((r, d) => (
+              {rings.map((ring, d) => (
                 <span key={d} className="rp-hop">
                   {d === 0 ? 'use it directly' : `${d + 1} steps away`}:{' '}
                   <b>
-                    {r.length}
+                    {ring.length}
                     {d === rings.length - 1 && rings.more ? `+${rings.more}` : ''}
                   </b>
                 </span>

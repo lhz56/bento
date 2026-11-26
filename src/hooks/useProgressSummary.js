@@ -132,40 +132,40 @@ export default function useProgressSummary({
     );
     const ls = lessons
       .filter((l) => (!l.builtin || l.touched) && l.status !== 'error')
-      .map((l) => ({
-        k: `l:${l.id}`,
+      .map((lesson) => ({
+        k: `l:${lesson.id}`,
         kind: 'lesson',
-        at: Math.max(l.createdAt || 0, ...(l.chat || []).map((c) => c.at || 0)),
-        title: l.title || l.q || 'Untitled',
-        lang: l.lang,
-        glyph: l.scratch
+        at: Math.max(lesson.createdAt || 0, ...(lesson.chat || []).map((c) => c.at || 0)),
+        title: lesson.title || lesson.q || 'Untitled',
+        lang: lesson.lang,
+        glyph: lesson.scratch
           ? '✎'
-          : l.mode === 'challenge'
+          : lesson.mode === 'challenge'
             ? '⚑'
-            : l.mode === 'compare'
+            : lesson.mode === 'compare'
               ? '⇄'
-              : l.mode === 'build'
+              : lesson.mode === 'build'
                 ? '⚒'
-                : Object.values(progress.path || {}).includes(l.id)
+                : Object.values(progress.path || {}).includes(lesson.id)
                   ? '⤳'
                   : null,
-        stop: stopNo[l.id] || null,
-        idea: l.mode === 'idea' ? l.context?.ideaId : null,
-        asked: (l.chat || []).filter((c) => c.q).length,
-        right: (l.checks || []).filter((c) => c.ok).length,
-        live: l.status === 'streaming',
-        open: () => openLesson(l),
+        stop: stopNo[lesson.id] || null,
+        idea: lesson.mode === 'idea' ? lesson.context?.ideaId : null,
+        asked: (lesson.chat || []).filter((c) => c.q).length,
+        right: (lesson.checks || []).filter((c) => c.ok).length,
+        live: lesson.status === 'streaming',
+        open: () => openLesson(lesson),
       }));
     const ps = projects
       .filter((p) => p.kind === 'github' || p.kind === 'local')
-      .map((p) => ({
-        k: `p:${p.key}`,
+      .map((project) => ({
+        k: `p:${project.key}`,
         kind: 'project',
-        at: p.at || 0,
-        title: (p.full || p.name || '').split('/').pop(),
-        owner: p.kind === 'github' ? (p.full || p.key).split('/')[0] : null,
-        asked: (convo[p.key] || []).length,
-        open: () => openProject(p),
+        at: project.at || 0,
+        title: (project.full || project.name || '').split('/').pop(),
+        owner: project.kind === 'github' ? (project.full || project.key).split('/')[0] : null,
+        asked: (convo[project.key] || []).length,
+        open: () => openProject(project),
       }));
     return [...ls, ...ps].sort((a, b) => b.at - a.at).slice(0, 7);
     // eslint-disable-next-line react-hooks/exhaustive-deps

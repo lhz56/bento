@@ -22,36 +22,39 @@ export function validatePack(j) {
   const puzzles = [];
   const ideas = [];
   const paths = [];
-  (Array.isArray(j.puzzles) ? j.puzzles : []).forEach((p, i) => {
-    const where = `puzzle ${i + 1}${p?.title ? ` (“${p.title}”)` : ''}`;
+  (Array.isArray(j.puzzles) ? j.puzzles : []).forEach((puzzle, i) => {
+    const where = `puzzle ${i + 1}${puzzle?.title ? ` (“${puzzle.title}”)` : ''}`;
     const miss = ['id', 'title', 'md', 'fn', 'start', 'fast', 'setup', 'call', 'target'].filter(
-      (k) => !isStr(p?.[k]),
+      (k) => !isStr(puzzle?.[k]),
     );
     if (miss.length) return errors.push(`${where} is missing ${miss.join(', ')}.`);
     if (
-      !Array.isArray(p.tests) ||
-      p.tests.length < 2 ||
-      !p.tests.every((c) => Array.isArray(c) && Array.isArray(c[0]))
+      !Array.isArray(puzzle.tests) ||
+      puzzle.tests.length < 2 ||
+      !puzzle.tests.every((c) => Array.isArray(c) && Array.isArray(c[0]))
     )
       return errors.push(`${where} needs at least two tests, each [args, expected].`);
     if (
-      !Array.isArray(p.gremlins) ||
-      !p.gremlins.every((c) => Array.isArray(c) && isStr(c[0], 200) && Array.isArray(c[1]))
+      !Array.isArray(puzzle.gremlins) ||
+      !puzzle.gremlins.every((c) => Array.isArray(c) && isStr(c[0], 200) && Array.isArray(c[1]))
     )
       return errors.push(`${where}: gremlins are [label, args, expected].`);
-    if (!/make_input/.test(p.setup))
+    if (!/make_input/.test(puzzle.setup))
       return errors.push(`${where}: setup must define make_input(n).`);
     puzzles.push({
-      ...p,
-      id: `${id}--${slug(p.id)}`,
-      st: STATION_IDS.has(p.st) ? p.st : 'community',
-      tier: ['warm', 'classic', 'boss'].includes(p.tier) ? p.tier : 'classic',
-      lc: Array.isArray(p.lc) ? p.lc : null,
-      hook: p.hook || p.title,
-      hints: Array.isArray(p.hints) ? p.hints.slice(0, 5) : [],
-      startWorks: !!p.startWorks,
-      scale: p.scale && typeof p.scale === 'object' ? { text: String(p.scale.text || '') } : null,
-      big: +p.big || 10000,
+      ...puzzle,
+      id: `${id}--${slug(puzzle.id)}`,
+      st: STATION_IDS.has(puzzle.st) ? puzzle.st : 'community',
+      tier: ['warm', 'classic', 'boss'].includes(puzzle.tier) ? puzzle.tier : 'classic',
+      lc: Array.isArray(puzzle.lc) ? puzzle.lc : null,
+      hook: puzzle.hook || puzzle.title,
+      hints: Array.isArray(puzzle.hints) ? puzzle.hints.slice(0, 5) : [],
+      startWorks: !!puzzle.startWorks,
+      scale:
+        puzzle.scale && typeof puzzle.scale === 'object'
+          ? { text: String(puzzle.scale.text || '') }
+          : null,
+      big: +puzzle.big || 10000,
       pack: j.name,
     });
   });
@@ -87,13 +90,13 @@ export function validatePack(j) {
       pack: j.name,
       stops: x.stops
         .filter((s) => isStr(s?.t, 120) && isStr(s?.q, 600))
-        .map((s, k) => ({
-          id: `${pid}-${k}`,
-          t: s.t,
-          d: s.d || '',
-          q: s.q,
-          lang: s.lang,
-          words: Array.isArray(s.words) ? s.words.slice(0, 4) : [],
+        .map((stop, index) => ({
+          id: `${pid}-${index}`,
+          t: stop.t,
+          d: stop.d || '',
+          q: stop.q,
+          lang: stop.lang,
+          words: Array.isArray(stop.words) ? stop.words.slice(0, 4) : [],
         })),
     });
   });

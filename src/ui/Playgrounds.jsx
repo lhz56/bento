@@ -90,16 +90,20 @@ function SqlPlay({ done, onDone, quick, model, pyReady }) {
     setBusy(true);
     setPlain(null);
     const st = pipeline(query);
-    const r = await runSql(
+    const result = await runSql(
       query,
       (st || []).map((s) => s.count),
     );
-    setRes({ ...r, steps: st });
+    setRes({ ...result, steps: st });
     setBusy(false);
     // does it answer the challenge?
-    if (challenge && !r.error) {
+    if (challenge && !result.error) {
       if (!refCache.has(challenge[0])) refCache.set(challenge[0], await runSql(challenge[3]));
-      const ok = sameResult(r, refCache.get(challenge[0]), /\border\s+by\b/i.test(challenge[3]));
+      const ok = sameResult(
+        result,
+        refCache.get(challenge[0]),
+        /\border\s+by\b/i.test(challenge[3]),
+      );
       setVerdict(ok ? 'ok' : 'no');
       if (ok) onDone(challenge[0]);
     } else setVerdict(null);
@@ -267,15 +271,19 @@ function KeyRun({ onRun }) {
 function Flow({ steps, counts = [], rows }) {
   return (
     <div className="sql-flow">
-      {steps.map((s, i) => {
+      {steps.map((step, i) => {
         const n =
-          s.k === 'SELECT' || s.k === 'ORDER BY' ? null : s.k === 'LIMIT' ? rows : counts[i];
+          step.k === 'SELECT' || step.k === 'ORDER BY'
+            ? null
+            : step.k === 'LIMIT'
+              ? rows
+              : counts[i];
         return (
-          <div key={i} className={`sf-step k-${s.k.replace(' ', '')}`}>
+          <div key={i} className={`sf-step k-${step.k.replace(' ', '')}`}>
             {i > 0 && <span className="sf-arrow">→</span>}
             <div className="sf-box">
-              <code>{s.k}</code>
-              <span>{s.say}</span>
+              <code>{step.k}</code>
+              <span>{step.say}</span>
               {n != null && (
                 <b>
                   {n} {n === 1 ? t('row') : t('rows')}
@@ -319,9 +327,9 @@ function ResultTable({ res }) {
           </tr>
         </thead>
         <tbody>
-          {res.rows.slice(0, 100).map((r, i) => (
+          {res.rows.slice(0, 100).map((row, i) => (
             <tr key={i}>
-              {r.map((v, j) => (
+              {row.map((v, j) => (
                 <td key={j} className={typeof v === 'number' ? 'num' : ''}>
                   {v === null ? (
                     <i>NULL</i>
@@ -506,20 +514,20 @@ function Folder({ sim, st }) {
           {t('empty: try')} <code>mkdir my-app</code>
         </div>
       )}
-      {paths.map((p) => {
-        const depth = p.split('/').length - 3;
-        const dir = sim.files[p] === null;
-        const m = mark(p);
+      {paths.map((path) => {
+        const depth = path.split('/').length - 3;
+        const dir = sim.files[path] === null;
+        const marked = mark(path);
         return (
           <div
-            key={p}
-            className={`gv-file ${m} ${p === sim.cwd ? 'gv-cwd' : ''}`}
+            key={path}
+            className={`gv-file ${marked} ${path === sim.cwd ? 'gv-cwd' : ''}`}
             style={{ paddingLeft: depth * 14 }}
-            title={dir ? '' : sim.files[p]}
+            title={dir ? '' : sim.files[path]}
           >
-            {dir ? '📁' : '📄'} {p.split('/').pop()}
-            {m && m !== 'clean' && <em>{t(m)}</em>}
-            {p === sim.cwd && <span className="gv-here">{t('you are here')}</span>}
+            {dir ? '📁' : '📄'} {path.split('/').pop()}
+            {marked && marked !== 'clean' && <em>{t(marked)}</em>}
+            {path === sim.cwd && <span className="gv-here">{t('you are here')}</span>}
           </div>
         );
       })}
@@ -602,11 +610,11 @@ function Graph({ sim }) {
           role="img"
           aria-label={`${cs.length} commits on ${lanes.length} branch${lanes.length > 1 ? 'es' : ''}: ${cs.map((c) => `${c.msg} (${c.branch})`).join(', ') || 'none yet'}`}
         >
-          {lanes.map((b) => (
-            <g key={b}>
-              <line x1={70} x2={width - 10} y1={y(b)} y2={y(b)} className="gl-lane" />
-              <text x={4} y={y(b) + 4} className="gl-name">
-                {b}
+          {lanes.map((lane) => (
+            <g key={lane}>
+              <line x1={70} x2={width - 10} y1={y(lane)} y2={y(lane)} className="gl-lane" />
+              <text x={4} y={y(lane) + 4} className="gl-name">
+                {lane}
               </text>
             </g>
           ))}

@@ -23,8 +23,8 @@ module.exports = function registerSearch(ctx) {
       size: ok(opts.size, /^[<>=]{0,2}\d+(\.\.\d+)?$/),
     };
   };
-  async function searchRepos(q, opts = {}) {
-    q = str(q, 300);
+  async function searchRepos(query, opts = {}) {
+    query = str(query, 300);
     opts = searchOpts(opts);
     const fields = 'fullName,description,stargazersCount,language,size,owner,updatedAt';
     if (await ghOk()) {
@@ -41,29 +41,29 @@ module.exports = function registerSearch(ctx) {
       if (opts.language) args.push('--language', opts.language);
       if (opts.stars) args.push('--stars', opts.stars);
       if (opts.size) args.push('--size', opts.size);
-      args.push('--', ...q.split(/\s+/).filter(Boolean)); // the words are only ever words to search for, even "-x" or "--web"
+      args.push('--', ...query.split(/\s+/).filter(Boolean)); // the words are only ever words to search for, even "-x" or "--web"
       const rows = JSON.parse(await gh(args));
-      return rows.map((r) => ({
-        full: r.fullName,
-        description: r.description,
-        stars: r.stargazersCount,
-        language: r.language,
-        size: r.size,
-        owner: r.owner?.login,
-        updated: r.updatedAt,
+      return rows.map((row) => ({
+        full: row.fullName,
+        description: row.description,
+        stars: row.stargazersCount,
+        language: row.language,
+        size: row.size,
+        owner: row.owner?.login,
+        updated: row.updatedAt,
       }));
     }
-    const r = await net.fetch(
-      `https://api.github.com/search/repositories?q=${encodeURIComponent(q + (opts.language ? ` language:${opts.language}` : ''))}&sort=stars&per_page=${opts.limit}`,
+    const res = await net.fetch(
+      `https://api.github.com/search/repositories?q=${encodeURIComponent(query + (opts.language ? ` language:${opts.language}` : ''))}&sort=stars&per_page=${opts.limit}`,
       { headers: { 'User-Agent': 'bento-app' } },
     );
-    if (!r.ok)
+    if (!res.ok)
       throw new Error(
-        r.status === 403
+        res.status === 403
           ? 'GitHub search limit reached. Sign in with gh auth login for more.'
-          : `GitHub search failed (${r.status})`,
+          : `GitHub search failed (${res.status})`,
       );
-    const j = await r.json();
+    const j = await res.json();
     return (j.items || []).map((x) => ({
       full: x.full_name,
       description: x.description,
@@ -81,14 +81,14 @@ module.exports = function registerSearch(ctx) {
   const foundRoots = new Set();
   ipcMain.handle('project:find', async (_e, names) => {
     names = Array.isArray(names) ? strList(names.slice(0, 8), 8, 200) : [str(names, 200)];
-    const r = await findproject.find(names, {
+    const found = await findproject.find(names, {
       searchGitHub: (q) => searchRepos(q, { limit: 6 }),
       repoMeta,
       localClones: (n, f) => work('localClones', [n, f]),
       installedApps: (n) => work('installedApps', [n]),
     });
-    for (const l of r.local) foundRoots.add(l.root);
-    return r;
+    for (const l of found.local) foundRoots.add(l.root);
+    return found;
   });
   // a clone that project:find found may be opened in the Atlas (read-only, like a folder you picked)
   ipcMain.handle('project:openLocal', async (_e, root) => {
@@ -105,27 +105,27 @@ module.exports = function registerSearch(ctx) {
     return { root, name: path.basename(root) };
   });
   // Real code in the wild: GitHub code search (needs gh signed in). One result per repo, short snippets.
-  ipcMain.handle('gh:code', async (_e, q, language) => {
-    q = str(q, 300);
+  ipcMain.handle('gh:code', async (_e, query, language) => {
+    query = str(query, 300);
     language = optStr(language, 40);
     if (language && !/^[\w#+. -]{1,40}$/.test(language)) refuse();
     if (!(await ghOk())) throw new Error('Sign in to GitHub (gh auth login) to search real code.');
     const args = ['search', 'code', '--limit', '30', '--json', 'repository,path,textMatches,url'];
     if (language) args.push('--language', language);
-    args.push('--', q);
+    args.push('--', query);
     const rows = JSON.parse(await gh(args));
     const seen = new Set();
     const out = [];
-    for (const r of rows) {
-      const full = r.repository?.nameWithOwner;
-      if (!full || seen.has(full) || r.repository?.isFork) continue;
-      if (/(^|\/)(test|tests|node_modules|vendor|site-packages)\//i.test(r.path)) continue;
+    for (const row of rows) {
+      const full = row.repository?.nameWithOwner;
+      if (!full || seen.has(full) || row.repository?.isFork) continue;
+      if (/(^|\/)(test|tests|node_modules|vendor|site-packages)\//i.test(row.path)) continue;
       seen.add(full);
       out.push({
         repo: full,
-        path: r.path,
-        url: r.url,
-        fragment: (r.textMatches?.[0]?.fragment || '').split('\n').slice(0, 8).join('\n'),
+        path: row.path,
+        url: row.url,
+        fragment: (row.textMatches?.[0]?.fragment || '').split('\n').slice(0, 8).join('\n'),
       });
       if (out.length >= 6) break;
     }
@@ -136,18 +136,18 @@ module.exports = function registerSearch(ctx) {
   // moment of connecting, so a website can't send Bento into your own Mac or home network.
   ipcMain.handle('site:inspect', async (_e, url) => {
     url = str(url, 2000).trim();
-    let u;
+    let target;
     try {
-      u = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`);
+      target = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`);
     } catch {
       throw new Error('That doesn’t look like a web address.');
     }
-    if (!/^https?:$/.test(u.protocol) || !hostAllowed(u.hostname))
+    if (!/^https?:$/.test(target.protocol) || !hostAllowed(target.hostname))
       throw new Error('Only public websites, please.');
     const t0 = Date.now();
-    let r;
+    let res;
     try {
-      r = await follow(u.toString(), {
+      res = await follow(target.toString(), {
         headers: {
           'user-agent':
             'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
@@ -158,19 +158,19 @@ module.exports = function registerSearch(ctx) {
       throw new Error(
         e.code === 'EBLOCKED'
           ? 'Only public websites, please.'
-          : `Couldn’t reach ${u.hostname}: ${e.message}`,
+          : `Couldn’t reach ${target.hostname}: ${e.message}`,
       );
     }
     const ms = Date.now() - t0;
-    const html = r.text.slice(0, 600000);
-    r.headers = {
+    const html = res.text.slice(0, 600000);
+    res.headers = {
       get: (k) => {
-        const v = r.rawHeaders?.[k];
+        const v = res.rawHeaders?.[k];
         return v == null ? null : String(v);
       },
     };
     const headers = {};
-    for (const k of [
+    for (const key of [
       'server',
       'x-powered-by',
       'cf-ray',
@@ -193,8 +193,8 @@ module.exports = function registerSearch(ctx) {
       'x-cache-status',
       'alt-svc',
     ]) {
-      const v = r.headers.get(k);
-      if (v) headers[k] = v.slice(0, 120);
+      const v = res.headers.get(key);
+      if (v) headers[key] = v.slice(0, 120);
     }
     const scripts = [...html.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)]
       .map((m) => m[1])
@@ -202,13 +202,13 @@ module.exports = function registerSearch(ctx) {
     const styles = [...html.matchAll(/<link[^>]+href=["']([^"']+\.css[^"']*)["']/gi)]
       .map((m) => m[1])
       .slice(0, 30);
-    const meta = (n) =>
+    const meta = (name) =>
       (new RegExp(
-        `<meta[^>]+(?:name|property)=["']${n}["'][^>]+content=["']([^"']*)["']`,
+        `<meta[^>]+(?:name|property)=["']${name}["'][^>]+content=["']([^"']*)["']`,
         'i',
       ).exec(html) ||
         new RegExp(
-          `<meta[^>]+content=["']([^"']*)["'][^>]+(?:name|property)=["']${n}["']`,
+          `<meta[^>]+content=["']([^"']*)["'][^>]+(?:name|property)=["']${name}["']`,
           'i',
         ).exec(html))?.[1] || '';
     const title = (/<title[^>]*>([^<]*)<\/title>/i.exec(html)?.[1] || '').trim().slice(0, 140);
@@ -236,12 +236,12 @@ module.exports = function registerSearch(ctx) {
       links: (html.match(/<a\s/gi) || []).length,
       iframes: (html.match(/<iframe/gi) || []).length,
     };
-    const finalUrl = r.url || u.toString();
+    const finalUrl = res.url || target.toString();
     return {
-      url: u.toString(),
+      url: target.toString(),
       final: finalUrl,
       host: new URL(finalUrl).hostname,
-      status: r.status,
+      status: res.status,
       ms,
       bytes: html.length,
       headers,

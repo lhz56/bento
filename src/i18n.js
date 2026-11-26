@@ -18,10 +18,10 @@ const bump = () => {
 };
 const key = (l) => `bento.ui.${l}`;
 
-export function setUILanguage(l, translator) {
+export function setUILanguage(language, translator) {
   translate = translator || translate;
-  if (l === lang) return;
-  lang = l || 'English';
+  if (language === lang) return;
+  lang = language || 'English';
   try {
     dict = lang === 'English' ? {} : JSON.parse(localStorage.getItem(key(lang)) || '{}');
   } catch {
@@ -64,8 +64,8 @@ export function t(s) {
   return v ?? s;
 }
 // "Learn it *in order*." → ['Learn it ', <em>in order</em>, '.']
-export function tx(s) {
-  return String(t(s))
+export function tx(text) {
+  return String(t(text))
     .split(/(\*[^*]+\*)/)
     .map((p, i) =>
       p.startsWith('*') && p.endsWith('*') && p.length > 2

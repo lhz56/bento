@@ -1,6 +1,6 @@
 // Instant, offline explanations for the errors beginners hit most. No AI needed.
 // Each rule: [regex on the error message, (match) => { plain, fix, word }].
-const q = (s) => `\`${s}\``;
+const inCode = (s) => `\`${s}\``;
 const NOUN = {
   int: 'a whole number (int)',
   float: 'a decimal number (float)',
@@ -13,7 +13,7 @@ const NOUN = {
   set: 'a set',
   function: 'a function',
 };
-const a = (t) => NOUN[t] || `a ${q(t)} value`;
+const aValue = (t) => NOUN[t] || `a ${inCode(t)} value`;
 const PY_NAMES = {
   push: '.append(x)',
   length: 'len(x)',
@@ -34,16 +34,16 @@ const RULES = [
   [
     /NameError: name '(\w+)' is not defined/,
     (m) => ({
-      plain: `Python doesn’t know anything called ${q(m[1])} yet. Either it’s misspelled, or it’s used before the line that creates it.`,
-      fix: `Check the spelling, or make sure ${q(m[1])} = … runs above this line.`,
+      plain: `Python doesn’t know anything called ${inCode(m[1])} yet. Either it’s misspelled, or it’s used before the line that creates it.`,
+      fix: `Check the spelling, or make sure ${inCode(m[1])} = … runs above this line.`,
       word: 'variable',
     }),
   ],
   [
     /UnboundLocalError: .*'(\w+)'/,
     (m) => ({
-      plain: `Inside this function, ${q(m[1])} is changed, so Python treats it as the function’s own variable, but it’s read before it gets a value.`,
-      fix: `Give ${q(m[1])} a value at the top of the function, or pass it in as a parameter.`,
+      plain: `Inside this function, ${inCode(m[1])} is changed, so Python treats it as the function’s own variable, but it’s read before it gets a value.`,
+      fix: `Give ${inCode(m[1])} a value at the top of the function, or pass it in as a parameter.`,
       word: 'scope',
     }),
   ],
@@ -108,7 +108,7 @@ const RULES = [
   [
     /KeyError: (.+)/,
     (m) => ({
-      plain: `The dictionary has no key ${q(m[1].trim())}. Asking for a missing key is an error in Python.`,
+      plain: `The dictionary has no key ${inCode(m[1].trim())}. Asking for a missing key is an error in Python.`,
       fix: `Use \`d.get(${m[1].trim()})\` to get None instead, or check with \`if ${m[1].trim()} in d:\`.`,
       word: 'dictionary',
     }),
@@ -124,9 +124,9 @@ const RULES = [
   [
     /AttributeError: '(\w+)' object has no attribute '(\w+)'/,
     (m) => ({
-      plain: `${a(m[1]).replace(/^a/, 'A')} doesn’t have anything called ${q(m[2])}.`,
+      plain: `${aValue(m[1]).replace(/^a/, 'A')} doesn’t have anything called ${inCode(m[2])}.`,
       fix: PY_NAMES[m[2]]
-        ? `In Python that’s ${q(PY_NAMES[m[2]])} (${q(m[2])} is the JavaScript name).`
+        ? `In Python that’s ${inCode(PY_NAMES[m[2]])} (${inCode(m[2])} is the JavaScript name).`
         : `Check the spelling, or check that the value really is what you think. Print it with \`print(type(x))\`.`,
       word: 'attribute',
     }),
@@ -134,7 +134,7 @@ const RULES = [
   [
     /TypeError: can only concatenate str \(not "(\w+)"\) to str/,
     (m) => ({
-      plain: `Text and ${a(m[1])} were joined with +. Python won’t mix them automatically.`,
+      plain: `Text and ${aValue(m[1])} were joined with +. Python won’t mix them automatically.`,
       fix: 'Turn the number into text with `str(n)`, or use an f-string: `f"total: {n}"`.',
       word: 'type',
     }),
@@ -142,7 +142,7 @@ const RULES = [
   [
     /TypeError: unsupported operand type\(s\) for (.+): '(\w+)' and '(\w+)'/,
     (m) => ({
-      plain: `${q(m[1])} doesn’t work between ${a(m[2])} and ${a(m[3])}.`,
+      plain: `${inCode(m[1])} doesn’t work between ${aValue(m[2])} and ${aValue(m[3])}.`,
       fix: 'Convert one side so both are the same type, like `int(x)` or `str(x)`.',
       word: 'type',
     }),
@@ -150,7 +150,7 @@ const RULES = [
   [
     /TypeError: '(\w+)' object is not callable/,
     (m) => ({
-      plain: `The code used ${a(m[1])} as if it were a function (with ( ) after it). Often a variable has the same name as a function.`,
+      plain: `The code used ${aValue(m[1])} as if it were a function (with ( ) after it). Often a variable has the same name as a function.`,
       fix: 'Rename the variable, or remove the ( ).',
       word: 'function',
     }),
@@ -158,7 +158,7 @@ const RULES = [
   [
     /TypeError: '(\w+)' object is not subscriptable/,
     (m) => ({
-      plain: `The code used [ ] on ${a(m[1])}, which has no positions or keys to look up.`,
+      plain: `The code used [ ] on ${aValue(m[1])}, which has no positions or keys to look up.`,
       fix: 'Check that the value is a list or dict before indexing it.',
       word: 'index',
     }),
@@ -166,7 +166,7 @@ const RULES = [
   [
     /TypeError: '(\w+)' object is not iterable/,
     (m) => ({
-      plain: `A loop tried to go through ${a(m[1])} one item at a time, but it’s a single value.`,
+      plain: `A loop tried to go through ${aValue(m[1])} one item at a time, but it’s a single value.`,
       fix: 'Loop over a list, or use `range(n)` to count.',
       word: 'loop',
     }),
@@ -174,7 +174,7 @@ const RULES = [
   [
     /TypeError: (\w+)\(\) missing (\d+) required positional argument/,
     (m) => ({
-      plain: `${q(m[1] + '()')} needs ${m[2]} more input${m[2] === '1' ? '' : 's'} than it was given.`,
+      plain: `${inCode(m[1] + '()')} needs ${m[2]} more input${m[2] === '1' ? '' : 's'} than it was given.`,
       fix: 'Pass every value listed in its `def` line.',
       word: 'parameter',
     }),
@@ -182,7 +182,7 @@ const RULES = [
   [
     /TypeError: (\w+)\(\) takes (\d+) positional arguments? but (\d+) (?:were|was) given/,
     (m) => ({
-      plain: `${q(m[1] + '()')} takes ${m[2]} input${m[2] === '1' ? '' : 's'}, but it got ${m[3]}. Inside a class, ${q('self')} counts as one.`,
+      plain: `${inCode(m[1] + '()')} takes ${m[2]} input${m[2] === '1' ? '' : 's'}, but it got ${m[3]}. Inside a class, ${inCode('self')} counts as one.`,
       fix: 'Match the call to the `def` line, or add `self` as the first parameter of a method.',
       word: 'parameter',
     }),
@@ -216,7 +216,7 @@ const RULES = [
   [
     /ModuleNotFoundError: No module named '(\w+)'/,
     (m) => ({
-      plain: `${q(m[1])} isn’t available here. Lessons run in your browser, so only Python’s built-in modules (and a few like numpy) work.`,
+      plain: `${inCode(m[1])} isn’t available here. Lessons run in your browser, so only Python’s built-in modules (and a few like numpy) work.`,
       fix: 'Use a built-in module, or write the part you need yourself.',
       word: 'module',
     }),
@@ -234,7 +234,7 @@ const RULES = [
   [
     /ReferenceError: (\w+) is not defined/,
     (m) => ({
-      plain: `JavaScript doesn’t know anything called ${q(m[1])}. It’s misspelled, or created somewhere this line can’t see.`,
+      plain: `JavaScript doesn’t know anything called ${inCode(m[1])}. It’s misspelled, or created somewhere this line can’t see.`,
       fix: `Declare it first: \`let ${m[1]} = …\`.`,
       word: 'variable',
     }),
@@ -242,26 +242,26 @@ const RULES = [
   [
     /ReferenceError: Cannot access '(\w+)' before initialization/,
     (m) => ({
-      plain: `${q(m[1])} is used on a line above the one that creates it.`,
+      plain: `${inCode(m[1])} is used on a line above the one that creates it.`,
       fix: 'Move the `let`/`const` line above the first use.',
       word: 'scope',
     }),
   ],
   [
     /TypeError: Cannot read propert(?:y|ies) of (undefined|null)(?: \(reading '(\w+)'\))?/,
-    (m) => ({
-      plain: `The code asked for ${m[2] ? q('.' + m[2]) : 'a property'} on a value that is ${m[1]} (nothing there).`,
+    (match) => ({
+      plain: `The code asked for ${match[2] ? inCode('.' + match[2]) : 'a property'} on a value that is ${match[1]} (nothing there).`,
       fix:
         'Print the value just before this line. Use `x?.' +
-        (m[2] || 'name') +
+        (match[2] || 'name') +
         '` to skip it safely when it’s missing.',
-      word: m[1],
+      word: match[1],
     }),
   ],
   [
     /TypeError: (.+) is not a function/,
     (m) => ({
-      plain: `${q(m[1])} isn’t a function, so it can’t be called with ( ).`,
+      plain: `${inCode(m[1])} isn’t a function, so it can’t be called with ( ).`,
       fix: 'Check the spelling, and that the value is what you expect (`console.log(typeof x)`).',
       word: 'function',
     }),

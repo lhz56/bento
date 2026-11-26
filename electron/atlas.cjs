@@ -218,9 +218,9 @@ function walkAll(root) {
         ].includes(name)
       )
         continue;
-      const r = rel ? `${rel}/${name}` : name;
-      if (entry.isDirectory()) go(r, depth + 1);
-      else if (entry.isFile()) out.push(r);
+      const relPath = rel ? `${rel}/${name}` : name;
+      if (entry.isDirectory()) go(relPath, depth + 1);
+      else if (entry.isFile()) out.push(relPath);
     }
   };
   go('', 0);
@@ -381,8 +381,8 @@ const SERVER_NAME =
 const DATA_NAME =
   /^(models?|schema|db|database|store|entities|repository)\.(py|[cm]?[jt]s|rb|go)$|\.(sql|prisma)$/i;
 
-function classify(p, lang) {
-  const parts = segs(p);
+function classify(filePath, lang) {
+  const parts = segs(filePath);
   const name = parts[parts.length - 1];
   const dirs = parts.slice(0, -1);
   if (
@@ -395,7 +395,7 @@ function classify(p, lang) {
   if (DOC.test(name) || has(dirs, DOC_D)) return ['support', 'docs'];
   if (CONFIG_NAME.test(name) && (dirs.length <= 1 || !lang || /\.d\.ts$|config\./.test(name)))
     return ['support', 'config'];
-  if (has(dirs, SCRIPT_D) || /^(scripts?|tools)\//.test(p)) return ['support', 'scripts'];
+  if (has(dirs, SCRIPT_D) || /^(scripts?|tools)\//.test(filePath)) return ['support', 'scripts'];
   if (DATA.test(name) && !lang) return ['support', 'config'];
   if (!lang && !/\.(sql|prisma)$/.test(name))
     return [
@@ -411,7 +411,7 @@ function classify(p, lang) {
   }
   if (
     /\.(jsx|tsx|vue|svelte|astro|html|htm|css|scss|sass|less)$/.test(name) ||
-    /^use[A-Z]/.test(p.split('/').pop())
+    /^use[A-Z]/.test(filePath.split('/').pop())
   )
     return ['ui', ''];
   // plain .ts/.js/.py files only count as UI when they sit in a clearly visual folder
@@ -474,9 +474,9 @@ const JS_EXT = [
   '/index.vue',
 ];
 
-function readText(root, p, max = 400_000) {
+function readText(root, filePath, max = 400_000) {
   try {
-    const f = path.join(root, p);
+    const f = path.join(root, filePath);
     const st = fs.statSync(f);
     if (st.size > max) return null;
     return fs.readFileSync(f, 'utf8');
@@ -484,10 +484,10 @@ function readText(root, p, max = 400_000) {
     return null;
   }
 }
-function jsonLoose(s) {
+function jsonLoose(text) {
   try {
     return JSON.parse(
-      s
+      text
         .replace(/\/\*[\s\S]*?\*\//g, '')
         .replace(/(^|[^:"'])\/\/.*$/gm, '$1')
         .replace(/,(\s*[}\]])/g, '$1'),
@@ -522,15 +522,15 @@ function pickFiles(all, max = 3000) {
     const s = p.split('/');
     return s.length > 2 && MONO.test(s[0]) ? `${s[0]}/${s[1]}` : s.length > 1 ? s[0] : '.';
   };
-  const rank = (p) =>
+  const rank = (filePath) =>
     (/(^|\/)(__tests__|tests?|spec|specs|e2e|fixtures?|__mocks__|mocks?|testing|stories|__snapshots__|testdata)(\/|$)|\.(test|spec|stories)\.[a-z]+$/i.test(
-      p,
+      filePath,
     )
       ? 3
       : 0) +
-    (/(^|\/)(docs?|examples?|demos?|samples?|benchmarks?)(\/|$)/i.test(p) ? 2 : 0) +
-    (LANG[extOf(p)] ? 0 : 1) +
-    p.split('/').length * 0.05;
+    (/(^|\/)(docs?|examples?|demos?|samples?|benchmarks?)(\/|$)/i.test(filePath) ? 2 : 0) +
+    (LANG[extOf(filePath)] ? 0 : 1) +
+    filePath.split('/').length * 0.05;
   const groups = new Map();
   for (const p of cands) {
     const a = area(p);
@@ -560,25 +560,25 @@ function analyze(root, meta = {}) {
   const idx = new Map();
   let assets = 0,
     assetBytes = 0;
-  for (const p of all)
-    if (ASSET.test(p) && !LOCK.test(p)) {
+  for (const filePath of all)
+    if (ASSET.test(filePath) && !LOCK.test(filePath)) {
       assets++;
       if (assets <= 4000) {
         try {
-          assetBytes += fs.statSync(path.join(root, p)).size;
+          assetBytes += fs.statSync(path.join(root, filePath)).size;
         } catch {}
       }
     }
   const { picked, of } = pickFiles(all);
-  for (const p of picked) {
-    const lang = LANG[extOf(p)] || null;
-    const text = readText(root, p);
+  for (const filePath of picked) {
+    const lang = LANG[extOf(filePath)] || null;
+    const text = readText(root, filePath);
     const lines = text == null ? 0 : text.split('\n').length;
-    const [layer, sub] = classify(p, lang);
-    const f = { p, lang, lines, layer, sub, imp: [], ext: [] };
-    if (text && lang) f._t = text;
-    idx.set(p, files.length);
-    files.push(f);
+    const [layer, sub] = classify(filePath, lang);
+    const file = { p: filePath, lang, lines, layer, sub, imp: [], ext: [] };
+    if (text && lang) file._t = text;
+    idx.set(filePath, files.length);
+    files.push(file);
   }
 
   // tsconfig paths ("@/*": ["./src/*"])
@@ -625,8 +625,8 @@ function analyze(root, meta = {}) {
   const pyRoots = ['', 'src/', 'app/'];
   const resolvePy = (from, mod, names) => {
     const out = [];
-    const tryMod = (m, dir) => {
-      const rel = m.replace(/\./g, '/');
+    const tryMod = (moduleName, dir) => {
+      const rel = moduleName.replace(/\./g, '/');
       for (const r of dir != null ? [dir] : pyRoots) {
         const b = r ? path.posix.join(r, rel) : rel;
         if (idx.has(`${b}.py`)) return `${b}.py`;
@@ -650,9 +650,9 @@ function analyze(root, meta = {}) {
         }
       return { files: out, ext: null };
     }
-    const r =
+    const found =
       tryMod(mod) || (names.length ? names.map((n) => tryMod(`${mod}.${n}`)).find(Boolean) : null);
-    if (r) return { files: [r], ext: null };
+    if (found) return { files: [found], ext: null };
     // a sibling module in the same folder (scripts often import each other by bare name)
     const sib = tryMod(mod, path.posix.dirname(from) === '.' ? '' : path.posix.dirname(from));
     if (sib) return { files: [sib], ext: null };
@@ -672,19 +672,19 @@ function analyze(root, meta = {}) {
     }
 
   for (const file of files) {
-    const t = file._t;
-    if (!t) continue;
+    const text = file._t;
+    if (!text) continue;
     const imp = new Set(),
       ext = new Set();
     if (['TypeScript', 'JavaScript', 'Vue', 'Svelte', 'Astro'].includes(file.lang)) {
-      let m;
+      let match;
       JS_RX.lastIndex = 0;
-      while ((m = JS_RX.exec(t))) {
-        const spec = m[1] || m[2] || m[3];
+      while ((match = JS_RX.exec(text))) {
+        const spec = match[1] || match[2] || match[3];
         if (!spec) continue;
-        const r = resolveJs(file.p, spec);
-        if (r) imp.add(r);
-        else if (r === null && !spec.startsWith('.') && !spec.startsWith('/')) {
+        const resolved = resolveJs(file.p, spec);
+        if (resolved) imp.add(resolved);
+        else if (resolved === null && !spec.startsWith('.') && !spec.startsWith('/')) {
           if (spec.startsWith('node:') || NODE_BUILTIN.has(spec.split('/')[0])) continue;
           const pkg = spec.startsWith('@')
             ? spec.split('/').slice(0, 2).join('/')
@@ -695,14 +695,14 @@ function analyze(root, meta = {}) {
     } else if (file.lang === 'Python') {
       let match;
       PY_RX.lastIndex = 0;
-      while ((match = PY_RX.exec(t))) {
+      while ((match = PY_RX.exec(text))) {
         if (match[1]) {
           const names = (match[2] || match[3] || '')
             .split(/[,\s()]+/)
             .filter((x) => x && x !== '*' && x !== 'as');
-          const r = resolvePy(file.p, match[1], names);
-          r.files.forEach((x) => imp.add(x));
-          if (r.ext) ext.add(r.ext);
+          const resolved = resolvePy(file.p, match[1], names);
+          resolved.files.forEach((x) => imp.add(x));
+          if (resolved.ext) ext.add(resolved.ext);
         } else if (match[4])
           for (const part of match[4].split(',')) {
             const mod = part.trim().split(/\s+/)[0];
@@ -713,10 +713,12 @@ function analyze(root, meta = {}) {
           }
       }
     } else if (file.lang === 'Go') {
-      let m;
+      let match;
       GO_RX.lastIndex = 0;
-      while ((m = GO_RX.exec(t))) {
-        const specs = m[2] ? [m[2]] : [...(m[1] || '').matchAll(/"([^"]+)"/g)].map((x) => x[1]);
+      while ((match = GO_RX.exec(text))) {
+        const specs = match[2]
+          ? [match[2]]
+          : [...(match[1] || '').matchAll(/"([^"]+)"/g)].map((x) => x[1]);
         for (const s of specs) {
           if (goModule && s.startsWith(goModule + '/')) {
             const d = s.slice(goModule.length + 1);
@@ -792,15 +794,16 @@ function analyze(root, meta = {}) {
           sig.pip.push(m[1].toLowerCase());
       }
     if (name === 'pyproject.toml' || name === 'Pipfile' || name === 'setup.py') {
-      const t = readText(root, file.p) || '';
-      for (const arr of t.matchAll(
+      const text = readText(root, file.p) || '';
+      for (const arr of text.matchAll(
         /(?:dependencies|requires|install_requires|dev)\s*=\s*\[([\s\S]*?)\]/g,
       ))
         for (const m of arr[1].matchAll(/["']([A-Za-z][\w.-]*)/g))
           if (m[1].length > 1) sig.pip.push(m[1].toLowerCase());
-      const poetry = /\[tool\.poetry\.(?:dev-)?dependencies\]([\s\S]*?)(\n\[|$)/.exec(t)?.[1] || '';
+      const poetry =
+        /\[tool\.poetry\.(?:dev-)?dependencies\]([\s\S]*?)(\n\[|$)/.exec(text)?.[1] || '';
       for (const m of poetry.matchAll(/^([A-Za-z][\w.-]*)\s*=/gm)) sig.pip.push(m[1].toLowerCase());
-      const pipfile = /\[(?:dev-)?packages\]([\s\S]*?)(\n\[|$)/.exec(t)?.[1] || '';
+      const pipfile = /\[(?:dev-)?packages\]([\s\S]*?)(\n\[|$)/.exec(text)?.[1] || '';
       for (const m of pipfile.matchAll(/^([A-Za-z][\w.-]*)\s*=/gm))
         sig.pip.push(m[1].toLowerCase());
     }
@@ -990,13 +993,13 @@ async function history({ full, base, env, onProgress }) {
     let add = 0,
       del = 0;
     for (const line of rest) {
-      const m = /^([AMDT])\t(.+)$/.exec(line);
-      if (!m) continue;
-      if (m[1] === 'A') {
-        if (!files.has(m[2])) add++;
-        files.add(m[2]);
-      } else if (m[1] === 'D') {
-        if (files.delete(m[2])) del++;
+      const match = /^([AMDT])\t(.+)$/.exec(line);
+      if (!match) continue;
+      if (match[1] === 'A') {
+        if (!files.has(match[2])) add++;
+        files.add(match[2]);
+      } else if (match[1] === 'D') {
+        if (files.delete(match[2])) del++;
       }
     }
     people.add(author);
@@ -1019,19 +1022,19 @@ async function history({ full, base, env, onProgress }) {
   const top = (p) => (p.includes('/') ? p.split('/')[0] : '(top level)');
   const frames = commits
     .filter((c) => c.files)
-    .map((c) => {
+    .map((cycle) => {
       const dirs = {};
-      for (const f of c.files) {
+      for (const f of cycle.files) {
         const k = top(f);
         dirs[k] = (dirs[k] || 0) + 1;
       }
       return {
-        at: c.at,
-        author: c.author,
-        msg: c.msg,
-        total: c.total,
-        people: c.people,
-        n: commits.indexOf(c) + 1,
+        at: cycle.at,
+        author: cycle.author,
+        msg: cycle.msg,
+        total: cycle.total,
+        people: cycle.people,
+        n: commits.indexOf(cycle) + 1,
         dirs,
       };
     });
@@ -1081,11 +1084,11 @@ function search(root, ws) {
     .slice(0, 12000);
   const out = [];
   for (const item of all) {
-    let t;
+    let timer;
     try {
       const f = path.join(root, item);
       if (fs.statSync(f).size > 2000000) continue;
-      t = fs.readFileSync(f, 'utf8').toLowerCase();
+      timer = fs.readFileSync(f, 'utf8').toLowerCase();
     } catch {
       continue;
     }
@@ -1095,12 +1098,12 @@ function search(root, ws) {
       first = -1;
     const words = [];
     for (const w of ws) {
-      let i = t.indexOf(w),
+      let i = timer.indexOf(w),
         n = 0;
       while (i >= 0 && n < 25) {
         if (first < 0 || i < first) first = i;
         n++;
-        i = t.indexOf(w, i + w.length);
+        i = timer.indexOf(w, i + w.length);
       }
       if (n) {
         kinds++;
@@ -1151,26 +1154,26 @@ function codeFiles(root, rel = '', out = [], depth = 0) {
 
 // bytes on disk under a folder (links counted as links, never followed)
 function dirSize(dir) {
-  let n = 0;
-  const go = (p) => {
+  let count = 0;
+  const go = (dir) => {
     let es = [];
     try {
-      es = fs.readdirSync(p, { withFileTypes: true });
+      es = fs.readdirSync(dir, { withFileTypes: true });
     } catch {
       return;
     }
     for (const e of es) {
-      const q = path.join(p, e.name);
-      if (e.isDirectory()) go(q);
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) go(full);
       else {
         try {
-          n += fs.lstatSync(q).size;
+          count += fs.lstatSync(full).size;
         } catch {}
       }
     }
   };
   go(dir);
-  return n;
+  return count;
 }
 
 module.exports = {

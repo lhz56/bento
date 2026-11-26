@@ -54,13 +54,13 @@ export default function useNavigation({
   const navDir = useRef(null);
   useEffect(() => {
     const back = (e) => {
-      const s = e.state;
-      if (!s?.bento) return;
+      const state = e.state;
+      if (!state?.bento) return;
       if (navDir.current !== 'pop') navDir.current = STANDALONE ? 'pop' : 'none';
-      setCurrentId(s.currentId ?? null);
-      setAtlasKey(s.atlasKey ?? null);
-      setSiteKey(s.siteKey ?? null);
-      setViewRaw(s.view || 'home');
+      setCurrentId(state.currentId ?? null);
+      setAtlasKey(state.atlasKey ?? null);
+      setSiteKey(state.siteKey ?? null);
+      setViewRaw(state.view || 'home');
     };
     addEventListener('popstate', back);
     return () => removeEventListener('popstate', back);

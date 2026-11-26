@@ -133,12 +133,12 @@ const CONCEPTS = new Set([
   'stuff',
 ]);
 
-export function projectNames(q) {
-  let s = String(q || '')
+export function projectNames(question) {
+  let text = String(question || '')
     .trim()
     .replace(/\s+/g, ' ');
-  if (!s || s.length > 220 || /\n/.test(q)) return [];
-  for (let i = 0; i < 4; i++) s = s.replace(FILLER, '');
+  if (!text || text.length > 220 || /\n/.test(question)) return [];
+  for (let i = 0; i < 4; i++) text = text.replace(FILLER, '');
   const out = [];
   const pats = [
     /^how (?:does|do|did|is|are|was)?\s*(.+?)\s+(?:actually\s+|really\s+)?(?:works?|work under the hood|run|runs|get built|built|made|implemented|structured|designed|architected)\b/i,
@@ -153,23 +153,23 @@ export function projectNames(q) {
   ];
   let weak = false;
   for (const [i, rx] of pats.entries()) {
-    const m = rx.exec(s);
-    if (m) {
-      out.push(tidy(m[1]));
+    const match = rx.exec(text);
+    if (match) {
+      out.push(tidy(match[1]));
       weak = i >= 4;
       break;
     }
   }
   /** @type {string[] & { weak?: boolean }} */
-  const names = [...new Set(out)].filter((n) => {
-    const k = norm(n);
-    const w = n.split(/\s+/).length;
+  const names = [...new Set(out)].filter((name) => {
+    const normalized = norm(name);
+    const w = name.split(/\s+/).length;
     return (
-      k.length >= 2 &&
-      k.length <= 40 &&
+      normalized.length >= 2 &&
+      normalized.length <= 40 &&
       w <= 4 &&
-      !CONCEPTS.has(k) &&
-      !/^(how|why|what|when|where|who|i|my|your|our|we|you)\b/i.test(n)
+      !CONCEPTS.has(normalized) &&
+      !/^(how|why|what|when|where|who|i|my|your|our|we|you)\b/i.test(name)
     );
   });
   // "what is X" and "about X" are usually ideas; they only count when X is on this Mac or the question says "code"
@@ -179,7 +179,7 @@ export function projectNames(q) {
 
 // found = { installed: [{app, version, source: {full}}], local: [{root, remote}], github: [{full, stars, description}] }
 // → { kind: 'go' | 'ask' | 'none', pick, options[], why }
-export function decide(q, names, found, known = []) {
+export function decide(question, names, found, known = []) {
   if (!names.length || !found) return { kind: 'none' };
   const keys = new Set(names.map(norm));
   const repoKey = (full) => norm(String(full).split('/')[1]);
@@ -211,7 +211,7 @@ export function decide(q, names, found, known = []) {
   const mine = known.find((p) => p.kind === 'github' && keys.has(repoKey(p.full || p.key)));
   if (mine) return { kind: 'go', why: 'known', pick: meta(mine.full || mine.key), options: [] };
   // 4. GitHub: a well-known repo with exactly this name
-  if (names.weak && !PROJECT_WORDS.test(q)) return { kind: 'none' };
+  if (names.weak && !PROJECT_WORDS.test(question)) return { kind: 'none' };
   const exact = found.github
     .filter((g) => keys.has(repoKey(g.full)) && (g.stars || 0) >= 300)
     .sort((a, b) => (b.stars || 0) - (a.stars || 0));
@@ -222,7 +222,7 @@ export function decide(q, names, found, known = []) {
     .slice(0, 2);
   // clearly about the code ("the t3code repo", "excalidraw's architecture") and clearly the famous one → go
   if (
-    PROJECT_WORDS.test(q) &&
+    PROJECT_WORDS.test(question) &&
     (top.stars || 0) >= 2000 &&
     (!exact[1] || (top.stars || 0) > 10 * (exact[1].stars || 0))
   )
@@ -235,24 +235,24 @@ export const fmtStars = (n) =>
 
 // A project you've already opened in Bento, named anywhere in the question ("hey lets talk about t3 code").
 // Names are compared without spaces or dashes, so "t3 code", "t3code" and "T3-Code" all match pingdotgg/t3code.
-export function mentionedProject(q, projects = []) {
+export function mentionedProject(question, projects = []) {
   const words =
-    String(q || '')
+    String(question || '')
       .toLowerCase()
       .match(/[a-z0-9][a-z0-9._-]*/g) || [];
   const grams = new Set();
   for (let n = 1; n <= 4; n++)
     for (let i = 0; i + n <= words.length; i++) grams.add(norm(words.slice(i, i + n).join('')));
   let best = null;
-  for (const p of projects) {
-    if (p.kind !== 'github' && p.kind !== 'local') continue;
+  for (const project of projects) {
+    if (project.kind !== 'github' && project.kind !== 'local') continue;
     const name = norm(
-      String(p.full || p.name || '')
+      String(project.full || project.name || '')
         .split('/')
         .pop(),
     );
     if (name.length < 4 || CONCEPTS.has(name) || !grams.has(name)) continue;
-    if (!best || (p.at || 0) > (best.at || 0)) best = p;
+    if (!best || (project.at || 0) > (best.at || 0)) best = project;
   }
   return best;
 }
@@ -300,25 +300,25 @@ const BACK = new Set([
 ]);
 const BACK_NOUN =
   /^(app|project|repo|repository|codebase|code|server|backend|frontend|ui|thing|tool)s?$/;
-export function pointsBack(q) {
-  const s = String(q || '')
+export function pointsBack(question) {
+  const text = String(question || '')
     .toLowerCase()
     .replace(FILLER, '')
     .trim();
   // "add a dark mode toggle to it", "make this faster": a request to change the thing you were reading
   if (
     /^(?:(?:can|could) you |please |let'?s |lets )?(?:add|build|make|change|create|implement|write|fix|refactor|extend|improve|speed up|clean up)\b/.test(
-      s,
+      text,
     ) &&
-    /\b(it|its|this|that|here|the (app|project|repo|codebase|code))\b/.test(s)
+    /\b(it|its|this|that|here|the (app|project|repo|codebase|code))\b/.test(text)
   )
     return true;
-  const m =
+  const match =
     /^(?:how|what|where|why|when|which|who|does|do|is|are|can|could|should|explain|show|describe|summari[sz]e|walk me through)\b\s*(.*)$/.exec(
-      s,
+      text,
     );
-  if (!m) return false;
-  const toks = (m[1].match(/[a-z0-9'’]+/g) || []).map((x) => x.replace('’', "'"));
+  if (!match) return false;
+  const toks = (match[1].match(/[a-z0-9'’]+/g) || []).map((x) => x.replace('’', "'"));
   for (let i = 0; i < Math.min(toks.length, 6); i++) {
     const w = toks[i];
     if (AUX.has(w)) continue;
@@ -348,16 +348,16 @@ const WEAK = new Set([
   'make',
   'build',
 ]);
-export function coveredBy(q, text) {
-  const words = String(q)
+export function coveredBy(question, text) {
+  const words = String(question)
     .toLowerCase()
     .split(/[^\p{L}\p{N}]+/u)
     .filter((w) => w.length > 2 && !STOP.has(w))
     .map((w) => (/[^s]s$/.test(w) ? w.slice(0, -1) : w));
-  const f = String(text).toLowerCase();
+  const lower = String(text).toLowerCase();
   // every word, or all but one in a longer question ("binary search trees please"); "binary search trees" is not the search race
   if (!words.some((w) => !WEAK.has(w))) return false;
-  const hits = words.filter((w) => f.includes(w)).length;
+  const hits = words.filter((w) => lower.includes(w)).length;
   return words.length > 0 && hits >= (words.length >= 4 ? words.length - 1 : words.length);
 }
 
@@ -368,9 +368,9 @@ const contentWords = (q) =>
     .filter((w) => w.length > 2 && !STOP.has(w))
     .map((w) => (/[^s]s$/.test(w) ? w.slice(0, -1) : w));
 // how well a built-in lesson fits: 0 if it doesn't, more when the question's words are in its titles
-export function coverScore(q, text, title = '') {
-  if (!coveredBy(q, text)) return 0;
-  const words = contentWords(q);
+export function coverScore(question, text, title = '') {
+  if (!coveredBy(question, text)) return 0;
+  const words = contentWords(question);
   const tl = String(title).toLowerCase();
   const inTitle = words.filter((w) => tl.includes(w)).length;
   if (words.length === 1 && !inTitle) return 0; // one loose word ("website") isn't enough unless it names the lesson
@@ -378,11 +378,11 @@ export function coverScore(q, text, title = '') {
 }
 const titlesOf = (b) => `${b.label} ${b.alt || ''}`;
 // the best-fitting built-in lesson for a question, or null
-export function bestBuiltin(q, builtins) {
+export function bestBuiltin(question, builtins) {
   let best = null,
     top = 0;
   for (const b of builtins) {
-    const sc = coverScore(q, b.find, titlesOf(b));
+    const sc = coverScore(question, b.find, titlesOf(b));
     if (sc > top) {
       top = sc;
       best = b;

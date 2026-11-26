@@ -50,8 +50,9 @@ export const parseRepo = (s) => {
     .trim()
     .replace(/\.git$/, '')
     .replace(/\/$/, '');
-  const m = /(?:github\.com[/:])([\w.-]+)\/([\w.-]+)/.exec(t) || /^([\w-]+)\/([\w.-]+)$/.exec(t);
-  return m ? `${m[1]}/${m[2]}` : null;
+  const match =
+    /(?:github\.com[/:])([\w.-]+)\/([\w.-]+)/.exec(t) || /^([\w-]+)\/([\w.-]+)$/.exec(t);
+  return match ? `${match[1]}/${match[2]}` : null;
 };
 
 export default function Explore({

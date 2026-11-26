@@ -95,11 +95,11 @@ export const webBridge = {
     countOnce('repo', full, full);
     return { kind: 'github', full, root: `gh:${full}` };
   },
-  async readFile(root, p) {
+  async readFile(root, filePath) {
     const full = gh(root);
     if (!full) throw new Error(MAC_ONLY);
     const r = await fetch(
-      `${RAW}/${full}/HEAD/${String(p).split('/').map(encodeURIComponent).join('/')}`,
+      `${RAW}/${full}/HEAD/${String(filePath).split('/').map(encodeURIComponent).join('/')}`,
     );
     if (!r.ok) throw new Error(`GitHub didn’t send this file (${r.status}).`);
     return r.text();
@@ -110,12 +110,12 @@ export const webBridge = {
   atlasSearch: () => refuse('repo'),
   // browsing GitHub works (straight from the visitor's browser); taking a result apart is the Mac app's
   /**
-   * @param {string} q
+   * @param {string} query
    * @param {{ limit?: number, language?: string, stars?: string, size?: string }} [opts]
    */
-  async ghSearch(q, { limit = 18, language, stars, size } = {}) {
+  async ghSearch(query, { limit = 18, language, stars, size } = {}) {
     const words = [
-      String(q || '').slice(0, 200),
+      String(query || '').slice(0, 200),
       language && `language:${language}`,
       stars && `stars:${stars}`,
       size && `size:${size}`,

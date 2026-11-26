@@ -50,8 +50,8 @@ async function fromShell(shell, env, timeout) {
       res(buf);
     });
   });
-  const m = new RegExp(`${MARK}(.*?)${MARK}`, 's').exec(out);
-  return m && m[1].includes('/') ? m[1].trim() : null;
+  const match = new RegExp(`${MARK}(.*?)${MARK}`, 's').exec(out);
+  return match && match[1].includes('/') ? match[1].trim() : null;
 }
 
 async function fromLaunchctl() {

@@ -16,13 +16,13 @@ const EMPTY = new Map();
 const RX = /(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|`[^`]+`|\[\[\d+(?:-\d+)?\|[^\]]+\]\])/g;
 export function Md({ text, onLink, onLinkClick, onTerm }) {
   const parts = String(text || '').split(RX);
-  return parts.map((s, i) => {
-    if (!s) return null;
-    if (s.startsWith('**')) return <b key={i}>{s.slice(2, -2)}</b>;
-    if (s.startsWith('[[')) {
-      const m = /^\[\[(\d+)(?:-(\d+))?\|([^\]]+)\]\]$/.exec(s);
-      const r = [+m[1], +(m[2] || m[1])];
-      const label = m[3].replace(/`/g, '');
+  return parts.map((part, i) => {
+    if (!part) return null;
+    if (part.startsWith('**')) return <b key={i}>{part.slice(2, -2)}</b>;
+    if (part.startsWith('[[')) {
+      const match = /^\[\[(\d+)(?:-(\d+))?\|([^\]]+)\]\]$/.exec(part);
+      const r = [+match[1], +(match[2] || match[1])];
+      const label = match[3].replace(/`/g, '');
       const named = (label.match(/\d+/g) || []).map(Number);
       const says = named.includes(r[0]) && named.includes(r[1]);
       return (
@@ -38,17 +38,17 @@ export function Md({ text, onLink, onLinkClick, onTerm }) {
         </span>
       );
     }
-    if (s.startsWith('`')) {
-      const w = s.slice(1, -1);
+    if (part.startsWith('`')) {
+      const w = part.slice(1, -1);
       return (
         <code key={i} className="term" onClick={(e) => onTerm?.(w, e.currentTarget)}>
           {w}
         </code>
       );
     }
-    if (s.startsWith('*') && s.endsWith('*') && s.length > 2)
-      return <i key={i}>{s.slice(1, -1)}</i>;
-    return <span key={i}>{s}</span>;
+    if (part.startsWith('*') && part.endsWith('*') && part.length > 2)
+      return <i key={i}>{part.slice(1, -1)}</i>;
+    return <span key={i}>{part}</span>;
   });
 }
 
@@ -328,27 +328,27 @@ export default function Story(p) {
               ))}
           </nav>
         )}
-        {lesson.story.map((b, i) => {
-          if (b.t === 'p')
+        {lesson.story.map((block, i) => {
+          if (block.t === 'p')
             return (
               <Fragment key={i}>
-                <p className="para fade-in">{md(b.md)}</p>
+                <p className="para fade-in">{md(block.md)}</p>
                 {p.article && i === codeAt && <ArticleCode lesson={lesson} run={p.run} />}
                 {i === 0 && p.puzzleTop}
               </Fragment>
             );
-          if (b.t === 'h')
+          if (block.t === 'h')
             return (
               <Fragment key={i}>
-                <h2 className="story-h fade-in">{b.text}</h2>
+                <h2 className="story-h fade-in">{block.text}</h2>
                 {p.article && i === codeAt && <ArticleCode lesson={lesson} run={p.run} />}
               </Fragment>
             );
-          if (b.t === 'diagram')
+          if (block.t === 'diagram')
             return (
               <div key={i} className="story-diagram fade-in">
                 <BigPicture
-                  flow={b}
+                  flow={block}
                   terms={lesson.terms || []}
                   tools={[]}
                   pathIdx={EMPTY}
@@ -359,25 +359,25 @@ export default function Story(p) {
                 />
               </div>
             );
-          if (b.t === 'term')
+          if (block.t === 'term')
             return (
               <Term
                 key={i}
-                b={b}
-                known={p.knownWords?.[String(b.term).toLowerCase()]}
+                b={block}
+                known={p.knownWords?.[String(block.term).toLowerCase()]}
                 lessonId={lesson.id}
               />
             );
-          if (b.t === 'step') {
-            const s = lesson.steps[b.i];
-            const on = p.stepSel === b.i;
+          if (block.t === 'step') {
+            const s = lesson.steps[block.i];
+            const on = p.stepSel === block.i;
             return (
               <div
                 key={i}
                 className={`recipe-step fade-in ${on ? 'on' : ''}`}
-                onClick={() => p.onStepSelect(b.i)}
+                onClick={() => p.onStepSelect(block.i)}
               >
-                <div className="rs-num">{b.i + 1}</div>
+                <div className="rs-num">{block.i + 1}</div>
                 <div className="rs-body">
                   <div className="rs-title">
                     {s.title}
@@ -388,8 +388,8 @@ export default function Story(p) {
               </div>
             );
           }
-          if (b.t === 'quiz') return <Quiz key={i} b={b} onAnswer={p.onQuiz} />;
-          if (b.t === 'try' || b.t === 'next') return null; // gathered into the “what next” card below
+          if (block.t === 'quiz') return <Quiz key={i} b={block} onAnswer={p.onQuiz} />;
+          if (block.t === 'try' || block.t === 'next') return null; // gathered into the “what next” card below
           return null;
         })}
 
@@ -788,11 +788,11 @@ function TeachBack({ lesson, onTeachBack }) {
 // The lesson's picture first: the first thing its code draws, above the words
 function HeroPicture({ lesson, run }) {
   if (lesson.lang === 'html' || !run?.r?.visuals?.length) return null;
-  const v = run.r.visuals.find((x) => x.type !== 'text' && x.type !== 'web');
-  if (!v) return null;
+  const visual = run.r.visuals.find((x) => x.type !== 'text' && x.type !== 'web');
+  if (!visual) return null;
   return (
     <div className="hero-pic fade-in">
-      <Visuals list={[v]} />
+      <Visuals list={[visual]} />
     </div>
   );
 }
@@ -1090,8 +1090,8 @@ function Listen({ lesson }) {
     const vs = sy.getVoices().filter((v) => v.lang.toLowerCase().startsWith(lg));
     const voice =
       vs.find((v) => /Samantha|Daniel|Karen|Ava|Serena|Premium|Enhanced/i.test(v.name)) || vs[0];
-    parts.forEach((t, i) => {
-      const u = new SpeechSynthesisUtterance(t);
+    parts.forEach((part, i) => {
+      const u = new SpeechSynthesisUtterance(part);
       u.lang = lg;
       if (voice) u.voice = voice;
       u.rate = 1.02;
@@ -1114,26 +1114,26 @@ export function lessonMd(lesson) {
   if (lesson.q) out.push(`> ${lesson.q}`, '');
   const code = lesson.work ?? lesson.code;
   let codeDone = false;
-  for (const b of lesson.story) {
-    if (b.t === 'p') out.push(strip(b.md), '');
-    else if (b.t === 'h') out.push(`## ${b.text}`, '');
-    else if (b.t === 'term')
-      out.push(`**${b.term}**: ${b.plain}${b.like ? ` _(${b.like})_` : ''}`, '');
-    else if (b.t === 'step') {
-      const st = lesson.steps[b.i];
+  for (const block of lesson.story) {
+    if (block.t === 'p') out.push(strip(block.md), '');
+    else if (block.t === 'h') out.push(`## ${block.text}`, '');
+    else if (block.t === 'term')
+      out.push(`**${block.term}**: ${block.plain}${block.like ? ` _(${block.like})_` : ''}`, '');
+    else if (block.t === 'step') {
+      const st = lesson.steps[block.i];
       out.push(
-        `### ${b.i + 1}. ${st.title}${st.file ? ` (\`${st.file}\`)` : ''}`,
+        `### ${block.i + 1}. ${st.title}${st.file ? ` (\`${st.file}\`)` : ''}`,
         strip(st.md),
         '',
       );
-    } else if (b.t === 'quiz')
+    } else if (block.t === 'quiz')
       out.push(
-        `**Check:** ${b.q}`,
-        ...b.choices.map((c, i) => `- ${i === b.answer ? '✅' : '▫️'} ${c}`),
-        `_${b.why}_`,
+        `**Check:** ${block.q}`,
+        ...block.choices.map((c, i) => `- ${i === block.answer ? '✅' : '▫️'} ${c}`),
+        `_${block.why}_`,
         '',
       );
-    if (!codeDone && code && b.t === 'p' && out.length > 6) {
+    if (!codeDone && code && block.t === 'p' && out.length > 6) {
       out.push('```' + (lesson.lang || ''), code, '```', '');
       codeDone = true;
     }
@@ -1168,12 +1168,12 @@ function ShareBtn({ lesson }) {
   const [ok, setOk] = useState(null);
   const go = async () => {
     const { thinking, _ask, ...rest } = lesson; // keep everything that makes the lesson work, nothing that doesn't
-    const r = await window.bento.exportLesson({
+    const result = await window.bento.exportLesson({
       ...rest,
       chat: rest.chat?.filter((c) => !c.loading),
     });
-    if (r) {
-      setOk(r.split('/').pop());
+    if (result) {
+      setOk(result.split('/').pop());
       setTimeout(() => setOk(null), 2500);
     }
   };
@@ -1206,11 +1206,11 @@ function CopyNotes({ lesson }) {
 
 function ArticleCode({ lesson, run }) {
   const code = run?.src ?? lesson.work ?? lesson.code;
-  const n = code.split('\n').length;
+  const lineCount = code.split('\n').length;
   const r = run?.r;
   return (
     <figure className="art-fig">
-      <div className="art-code" style={{ height: Math.min(560, n * 23.5 + 24) }}>
+      <div className="art-code" style={{ height: Math.min(560, lineCount * 23.5 + 24) }}>
         <Editor
           value={code}
           lang={lesson.lang === 'typescript' ? 'typescript' : lesson.lang}

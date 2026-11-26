@@ -64,14 +64,14 @@ export default function useLibrary({
     const parser = ndjsonParser((block) => {
       patchAtlas(key, (a) => ({ narr: applyNarr(a.narr || emptyNarr(), block) }));
       if (block.t === 'term' && block.term)
-        setProgress((p) => {
-          const k = String(block.term).toLowerCase();
-          if (p.words?.[k]) return p;
+        setProgress((prev) => {
+          const key = String(block.term).toLowerCase();
+          if (prev.words?.[key]) return prev;
           return {
-            ...p,
+            ...prev,
             words: {
-              ...(p.words || {}),
-              [k]: {
+              ...(prev.words || {}),
+              [key]: {
                 term: block.term,
                 plain: block.plain,
                 like: block.like,
@@ -114,7 +114,7 @@ export default function useLibrary({
         return { ...prev, [key]: updated };
       });
     };
-    const onErr = (m) => {
+    const onErr = (message) => {
       // this AI can't answer right now: try your other one once, before showing the first error
       const alt = altOf(model, getProviders());
       if (
@@ -122,14 +122,14 @@ export default function useLibrary({
         !firstErr &&
         alt &&
         /usage limit|isn’t signed in|isn’t installed|can’t talk to yet|doesn’t have Copilot|no longer lets personal|isn’t set up with a key|doesn’t offer|can’t use Gemini/.test(
-          m,
+          message,
         ) &&
         !atlasRef.current[key]?.narr?.gist
       ) {
         parser.end();
-        return narrate(key, alt, m);
+        return narrate(key, alt, message);
       }
-      finish('narr-error', firstErr || m);
+      finish('narr-error', firstErr || message);
     };
     const cancel = api.ask(
       model,
@@ -302,14 +302,14 @@ export default function useLibrary({
       const parser = ndjsonParser((block) => {
         put((x) => ({ narr: applyNarr(x.narr || emptyNarr(), block) }));
         if (block.t === 'term' && block.term)
-          setProgress((p) => {
-            const k = String(block.term).toLowerCase();
-            if (p.words?.[k]) return p;
+          setProgress((prev) => {
+            const key = String(block.term).toLowerCase();
+            if (prev.words?.[key]) return prev;
             return {
-              ...p,
+              ...prev,
               words: {
-                ...(p.words || {}),
-                [k]: {
+                ...(prev.words || {}),
+                [key]: {
                   term: block.term,
                   plain: block.plain,
                   like: block.like,
@@ -332,8 +332,8 @@ export default function useLibrary({
           chunk: (t) => parser.push(t),
           done: () => {
             parser.end();
-            setSites((m) => {
-              const x = { ...m[host], status: 'done' };
+            setSites((prev) => {
+              const x = { ...prev[host], status: 'done' };
               api.cachePut(`site:${host}`, {
                 facts: x.facts,
                 narr: x.narr,
@@ -341,7 +341,7 @@ export default function useLibrary({
                 host,
                 at: Date.now(),
               });
-              return { ...m, [host]: x };
+              return { ...prev, [host]: x };
             });
           },
           error: (m) => {
@@ -367,11 +367,11 @@ export default function useLibrary({
       py ? /^def\s+(\w+)/m : /^(?:function\s+(\w+)|const\s+(\w+)\s*=\s*(?:\(|function|async))/m
     ).exec(code);
     const name = fn ? fn[1] || fn[2] : null;
-    const q =
+    const question =
       name && name.length > 3 && !/^(main|show|draw|run|test|demo)$/.test(name)
         ? `${py ? 'def' : 'function'} ${name}`
         : (lesson.terms?.[0]?.term || lesson.concepts?.[0] || lesson.title).replace(/-/g, ' ');
-    return api.ghCode(q, py ? 'python' : 'javascript');
+    return api.ghCode(question, py ? 'python' : 'javascript');
   };
   const openFolderAtlas = async () => {
     const r = await api.openFolder();
@@ -400,36 +400,36 @@ export default function useLibrary({
     if (sp) return openSite(sp.url);
     setAtlasKey(key);
     setViewRaw('atlas');
-    const p = projects.find((x) => x.key === key);
-    if (!atlasRef.current[key]?.facts && p) openProject(p);
+    const project = projects.find((x) => x.key === key);
+    if (!atlasRef.current[key]?.facts && project) openProject(project);
   };
 
   // feature mode on Home picks a project: bring it in quietly (no narration)
-  const setProject = async (p) => {
-    if (p === null) return setProjectRaw(null);
-    if (p === 'folder') {
+  const setProject = async (project) => {
+    if (project === null) return setProjectRaw(null);
+    if (project === 'folder') {
       const r = await api.openFolder();
       if (r) openAtlas({ kind: 'local', root: r.root, name: r.name }, { quiet: true });
       return;
     }
-    if (p.repo) {
-      setProjectRaw({ kind: 'github', name: p.repo, files: [], loading: true });
-      const atlas = await openAtlas({ kind: 'github', full: p.repo }, { quiet: true });
+    if (project.repo) {
+      setProjectRaw({ kind: 'github', name: project.repo, files: [], loading: true });
+      const atlas = await openAtlas({ kind: 'github', full: project.repo }, { quiet: true });
       if (!atlas) setProjectRaw(null);
     }
   };
 
   const ensureProject = (key) => {
-    const p = projects.find((x) => x.key === key);
-    if (!p && FEATURED[key] && !atlasRef.current[key]?.facts) {
+    const project = projects.find((x) => x.key === key);
+    if (!project && FEATURED[key] && !atlasRef.current[key]?.facts) {
       openAtlas({ kind: 'github', full: key }, { quiet: true });
       return;
     }
-    if (p && !atlasRef.current[key]?.facts)
+    if (project && !atlasRef.current[key]?.facts)
       openAtlas(
-        p.kind === 'github'
-          ? { kind: 'github', full: p.full }
-          : { kind: 'local', root: p.root, name: p.name },
+        project.kind === 'github'
+          ? { kind: 'github', full: project.full }
+          : { kind: 'local', root: project.root, name: project.name },
         { quiet: true },
       );
   };

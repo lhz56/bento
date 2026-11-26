@@ -13,20 +13,20 @@ export default function useConnections() {
   useEffect(() => {
     api
       .providers()
-      .then((p) => {
-        setProviders(p);
-        if (p.gh)
+      .then((found) => {
+        setProviders(found);
+        if (found.gh)
           api
             .ghMe()
             .then(setUser)
             .catch(() => {});
       })
       .catch(() => setProviders({ scanFailed: true }));
-    const f = (r) => setPyReady(r);
-    pyState.listeners.add(f);
+    const onPython = (r) => setPyReady(r);
+    pyState.listeners.add(onPython);
     warmPython();
     return () => {
-      pyState.listeners.delete(f);
+      pyState.listeners.delete(onPython);
     };
   }, []);
   return { providers, providersRef, pyReady, setProviders, user };

@@ -147,13 +147,13 @@ export default function Words({ words, onOpen, onAsk, onGrade, onAdd }) {
                         .join('\t'),
                     )
                     .join('\n');
-                  const a = document.createElement('a');
-                  a.href = URL.createObjectURL(
+                  const link = document.createElement('a');
+                  link.href = URL.createObjectURL(
                     new Blob([tsv], { type: 'text/tab-separated-values' }),
                   );
-                  a.download = 'bento-words.txt';
-                  a.click();
-                  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+                  link.download = 'bento-words.txt';
+                  link.click();
+                  setTimeout(() => URL.revokeObjectURL(link.href), 2000);
                 }}
               >
                 Export for Anki

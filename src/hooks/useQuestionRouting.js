@@ -29,7 +29,7 @@ export default function useQuestionRouting({
   // the project you were just reading: "it" and "this" in your next question mean this project (shown as a chip you can remove)
   const [recent, setRecent] = useState(null); // { key, at }
   const readFile = (proj, f) => api.readFile(proj.root, f);
-  const buildContext = async (proj, q, focus) => {
+  const buildContext = async (proj, question, focus) => {
     const files = proj.files || [];
     const manifests = files
       .filter(
@@ -39,7 +39,7 @@ export default function useQuestionRouting({
           ) && f.split('/').length <= 2,
       )
       .slice(0, 3);
-    const words = (q.toLowerCase().match(/[a-z]{4,}/g) || []).filter(
+    const words = (question.toLowerCase().match(/[a-z]{4,}/g) || []).filter(
       (w) =>
         ![
           'with',
@@ -85,28 +85,32 @@ export default function useQuestionRouting({
       ? projects.find((p) => p.key === recent.key && (p.kind === 'github' || p.kind === 'local'))
       : null;
   // a project you already opened: straight back to it, with the question asked in its conversation
-  const goToKnown = (q, p, why) => {
+  const goToKnown = (question, project, why) => {
     setChoice(null);
     setAtlasQ({
-      key: p.key,
-      q,
+      key: project.key,
+      q: question,
       d: {
         kind: 'go',
         why,
-        pick: { full: p.kind === 'github' ? p.full : null, name: p.name, known: true },
+        pick: {
+          full: project.kind === 'github' ? project.full : null,
+          name: project.name,
+          known: true,
+        },
       },
       at: Date.now(),
     });
-    setRecent({ key: p.key, at: Date.now() });
-    openProject(p);
+    setRecent({ key: project.key, at: Date.now() });
+    openProject(project);
   };
-  const onAsk = async (q, o = {}) => {
-    if (o.mode === 'feature' && project) {
-      askLesson(q, { mode: 'feature', context: await buildContext(project, q) });
+  const onAsk = async (question, options = {}) => {
+    if (options.mode === 'feature' && project) {
+      askLesson(question, { mode: 'feature', context: await buildContext(project, question) });
       return;
     }
-    if (o.mode === 'code') {
-      const code = o.context?.code || q;
+    if (options.mode === 'code') {
+      const code = options.context?.code || question;
       askLesson('', {
         mode: 'code',
         context: { code },
@@ -115,21 +119,22 @@ export default function useQuestionRouting({
       return;
     }
     // "how does T3 Code work?": if it's a real project (on this Mac or on GitHub), open its real code and ask there
-    if ((o.mode || 'explain') === 'explain' && !o.noRoute) {
-      const named = mentionedProject(q, projects);
-      if (named) return goToKnown(q, named, 'named');
-      if (recentProject && pointsBack(q)) return goToKnown(q, recentProject, 'recent');
+    if ((options.mode || 'explain') === 'explain' && !options.noRoute) {
+      const named = mentionedProject(question, projects);
+      if (named) return goToKnown(question, named, 'named');
+      if (recentProject && pointsBack(question))
+        return goToKnown(question, recentProject, 'recent');
     }
     // "how does a binary search tree work?" names a topic Bento has a lesson for, not a project to search GitHub for
     const names =
-      (o.mode || 'explain') === 'explain' && !o.noRoute && api.findProject
-        ? projectNames(q).filter((n) => !namesALesson(n, builtins))
+      (options.mode || 'explain') === 'explain' && !options.noRoute && api.findProject
+        ? projectNames(question).filter((n) => !namesALesson(n, builtins))
         : [];
     if (names.length) {
       const id = Date.now();
       findingRef.current = id;
       setChoice(null);
-      setFinding({ q, name: names[0], id });
+      setFinding({ q: question, name: names[0], id });
       const found = await Promise.race([
         api.findProject([...names]).catch(() => null),
         new Promise((r) => setTimeout(() => r(null), 7000)),
@@ -137,24 +142,24 @@ export default function useQuestionRouting({
       if (findingRef.current !== id) return; // you moved on while it was looking
       findingRef.current = null;
       setFinding(null);
-      const d = decide(q, names, found, projects);
-      if (d.kind === 'go') return goToProject(q, d);
-      if (d.kind === 'ask') {
-        setChoice({ q, o, d });
+      const decision = decide(question, names, found, projects);
+      if (decision.kind === 'go') return goToProject(question, decision);
+      if (decision.kind === 'ask') {
+        setChoice({ q: question, o: options, d: decision });
         return;
       }
     }
-    askLesson(q, o);
+    askLesson(question, options);
   };
   const goToProject = async (decision, d) => {
     setChoice(null);
     const pick = d.pick || {};
     // already on this Mac: read your copy, nothing to download
     if (pick.local) {
-      const r = await api.openLocalProject?.(pick.local.root);
-      if (r) {
-        setAtlasQ({ key: `local:${r.root}`, q: decision, d, at: Date.now() });
-        openAtlas({ kind: 'local', root: r.root, name: pick.full || r.name });
+      const opened = await api.openLocalProject?.(pick.local.root);
+      if (opened) {
+        setAtlasQ({ key: `local:${opened.root}`, q: decision, d, at: Date.now() });
+        openAtlas({ kind: 'local', root: opened.root, name: pick.full || opened.name });
         return;
       }
     }

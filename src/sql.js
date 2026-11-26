@@ -92,11 +92,16 @@ export const CHALLENGES = [
   ],
 ];
 
-export function clauses(q) {
-  const s = String(q || '')
+export function clauses(query) {
+  const text = String(query || '')
     .trim()
     .replace(/;\s*$/, '');
-  if (!/^select\b/i.test(s) || /\(\s*select\b/i.test(s) || /;\s*\S/.test(s) || /\bunion\b/i.test(s))
+  if (
+    !/^select\b/i.test(text) ||
+    /\(\s*select\b/i.test(text) ||
+    /;\s*\S/.test(text) ||
+    /\bunion\b/i.test(text)
+  )
     return null;
   /** @type {Array<[number, string, number]>} where each clause starts, its keyword, the keyword's length */
   const marks = [];
@@ -104,7 +109,7 @@ export function clauses(q) {
   let match;
   let depth = 0;
   // ignore keywords inside quotes or parentheses
-  const masked = s
+  const masked = text
     .replace(/'[^']*'/g, (x) => ' '.repeat(x.length))
     .split('')
     .map((c) => {
@@ -117,14 +122,14 @@ export function clauses(q) {
     marks.push([match.index, match[1].toUpperCase().replace(/\s+/g, ' '), match[0].length]);
   const out = {};
   marks.forEach(([i, k, len], j) => {
-    out[k] = s.slice(i + len, j + 1 < marks.length ? marks[j + 1][0] : s.length).trim();
+    out[k] = text.slice(i + len, j + 1 < marks.length ? marks[j + 1][0] : text.length).trim();
   });
   return out.FROM ? out : null;
 }
 
 // What to count at each step, and how to say each step in plain words
-export function pipeline(q) {
-  const parts = clauses(q);
+export function pipeline(query) {
+  const parts = clauses(query);
   if (!parts) return null;
   const steps = [];
   const from = parts.FROM;
@@ -201,13 +206,13 @@ print("__SQL__" + json.dumps(out, default=str))
 }
 
 // Same answer? Values only (column names may differ); order matters only when the reference sorts.
-export function sameResult(a, b, ordered) {
-  if (!a || !b || a.error || b.error) return false;
+export function sameResult(left, right, ordered) {
+  if (!left || !right || left.error || right.error) return false;
   const key = (r) =>
     JSON.stringify(r.map((v) => (typeof v === 'number' ? Math.round(v * 100) / 100 : v)));
-  const rowsA = a.rows.map(key),
-    rowsB = b.rows.map(key);
-  if (rowsA.length !== rowsB.length || a.cols.length !== b.cols.length) return false;
+  const rowsA = left.rows.map(key),
+    rowsB = right.rows.map(key);
+  if (rowsA.length !== rowsB.length || left.cols.length !== right.cols.length) return false;
   if (ordered) return rowsA.every((x, i) => x === rowsB[i]);
   return JSON.stringify([...rowsA].sort()) === JSON.stringify([...rowsB].sort());
 }

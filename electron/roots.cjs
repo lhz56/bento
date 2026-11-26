@@ -6,20 +6,20 @@ const os = require('node:os');
 
 // own: the folder Bento downloads projects into (its data folder: ~/Library/Application Support on a Mac,
 // ~/.config on Linux, AppData on Windows), so they reopen wherever that is.
-function projectRootOk(p, home = os.homedir(), own = null) {
-  if (typeof p !== 'string' || !path.isAbsolute(p)) return false;
-  const r = path.resolve(p);
-  if (r === path.parse(r).root) return false; // the whole disk
-  const rel = path.relative(r, home);
+function projectRootOk(dir, home = os.homedir(), own = null) {
+  if (typeof dir !== 'string' || !path.isAbsolute(dir)) return false;
+  const abs = path.resolve(dir);
+  if (abs === path.parse(abs).root) return false; // the whole disk
+  const rel = path.relative(abs, home);
   if (!rel || (!rel.startsWith('..') && !path.isAbsolute(rel))) return false; // your home folder, or a folder that contains it
   if (own) {
-    const o = path.relative(path.resolve(own), r);
+    const o = path.relative(path.resolve(own), abs);
     if (o && !o.startsWith('..') && !path.isAbsolute(o)) return true;
   } // a project Bento downloaded
   // your own temporary folders are fine (a project unpacked there), just not the folder itself
   if (
     process.platform !== 'win32' &&
-    /^(\/private)?\/(var\/folders\/[^/]+\/[^/]+\/[^/]+\/.+|tmp\/.+)/.test(r)
+    /^(\/private)?\/(var\/folders\/[^/]+\/[^/]+\/[^/]+\/.+|tmp\/.+)/.test(abs)
   )
     return true;
   const SYSTEM = [
@@ -36,16 +36,16 @@ function projectRootOk(p, home = os.homedir(), own = null) {
     '/cores',
     '/opt',
   ];
-  if (process.platform !== 'win32' && SYSTEM.some((s) => r === s || r.startsWith(s + path.sep)))
-    return /^\/(Volumes|opt)\/.+\/.+/.test(r); // an external drive's or /opt's subfolders are fine
+  if (process.platform !== 'win32' && SYSTEM.some((s) => abs === s || abs.startsWith(s + path.sep)))
+    return /^\/(Volumes|opt)\/.+\/.+/.test(abs); // an external drive's or /opt's subfolders are fine
   if (
     process.platform === 'win32' &&
     /^[a-z]:\\(windows|program files|program files \(x86\)|programdata|\$recycle\.bin|system volume information|recovery)(\\|$)/i.test(
-      r,
+      abs,
     )
   )
     return false; // Windows' own folders, on any drive
-  const inHome = path.relative(home, r);
+  const inHome = path.relative(home, abs);
   if (!inHome.startsWith('..') && !path.isAbsolute(inHome)) {
     const top = inHome.split(path.sep)[0];
     if (

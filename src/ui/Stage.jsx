@@ -23,15 +23,15 @@ export default function Stage(p) {
   }, [p.result]);
   // screen readers hear how each run ended, without losing their place in the code
   useEffect(() => {
-    const r = p.result;
-    if (!r || p.running) return;
-    if (r.error)
+    const result = p.result;
+    if (!result || p.running) return;
+    if (result.error)
       announce(
-        `${t('Your code stopped')}${r.error.line ? ` ${t('on line')} ${r.error.line}` : ''}: ${r.error.msg}`,
+        `${t('Your code stopped')}${result.error.line ? ` ${t('on line')} ${result.error.line}` : ''}: ${result.error.msg}`,
       );
-    else if (!r.need) {
-      const n = (r.logs || []).filter((l) => l.k !== 'in').length;
-      const v = (r.visuals || []).length;
+    else if (!result.need) {
+      const n = (result.logs || []).filter((l) => l.k !== 'in').length;
+      const v = (result.visuals || []).length;
       announce(
         `${t('Ran')}. ${n} ${n === 1 ? t('line printed') : t('lines printed')}${v ? `, ${v} ${v === 1 ? t('picture') : t('pictures')}` : ''}.`,
       );
@@ -46,18 +46,18 @@ export default function Stage(p) {
   return (
     <div className="stage">
       <div className="stage-tabs">
-        {tabs.map(([k, label]) => (
+        {tabs.map(([tabId, label]) => (
           <button
-            key={k}
-            className={`stab ${tab === k ? 'on' : ''}`}
-            onClick={() => setTab(k)}
-            title={t(TAB_TIPS[k])}
+            key={tabId}
+            className={`stab ${tab === tabId ? 'on' : ''}`}
+            onClick={() => setTab(tabId)}
+            title={t(TAB_TIPS[tabId])}
           >
             {t(label)}
-            {k === 'tests' && p.tests && (
+            {tabId === 'tests' && p.tests && (
               <span className={`stab-dot ${p.tests.every((r) => r.ok) ? 'ok' : 'bad'}`} />
             )}
-            {k === 'output' && p.result?.error && <span className="stab-dot bad" />}
+            {tabId === 'output' && p.result?.error && <span className="stab-dot bad" />}
           </button>
         ))}
         {p.onWhyDiff && (
@@ -159,21 +159,21 @@ function Predict({ pred, setPred, run, onWhyDiff }) {
     );
   const result = pred.result || {};
   const out = (result.logs || []).map((l) => l.s).join('\n');
-  const g = pred.guess.trim().split('\n').map(norm).filter(Boolean);
-  const o = out.split('\n').map(norm).filter(Boolean);
-  const hits = g.filter((x, i) => o[i] === x).length;
+  const guessed = pred.guess.trim().split('\n').map(norm).filter(Boolean);
+  const actual = out.split('\n').map(norm).filter(Boolean);
+  const hits = guessed.filter((x, i) => actual[i] === x).length;
   const verdict = result.error
     ? 'crash'
-    : !o.length
+    : !actual.length
       ? 'quiet'
-      : hits === Math.max(g.length, o.length)
+      : hits === Math.max(guessed.length, actual.length)
         ? 'exact'
-        : hits > 0 || (g.length && o.some((x) => g.includes(x)))
+        : hits > 0 || (guessed.length && actual.some((x) => guessed.includes(x)))
           ? 'close'
           : 'miss';
   const msg = {
     exact: ['🎯', 'Spot on!', 'You read the code exactly like the computer did.'],
-    close: ['👀', 'Close!', `You got ${hits} of ${o.length} lines right.`],
+    close: ['👀', 'Close!', `You got ${hits} of ${actual.length} lines right.`],
     miss: [
       '🤔',
       'Surprise!',
@@ -198,7 +198,7 @@ function Predict({ pred, setPred, run, onWhyDiff }) {
           Predict again
         </button>
       </div>
-      {o.length > 0 && (
+      {actual.length > 0 && (
         <div className="pr-cols">
           <div>
             <div className="mini-h">you guessed</div>
@@ -212,7 +212,7 @@ function Predict({ pred, setPred, run, onWhyDiff }) {
                 .filter((x) => x.trim())
                 .slice(0, 12)
                 .map((x, i) => (
-                  <span key={i} className={g[i] === norm(x) ? 'ln ok' : 'ln no'}>
+                  <span key={i} className={guessed[i] === norm(x) ? 'ln ok' : 'ln no'}>
                     {x}
                     {'\n'}
                   </span>
@@ -365,15 +365,15 @@ function Output({
       )}
       {(logs.length > 0 || result.need) && (
         <div className="console">
-          {logs.map((l, i) =>
-            l.k === 'in' ? (
+          {logs.map((log, i) =>
+            log.k === 'in' ? (
               <div key={i} className="log in">
-                {l.p}
-                <b>{l.s}</b>
+                {log.p}
+                <b>{log.s}</b>
               </div>
             ) : (
-              <div key={i} className={`log ${l.k}`}>
-                {l.s || ' '}
+              <div key={i} className={`log ${log.k}`}>
+                {log.s || ' '}
               </div>
             ),
           )}
@@ -572,7 +572,7 @@ function Steps({
   const plan = useMemo(() => moviePlan(code), [code]);
   const [movie, setMovie] = useState(() => localStorage.getItem('bento.movie') !== 'off');
   const steps = trace?.steps || [];
-  const s = steps[stepIdx];
+  const step = steps[stepIdx];
   const prev = steps[stepIdx - 1];
   // playback you can follow: a speed you pick, and a longer look wherever something happens
   const [speed, setSpeed] = useState(() => localStorage.getItem('bento.stepSpeed') || 'normal');
@@ -596,7 +596,7 @@ function Steps({
     const printed = (nxt.logs || 0) > (cur.logs || 0) || (nxt.viz || 0) > (cur.viz || 0);
     const dwell =
       BASE *
-      (1 + (s?.ret ? 0.5 : 0) + (changesAt(stepIdx).length ? 0.35 : 0) + (printed ? 0.4 : 0));
+      (1 + (step?.ret ? 0.5 : 0) + (changesAt(stepIdx).length ? 0.35 : 0) + (printed ? 0.4 : 0));
     const tm = setTimeout(() => setStepIdx(stepIdx + 1), dwell);
     return () => clearTimeout(tm);
   }, [playing, stepIdx, steps.length, BASE]);
@@ -624,13 +624,13 @@ function Steps({
       </div>
     );
   const lines = (code || '').split('\n');
-  const say = s.end
+  const say = step.end
     ? 'Done. The program finished.'
-    : s.ret
-      ? `${s.stack[s.stack.length - 1]?.name || 'function'} returns ${s.stack[s.stack.length - 1]?.ret ?? ''}`
-      : english?.[s.line - 1] || lines[s.line - 1]?.trim() || '';
-  const logs = trace.logs?.slice(0, s.logs) || [];
-  const viz = trace.visuals?.slice(0, s.viz) || [];
+    : step.ret
+      ? `${step.stack[step.stack.length - 1]?.name || 'function'} returns ${step.stack[step.stack.length - 1]?.ret ?? ''}`
+      : english?.[step.line - 1] || lines[step.line - 1]?.trim() || '';
+  const logs = trace.logs?.slice(0, step.logs) || [];
+  const viz = trace.visuals?.slice(0, step.viz) || [];
   return (
     <div
       className="steps"
@@ -728,8 +728,8 @@ function Steps({
           </button>
         )}
       </div>
-      <div className={`narration ${s.ret ? 'ret' : ''} ${s.end ? 'end' : ''}`} key={stepIdx}>
-        {!s.end && <span className="nar-line">line {s.line}</span>}
+      <div className={`narration ${step.ret ? 'ret' : ''} ${step.end ? 'end' : ''}`} key={stepIdx}>
+        {!step.end && <span className="nar-line">line {step.line}</span>}
         <span className="nar-text">{say}</span>
         {changesAt(stepIdx).length > 0 && (
           <span className="nar-chg">
@@ -752,12 +752,12 @@ function Steps({
           </span>
         )}
       </div>
-      {movie && plan.any && <Movie s={s} prev={prev} plan={plan} key="movie" />}
+      {movie && plan.any && <Movie s={step} prev={prev} plan={plan} key="movie" />}
       <div className="step-cols">
         <div className="vars">
           <div className="col-h">Variables</div>
-          {Object.keys(s.vars || {}).length === 0 && <div className="muted">none yet</div>}
-          {Object.entries(s.vars || {}).map(([k, v]) => {
+          {Object.keys(step.vars || {}).length === 0 && <div className="muted">none yet</div>}
+          {Object.entries(step.vars || {}).map(([k, v]) => {
             const changed = prev && prev.vars?.[k] !== v;
             const born = prev && !(k in (prev.vars || {}));
             const box = asBoxes(v);
@@ -808,8 +808,8 @@ function Steps({
         <div className="stack">
           <div className="col-h">Call stack</div>
           <div className="frames">
-            {[...(s.stack || [])].reverse().map((f, i) => (
-              <div key={s.stack.length - i + f.name} className={`frame ${i === 0 ? 'top' : ''}`}>
+            {[...(step.stack || [])].reverse().map((f, i) => (
+              <div key={step.stack.length - i + f.name} className={`frame ${i === 0 ? 'top' : ''}`}>
                 <span className="fn">
                   {f.name}
                   <span className="fa">({f.args})</span>
@@ -823,7 +823,7 @@ function Steps({
                 )}
               </div>
             ))}
-            {!s.stack?.length && <div className="muted">empty</div>}
+            {!step.stack?.length && <div className="muted">empty</div>}
           </div>
         </div>
         <div className="sofar">
@@ -1084,15 +1084,15 @@ function Tests({ lesson, tests, onRunTests, testing }) {
           {testing ? t('Running…') : t('Run tests')}
         </button>
       </div>
-      {cases.map((c, i) => {
+      {cases.map((testCase, i) => {
         const r = tests?.[i];
         return (
           <div key={i} className={`test ${r ? (r.ok ? 'ok' : 'bad') : ''}`}>
             <span className="lamp" aria-hidden="true" />
             <span className="mono">
-              {lesson.tests.fn}({fmtArgs(c.args)})
+              {lesson.tests.fn}({fmtArgs(testCase.args)})
             </span>
-            <span className="muted">→ {JSON.stringify(c.expect)}</span>
+            <span className="muted">→ {JSON.stringify(testCase.expect)}</span>
             {r && !r.ok && <span className="got">got {r.got}</span>}
           </div>
         );

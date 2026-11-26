@@ -48,11 +48,11 @@ function sourceOfApp(appPath) {
   for (const pj of ['app.asar/package.json', 'app/package.json']) {
     try {
       // Electron reads inside .asar archives as if they were folders
-      const p = JSON.parse(fs.readFileSync(path.join(res, pj), 'utf8'));
+      const pkg = JSON.parse(fs.readFileSync(path.join(res, pj), 'utf8'));
       const full =
-        ghFull(typeof p.repository === 'string' ? p.repository : p.repository?.url) ||
-        ghFull(p.homepage) ||
-        ghFull(p.bugs?.url || p.bugs);
+        ghFull(typeof pkg.repository === 'string' ? pkg.repository : pkg.repository?.url) ||
+        ghFull(pkg.homepage) ||
+        ghFull(pkg.bugs?.url || pkg.bugs);
       if (full) return { full, how: 'its package.json' };
     } catch {}
   }
@@ -98,16 +98,16 @@ async function installedApps(names) {
     '/Applications/Utilities',
   ];
   const out = [];
-  for (const d of dirs) {
+  for (const dir of dirs) {
     let list = [];
     try {
-      list = fs.readdirSync(d);
+      list = fs.readdirSync(dir);
     } catch {
       continue;
     }
     for (const item of list) {
       if (!item.endsWith('.app') || !want.has(norm(item))) continue;
-      const appPath = path.join(d, item);
+      const appPath = path.join(dir, item);
       const plist = path.join(appPath, 'Contents', 'Info.plist');
       const [version, id, iconFile] = await Promise.all([
         plistValue(plist, 'CFBundleShortVersionString'),
@@ -183,9 +183,10 @@ function localClones(names, fulls) {
     } catch {
       continue;
     }
-    for (const k of kids) {
-      if (!k.isDirectory() || k.name.startsWith('.') || k.name === 'node_modules') continue;
-      const dir = path.join(base, k.name);
+    for (const child of kids) {
+      if (!child.isDirectory() || child.name.startsWith('.') || child.name === 'node_modules')
+        continue;
+      const dir = path.join(base, child.name);
       consider(dir);
       // ~/GitHub/owner/repo and ~/code/org/repo layouts: one level deeper, only for plain folders
       if (!fs.existsSync(path.join(dir, '.git'))) {

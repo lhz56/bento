@@ -560,14 +560,14 @@ export const stopSkills = (s, skillsFor) => [
 /** @returns {Array<{ k: string, icon: string, title: string, d: string, end?: string, stops: any[], own?: boolean, pack?: any }>} */
 export const tracksWith = (custom = []) => [
   ...TRACKS,
-  ...custom.map((c) => ({
-    k: c.id,
+  ...custom.map((custom) => ({
+    k: custom.id,
     icon: '✦',
-    title: c.title,
-    d: c.d,
-    end: c.end,
-    stops: c.stops,
+    title: custom.title,
+    d: custom.d,
+    end: custom.end,
+    stops: custom.stops,
     own: true,
-    pack: c.pack,
+    pack: custom.pack,
   })),
 ];

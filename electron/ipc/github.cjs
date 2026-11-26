@@ -115,8 +115,8 @@ module.exports = function registerGithub(ctx) {
   );
   ipcMain.handle('gh:tree', async (_e, full) => {
     if (!ctx.REPO_RX.test(str(full, 200))) refuse();
-    const t = JSON.parse(await gh(['api', `repos/${full}/git/trees/HEAD?recursive=1`]));
-    const files = (t.tree || [])
+    const parsed = JSON.parse(await gh(['api', `repos/${full}/git/trees/HEAD?recursive=1`]));
+    const files = (parsed.tree || [])
       .filter(
         (x) =>
           x.type === 'blob' && CODE_EXT.test(x.path) && !x.path.split('/').some((s) => SKIP.has(s)),
@@ -125,19 +125,22 @@ module.exports = function registerGithub(ctx) {
       .slice(0, 600);
     return { kind: 'github', root: full, name: full, files };
   });
-  ipcMain.handle('gh:file', async (_e, full, p) => {
-    p = str(p, 1000);
+  ipcMain.handle('gh:file', async (_e, full, filePath) => {
+    filePath = str(filePath, 1000);
     if (
       !ctx.REPO_RX.test(str(full, 200)) ||
-      !p ||
-      p.split('/').some((x) => !x || x === '..' || x === '.')
+      !filePath ||
+      filePath.split('/').some((x) => !x || x === '..' || x === '.')
     )
       refuse();
-    const o = JSON.parse(
-      await gh(['api', `repos/${full}/contents/${p.split('/').map(encodeURIComponent).join('/')}`]),
+    const parsed = JSON.parse(
+      await gh([
+        'api',
+        `repos/${full}/contents/${filePath.split('/').map(encodeURIComponent).join('/')}`,
+      ]),
     );
-    if (o.size > 300_000) return '// (file too large to show)';
-    return Buffer.from(o.content || '', 'base64').toString('utf8');
+    if (parsed.size > 300_000) return '// (file too large to show)';
+    return Buffer.from(parsed.content || '', 'base64').toString('utf8');
   });
   return {
     gh,

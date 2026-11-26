@@ -67,43 +67,45 @@ export function lessonFromAgent(args, client) {
 
 // what a run did, for the agent to read
 const short = (s, n) => (s.length > n ? `${s.slice(0, n)}… (${s.length - n} more characters)` : s);
-function seen(v) {
-  const label = v.label ? ` "${v.label}"` : '';
-  switch (v.type) {
+function seen(value) {
+  const label = value.label ? ` "${value.label}"` : '';
+  switch (value.type) {
     case 'bars':
-      return `bar chart${label}: [${(v.data || []).slice(0, 30).join(', ')}${(v.data || []).length > 30 ? ', …' : ''}]`;
+      return `bar chart${label}: [${(value.data || []).slice(0, 30).join(', ')}${(value.data || []).length > 30 ? ', …' : ''}]`;
     case 'grid':
-      return `grid${label}, ${(v.data || []).length}×${(v.data?.[0] || []).length}: ${(v.data || [])
+      return `grid${label}, ${(value.data || []).length}×${(value.data?.[0] || []).length}: ${(
+        value.data || []
+      )
         .slice(0, 8)
         .map((r) => r.join(' '))
         .join(' / ')}`;
     case 'records':
-      return `table${label} with columns ${(v.cols || []).join(', ')}, ${(v.rows || []).length} rows; first: ${(v.rows?.[0] || []).join(' | ')}`;
+      return `table${label} with columns ${(value.cols || []).join(', ')}, ${(value.rows || []).length} rows; first: ${(value.rows?.[0] || []).join(' | ')}`;
     case 'table':
-      return `table${label}: ${(v.rows || [])
+      return `table${label}: ${(value.rows || [])
         .slice(0, 12)
         .map(([k, x]) => `${k} = ${x}`)
         .join('; ')}`;
     case 'tree':
       return `tree diagram${label}`;
     case 'canvas':
-      return `a drawing on the canvas (${(v.cmds || []).length} shapes)`;
+      return `a drawing on the canvas (${(value.cmds || []).length} shapes)`;
     case 'web':
       return 'the web page, live in Bento’s preview';
     case 'text':
-      return `text${label}: ${short(String(v.text || ''), 300)}`;
+      return `text${label}: ${short(String(value.text || ''), 300)}`;
     default:
-      return `${v.type || 'a picture'}${label}`;
+      return `${value.type || 'a picture'}${label}`;
   }
 }
-export function describeRun(r) {
-  if (!r) return 'It hasn’t run yet.';
+export function describeRun(run) {
+  if (!run) return 'It hasn’t run yet.';
   const out = [];
-  const logs = (r.logs || []).map((l) =>
+  const logs = (run.logs || []).map((l) =>
     l.k === 'in' ? `${l.p || ''}${l.s} (typed in)` : l.k === 'err' ? `[error output] ${l.s}` : l.s,
   );
   if (logs.length) out.push(`Printed:\n${short(logs.join('\n'), 4000)}`);
-  const vis = (r.visuals || []).map(seen);
+  const vis = (run.visuals || []).map(seen);
   if (vis.length)
     out.push(
       `Showed ${vis.length === 1 ? 'a picture' : `${vis.length} pictures`}:\n${vis
@@ -111,11 +113,12 @@ export function describeRun(r) {
         .map((x) => `- ${x}`)
         .join('\n')}`,
     );
-  if (r.need)
+  if (run.need)
     out.push(
-      `It is waiting for the learner to type an answer${r.need.prompt ? ` to "${r.need.prompt}"` : ''}.`,
+      `It is waiting for the learner to type an answer${run.need.prompt ? ` to "${run.need.prompt}"` : ''}.`,
     );
-  if (r.error) out.push(`Error${r.error.line ? ` on line ${r.error.line}` : ''}: ${r.error.msg}`);
+  if (run.error)
+    out.push(`Error${run.error.line ? ` on line ${run.error.line}` : ''}: ${run.error.msg}`);
   if (!out.length) out.push('It ran without printing or showing anything.');
   return out.join('\n\n');
 }
@@ -164,10 +167,10 @@ export function describeView({ view, lesson, code, run, project }) {
 
 // the one command that adds Bento to an agent (Settings → Use Bento from your AI agent); "json" is the shape most other
 // apps' MCP settings take. cmd is what starts Bento's tool server: [program, ...arguments].
-const q = (x) => (/^[\w@%+=:,./-]+$/.test(x) ? x : `"${x.replace(/(["\\$`])/g, '\\$1')}"`);
+const shellQuote = (x) => (/^[\w@%+=:,./-]+$/.test(x) ? x : `"${x.replace(/(["\\$`])/g, '\\$1')}"`);
 export function agentCommand(which, cmd) {
   const [bin, ...args] = cmd;
-  const run = [bin, ...args].map(q).join(' ');
+  const run = [bin, ...args].map(shellQuote).join(' ');
   if (which === 'claude') return `claude mcp add bento --scope user -- ${run}`;
   if (which === 'codex') return `codex mcp add bento -- ${run}`;
   if (which === 'gemini') return `gemini mcp add --scope user bento ${run}`;

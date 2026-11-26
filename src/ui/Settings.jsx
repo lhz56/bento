@@ -174,13 +174,15 @@ export default function Settings({
             <span>Picks the idea of the day and suggestions.</span>
           </div>
           <div className="interests">
-            {INTERESTS.map(([k, l]) => (
+            {INTERESTS.map(([interest, l]) => (
               <button
-                key={k}
-                className={`int ${ints.includes(k) ? 'on' : ''}`}
+                key={interest}
+                className={`int ${ints.includes(interest) ? 'on' : ''}`}
                 onClick={() =>
                   setSettings({
-                    interests: ints.includes(k) ? ints.filter((x) => x !== k) : [...ints, k],
+                    interests: ints.includes(interest)
+                      ? ints.filter((x) => x !== interest)
+                      : [...ints, interest],
                   })
                 }
               >
@@ -372,12 +374,12 @@ function PackRow({ packs, onAddPack, onRemovePack }) {
       </div>
       {packs.length > 0 && (
         <div className="pack-list">
-          {packs.map((p) => (
-            <span key={p.id} className="pack-chip">
-              <b>{p.name}</b>
-              {p.author ? ` · ${p.author}` : ''} · {p.puzzles.length}🧩 {p.paths.length}⤳{' '}
-              {p.ideas.length}⬡
-              <button className="link" onClick={() => onRemovePack(p.id)}>
+          {packs.map((pack) => (
+            <span key={pack.id} className="pack-chip">
+              <b>{pack.name}</b>
+              {pack.author ? ` · ${pack.author}` : ''} · {pack.puzzles.length}🧩 {pack.paths.length}
+              ⤳ {pack.ideas.length}⬡
+              <button className="link" onClick={() => onRemovePack(pack.id)}>
                 {t('remove')}
               </button>
             </span>
@@ -514,16 +516,16 @@ function UsageRow({ providers }) {
           )
           .join('; ')}
       >
-        {u.days.map((d) => (
-          <div key={d.d} className="uc-day">
+        {u.days.map((day) => (
+          <div key={day.d} className="uc-day">
             <div className="uc-stack" style={{ height: 70 }}>
-              <i className="uc-saved" style={{ height: `${(d.saved / max) * 100}%` }} />
-              <i className="uc-other" style={{ height: `${(d.other / max) * 100}%` }} />
-              <i className="uc-quick" style={{ height: `${(d.quick / max) * 100}%` }} />
-              <i className="uc-lessons" style={{ height: `${(d.lessons / max) * 100}%` }} />
+              <i className="uc-saved" style={{ height: `${(day.saved / max) * 100}%` }} />
+              <i className="uc-other" style={{ height: `${(day.other / max) * 100}%` }} />
+              <i className="uc-quick" style={{ height: `${(day.quick / max) * 100}%` }} />
+              <i className="uc-lessons" style={{ height: `${(day.lessons / max) * 100}%` }} />
             </div>
             <span>
-              {new Date(d.d + 'T12:00').toLocaleDateString(undefined, { weekday: 'short' })}
+              {new Date(day.d + 'T12:00').toLocaleDateString(undefined, { weekday: 'short' })}
             </span>
           </div>
         ))}

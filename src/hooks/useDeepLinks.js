@@ -13,8 +13,8 @@ export default function useDeepLinks({ askLesson, openRepo, openRepoAt, openSite
         return;
       }
       const what = linkUrl.searchParams.get('u') || linkUrl.searchParams.get('url') || '';
-      const q = linkUrl.searchParams.get('q');
-      if (linkUrl.hostname === 'ask' && q) return askLesson(q.slice(0, 500), {});
+      const question = linkUrl.searchParams.get('q');
+      if (linkUrl.hostname === 'ask' && question) return askLesson(question.slice(0, 500), {});
       const blob = parseBlob(what);
       if (blob) return openRepoAt(blob.full, blob.path);
       const repo = parseRepo(what);

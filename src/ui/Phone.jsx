@@ -49,13 +49,13 @@ export function TopBar({ view, title, onBack, onMenu, onSearch, setView, scrolle
       <div className="pbar-mid">
         {seg ? (
           <div className="pseg" role="tablist">
-            {seg.options.map(([v, label]) => (
+            {seg.options.map(([value, label]) => (
               <button
-                key={v}
+                key={value}
                 role="tab"
-                aria-selected={seg.value === v}
-                className={seg.value === v ? 'on' : ''}
-                onClick={() => seg.onChange(v)}
+                aria-selected={seg.value === value}
+                className={seg.value === value ? 'on' : ''}
+                onClick={() => seg.onChange(value)}
               >
                 {label}
               </button>
@@ -63,13 +63,13 @@ export function TopBar({ view, title, onBack, onMenu, onSearch, setView, scrolle
           </div>
         ) : root && group.views.length > 1 ? (
           <div className="pseg" role="tablist" aria-label={t(group.label)}>
-            {group.views.map(([v, label]) => (
+            {group.views.map(([id, label]) => (
               <button
-                key={v}
+                key={id}
                 role="tab"
-                aria-selected={view === v}
-                className={view === v ? 'on' : ''}
-                onClick={() => setView(v)}
+                aria-selected={view === id}
+                className={view === id ? 'on' : ''}
+                onClick={() => setView(id)}
               >
                 {t(label)}
               </button>
@@ -187,10 +187,10 @@ export function restoreScroll(page, root) {
         return;
       }
       if (Math.abs(el.scrollTop - top) < 2) return;
-      const b = el.style.scrollBehavior;
+      const behavior = el.style.scrollBehavior;
       el.style.scrollBehavior = 'auto';
       el.scrollTop = top;
-      el.style.scrollBehavior = b;
+      el.style.scrollBehavior = behavior;
       if (Math.abs(el.scrollTop - top) >= 2) left++;
     });
     if (left && ++tries < 30) requestAnimationFrame(go);

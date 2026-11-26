@@ -34,18 +34,18 @@ module.exports = function registerFiles(ctx) {
         .replace(/[^\w\- ]+/g, '')
         .trim()
         .slice(0, 60) || 'lesson';
-    const r = await dialog.showSaveDialog(ctx.win, {
+    const choice = await dialog.showSaveDialog(ctx.win, {
       defaultPath: path.join(app.getPath('desktop'), `${safe}.bento`),
       filters: [{ name: 'Bento lesson', extensions: ['bento'] }],
     });
-    if (r.canceled || !r.filePath) return null;
+    if (choice.canceled || !choice.filePath) return null;
     await fsp
       .writeFile(
-        r.filePath,
+        choice.filePath,
         JSON.stringify({ bento: 1, exported: new Date().toISOString(), lesson }, null, 1),
       )
       .catch(saveError);
-    return r.filePath;
+    return choice.filePath;
   });
   // what went wrong writing a file you asked for, in plain words
   function saveError(e) {
@@ -69,14 +69,14 @@ module.exports = function registerFiles(ctx) {
         .trim()
         .slice(0, 50) || 'my page';
     let file = path.join(dir, `${base}.html`);
-    let n = 2;
+    let copy = 2;
     while (
       await fsp.access(file).then(
         () => true,
         () => false,
       )
     )
-      file = path.join(dir, `${base} ${n++}.html`);
+      file = path.join(dir, `${base} ${copy++}.html`);
     await fsp.writeFile(file, html, { flag: 'wx' }).catch(saveError);
     shell.showItemInFolder(file);
     return file;

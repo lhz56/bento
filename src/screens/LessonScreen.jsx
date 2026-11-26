@@ -89,8 +89,8 @@ export default function LessonScreen({
         onSecondOpinion={async (i) => {
           const lesson = current;
           const id = lesson.id;
-          const c = lesson.chat[i];
-          const altModel = altFor(c.by || settings.model);
+          const message = lesson.chat[i];
+          const altModel = altFor(message.by || settings.model);
           if (!altModel) return;
           const set = (second) =>
             setLessons((ls) =>
@@ -110,7 +110,7 @@ export default function LessonScreen({
             const j = parseJSONLoose(
               await api.quick(
                 altModel,
-                `You are tutoring a ${settings.level} learner inside a lesson titled "${lesson.title}".\nThe lesson's ${lesson.lang} code (with line numbers):\n${code}\n\nThe learner asks: ${c.q}\nAnother tutor already answered: "${c.a}"\nGive YOUR answer in at most 90 words: agree, add what they missed, or politely correct them. You may use **bold**, \`code\` and [[line|links]].\nReply JSON: {"answer":"..."}`,
+                `You are tutoring a ${settings.level} learner inside a lesson titled "${lesson.title}".\nThe lesson's ${lesson.lang} code (with line numbers):\n${code}\n\nThe learner asks: ${message.q}\nAnother tutor already answered: "${message.a}"\nGive YOUR answer in at most 90 words: agree, add what they missed, or politely correct them. You may use **bold**, \`code\` and [[line|links]].\nReply JSON: {"answer":"..."}`,
               ),
             );
             set({ who: modelLabel(altModel), a: j?.answer || 'No answer this time.' });
@@ -181,22 +181,24 @@ export default function LessonScreen({
             { mode: 'challenge', lang: lesson.lang === 'typescript' ? 'typescript' : lesson.lang },
           )
         }
-        onQuickAsk={async (q) => {
+        onQuickAsk={async (question) => {
           const lesson = current;
           const id = lesson.id;
-          const n = (lesson.chat || []).length;
+          const before = (lesson.chat || []).length;
           const put = (c) =>
             setLessons((ls) =>
-              ls.map((l) => (l.id === id ? { ...l, chat: [...(l.chat || []).slice(0, n), c] } : l)),
+              ls.map((l) =>
+                l.id === id ? { ...l, chat: [...(l.chat || []).slice(0, before), c] } : l,
+              ),
             );
           if (noAI(providers)) {
             put({
-              q,
+              q: question,
               a: 'Bento needs an AI to answer questions. Connect one (bottom-left → **Connect an AI**): Claude, ChatGPT, Gemini or Copilot, on the plan you already have.',
             });
             return;
           }
-          put({ q, loading: true });
+          put({ q: question, loading: true });
           const code = (lesson.work ?? lesson.code ?? '')
             .split('\n')
             .map((x, i) => `${i + 1}| ${x}`)
@@ -210,7 +212,7 @@ export default function LessonScreen({
             const j = parseJSONLoose(
               await api.quick(
                 settings.model,
-                `You are tutoring a ${settings.level} learner inside a lesson titled "${lesson.title}".\nThe lesson's ${lesson.lang} code (with line numbers):\n${code}\n${hist ? `\nEarlier in this chat:\n${hist}\n` : ''}\nThe learner asks: ${q}\nAnswer warmly and precisely in at most 110 words. You may use **bold**, \`code\` and line links like [[3-5|the loop]] that point at lines of the code above.\nAlso suggest 2 short questions they might ask next (at most 8 words each). If, and only if, the answer teaches something checkable, add one quick multiple-choice check about it (3 choices, one right); otherwise check is null.\nReply JSON: {"answer":"...","term":"a technical term you used that they may not know, or null","plain":"one-line definition of it, or null","next":["...","..."],"check":{"q":"...","choices":["...","...","..."],"answer":0,"why":"one sentence"}}`,
+                `You are tutoring a ${settings.level} learner inside a lesson titled "${lesson.title}".\nThe lesson's ${lesson.lang} code (with line numbers):\n${code}\n${hist ? `\nEarlier in this chat:\n${hist}\n` : ''}\nThe learner asks: ${question}\nAnswer warmly and precisely in at most 110 words. You may use **bold**, \`code\` and line links like [[3-5|the loop]] that point at lines of the code above.\nAlso suggest 2 short questions they might ask next (at most 8 words each). If, and only if, the answer teaches something checkable, add one quick multiple-choice check about it (3 choices, one right); otherwise check is null.\nReply JSON: {"answer":"...","term":"a technical term you used that they may not know, or null","plain":"one-line definition of it, or null","next":["...","..."],"check":{"q":"...","choices":["...","...","..."],"answer":0,"why":"one sentence"}}`,
               ),
             );
             const ck =
@@ -225,7 +227,7 @@ export default function LessonScreen({
             put(
               j?.answer
                 ? {
-                    q,
+                    q: question,
                     a: j.answer,
                     term: j.term,
                     plain: j.plain,
@@ -235,17 +237,17 @@ export default function LessonScreen({
                       .slice(0, 2),
                     check: ck,
                   }
-                : { q, a: 'I couldn’t answer that one. Try making it a full lesson.' },
+                : { q: question, a: 'I couldn’t answer that one. Try making it a full lesson.' },
             );
             if (j?.term && j?.plain)
-              setProgress((p) => {
-                const k = String(j.term).toLowerCase();
-                if (p.words?.[k]) return p;
+              setProgress((prev) => {
+                const key = String(j.term).toLowerCase();
+                if (prev.words?.[key]) return prev;
                 return {
-                  ...p,
+                  ...prev,
                   words: {
-                    ...(p.words || {}),
-                    [k]: {
+                    ...(prev.words || {}),
+                    [key]: {
                       term: j.term,
                       plain: j.plain,
                       from: id,
@@ -256,7 +258,10 @@ export default function LessonScreen({
                 };
               });
           } catch {
-            put({ q, a: 'The model didn’t answer. Check your connection and try again.' });
+            put({
+              q: question,
+              a: 'The model didn’t answer. Check your connection and try again.',
+            });
           }
         }}
         onDepth={(dir) => {
@@ -294,16 +299,16 @@ export default function LessonScreen({
           return m ? modelLabel(m) : null;
         }}
         onRetryWith={() => {
-          const a = current;
+          const failed = current;
           setSettings({ model: altModel });
-          setLessons((ls) => ls.filter((l) => l.id !== a.id));
+          setLessons((ls) => ls.filter((l) => l.id !== failed.id));
           setTimeout(
             () =>
-              askLesson(a.q, {
+              askLesson(failed.q, {
                 model: altModel,
-                mode: a.mode,
-                lang: a.lang,
-                context: a.context,
+                mode: failed.mode,
+                lang: failed.lang,
+                context: failed.context,
               }),
             0,
           );
@@ -321,15 +326,18 @@ export default function LessonScreen({
           cancels.current.get(id)?.();
           cancels.current.delete(id);
           setLessons((ls) =>
-            ls.map((l) =>
-              l.id === id
+            ls.map((lesson) =>
+              lesson.id === id
                 ? {
-                    ...l,
-                    status: l.code || l.story.length ? 'done' : 'error',
-                    error: l.code || l.story.length ? null : 'Stopped before anything arrived.',
+                    ...lesson,
+                    status: lesson.code || lesson.story.length ? 'done' : 'error',
+                    error:
+                      lesson.code || lesson.story.length
+                        ? null
+                        : 'Stopped before anything arrived.',
                     thinking: null,
                   }
-                : l,
+                : lesson,
             ),
           );
         }}
@@ -395,14 +403,14 @@ export default function LessonScreen({
         model={settings.model}
         knownWords={knownWordSet}
         onWord={(w) =>
-          setProgress((p) => {
-            const k = w.term.toLowerCase();
-            if (p.words?.[k]) return p;
+          setProgress((prev) => {
+            const key = w.term.toLowerCase();
+            if (prev.words?.[key]) return prev;
             return {
-              ...p,
+              ...prev,
               words: {
-                ...(p.words || {}),
-                [k]: { ...w, from: current.id, title: current.title, at: Date.now() },
+                ...(prev.words || {}),
+                [key]: { ...w, from: current.id, title: current.title, at: Date.now() },
               },
             };
           })

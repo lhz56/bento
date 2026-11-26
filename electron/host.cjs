@@ -144,15 +144,15 @@ function createHost(opts) {
 
   // ---------------------------------------------------------------- devices and pairing
   const deviceFor = (req) => {
-    const m = /^Bearer ([\w-]{20,200})$/.exec(String(req.headers.authorization || ''));
-    if (!m) return null;
-    const h = sha(m[1]);
-    const d = devices.find((x) => same(x.hash, h));
-    if (d && Date.now() - (d.seen || 0) > 60_000) {
-      d.seen = Date.now();
+    const match = /^Bearer ([\w-]{20,200})$/.exec(String(req.headers.authorization || ''));
+    if (!match) return null;
+    const h = sha(match[1]);
+    const device = devices.find((x) => same(x.hash, h));
+    if (device && Date.now() - (device.seen || 0) > 60_000) {
+      device.seen = Date.now();
       saveDevices();
     }
-    return d || null;
+    return device || null;
   };
   function newPairing() {
     pairing = { code: newCode(), exp: Date.now() + (opts.ttlMs || PAIR_MS), misses: 0 };
@@ -211,15 +211,15 @@ function createHost(opts) {
     changed();
   }
 
-  function settle(a, st) {
-    if (a.state !== 'waiting') return;
-    a.state = st;
-    clearTimeout(a.timer);
-    for (const w of a.waiters) w();
-    a.waiters.clear();
+  function settle(approval, st) {
+    if (approval.state !== 'waiting') return;
+    approval.state = st;
+    clearTimeout(approval.timer);
+    for (const w of approval.waiters) w();
+    approval.waiters.clear();
     changed();
     try {
-      opts.onAskEnd?.(a.id, st);
+      opts.onAskEnd?.(approval.id, st);
     } catch {}
   }
   function newAsk(name, kind) {
@@ -243,7 +243,7 @@ function createHost(opts) {
         .replace(/[^\p{L}\p{N} ’'().-]/gu, '')
         .trim()
         .slice(0, 40) || d;
-    const a = {
+    const approval = {
       id: rand(16),
       secret: rand(24),
       name: clean(name, 'A device'),
@@ -254,61 +254,70 @@ function createHost(opts) {
       pair: null,
       waiters: new Set(),
     };
-    a.timer = setTimeout(() => settle(a, 'expired'), a.exp - now);
-    a.timer.unref?.();
-    ask = a;
+    approval.timer = setTimeout(() => settle(approval, 'expired'), approval.exp - now);
+    approval.timer.unref?.();
+    ask = approval;
     changed();
     try {
-      opts.onAsk?.({ id: a.id, name: a.name, kind: a.kind, code: a.code, exp: a.exp });
+      opts.onAsk?.({
+        id: approval.id,
+        name: approval.name,
+        kind: approval.kind,
+        code: approval.code,
+        exp: approval.exp,
+      });
     } catch (e) {
       opts.log?.('ask dialog', e);
     }
     return {
-      id: a.id,
-      secret: a.secret,
-      code: a.code,
-      exp: a.exp,
+      id: approval.id,
+      secret: approval.secret,
+      code: approval.code,
+      exp: approval.exp,
       mac: typeof opts.name === 'function' ? opts.name() : opts.name,
     };
   }
   /** The person answered on this Mac. Allow mints a one-time pairing code that only this request's device receives. */
   function answer(id, allow) {
-    const a = ask;
-    if (!a || a.id !== id || a.state !== 'waiting' || !on) return false;
-    if (Date.now() > a.exp) {
-      settle(a, 'expired');
+    const approval = ask;
+    if (!approval || approval.id !== id || approval.state !== 'waiting' || !on) return false;
+    if (Date.now() > approval.exp) {
+      settle(approval, 'expired');
       return false;
     }
     if (allow) {
-      a.pair = newPairing().code;
-      settle(a, 'allowed');
+      approval.pair = newPairing().code;
+      settle(approval, 'allowed');
     } else {
       askCool = Date.now() + (opts.askCoolMs || ASK_COOL_MS);
-      settle(a, 'denied');
+      settle(approval, 'denied');
     }
     return true;
   }
 
   // ---------------------------------------------------------------- clients and their streams
-  function dropClient(c, why) {
-    c.gone = true;
-    clients.delete(c.id);
+  function dropClient(client, why) {
+    client.gone = true;
+    clients.delete(client.id);
     try {
-      c.res?.write(`event: bye\ndata: ${JSON.stringify(why)}\n\n`);
-      c.res?.end();
+      client.res?.write(`event: bye\ndata: ${JSON.stringify(why)}\n\n`);
+      client.res?.end();
     } catch {}
-    c.res = null;
+    client.res = null;
   }
-  function push(c, ch, args) {
-    if (!c || c.gone) return;
-    const ev = { s: ++c.seq, ch, a: args, at: Date.now() };
-    c.buf.push(ev);
+  function push(client, ch, args) {
+    if (!client || client.gone) return;
+    const ev = { s: ++client.seq, ch, a: args, at: Date.now() };
+    client.buf.push(ev);
     // keep a few minutes (and not too much) for a phone that went to sleep mid-lesson
-    while (c.buf.length > 4000 || (c.buf.length && Date.now() - c.buf[0].at > 10 * 60_000))
-      c.buf.shift();
-    if (c.res)
+    while (
+      client.buf.length > 4000 ||
+      (client.buf.length && Date.now() - client.buf[0].at > 10 * 60_000)
+    )
+      client.buf.shift();
+    if (client.res)
       try {
-        c.res.write(`id: ${ev.s}\ndata: ${JSON.stringify({ s: ev.s, ch, a: args })}\n\n`);
+        client.res.write(`id: ${ev.s}\ndata: ${JSON.stringify({ s: ev.s, ch, a: args })}\n\n`);
       } catch {}
   }
   const senderFor = (c) => ({
@@ -407,14 +416,14 @@ function createHost(opts) {
     res.writeHead(status, { ...BASE_HEADERS, ...headers, 'content-length': body.length });
     res.end(req.method === 'HEAD' ? undefined : body);
   }
-  function serveStatic(req, res, u, hostName) {
-    let p;
+  function serveStatic(req, res, url, hostName) {
+    let pathname;
     try {
-      p = decodeURIComponent(u.pathname);
+      pathname = decodeURIComponent(url.pathname);
     } catch {
       return plain(res, 400, 'no');
     }
-    if (p === '/' || p === '/index.html') {
+    if (pathname === '/' || pathname === '/index.html') {
       const { html, csp } = pageHtml(hostName);
       return sendBody(
         req,
@@ -430,8 +439,8 @@ function createHost(opts) {
         Buffer.from(html),
       );
     }
-    if (p === '/manifest.webmanifest') {
-      const code = cleanCode(u.searchParams.get('pair'));
+    if (pathname === '/manifest.webmanifest') {
+      const code = cleanCode(url.searchParams.get('pair'));
       return sendBody(
         req,
         res,
@@ -442,18 +451,18 @@ function createHost(opts) {
     }
     // inside dist only: "/../" and folders that merely start with the same letters ("dist-evil") never get out
     const root = path.resolve(opts.dist),
-      f = path.resolve(root, `.${p}`);
-    if (!f.startsWith(root + path.sep)) return plain(res, 403, 'no');
+      file = path.resolve(root, `.${pathname}`);
+    if (!file.startsWith(root + path.sep)) return plain(res, 403, 'no');
     let info;
     try {
-      info = fileInfo(f);
+      info = fileInfo(file);
       if (!info.st.isFile()) throw 0;
     } catch {
       return plain(res, 404, 'Not here.');
     }
-    const hashed = /^\/assets\//.test(p);
+    const hashed = /^\/assets\//.test(pathname);
     const headers = {
-      'content-type': TYPES[path.extname(f).toLowerCase()] || 'application/octet-stream',
+      'content-type': TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream',
       etag: info.tag,
       'cache-control': hashed ? 'public, max-age=31536000, immutable' : 'no-cache',
     };
@@ -465,8 +474,8 @@ function createHost(opts) {
       });
       return res.end();
     }
-    etags.set(f, info.tag);
-    return sendBody(req, res, 200, headers, fs.readFileSync(f));
+    etags.set(file, info.tag);
+    return sendBody(req, res, 200, headers, fs.readFileSync(file));
   }
   const plain = (res, status, text) => {
     res.writeHead(status, {
@@ -476,24 +485,24 @@ function createHost(opts) {
     });
     res.end(text);
   };
-  const json = (res, status, v, extra = {}) => {
-    const b = Buffer.from(JSON.stringify(v));
+  const json = (res, status, value, extra = {}) => {
+    const body = Buffer.from(JSON.stringify(value));
     res.writeHead(status, {
       ...BASE_HEADERS,
       'content-type': 'application/json',
       'cache-control': 'no-store',
-      'content-length': b.length,
+      'content-length': body.length,
       ...extra,
     });
-    res.end(b);
+    res.end(body);
   };
   function readBody(req, max) {
     return new Promise((resolve, reject) => {
-      let n = 0;
+      let bytes = 0;
       const parts = [];
       req.on('data', (d) => {
-        n += d.length;
-        if (n > max) {
+        bytes += d.length;
+        if (bytes > max) {
           reject(Object.assign(new Error('too big'), { status: 413 }));
           req.destroy();
         } else parts.push(d);
@@ -514,11 +523,11 @@ function createHost(opts) {
   // ---------------------------------------------------------------- who may knock
   // the Host header must name this Mac (by an address Bento listens on, or its Tailscale/local name): a website that
   // points its own name at this Mac ("DNS rebinding") gets nothing
-  function hostOk(req, p) {
+  function hostOk(req, pathname) {
     const h = String(req.headers.host || '').toLowerCase();
-    const m = /^([a-z0-9.-]+|\[[0-9a-f:]+\]):(\d+)$/.exec(h);
-    if (!m || Number(m[2]) !== p) return null;
-    const name = m[1];
+    const match = /^([a-z0-9.-]+|\[[0-9a-f:]+\]):(\d+)$/.exec(h);
+    if (!match || Number(match[2]) !== pathname) return null;
+    const name = match[1];
     const ok =
       name === 'localhost' ||
       name === '127.0.0.1' ||
@@ -550,38 +559,39 @@ function createHost(opts) {
   async function onMain(req, res) {
     const hostName = hostOk(req, port);
     if (!hostName) return plain(res, 421, 'This isn’t the address Bento is listening on.');
-    let u;
+    let url;
     try {
-      u = new URL(req.url, `http://${hostName}:${port}`);
+      url = new URL(req.url, `http://${hostName}:${port}`);
     } catch {
       return plain(res, 400, 'no');
     }
     try {
-      if (u.pathname.startsWith('/api/')) {
-        if (req.method !== 'POST' && u.pathname !== '/api/events') return plain(res, 405, 'no');
+      if (url.pathname.startsWith('/api/')) {
+        if (req.method !== 'POST' && url.pathname !== '/api/events') return plain(res, 405, 'no');
         if (!originOk(req, hostName)) return plain(res, 403, 'Not from Bento’s page.');
-        return await api(req, res, u);
+        return await api(req, res, url);
       }
-      if (u.pathname === '/__net') {
+      if (url.pathname === '/__net') {
         // lesson code reaching the web (fetch, requests): paired devices only, through the same guarded fetch as the app
-        const k = cookie(req, 'bento_net');
-        if (!k || !netKeys.has(k)) return plain(res, 401, 'Pair this device with your Mac first.');
+        const token = cookie(req, 'bento_net');
+        if (!token || !netKeys.has(token))
+          return plain(res, 401, 'Pair this device with your Mac first.');
         const body = ['GET', 'HEAD'].includes(req.method)
           ? undefined
           : await readBody(req, 2_000_000);
         const headers = new Headers();
         for (const [k2, v] of Object.entries(req.headers))
           if (k2.startsWith('x-h-') && typeof v === 'string') headers.set(k2, v);
-        const r = await opts.netProxy(
-          new Request(u.toString(), { method: req.method, headers, body }),
-          u,
+        const proxied = await opts.netProxy(
+          new Request(url.toString(), { method: req.method, headers, body }),
+          url,
         );
-        const buf = Buffer.from(await r.arrayBuffer());
+        const buf = Buffer.from(await proxied.arrayBuffer());
         const out = {};
-        r.headers.forEach((v, k2) => {
+        proxied.headers.forEach((v, k2) => {
           out[k2] = v;
         });
-        res.writeHead(r.status, {
+        res.writeHead(proxied.status, {
           ...BASE_HEADERS,
           ...out,
           'cache-control': 'no-store',
@@ -590,7 +600,7 @@ function createHost(opts) {
         return res.end(buf);
       }
       if (req.method !== 'GET' && req.method !== 'HEAD') return plain(res, 405, 'no');
-      return serveStatic(req, res, u, hostName);
+      return serveStatic(req, res, url, hostName);
     } catch (e) {
       if (!res.headersSent)
         return plain(
@@ -604,8 +614,8 @@ function createHost(opts) {
     }
   }
 
-  async function api(req, res, u) {
-    const route = u.pathname.slice(5);
+  async function api(req, res, url) {
+    const route = url.pathname.slice(5);
     if (route === 'connect' || route === 'connect/state' || route === 'connect/cancel') {
       // only the Bento Code app asks this way, never a web page: browsers always send Origin with these, the app never
       // does, so a page on any device on the Wi-Fi (or one that points its own name at this Mac) can't raise the dialog
@@ -615,7 +625,7 @@ function createHost(opts) {
         const r = newAsk(body?.name, body?.kind);
         return json(res, r.status || 200, r.status ? { error: r.error } : r);
       }
-      const a =
+      const approval =
         ask &&
         typeof body?.id === 'string' &&
         same(body.id, ask.id) &&
@@ -623,39 +633,39 @@ function createHost(opts) {
         same(body.secret, ask.secret)
           ? ask
           : null;
-      if (!a) return json(res, 404, { state: 'gone' });
+      if (!approval) return json(res, 404, { state: 'gone' });
       if (route === 'connect/cancel') {
-        settle(a, 'expired');
-        if (ask === a) ask = null;
+        settle(approval, 'expired');
+        if (ask === approval) ask = null;
         return json(res, 200, { state: 'expired' });
       }
       // wait (up to 25 s) for the answer, so the phone hears it the moment you click
-      if (a.state === 'waiting')
-        await new Promise((r) => {
-          const t = setTimeout(r, 25_000);
+      if (approval.state === 'waiting')
+        await new Promise((resolve) => {
+          const timer = setTimeout(resolve, 25_000);
           const w = () => {
-            clearTimeout(t);
-            r();
+            clearTimeout(timer);
+            resolve();
           };
-          a.waiters.add(w);
+          approval.waiters.add(w);
           req.on('close', () => {
-            a.waiters.delete(w);
-            clearTimeout(t);
-            r();
+            approval.waiters.delete(w);
+            clearTimeout(timer);
+            resolve();
           });
         });
       if (res.destroyed) return undefined;
-      if (a.state === 'allowed') {
+      if (approval.state === 'allowed') {
         // the code goes out once: then this request is done
-        const pair = a.pair;
-        if (ask === a) ask = null;
+        const pair = approval.pair;
+        if (ask === approval) ask = null;
         return json(res, 200, {
           state: 'allowed',
           pair,
           mac: typeof opts.name === 'function' ? opts.name() : opts.name,
         });
       }
-      return json(res, 200, { state: a.state });
+      return json(res, 200, { state: approval.state });
     }
     if (route === 'pair') {
       // however many addresses someone tries from, wrong codes slow to a stop: 30 a minute for the whole Mac
@@ -665,16 +675,16 @@ function createHost(opts) {
         return json(res, 429, {
           error: 'Too many tries. Wait a minute, then scan the code on your Mac again.',
         });
-      const b = await readJson(req, 4000);
-      const r = tryPair(b?.code, b?.name);
-      if (r.error) misses.push(now);
-      return json(res, r.error ? 403 : 200, r);
+      const body = await readJson(req, 4000);
+      const paired = tryPair(body?.code, body?.name);
+      if (paired.error) misses.push(now);
+      return json(res, paired.error ? 403 : 200, paired);
     }
     if (route === 'events') {
       // a stream for one client; the ticket came from /api/hello a moment ago (an EventSource can't carry the key)
-      const t = tickets.get(u.searchParams.get('ticket') || '');
-      tickets.delete(u.searchParams.get('ticket') || '');
-      const client = t && Date.now() < t.exp ? clients.get(t.client) : null;
+      const ticket = tickets.get(url.searchParams.get('ticket') || '');
+      tickets.delete(url.searchParams.get('ticket') || '');
+      const client = ticket && Date.now() < ticket.exp ? clients.get(ticket.client) : null;
       if (!client) return plain(res, 401, 'Pair this device with your Mac first.');
       try {
         client.res?.end();
@@ -687,7 +697,7 @@ function createHost(opts) {
         'x-accel-buffering': 'no',
       });
       res.write(': hello\n\n');
-      const after = Number(u.searchParams.get('after')) || 0;
+      const after = Number(url.searchParams.get('after')) || 0;
       for (const ev of client.buf)
         if (ev.s > after)
           res.write(`id: ${ev.s}\ndata: ${JSON.stringify({ s: ev.s, ch: ev.ch, a: ev.a })}\n\n`);
@@ -706,8 +716,8 @@ function createHost(opts) {
     const dev = deviceFor(req);
     if (!dev) return json(res, 401, { error: 'unpaired' });
     if (route === 'hello') {
-      const b = await readJson(req, 4000);
-      let client = typeof b?.client === 'string' ? clients.get(b.client) : null;
+      const body = await readJson(req, 4000);
+      let client = typeof body?.client === 'string' ? clients.get(body.client) : null;
       if (!client || client.deviceId !== dev.id) {
         client = {
           id: rand(12),
@@ -745,9 +755,9 @@ function createHost(opts) {
     const client = clients.get(String(req.headers['x-bento-client'] || ''));
     if (!client || client.deviceId !== dev.id) return json(res, 409, { error: 'reconnect' });
     if (route === 'call' || route === 'send') {
-      const b = await readJson(req, 64_000_000);
-      const ch = typeof b?.ch === 'string' ? b.ch : '';
-      const args = Array.isArray(b?.args) ? b.args : [];
+      const body = await readJson(req, 64_000_000);
+      const ch = typeof body?.ch === 'string' ? body.ch : '';
+      const args = Array.isArray(body?.args) ? body.args : [];
       if (route === 'send') {
         try {
           opts.send(ch, args, senderFor(client));
@@ -789,19 +799,19 @@ function createHost(opts) {
     const hostName = hostOk(req, playPort);
     if (!hostName) return plain(res, 421, 'no');
     if (req.method !== 'GET') return plain(res, 405, 'no');
-    const m = /^\/p\/([a-z0-9-]{3,48})\/?$/i.exec(new URL(req.url, 'http://x').pathname);
-    const html = m && opts.playGet(m[1]);
+    const match = /^\/p\/([a-z0-9-]{3,48})\/?$/i.exec(new URL(req.url, 'http://x').pathname);
+    const html = match && opts.playGet(match[1]);
     if (!html) return plain(res, 404, 'Run the code again to see the page.');
-    const b = Buffer.from(html);
+    const body = Buffer.from(html);
     res.writeHead(200, {
       'x-content-type-options': 'nosniff',
       'referrer-policy': 'no-referrer',
       'content-type': 'text/html; charset=utf-8',
       'cache-control': 'no-store',
-      'content-length': b.length,
+      'content-length': body.length,
       'content-security-policy': `default-src 'self' data: blob: https:; script-src 'unsafe-inline' 'unsafe-eval' https:; style-src 'unsafe-inline' https:; img-src * data: blob:; connect-src https:; frame-ancestors http://${hostName}:${port}`,
     });
-    res.end(b);
+    res.end(body);
   }
 
   // ---------------------------------------------------------------- listening
@@ -814,9 +824,9 @@ function createHost(opts) {
   ];
   const listenOn = (ip) =>
     new Promise((resolve) => {
-      const a = http.createServer(onMain),
-        b = http.createServer(onPlay);
-      for (const s of [a, b]) {
+      const server = http.createServer(onMain),
+        playServer = http.createServer(onPlay);
+      for (const s of [server, playServer]) {
         s.keepAliveTimeout = 65_000;
         s.headersTimeout = 30_000;
         s.requestTimeout = 0;
@@ -827,18 +837,18 @@ function createHost(opts) {
         if (e) failed = e;
         if (++n < 2) return;
         if (failed) {
-          a.close();
-          b.close();
+          server.close();
+          playServer.close();
           resolve(failed);
         } else {
-          servers.set(ip, [a, b]);
+          servers.set(ip, [server, playServer]);
           resolve(null);
         }
       };
-      a.once('error', done);
-      b.once('error', done);
-      a.listen(port, ip, () => done());
-      b.listen(playPort, ip, () => done());
+      server.once('error', done);
+      playServer.once('error', done);
+      server.listen(port, ip, () => done());
+      playServer.listen(playPort, ip, () => done());
     });
   async function scan() {
     if (!on) return;

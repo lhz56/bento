@@ -291,16 +291,16 @@ export default function Home({
                           {!repos ? (
                             <div className="muted pad">Loading…</div>
                           ) : repos.length ? (
-                            repos.map((r) => (
+                            repos.map((repo) => (
                               <button
-                                key={r.nameWithOwner}
+                                key={repo.nameWithOwner}
                                 onClick={() => {
                                   setRepoMenu(false);
-                                  onPickRepo(r.nameWithOwner);
+                                  onPickRepo(repo.nameWithOwner);
                                 }}
                               >
-                                {r.nameWithOwner}
-                                <span>{r.primaryLanguage?.name || ''}</span>
+                                {repo.nameWithOwner}
+                                <span>{repo.primaryLanguage?.name || ''}</span>
                               </button>
                             ))
                           ) : (
@@ -327,16 +327,16 @@ export default function Home({
                 </button>
                 {menu === 'mode' && (
                   <div className="cx-menu" role="menu">
-                    {MODES.map(([k]) => {
-                      const [i, l, d] = MODE_INFO[k];
+                    {MODES.map(([modeId]) => {
+                      const [i, l, d] = MODE_INFO[modeId];
                       return (
                         <button
-                          key={k}
+                          key={modeId}
                           role="menuitemradio"
-                          aria-checked={mode === k}
-                          className={mode === k ? 'on' : ''}
+                          aria-checked={mode === modeId}
+                          className={mode === modeId ? 'on' : ''}
                           onClick={() => {
-                            setMode(k);
+                            setMode(modeId);
                             setMenu(null);
                           }}
                         >

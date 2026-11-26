@@ -96,23 +96,23 @@ export default function useShortcuts({
   menuActs.current = { openFolderAtlas };
   useEffect(() => {
     let lastMod = 0;
-    const k = (e) => {
+    const noteMod = (e) => {
       if (mod(e)) lastMod = Date.now();
     };
-    addEventListener('keydown', k, true);
-    const off = api.onMenu?.((a) => {
+    addEventListener('keydown', noteMod, true);
+    const off = api.onMenu?.((action) => {
       const keyed = Date.now() - lastMod < 500;
-      if (a === 'openFolder') return menuActs.current.openFolderAtlas?.();
-      if (a === 'setup') return setOnb(1);
+      if (action === 'openFolder') return menuActs.current.openFolderAtlas?.();
+      if (action === 'setup') return setOnb(1);
       if (keyed) return;
-      if (a === 'settings') setShowSettings(true);
-      if (a === 'new') setViewRaw('home');
-      if (a === 'search') setPal((x) => !x);
-      if (a === 'sidebar') setSideOpen((x) => !x);
-      if (a === 'keys') setShowKeys(true);
-      if (a === 'find') setFindOpen(true);
-      if (a === 'back') history.back();
-      if (a === 'forward') history.forward();
+      if (action === 'settings') setShowSettings(true);
+      if (action === 'new') setViewRaw('home');
+      if (action === 'search') setPal((x) => !x);
+      if (action === 'sidebar') setSideOpen((x) => !x);
+      if (action === 'keys') setShowKeys(true);
+      if (action === 'find') setFindOpen(true);
+      if (action === 'back') history.back();
+      if (action === 'forward') history.forward();
     });
     // a mouse's side buttons
     const side = (e) => {
@@ -126,7 +126,7 @@ export default function useShortcuts({
     };
     addEventListener('mouseup', side);
     return () => {
-      removeEventListener('keydown', k, true);
+      removeEventListener('keydown', noteMod, true);
       removeEventListener('mouseup', side);
       off?.();
     };

@@ -14,14 +14,14 @@ function findRanges(q) {
         : NodeFilter.FILTER_ACCEPT,
   });
   for (let n = w.nextNode(); n && out.length < 2000; n = w.nextNode()) {
-    const t = n.nodeValue.toLowerCase();
-    let i = t.indexOf(needle);
+    const text = n.nodeValue.toLowerCase();
+    let i = text.indexOf(needle);
     while (i >= 0 && out.length < 2000) {
       const r = document.createRange();
       r.setStart(n, i);
       r.setEnd(n, i + needle.length);
       out.push(r);
-      i = t.indexOf(needle, i + needle.length);
+      i = text.indexOf(needle, i + needle.length);
     }
   }
   return out;
@@ -42,12 +42,12 @@ export default function FindBar({ onClose }) {
     };
   }, []);
   useEffect(() => {
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       const r = q.trim().length >= 2 || (q.trim() && /\S/.test(q)) ? findRanges(q.trim()) : [];
       setHits(r);
       setAt(0);
     }, 120);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [q]);
   useEffect(() => {
     if (!HL) return;

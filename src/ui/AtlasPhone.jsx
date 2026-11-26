@@ -367,13 +367,13 @@ export default function PhoneAtlas(props) {
 
   let shown = null;
   if (sheet?.k === 'node') {
-    const n = flow.nodes.find((x) => x.id === sheet.id);
-    if (n)
+    const node = flow.nodes.find((x) => x.id === sheet.id);
+    if (node)
       shown = (
         <NodeSheet
-          n={n}
+          n={node}
           flow={flow}
-          tool={toolOf(n)}
+          tool={toolOf(node)}
           toolOf={toolOf}
           terms={narration?.terms || []}
           pathIdx={pathIdx}
@@ -400,13 +400,13 @@ export default function PhoneAtlas(props) {
       />
     );
   if (sheet?.k === 'tool') {
-    const t = tools.find((x) => x.id === sheet.id);
-    if (t)
+    const tool = tools.find((x) => x.id === sheet.id);
+    if (tool)
       shown = (
         <ToolSheet
-          t={t}
-          n={sayOf(narration, t)}
-          alts={altsOf(t)}
+          t={tool}
+          n={sayOf(narration, tool)}
+          alts={altsOf(tool)}
           narrating={narrating}
           onClose={close}
           onShowFiles={showFiles}
@@ -757,13 +757,13 @@ function Hero({ atlas, facts, narration, meta, tools, langs, totalL, narrating, 
             ) : null
           }
         >
-          {gist.does.map((d) => (
-            <div key={d} className="ph-cell">
+          {gist.does.map((point) => (
+            <div key={point} className="ph-cell">
               <span className="ph-ic round sm" style={{ '--c': 'var(--mint)' }}>
                 <I n="check" s={14} w={2.8} />
               </span>
               <span className="ph-ct">
-                <b className="reg">{d}</b>
+                <b className="reg">{point}</b>
               </span>
             </div>
           ))}
@@ -873,15 +873,15 @@ function treeLayout(flow, width) {
 }
 
 function NodeIcon({ n, tool, size = 40 }) {
-  const c = colorOf(n);
+  const color = colorOf(n);
   if (n.kind === 'outside' && tool)
     return (
-      <span className="fx-ic brand" style={{ '--c': c, width: size, height: size }}>
+      <span className="fx-ic brand" style={{ '--c': color, width: size, height: size }}>
         <Brand slug={tool.slug} name={tool.name} color={tool.color} size={size} />
       </span>
     );
   return (
-    <span className="fx-ic" style={{ '--c': c, width: size, height: size }}>
+    <span className="fx-ic" style={{ '--c': color, width: size, height: size }}>
       <span className="fx-g">
         <I n={glyphOf(n)} s={Math.round(size * 0.5)} w={2} />
       </span>
@@ -918,17 +918,17 @@ function FlowMap({ flow, toolOf, onPick }) {
     <>
       <div className="fx" ref={box} style={{ height: layout.H }}>
         <svg className="fx-svg" width={width} height={layout.H} aria-hidden="true">
-          {layout.links.map((k, i) => (
-            <g key={k.key} className={`fx-l ${k.up ? 'up' : ''}`}>
-              <path d={k.d} />
+          {layout.links.map((link, i) => (
+            <g key={link.key} className={`fx-l ${link.up ? 'up' : ''}`}>
+              <path d={link.d} />
               {!calm && (
                 <circle r="2.8">
                   <animateMotion
                     dur={`${2.6 + (i % 3) * 0.5}s`}
                     repeatCount="indefinite"
                     begin={`${(i * 0.55) % 2.6}s`}
-                    path={k.d}
-                    keyPoints={k.up ? '1;0' : '0;1'}
+                    path={link.d}
+                    keyPoints={link.up ? '1;0' : '0;1'}
                     keyTimes="0;1"
                     calcMode="linear"
                   />
@@ -939,7 +939,7 @@ function FlowMap({ flow, toolOf, onPick }) {
         </svg>
         {layout.nodes.map((node, i) => {
           const q = layout.pos[node.id];
-          const t = toolOf(node);
+          const tool = toolOf(node);
           return (
             <button
               key={node.id}
@@ -955,7 +955,7 @@ function FlowMap({ flow, toolOf, onPick }) {
               onClick={() => onPick(node.id)}
               aria-label={`${node.label}: ${node.does || kindOf(node)[1]}`}
             >
-              <NodeIcon n={node} tool={t} size={q.wide ? 40 : 38} />
+              <NodeIcon n={node} tool={tool} size={q.wide ? 40 : 38} />
               <span className="fx-t">
                 <b>{node.label}</b>
                 {q.wide && node.does && <span>{node.does}</span>}
@@ -991,13 +991,13 @@ function NodeSheet({
   onAsk,
 }) {
   const termOf = (t) => {
-    const k = String(t || '').toLowerCase();
-    if (!k) return null;
+    const key = String(t || '').toLowerCase();
+    if (!key) return null;
     return (
-      terms.find((x) => String(x.term).toLowerCase() === k) ||
+      terms.find((x) => String(x.term).toLowerCase() === key) ||
       terms.find((x) => {
         const y = String(x.term).toLowerCase();
-        return y.length > 2 && (k.includes(y) || y.includes(k));
+        return y.length > 2 && (key.includes(y) || y.includes(key));
       })
     );
   };
@@ -1171,18 +1171,18 @@ function Parts({ facts, tools, onPick }) {
         </div>
       </div>
       <div className="ph-cells">
-        {parts.map(([k, nm, desc]) => (
-          <button key={k} className="ph-cell tall" onClick={() => onPick(k)}>
-            <span className="ph-ic" style={{ '--c': tint(k) }}>
-              <I n={PART_IC[k]} s={19} />
+        {parts.map(([id, nm, desc]) => (
+          <button key={id} className="ph-cell tall" onClick={() => onPick(id)}>
+            <span className="ph-ic" style={{ '--c': tint(id) }}>
+              <I n={PART_IC[id]} s={19} />
             </span>
             <span className="ph-ct">
               <b>{nm}</b>
               <span>{desc}</span>
             </span>
-            {by[k]?.length > 0 && (
+            {by[id]?.length > 0 && (
               <span className="pk-logos" aria-hidden="true">
-                {by[k].slice(0, 3).map((t) => (
+                {by[id].slice(0, 3).map((t) => (
                   <Brand key={t.id} slug={t.slug} name={t.name} color={t.color} size={26} />
                 ))}
               </span>
@@ -1312,12 +1312,12 @@ function Services({ tools, narration, onPick }) {
             note={`${libs.length} ${libs.length === 1 ? 'library' : 'libraries'}`}
           />
           <div className="ph-pager lib-pager">
-            {libs.map((t) => (
-              <button key={t.id} className="lib" onClick={() => onPick(t.id)}>
-                <Brand slug={t.slug} name={t.name} color={t.color} size={44} />
+            {libs.map((lib) => (
+              <button key={lib.id} className="lib" onClick={() => onPick(lib.id)}>
+                <Brand slug={lib.slug} name={lib.name} color={lib.color} size={44} />
                 <span className="ph-ct">
-                  <b>{t.name}</b>
-                  <span>{sayOf(narration, t)?.role || t.what}</span>
+                  <b>{lib.name}</b>
+                  <span>{sayOf(narration, lib)?.role || lib.what}</span>
                 </span>
               </button>
             ))}
@@ -1362,12 +1362,12 @@ function ToolSheet({ t, n, alts, narrating, onClose, onShowFiles }) {
         ) : null}
         {alts.length > 0 && (
           <Group title="It could have been">
-            {alts.map((a) => (
-              <div key={a.name} className="ph-cell">
-                <Brand slug={a.tool?.slug} name={a.name} color={a.tool?.color} size={32} />
+            {alts.map((alt) => (
+              <div key={alt.name} className="ph-cell">
+                <Brand slug={alt.tool?.slug} name={alt.name} color={alt.tool?.color} size={32} />
                 <span className="ph-ct">
-                  <b>{a.name}</b>
-                  <span>{a.when || a.tool?.when || ''}</span>
+                  <b>{alt.name}</b>
+                  <span>{alt.when || alt.tool?.when || ''}</span>
                 </span>
               </div>
             ))}
@@ -1504,13 +1504,13 @@ function Risks({ hot, narrating, onPick }) {
       />
       {kinds.length > 0 && (
         <div className="hs-tiles" role="group" tabIndex={0} aria-label="How many of each kind">
-          {kinds.map(([k, n]) => (
-            <div key={k} className="hs-t" style={{ '--c': HOT[k][2] }}>
+          {kinds.map(([kind, n]) => (
+            <div key={kind} className="hs-t" style={{ '--c': HOT[kind][2] }}>
               <span className="ph-ic round sm">
-                <I n={HOT[k][0]} s={14} w={2.2} />
+                <I n={HOT[kind][0]} s={14} w={2.2} />
               </span>
               <b>{n}</b>
-              <span>{HOT[k][1]}</span>
+              <span>{HOT[kind][1]}</span>
             </div>
           ))}
         </div>
@@ -1780,14 +1780,14 @@ function Code({ facts, role, onOpen, name }) {
             <I n="folder" s={15} />
             {name}
           </button>
-          {crumbs.map((c, i) => (
+          {crumbs.map((crumb, i) => (
             <span key={i}>
               <Chev />
               <button
                 className={i === crumbs.length - 1 ? 'on' : ''}
                 onClick={() => go(crumbs.slice(0, i + 1).join('/'), 'out')}
               >
-                {c}
+                {crumb}
               </button>
             </span>
           ))}

@@ -5,15 +5,15 @@ import { api } from '../bridge.js';
 export default function useFallbackNotice() {
   const [fellBack, setFellBack] = useState(null); // { from, to }: another AI answered (Retry with another AI)
   useEffect(() => {
-    let t;
+    let timer;
     const off = api.onFallback?.((x) => {
       setFellBack(x);
-      clearTimeout(t);
-      t = setTimeout(() => setFellBack(null), 7000);
+      clearTimeout(timer);
+      timer = setTimeout(() => setFellBack(null), 7000);
     });
     return () => {
       off?.();
-      clearTimeout(t);
+      clearTimeout(timer);
     };
   }, []);
   return { fellBack, setFellBack };

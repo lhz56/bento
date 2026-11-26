@@ -40,12 +40,12 @@ contextBridge.exposeInMainWorld('bento', {
   setPrefs: (p) => ipcRenderer.send('prefs', p),
   // a file or folder dropped on the window: its path comes from the dropped file itself, never from the page
   dropOpen: (file) => {
-    let p = '';
+    let prefix = '';
     try {
-      p = webUtils.getPathForFile(file);
+      prefix = webUtils.getPathForFile(file);
     } catch {}
-    return p
-      ? call('drop:open', p)
+    return prefix
+      ? call('drop:open', prefix)
       : Promise.reject(new Error('Couldn’t read that. Drop a file from Finder.'));
   },
   // saving starts or stops failing (a full disk, a folder Bento may no longer write to)

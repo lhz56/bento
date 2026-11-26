@@ -13,9 +13,9 @@ module.exports = function registerAtlas(ctx) {
   const CACHE = path.join(app.getPath('userData'), 'atlas');
   const cacheReady = fsp.mkdir(CACHE, { recursive: true }).catch(() => {});
   const ghOk = (() => {
-    let v = null;
+    let value = null;
     return async () =>
-      (v ??=
+      (value ??=
         !process.env.BENTO_NO_GH &&
         !!(await which('gh')) &&
         (await gh(['auth', 'status']).then(
@@ -50,30 +50,30 @@ module.exports = function registerAtlas(ctx) {
     ];
     const seen = new Map();
     for (const label of labels) {
-      const q = `repos/${full}/issues?state=open&per_page=12&labels=${encodeURIComponent(label)}`;
+      const query = `repos/${full}/issues?state=open&per_page=12&labels=${encodeURIComponent(label)}`;
       let rows = [];
       try {
         rows = (await ghOk())
-          ? JSON.parse(await gh(['api', q]))
+          ? JSON.parse(await gh(['api', query]))
           : await (
-              await net.fetch(`https://api.github.com/${q}`, {
+              await net.fetch(`https://api.github.com/${query}`, {
                 headers: { 'user-agent': 'Bento', accept: 'application/vnd.github+json' },
               })
             ).json();
       } catch {
         rows = [];
       }
-      for (const r of Array.isArray(rows) ? rows : [])
-        if (!r.pull_request && !seen.has(r.number))
-          seen.set(r.number, {
-            n: r.number,
-            title: r.title,
-            url: r.html_url,
-            body: String(r.body || '').slice(0, 4000),
-            labels: (r.labels || []).map((l) => l.name),
-            comments: r.comments,
-            at: r.created_at,
-            assigned: !!(r.assignee || r.assignees?.length),
+      for (const row of Array.isArray(rows) ? rows : [])
+        if (!row.pull_request && !seen.has(row.number))
+          seen.set(row.number, {
+            n: row.number,
+            title: row.title,
+            url: row.html_url,
+            body: String(row.body || '').slice(0, 4000),
+            labels: (row.labels || []).map((l) => l.name),
+            comments: row.comments,
+            at: row.created_at,
+            assigned: !!(row.assignee || row.assignees?.length),
           });
       if (seen.size >= 12) break;
     }
@@ -108,24 +108,24 @@ module.exports = function registerAtlas(ctx) {
   });
   async function repoMeta(full) {
     if (!REPO_RX.test(full)) return null;
-    const pick = (r) => ({
-      full: r.full_name,
-      description: r.description,
-      stars: r.stargazers_count,
-      forks: r.forks_count,
-      license: r.license?.spdx_id,
-      topics: r.topics || [],
-      avatar: r.owner?.avatar_url,
-      owner: r.owner?.login,
-      url: r.html_url,
-      homepage: r.homepage,
-      pushed: r.pushed_at,
-      created: r.created_at,
-      language: r.language,
-      size: r.size,
-      fork: r.fork,
-      parent: r.parent?.full_name,
-      isPrivate: r.private,
+    const pick = (repo) => ({
+      full: repo.full_name,
+      description: repo.description,
+      stars: repo.stargazers_count,
+      forks: repo.forks_count,
+      license: repo.license?.spdx_id,
+      topics: repo.topics || [],
+      avatar: repo.owner?.avatar_url,
+      owner: repo.owner?.login,
+      url: repo.html_url,
+      homepage: repo.homepage,
+      pushed: repo.pushed_at,
+      created: repo.created_at,
+      language: repo.language,
+      size: repo.size,
+      fork: repo.fork,
+      parent: repo.parent?.full_name,
+      isPrivate: repo.private,
     });
     try {
       if (await ghOk()) return pick(JSON.parse(await gh(['api', `repos/${full}`])));
@@ -180,11 +180,13 @@ module.exports = function registerAtlas(ctx) {
   ipcMain.handle('atlas:list', async () => {
     await cacheReady;
     const out = [];
-    for (const f of (await fsp.readdir(CACHE).catch(() => [])).filter((x) => x.endsWith('.json'))) {
+    for (const file of (await fsp.readdir(CACHE).catch(() => [])).filter((x) =>
+      x.endsWith('.json'),
+    )) {
       try {
         const [st, j] = await Promise.all([
-          fsp.stat(path.join(CACHE, f)),
-          fsp.readFile(path.join(CACHE, f), 'utf8').then(JSON.parse),
+          fsp.stat(path.join(CACHE, file)),
+          fsp.readFile(path.join(CACHE, file), 'utf8').then(JSON.parse),
         ]);
         if (!j?.src) continue;
         const lang = Object.entries(j.facts?.langs || {})

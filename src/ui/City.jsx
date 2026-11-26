@@ -242,12 +242,15 @@ export default function City({
   const jKeys = jr ? (journeys[jr.j]?.steps || []).map((s) => resolve(s.p)) : [];
   useEffect(() => {
     if (!jr?.playing) return;
-    const n = journeys[jr.j]?.steps.length || 0;
-    const t = setTimeout(
-      () => setJr((x) => (x && x.s < n - 1 ? { ...x, s: x.s + 1 } : x && { ...x, playing: false })),
+    const stepCount = journeys[jr.j]?.steps.length || 0;
+    const timer = setTimeout(
+      () =>
+        setJr((x) =>
+          x && x.s < stepCount - 1 ? { ...x, s: x.s + 1 } : x && { ...x, playing: false },
+        ),
       jr.s === 0 ? 2200 : 2900,
     );
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [jr]);
 
   let lit = null;
@@ -276,9 +279,9 @@ export default function City({
       links.push([hover, s, 'svc']);
     });
   } else if (hover?.startsWith('s:')) {
-    const s = svcs.find((x) => `s:${x.id}` === hover);
+    const service = svcs.find((x) => `s:${x.id}` === hover);
     lit = new Set([hover]);
-    (s?.used || []).forEach((i) => {
+    (service?.used || []).forEach((i) => {
       const kk = `f:${i}`;
       if (roof[kk]) {
         lit.add(kk);
@@ -732,11 +735,11 @@ export default function City({
             [...tags]
               .filter((key) => roof[key])
               .map((key) => {
-                const t = displayName(facts.files[+key.slice(2)].p);
+                const label = displayName(facts.files[+key.slice(2)].p);
                 return {
                   key,
-                  t,
-                  w: t.length * 6.4 + 14,
+                  t: label,
+                  w: label.length * 6.4 + 14,
                   x: roof[key][0],
                   y: roof[key][1] - 10,
                   ry: roof[key][1],
@@ -820,10 +823,10 @@ function placeTags(ts) {
 }
 
 function lumDark(hex) {
-  const n = parseInt(hex, 16);
-  const r = (n >> 16) & 255,
-    g = (n >> 8) & 255,
-    b = n & 255;
+  const num = parseInt(hex, 16);
+  const r = (num >> 16) & 255,
+    g = (num >> 8) & 255,
+    b = num & 255;
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return luminance < 0.16 || luminance > 0.9;
 }

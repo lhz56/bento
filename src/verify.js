@@ -13,15 +13,15 @@ const LOOSE = (k) =>
   !k || /^[}\])]+[;,)]*$/.test(k) || /^<\/[\w-]+>$/.test(k) || /^(#|\/\/|\/\*|\*|<!--)/.test(k);
 export function pseudoFits(code, pseudo) {
   if (!Array.isArray(pseudo) || !pseudo.length) return false;
-  const c = String(code || '').split('\n');
-  const p = pseudo.map((x) => String(x ?? '').trim());
-  while (c.length && !c[c.length - 1].trim()) c.pop();
-  while (p.length > c.length && !p[p.length - 1]) p.pop();
-  if (Math.abs(p.length - c.length) > 1) return false;
+  const lines = String(code || '').split('\n');
+  const plain = pseudo.map((x) => String(x ?? '').trim());
+  while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+  while (plain.length > lines.length && !plain[plain.length - 1]) plain.pop();
+  if (Math.abs(plain.length - lines.length) > 1) return false;
   let off = 0;
-  c.forEach((l, i) => {
+  lines.forEach((l, i) => {
     const k = l.trim(),
-      e = p[i];
+      e = plain[i];
     if (e === undefined ? !LOOSE(k) : (!k && e) || (!LOOSE(k) && !e)) off++;
   });
   return off < 2;
@@ -38,15 +38,15 @@ const COMMON = new Set(
 );
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 export function fixLinks(code, md) {
-  const c = String(code || '').split('\n');
+  const lines = String(code || '').split('\n');
   const moved = [];
   const has = (n, t) =>
     n >= 1 &&
-    n <= c.length &&
-    new RegExp(`(^|[^A-Za-z0-9_])${esc(t)}($|[^A-Za-z0-9_])`, 'i').test(c[n - 1]);
-  const out = String(md || '').replace(LINK, (m, a, z, text) => {
-    const numA = +a;
-    if (z && +z !== numA) return m;
+    n <= lines.length &&
+    new RegExp(`(^|[^A-Za-z0-9_])${esc(t)}($|[^A-Za-z0-9_])`, 'i').test(lines[n - 1]);
+  const out = String(md || '').replace(LINK, (whole, from, z, text) => {
+    const numA = +from;
+    if (z && +z !== numA) return whole;
     const toks = (text.match(/[A-Za-z_][A-Za-z0-9_]*/g) || []).filter(
       (w) => w.length >= 3 && !COMMON.has(w.toLowerCase()),
     );
@@ -56,15 +56,15 @@ export function fixLinks(code, md) {
         text,
       );
     let to = null;
-    if (numA >= 1 && numA <= c.length && !c[numA - 1].trim()) {
+    if (numA >= 1 && numA <= lines.length && !lines[numA - 1].trim()) {
       for (const d of [1, -1, 2, -2])
-        if (c[numA + d - 1]?.trim() && toks.some((t) => has(numA + d, t))) {
+        if (lines[numA + d - 1]?.trim() && toks.some((t) => has(numA + d, t))) {
           to = numA + d;
           break;
         }
       if (to == null)
         for (const d of [1, -1])
-          if (c[numA + d - 1]?.trim()) {
+          if (lines[numA + d - 1]?.trim()) {
             to = numA + d;
             break;
           }
@@ -75,7 +75,7 @@ export function fixLinks(code, md) {
           break;
         }
     }
-    if (to == null) return m;
+    if (to == null) return whole;
     moved.push({ from: numA, to, text });
     return `[[${to}|${text}]]`;
   });
@@ -85,41 +85,45 @@ export function fixLinks(code, md) {
 // Margin notes slip the same way. A note is moved only on the same proof as a link: it sits on blank lines, or its
 // code-shaped label (show(), getElementById) isn't in its lines but is in the lines just next to them.
 export function fixNotes(code, notes) {
-  const c = String(code || '').split('\n');
+  const lines = String(code || '').split('\n');
   const moved = [];
   const has = (n, t) =>
     n >= 1 &&
-    n <= c.length &&
-    new RegExp(`(^|[^A-Za-z0-9_])${esc(t)}($|[^A-Za-z0-9_])`, 'i').test(c[n - 1]);
+    n <= lines.length &&
+    new RegExp(`(^|[^A-Za-z0-9_])${esc(t)}($|[^A-Za-z0-9_])`, 'i').test(lines[n - 1]);
   const out = (notes || []).map((note) => {
-    const a = +note.from,
-      b = +(note.to || note.from);
-    if (!(a >= 1 && b <= c.length && a <= b)) return note; // past the end: the free checks drop it
+    const from = +note.from,
+      to = +(note.to || note.from);
+    if (!(from >= 1 && to <= lines.length && from <= to)) return note; // past the end: the free checks drop it
     const label = String(note.label || '');
     const toks = (label.match(/[A-Za-z_][A-Za-z0-9_]*/g) || []).filter(
       (w) => w.length >= 3 && !COMMON.has(w.toLowerCase()),
     );
     const inRange = (d) => {
-      for (let k = a + d; k <= b + d; k++) if (toks.some((t) => has(k, t))) return true;
+      for (let k = from + d; k <= to + d; k++) if (toks.some((t) => has(k, t))) return true;
       return false;
     };
-    let d = null;
-    if (c.slice(a - 1, b).every((l) => !l.trim())) {
+    let shift = null;
+    if (lines.slice(from - 1, to).every((l) => !l.trim())) {
       for (const x of [1, -1, 2, -2])
-        if (a + x >= 1 && b + x <= c.length && c.slice(a + x - 1, b + x).some((l) => l.trim())) {
-          d = x;
+        if (
+          from + x >= 1 &&
+          to + x <= lines.length &&
+          lines.slice(from + x - 1, to + x).some((l) => l.trim())
+        ) {
+          shift = x;
           break;
         }
     } else if (/[`.(]|_|[a-z][A-Z]/.test(label) && toks.length && !inRange(0)) {
       for (const x of [1, -1, 2, -2])
-        if (a + x >= 1 && b + x <= c.length && inRange(x)) {
-          d = x;
+        if (from + x >= 1 && to + x <= lines.length && inRange(x)) {
+          shift = x;
           break;
         }
     }
-    if (d == null) return note;
-    moved.push({ from: a, to: a + d, label });
-    return { ...note, from: a + d, to: b + d };
+    if (shift == null) return note;
+    moved.push({ from: from, to: from + shift, label });
+    return { ...note, from: from + shift, to: to + shift };
   });
   return { notes: out, moved };
 }
@@ -130,14 +134,14 @@ export function fixNotes(code, notes) {
 export function tidyLesson(lesson) {
   const patch = {};
   if (lesson.code && !lesson.steps?.length) {
-    let n = 0;
+    let count = 0;
     const story = (lesson.story || []).map((b) => {
       if (b.t !== 'p' || !b.md) return b;
       const r = fixLinks(lesson.code, b.md);
-      n += r.moved.length;
+      count += r.moved.length;
       return r.moved.length ? { ...b, md: r.md } : b;
     });
-    if (n) patch.story = story;
+    if (count) patch.story = story;
     const notes = fixNotes(lesson.code, lesson.notes);
     if (notes.moved.length) patch.notes = notes.notes;
   }
@@ -152,10 +156,10 @@ export function localChecks(lesson) {
   const lines = String(lesson.code || '').split('\n').length;
   // line links that point past the end of the code become plain text
   const story = (lesson.story || [])
-    .map((b) => {
-      if (b.t !== 'p' || !b.md) return b;
+    .map((block) => {
+      if (block.t !== 'p' || !block.md) return block;
       let bad = 0;
-      const md = b.md.replace(LINK, (m, a, z, text) => {
+      const md = block.md.replace(LINK, (m, a, z, text) => {
         const numA = +a,
           numZ = +(z || a);
         if (numA >= 1 && numZ <= lines && numA <= numZ) return m;
@@ -163,16 +167,21 @@ export function localChecks(lesson) {
         return text;
       });
       if (bad) notes.push(`${bad} link${bad > 1 ? 's' : ''} to lines that don’t exist`);
-      return bad ? { ...b, md } : b;
+      return bad ? { ...block, md } : block;
     })
-    .map((b) => {
-      if (b.t !== 'quiz') return b;
-      const ch = Array.isArray(b.choices) ? b.choices : [];
-      if (ch.length < 2 || !Number.isInteger(b.answer) || b.answer < 0 || b.answer >= ch.length) {
+    .map((block) => {
+      if (block.t !== 'quiz') return block;
+      const ch = Array.isArray(block.choices) ? block.choices : [];
+      if (
+        ch.length < 2 ||
+        !Number.isInteger(block.answer) ||
+        block.answer < 0 ||
+        block.answer >= ch.length
+      ) {
         notes.push('a quiz without a valid answer was removed');
         return null;
       }
-      return b;
+      return block;
     })
     .filter(Boolean);
   if (story.length !== (lesson.story || []).length || story.some((b, i) => b !== lesson.story[i]))
@@ -247,29 +256,29 @@ export function applyCheck(lesson, j) {
   story = story.map((block) => {
     if (block.t !== 'quiz') return block;
     qi++;
-    const v = (j?.quizzes || []).find((x) => x.i === qi);
+    const verdict = (j?.quizzes || []).find((x) => x.i === qi);
     if (
-      !v ||
-      !v.sure ||
-      !Number.isInteger(v.correct) ||
-      v.correct < 0 ||
-      v.correct >= block.choices.length ||
-      v.correct === block.answer
+      !verdict ||
+      !verdict.sure ||
+      !Number.isInteger(verdict.correct) ||
+      verdict.correct < 0 ||
+      verdict.correct >= block.choices.length ||
+      verdict.correct === block.answer
     )
       return block;
     corrections.push({
       kind: 'quiz',
       was: block.choices[block.answer],
-      now: block.choices[v.correct],
+      now: block.choices[verdict.correct],
       q: block.q,
     });
     // the old explanation argued for the wrong answer, so it goes too
     const why =
-      String(v.why || '').trim() ||
-      `The code’s real output shows the answer is ${block.choices[v.correct]}.`;
+      String(verdict.why || '').trim() ||
+      `The code’s real output shows the answer is ${block.choices[verdict.correct]}.`;
     return {
       ...block,
-      answer: v.correct,
+      answer: verdict.correct,
       why: `${why} (Bento double-checked this against the code’s real output.)`,
     };
   });

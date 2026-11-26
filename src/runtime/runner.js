@@ -22,15 +22,15 @@ function get(lang) {
   if (!workers[lang]) {
     const w = make[lang]();
     w.onmessage = (e) => {
-      const p = pending.get(e.data.id);
-      if (!p) return;
+      const waiting = pending.get(e.data.id);
+      if (!waiting) return;
       if (e.data.live) {
-        p.onLive?.(e.data.live);
+        waiting.onLive?.(e.data.live);
         return;
       } // lines printed while the program is still running
       pending.delete(e.data.id);
-      clearTimeout(p.timer);
-      p.resolve(e.data.result);
+      clearTimeout(waiting.timer);
+      waiting.resolve(e.data.result);
     };
     workers[lang] = w;
   }

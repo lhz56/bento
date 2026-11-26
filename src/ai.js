@@ -84,12 +84,12 @@ export const usedText = (w, translate = (x) => x) =>
 // how old a reading is, so a meter never pretends to be live
 export const ageText = (at, now = Date.now(), translate = (x) => x) => {
   if (!at) return '';
-  const m = Math.round((now - at) / 60000);
-  return m < 2
+  const mins = Math.round((now - at) / 60000);
+  return mins < 2
     ? translate('just now')
-    : m < 60
-      ? `${m} ${translate('min ago')}`
-      : m < 1440
-        ? `${Math.round(m / 60)} ${translate('h ago')}`
-        : `${Math.round(m / 1440)} ${translate('d ago')}`;
+    : mins < 60
+      ? `${mins} ${translate('min ago')}`
+      : mins < 1440
+        ? `${Math.round(mins / 60)} ${translate('h ago')}`
+        : `${Math.round(mins / 1440)} ${translate('d ago')}`;
 };

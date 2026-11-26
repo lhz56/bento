@@ -31,12 +31,12 @@ export function createRemote() {
   let state = key ? 'connecting' : 'unpaired';
   const watchers = new Set();
   const handlers = new Map(); // channel → Set(fn)
-  const setState = (s) => {
-    if (s === state) return;
-    state = s;
+  const setState = (next) => {
+    if (next === state) return;
+    state = next;
     watchers.forEach((f) => {
       try {
-        f(s, hostInfo);
+        f(next, hostInfo);
       } catch {}
     });
   };
@@ -63,9 +63,9 @@ export function createRemote() {
   });
 
   async function hello() {
-    let r;
+    let res;
     try {
-      r = await fetch('/api/hello', {
+      res = await fetch('/api/hello', {
         method: 'POST',
         headers: headers(),
         body: JSON.stringify({ client }),
@@ -73,12 +73,12 @@ export function createRemote() {
     } catch {
       throw Object.assign(new Error(OFFLINE), { offline: true });
     }
-    if (r.status === 401) {
+    if (res.status === 401) {
       forgetKey();
       throw new Error('This device isn’t paired with your Mac any more. Pair it again.');
     }
-    if (!r.ok) throw Object.assign(new Error(OFFLINE), { offline: true });
-    const j = await r.json();
+    if (!res.ok) throw Object.assign(new Error(OFFLINE), { offline: true });
+    const j = await res.json();
     if (client && j.client !== client) {
       // the Mac's Bento restarted (or forgot this page while it slept): what it was writing for this page is gone
       seq = 0;
@@ -101,10 +101,10 @@ export function createRemote() {
       retry = 0;
       setState('online');
     };
-    es.onmessage = (m) => {
+    es.onmessage = (message) => {
       let ev;
       try {
-        ev = JSON.parse(m.data);
+        ev = JSON.parse(message.data);
       } catch {
         return;
       }
@@ -112,12 +112,12 @@ export function createRemote() {
       seq = ev.s;
       dispatch(ev.ch, Array.isArray(ev.a) ? ev.a : []);
     };
-    es.addEventListener('bye', (m) => {
+    es.addEventListener('bye', (message) => {
       try {
         es.close();
       } catch {}
       es = null;
-      if (/removed/.test(m.data)) {
+      if (/removed/.test(message.data)) {
         forgetKey();
       } else later();
     });
@@ -208,9 +208,9 @@ export function createRemote() {
   async function call(ch, ...args) {
     if (!client) await connect();
     for (let attempt = 0; ; attempt++) {
-      let r;
+      let res;
       try {
-        r = await fetch('/api/call', {
+        res = await fetch('/api/call', {
           method: 'POST',
           headers: headers(),
           body: JSON.stringify({ ch, args }),
@@ -220,18 +220,18 @@ export function createRemote() {
         later();
         throw new Error(OFFLINE);
       }
-      if (r.status === 409 && attempt === 0) {
+      if (res.status === 409 && attempt === 0) {
         client = null;
         await connect();
         continue;
       }
-      if (r.status === 401) {
+      if (res.status === 401) {
         forgetKey();
         throw new Error('This device isn’t paired with your Mac any more. Pair it again.');
       }
-      if (!r.ok)
-        throw new Error(r.status === 413 ? 'That’s too big to send to your Mac.' : OFFLINE);
-      const j = await r.json();
+      if (!res.ok)
+        throw new Error(res.status === 413 ? 'That’s too big to send to your Mac.' : OFFLINE);
+      const j = await res.json();
       if (!j.ok) throw new Error(j.e || 'Something went wrong on your Mac.');
       return j.v;
     }
@@ -251,13 +251,13 @@ export function createRemote() {
   const onMac = () => Promise.reject(new Error(ON_MAC));
   // a file "saved" on a phone: downloaded (Files on iPhone and iPad)
   const download = (name, text, type) => {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([text], { type }));
-    a.download = name;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([text], { type }));
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 30000);
     return name;
   };
   const fileName = (t, ext) =>
@@ -297,18 +297,18 @@ export function createRemote() {
     onStoreHealth: (fn) => listen('store:health', fn),
     onStoreChanged: (fn) => listen('store:changed', fn),
     storeGet: () => call('store:get'),
-    storeSet: async (k, v) => {
-      if (!SHARED.test(k)) return true;
-      let t;
+    storeSet: async (key, value) => {
+      if (!SHARED.test(key)) return true;
+      let timer;
       try {
-        t = JSON.stringify(v);
+        timer = JSON.stringify(value);
       } catch {
         return false;
       }
-      if (lastSent.get(k) === t) return true; // nothing new: don't send it again
-      lastSent.set(k, t);
-      return call('store:set', k, v).catch((e) => {
-        lastSent.delete(k);
+      if (lastSent.get(key) === timer) return true; // nothing new: don't send it again
+      lastSent.set(key, timer);
+      return call('store:set', key, value).catch((e) => {
+        lastSent.delete(key);
         throw e;
       });
     },
@@ -388,9 +388,9 @@ export function createRemote() {
   };
 
   async function pair(code, name) {
-    let r;
+    let res;
     try {
-      r = await fetch('/api/pair', {
+      res = await fetch('/api/pair', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ code, name }),
@@ -398,8 +398,8 @@ export function createRemote() {
     } catch {
       throw new Error(OFFLINE);
     }
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok || !j.token) throw new Error(j.error || 'Couldn’t pair. Try a new code.');
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok || !j.token) throw new Error(j.error || 'Couldn’t pair. Try a new code.');
     key = j.token;
     try {
       localStorage.setItem(KEY, key);
@@ -412,9 +412,9 @@ export function createRemote() {
   // (30 minutes) instead of this device's key. The page's address and the manifest both point at it.
   async function armHomeScreen() {
     if (!client) await connect();
-    const r = await fetch('/api/home-screen', { method: 'POST', headers: headers(), body: '{}' });
-    if (!r.ok) return null;
-    const { code } = await r.json();
+    const res = await fetch('/api/home-screen', { method: 'POST', headers: headers(), body: '{}' });
+    if (!res.ok) return null;
+    const { code } = await res.json();
     history.replaceState(history.state, '', `${location.pathname}${location.search}#pair=${code}`);
     const link = /** @type {HTMLLinkElement | null} */ (
       document.querySelector('link[rel="manifest"]')

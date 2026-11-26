@@ -45,11 +45,11 @@ module.exports = function registerStore(ctx) {
   // Back up everything to one file (to move to another Mac, or just to be safe), and bring it back
   ipcMain.handle('backup:save', async () => {
     const day = new Date().toISOString().slice(0, 10);
-    const r = await dialog.showSaveDialog(ctx.win, {
+    const choice = await dialog.showSaveDialog(ctx.win, {
       defaultPath: path.join(app.getPath('documents'), `Bento backup ${day}.json`),
       filters: [{ name: 'Bento backup', extensions: ['json'] }],
     });
-    if (r.canceled || !r.filePath) return null;
+    if (choice.canceled || !choice.filePath) return null;
     await storeReady;
     const keep = Object.fromEntries(
       Object.entries(storeCache).filter(([k]) =>
@@ -58,28 +58,28 @@ module.exports = function registerStore(ctx) {
     );
     await fsp
       .writeFile(
-        r.filePath,
+        choice.filePath,
         JSON.stringify({ bento: 'backup', v: 1, at: new Date().toISOString(), data: keep }),
       )
       .catch(saveError);
-    return r.filePath;
+    return choice.filePath;
   });
   ipcMain.handle('backup:load', async () => {
     const snaps = await fsp.access(SNAPS).then(
       () => SNAPS,
       () => undefined,
     );
-    const r = await dialog.showOpenDialog(ctx.win, {
+    const choice = await dialog.showOpenDialog(ctx.win, {
       properties: ['openFile'],
       defaultPath: snaps,
       filters: [{ name: 'Bento backup', extensions: ['json'] }],
     });
-    if (r.canceled || !r.filePaths?.[0]) return null;
-    const st = await fsp.stat(r.filePaths[0]).catch(() => null);
+    if (choice.canceled || !choice.filePaths?.[0]) return null;
+    const st = await fsp.stat(choice.filePaths[0]).catch(() => null);
     if (!st || st.size > 100_000_000) throw new Error('That file is too big to be a Bento backup.');
     let j;
     try {
-      j = JSON.parse(await fsp.readFile(r.filePaths[0], 'utf8'));
+      j = JSON.parse(await fsp.readFile(choice.filePaths[0], 'utf8'));
     } catch {
       throw new Error('That file is damaged, or isn’t a Bento backup.');
     }
@@ -130,17 +130,19 @@ module.exports = function registerStore(ctx) {
   let leaveOk = false;
   async function okToLeave(verb) {
     if (leaveOk || OFFSCREEN || !running.size || !ctx.win || ctx.win.isDestroyed()) return true;
-    const n = running.size;
-    const r = await dialog.showMessageBox(ctx.win, {
+    const count = running.size;
+    const choice = await dialog.showMessageBox(ctx.win, {
       type: 'warning',
       message:
-        n > 1 ? `Bento is still writing ${n} things for you` : 'Bento is still writing for you',
+        count > 1
+          ? `Bento is still writing ${count} things for you`
+          : 'Bento is still writing for you',
       detail: `A lesson or a project reading is in progress. If you ${verb} now, it stops and has to be asked again.`,
       buttons: [verb === 'quit' ? 'Quit Anyway' : 'Restart Anyway', 'Keep Writing'],
       defaultId: 1,
       cancelId: 1,
     });
-    return r.response === 0;
+    return choice.response === 0;
   }
   app.on('before-quit', (e) => {
     if (!leaveOk && !OFFSCREEN && running.size) {

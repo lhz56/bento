@@ -58,11 +58,11 @@ if (IN_APP) {
         document.getElementById('content');
     if (!top) return;
     const shown = (el) => {
-      const r = el.getBoundingClientRect();
+      const rect = el.getBoundingClientRect();
       return (
-        r.width > 0 &&
-        r.right > 0 &&
-        r.left < innerWidth &&
+        rect.width > 0 &&
+        rect.right > 0 &&
+        rect.left < innerWidth &&
         getComputedStyle(el).visibility !== 'hidden'
       );
     };
@@ -123,9 +123,9 @@ function glide(e) {
   const button = e.target.closest?.('button');
   const box = button?.parentElement;
   if (!box || button.disabled || reduced()) return;
-  const g = GLIDE.find(([c, it]) => box.matches(c) && button.matches(it));
-  if (!g) return;
-  const items = [...box.children].filter((x) => x.matches(g[1]));
+  const glide = GLIDE.find(([c, it]) => box.matches(c) && button.matches(it));
+  if (!glide) return;
+  const items = [...box.children].filter((x) => x.matches(glide[1]));
   const from = box.__glide?.ghost || items.find((x) => x.classList.contains('on'));
   if (!from || (from === button && !box.__glide)) return;
   if (getComputedStyle(box).position === 'static') box.style.position = 'relative';
@@ -240,19 +240,19 @@ const LOOK = [
   'fill',
 ];
 function lookalike(el) {
-  const c = el.cloneNode(true);
+  const clone = el.cloneNode(true);
   const walk = (a, b) => {
     if (!(a instanceof Element)) return;
     const cs = getComputedStyle(a);
     for (const k of LOOK) b.style.setProperty(k, cs.getPropertyValue(k));
     [...a.children].forEach((x, i) => walk(x, b.children[i]));
   };
-  walk(el, c);
-  return c;
+  walk(el, clone);
+  return clone;
 }
 function holdMenu(row, spec, done) {
   haptic('light');
-  const r = row.getBoundingClientRect();
+  const rect = row.getBoundingClientRect();
   const veil = document.createElement('div');
   veil.className = 'hold-veil';
   const lift = lookalike(row);
@@ -261,10 +261,10 @@ function holdMenu(row, spec, done) {
   lift.setAttribute('aria-hidden', 'true');
   lift.querySelectorAll('[id]').forEach((x) => x.removeAttribute('id'));
   Object.assign(lift.style, {
-    left: `${r.left}px`,
-    top: `${r.top}px`,
-    width: `${r.width}px`,
-    height: `${r.height}px`,
+    left: `${rect.left}px`,
+    top: `${rect.top}px`,
+    width: `${rect.width}px`,
+    height: `${rect.height}px`,
   });
   const menu = document.createElement('div');
   menu.className = 'hold-menu';
@@ -305,10 +305,10 @@ function holdMenu(row, spec, done) {
   document.body.append(veil, lift, menu);
   // under the row if it fits, over it if not, never off the screen
   const mh = menu.offsetHeight,
-    below = r.bottom + 10 + mh < innerHeight - 20;
+    below = rect.bottom + 10 + mh < innerHeight - 20;
   Object.assign(menu.style, {
-    left: `${Math.min(Math.max(12, r.left + 8), innerWidth - menu.offsetWidth - 12)}px`,
-    top: `${below ? r.bottom + 10 : Math.max(20, r.top - 10 - mh)}px`,
+    left: `${Math.min(Math.max(12, rect.left + 8), innerWidth - menu.offsetWidth - 12)}px`,
+    top: `${below ? rect.bottom + 10 : Math.max(20, rect.top - 10 - mh)}px`,
     transformOrigin: below ? 'top left' : 'bottom left',
   });
   row.style.visibility = 'hidden';
@@ -429,10 +429,10 @@ export function useTouch(on, o) {
     const press = (el) => {
       el.classList.remove('unpress');
       el.classList.add('pressed');
-      const r = el.getBoundingClientRect();
-      const row = r.width > innerWidth * 0.7 && r.height < 130;
+      const rect = el.getBoundingClientRect();
+      const row = rect.width > innerWidth * 0.7 && rect.height < 130;
       el.classList.toggle('prow', row);
-      el.classList.toggle('big', !row && r.width * r.height > 9000 && r.height > 54);
+      el.classList.toggle('big', !row && rect.width * rect.height > 9000 && rect.height > 54);
     };
     const unpress = () => {
       clearTimeout(pressT);
@@ -477,15 +477,15 @@ export function useTouch(on, o) {
       const x = ref.current;
       p0 = [t.clientX, t.clientY];
       // the press
-      const b = tgt.closest(PRESSABLE);
+      const pressable = tgt.closest(PRESSABLE);
       if (
-        b &&
-        !b.disabled &&
-        !b.closest('.cm-editor, .city') &&
-        b.getAttribute('aria-disabled') !== 'true'
+        pressable &&
+        !pressable.disabled &&
+        !pressable.closest('.cm-editor, .city') &&
+        pressable.getAttribute('aria-disabled') !== 'true'
       ) {
-        pressed = b;
-        pressT = window.setTimeout(() => pressed === b && press(b), 60);
+        pressed = pressable;
+        pressT = window.setTimeout(() => pressed === pressable && press(pressable), 60);
       }
       for (const h of HOLD) {
         const row = tgt.closest(h.sel);
@@ -506,11 +506,11 @@ export function useTouch(on, o) {
         lock: false,
       };
       if (!x.phone) return;
-      for (const s of SHEETS) {
-        const el = tgt.closest(s.sel);
+      for (const sheet of SHEETS) {
+        const el = tgt.closest(sheet.sel);
         if (el) {
           if (atTop(tgt, el) && !tgt.closest('input, textarea, [contenteditable]'))
-            Object.assign(gesture, { mode: 'sheet', el, s, veil: veilOf(s, el) });
+            Object.assign(gesture, { mode: 'sheet', el, s: sheet, veil: veilOf(sheet, el) });
           return;
         }
       }

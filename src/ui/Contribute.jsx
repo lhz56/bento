@@ -4,14 +4,14 @@ import { useState } from 'react';
 import { t } from '../i18n.js';
 
 const ago = (iso) => {
-  const d = Math.floor((Date.now() - new Date(iso)) / 864e5);
-  return d < 1
+  const days = Math.floor((Date.now() - new Date(iso)) / 864e5);
+  return days < 1
     ? 'today'
-    : d < 30
-      ? `${d}d ago`
-      : d < 365
-        ? `${Math.floor(d / 30)}mo ago`
-        : `${Math.floor(d / 365)}y ago`;
+    : days < 30
+      ? `${days}d ago`
+      : days < 365
+        ? `${Math.floor(days / 30)}mo ago`
+        : `${Math.floor(days / 365)}y ago`;
 };
 
 export default function Contribute({ full, onPlan, onOpen, onOpenUrl, pathIdx }) {
@@ -133,13 +133,13 @@ export default function Contribute({ full, onPlan, onOpen, onOpenUrl, pathIdx })
                   {plan.files?.length > 0 && (
                     <div className="ip-files">
                       <span className="mini-h">{t('start with these files')}</span>
-                      {plan.files.map((f) => (
+                      {plan.files.map((file) => (
                         <button
-                          key={f}
-                          className={`chip ${pathIdx?.has(f) ? '' : 'dim'}`}
-                          onClick={() => pathIdx?.has(f) && onOpen(f)}
+                          key={file}
+                          className={`chip ${pathIdx?.has(file) ? '' : 'dim'}`}
+                          onClick={() => pathIdx?.has(file) && onOpen(file)}
                         >
-                          {f}
+                          {file}
                         </button>
                       ))}
                     </div>

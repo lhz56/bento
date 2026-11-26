@@ -178,11 +178,11 @@ export default function Site({ site, onAsk, onRetry, onOpenUrl, onOpenRepo }) {
           <div className="site-journey">
             <span className="mini-h">{j.title}</span>
             <ol>
-              {j.steps.map((s, i) => (
+              {j.steps.map((step, i) => (
                 <li key={i}>
                   <span className="tour-n">{i + 1}</span>
                   <span>
-                    <Md text={s.md} />
+                    <Md text={step.md} />
                   </span>
                 </li>
               ))}

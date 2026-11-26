@@ -125,10 +125,10 @@ class ErrWidget extends WidgetType {
 const marksDeco = EditorView.decorations.compute([marksField, 'doc'], (state) => {
   const marks = state.field(marksField);
   const doc = state.doc;
-  const n = doc.lines;
+  const lineCount = doc.lines;
   const cls = new Map();
   const add = (l, c) => {
-    if (l >= 1 && l <= n) cls.set(l, (cls.get(l) || '') + ' ' + c);
+    if (l >= 1 && l <= lineCount) cls.set(l, (cls.get(l) || '') + ' ' + c);
   };
   if (marks.diff) marks.diff.forEach((l) => add(l, 'cm-hl-add'));
   if (marks.link)
@@ -282,12 +282,12 @@ function tokenTooltip(getExplain) {
               dom.append(j);
             }
           };
-          const r = getExplain()?.(word, line.text, {
+          const explained = getExplain()?.(word, line.text, {
             isMember,
             lineNo: line.number,
             doc: view.state.doc.toString(),
           });
-          if (r && typeof r.then === 'function') {
+          if (explained && typeof explained.then === 'function') {
             dom.classList.add('loading');
             dom.append(
               el('div', 'tok-head', ''),
@@ -295,11 +295,13 @@ function tokenTooltip(getExplain) {
               el('div', 'shimmer short', ''),
             );
             dom.firstChild.append(el('span', 'tok-word', word), el('span', 'tok-kind', 'asking…'));
-            r.then((info) => {
-              dom.classList.remove('loading');
-              fill(info);
-            }).catch(() => fill(null));
-          } else fill(r);
+            explained
+              .then((info) => {
+                dom.classList.remove('loading');
+                fill(info);
+              })
+              .catch(() => fill(null));
+          } else fill(explained);
           return { dom };
         },
       };
@@ -329,12 +331,14 @@ const hangIndent = ViewPlugin.fromClass(
       for (const { from, to } of v.visibleRanges) {
         for (let pos = from; pos <= to;) {
           const line = v.state.doc.lineAt(pos);
-          const n = /^\s*/.exec(line.text)[0].replace(/\t/g, '    ').length + 2;
+          const indent = /^\s*/.exec(line.text)[0].replace(/\t/g, '    ').length + 2;
           builder.add(
             line.from,
             line.from,
             Decoration.line({
-              attributes: { style: `padding-left: calc(${n}ch + 6px); text-indent: -${n}ch` },
+              attributes: {
+                style: `padding-left: calc(${indent}ch + 6px); text-indent: -${indent}ch`,
+              },
             }),
           );
           pos = line.to + 1;
@@ -402,14 +406,16 @@ const noteDeco = EditorView.decorations.compute([noteField, 'doc'], (state) => {
   const { list, open, toggle } = state.field(noteField);
   const doc = state.doc;
   const out = [];
-  list.forEach((n, i) => {
-    if (!(n.from >= 1 && n.from <= doc.lines)) return;
-    const end = doc.line(n.from).to;
+  list.forEach((item, i) => {
+    if (!(item.from >= 1 && item.from <= doc.lines)) return;
+    const end = doc.line(item.from).to;
     out.push(
-      Decoration.widget({ widget: new NoteChip(n, i, open === i, toggle), side: 1 }).range(end),
+      Decoration.widget({ widget: new NoteChip(item, i, open === i, toggle), side: 1 }).range(end),
     );
-    if (open === i && n.text)
-      out.push(Decoration.widget({ widget: new NoteText(n, i), block: true, side: 2 }).range(end));
+    if (open === i && item.text)
+      out.push(
+        Decoration.widget({ widget: new NoteText(item, i), block: true, side: 2 }).range(end),
+      );
   });
   return Decoration.set(out, true);
 });
@@ -813,22 +819,22 @@ const Editor = forwardRef(function Editor(props, ref) {
   }, []);
 
   function measure() {
-    const v = view.current;
-    if (!v || !wrap.current) return;
-    const off = v.documentTop - wrap.current.getBoundingClientRect().top;
+    const editor = view.current;
+    if (!editor || !wrap.current) return;
+    const off = editor.documentTop - wrap.current.getBoundingClientRect().top;
     const tops = [];
-    const doc = v.state.doc;
-    for (let i = 1; i <= doc.lines; i++) tops.push(v.lineBlockAt(doc.line(i).from).top);
-    setGeo({ tops, lh: v.defaultLineHeight, off });
+    const doc = editor.state.doc;
+    for (let i = 1; i <= doc.lines; i++) tops.push(editor.lineBlockAt(doc.line(i).from).top);
+    setGeo({ tops, lh: editor.defaultLineHeight, off });
   }
 
   // external value changes (lesson switch, try-chips, steps)
   useEffect(() => {
-    const v = view.current;
-    if (!v) return;
-    const cur = v.state.doc.toString();
+    const editor = view.current;
+    if (!editor) return;
+    const cur = editor.state.doc.toString();
     if (value != null && value !== cur)
-      v.dispatch({
+      editor.dispatch({
         changes: { from: 0, to: cur.length, insert: value },
         annotations: extAnno.of(true),
       });
@@ -852,15 +858,15 @@ const Editor = forwardRef(function Editor(props, ref) {
     });
   }, [touch]);
   useEffect(() => {
-    const v = view.current;
-    if (!v) return;
-    v.dispatch({ effects: editC.current.reconfigure(EditorView.editable.of(!reading)) });
+    const editor = view.current;
+    if (!editor) return;
+    editor.dispatch({ effects: editC.current.reconfigure(EditorView.editable.of(!reading)) });
     if (reading) {
       setCard(null);
-      v.contentDOM.blur();
+      editor.contentDOM.blur();
     } else if (touch) {
       setCard(null);
-      v.focus();
+      editor.focus();
     }
   }, [reading]);
   // (a finger's notes live inside the code: open one, and its lines light up the way a hover does on a Mac)
@@ -908,15 +914,15 @@ const Editor = forwardRef(function Editor(props, ref) {
             view.current?.dispatch({ effects: setTapped.of(null) });
           }}
           onJump={(n) => {
-            const v = view.current;
-            if (!v) return;
+            const editor = view.current;
+            if (!editor) return;
             setCard(null);
-            v.dispatch({
+            editor.dispatch({
               effects: [
                 setTapped.of(null),
-                EditorView.scrollIntoView(v.state.doc.line(n).from, { y: 'center' }),
+                EditorView.scrollIntoView(editor.state.doc.line(n).from, { y: 'center' }),
               ],
-              selection: { anchor: v.state.doc.line(n).from },
+              selection: { anchor: editor.state.doc.line(n).from },
             });
           }}
         />

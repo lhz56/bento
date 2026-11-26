@@ -28,62 +28,63 @@ function live(k, s) {
 }
 
 // ---------- value formatting
-function short(v, d = 0) {
-  if (v === undefined) return 'undefined';
-  if (v === null) return 'null';
-  const t = typeof v;
-  if (t === 'string') return JSON.stringify(v.length > 40 ? v.slice(0, 38) + '…' : v);
-  if (t === 'number' || t === 'boolean' || t === 'bigint') return String(v);
-  if (t === 'function') return `ƒ ${v.name || ''}`.trim();
-  if (d > 1) return Array.isArray(v) ? '[…]' : '{…}';
-  if (Array.isArray(v)) {
-    const s = v.slice(0, 10).map((x) => short(x, d + 1));
-    if (v.length > 10) s.push('…');
+function short(value, depth = 0) {
+  if (value === undefined) return 'undefined';
+  if (value === null) return 'null';
+  const type = typeof value;
+  if (type === 'string')
+    return JSON.stringify(value.length > 40 ? value.slice(0, 38) + '…' : value);
+  if (type === 'number' || type === 'boolean' || type === 'bigint') return String(value);
+  if (type === 'function') return `ƒ ${value.name || ''}`.trim();
+  if (depth > 1) return Array.isArray(value) ? '[…]' : '{…}';
+  if (Array.isArray(value)) {
+    const s = value.slice(0, 10).map((x) => short(x, depth + 1));
+    if (value.length > 10) s.push('…');
     return `[${s.join(', ')}]`;
   }
-  if (v instanceof Map)
-    return `Map(${v.size}) {${[...v]
+  if (value instanceof Map)
+    return `Map(${value.size}) {${[...value]
       .slice(0, 6)
-      .map(([k, x]) => `${short(k, d + 1)} → ${short(x, d + 1)}`)
-      .join(', ')}${v.size > 6 ? ', …' : ''}}`;
-  if (v instanceof Set)
-    return `Set(${v.size}) {${[...v]
+      .map(([k, x]) => `${short(k, depth + 1)} → ${short(x, depth + 1)}`)
+      .join(', ')}${value.size > 6 ? ', …' : ''}}`;
+  if (value instanceof Set)
+    return `Set(${value.size}) {${[...value]
       .slice(0, 8)
-      .map((x) => short(x, d + 1))
-      .join(', ')}${v.size > 8 ? ', …' : ''}}`;
-  if (isNode(v))
-    return `${v.constructor?.name && v.constructor.name !== 'Object' ? v.constructor.name : 'Node'}(${short(nodeLabel(v), 2)})`;
-  const ks = Object.keys(v);
-  const s = ks.slice(0, 6).map((k) => `${k}: ${short(v[k], d + 1)}`);
-  if (ks.length > 6) s.push('…');
-  return `{${s.join(', ')}}`;
+      .map((x) => short(x, depth + 1))
+      .join(', ')}${value.size > 8 ? ', …' : ''}}`;
+  if (isNode(value))
+    return `${value.constructor?.name && value.constructor.name !== 'Object' ? value.constructor.name : 'Node'}(${short(nodeLabel(value), 2)})`;
+  const ks = Object.keys(value);
+  const fields = ks.slice(0, 6).map((k) => `${k}: ${short(value[k], depth + 1)}`);
+  if (ks.length > 6) fields.push('…');
+  return `{${fields.join(', ')}}`;
 }
 // a tree node: left and right (either may be empty), or only one of them holding a node (a chain), or a children list
 const kid = (x) => x == null || (typeof x === 'object' && !Array.isArray(x));
-const isNode = (v) =>
-  v &&
-  typeof v === 'object' &&
-  !Array.isArray(v) &&
-  (('left' in v && 'right' in v && kid(v.left) && kid(v.right)) ||
-    ('left' in v !== 'right' in v &&
-      [v.left, v.right].some((x) => x && typeof x === 'object' && !Array.isArray(x))) ||
-    Array.isArray(v.children));
+const isNode = (value) =>
+  value &&
+  typeof value === 'object' &&
+  !Array.isArray(value) &&
+  (('left' in value && 'right' in value && kid(value.left) && kid(value.right)) ||
+    ('left' in value !== 'right' in value &&
+      [value.left, value.right].some((x) => x && typeof x === 'object' && !Array.isArray(x))) ||
+    Array.isArray(value.children));
 const nodeLabel = (v) =>
   ['val', 'value', 'key', 'data', 'name', 'label'].map((k) => v[k]).find((x) => x !== undefined) ??
   '•';
 
-function toTree(n, seen = new Set(), budget = { n: 0 }) {
-  if (n == null || seen.has(n) || budget.n++ > 200) return null;
-  seen.add(n);
-  if (Array.isArray(n.children))
+function toTree(node, seen = new Set(), budget = { n: 0 }) {
+  if (node == null || seen.has(node) || budget.n++ > 200) return null;
+  seen.add(node);
+  if (Array.isArray(node.children))
     return {
-      v: String(nodeLabel(n)),
-      kids: n.children.map((c) => toTree(c, seen, budget)),
+      v: String(nodeLabel(node)),
+      kids: node.children.map((c) => toTree(c, seen, budget)),
       binary: false,
     };
   return {
-    v: String(nodeLabel(n)),
-    kids: [toTree(n.left, seen, budget), toTree(n.right, seen, budget)],
+    v: String(nodeLabel(node)),
+    kids: [toTree(node.left, seen, budget), toTree(node.right, seen, budget)],
     binary: true,
   };
 }
@@ -210,31 +211,31 @@ const logf =
   };
 // prompt()/input(): answers come from the learner; with none left, the run pauses to ask
 const ask = (msg = '') => {
-  const p = String(msg ?? '');
+  const text = String(msg ?? '');
   if (answers.length) {
     const a = String(answers.shift());
-    out.logs.push({ k: 'in', p, s: a });
-    live('in', p + a);
+    out.logs.push({ k: 'in', p: text, s: a });
+    live('in', text + a);
     return a;
   }
-  throw new NeedInput(p);
+  throw new NeedInput(text);
 };
 // fetch() goes through the app, so sites that block browser pages still answer
 async function netFetch(url, opts = {}) {
   /** @type {Record<string, string>} */
   const headers = {};
   for (const [k, v] of Object.entries(opts.headers || {})) headers[`x-h-${k.toLowerCase()}`] = v;
-  const r = await self.fetch(`/__net?u=${encodeURIComponent(String(url))}`, {
+  const res = await self.fetch(`/__net?u=${encodeURIComponent(String(url))}`, {
     method: opts.method || 'GET',
     headers,
     body: opts.body,
   });
-  const status = +r.headers.get('x-status') || 0;
-  const text = await r.text();
+  const status = +res.headers.get('x-status') || 0;
+  const text = await res.text();
   if (!status) throw new TypeError(`Failed to fetch: ${text}`);
   return new Response(text, {
     status,
-    headers: { 'content-type': r.headers.get('x-content-type') || 'text/plain' },
+    headers: { 'content-type': res.headers.get('x-content-type') || 'text/plain' },
   });
 }
 const host = {
@@ -330,14 +331,14 @@ function instrument(code, { snapshots }) {
     if (!scopeNames.has(scope)) scopeNames.set(scope, new Set());
     scopeNames.get(scope).add(name);
   };
-  const patNames = (p, f) => {
-    if (!p) return;
-    if (p.type === 'Identifier') f(p.name);
-    else if (p.type === 'ObjectPattern')
-      p.properties.forEach((q) => patNames(q.value || q.argument, f));
-    else if (p.type === 'ArrayPattern') p.elements.forEach((q) => patNames(q, f));
-    else if (p.type === 'RestElement') patNames(p.argument, f);
-    else if (p.type === 'AssignmentPattern') patNames(p.left, f);
+  const patNames = (pattern, onName) => {
+    if (!pattern) return;
+    if (pattern.type === 'Identifier') onName(pattern.name);
+    else if (pattern.type === 'ObjectPattern')
+      pattern.properties.forEach((q) => patNames(q.value || q.argument, onName));
+    else if (pattern.type === 'ArrayPattern') pattern.elements.forEach((q) => patNames(q, onName));
+    else if (pattern.type === 'RestElement') patNames(pattern.argument, onName);
+    else if (pattern.type === 'AssignmentPattern') patNames(pattern.left, onName);
   };
   walk.ancestor(ast, {
     VariableDeclaration(node, anc) {
@@ -448,9 +449,9 @@ function instrument(code, { snapshots }) {
     },
   });
   edits.sort((a, b) => b.pos - a.pos || a.prio - b.prio);
-  let s = code;
-  for (const e of edits) s = s.slice(0, e.pos) + e.text + s.slice(e.pos);
-  return s;
+  let source = code;
+  for (const e of edits) source = source.slice(0, e.pos) + e.text + source.slice(e.pos);
+  return source;
 }
 
 function makeTracer({ snapshots }) {
@@ -466,8 +467,8 @@ function makeTracer({ snapshots }) {
         return undefined;
       }
     },
-    __s: (l, snapFn) => {
-      line = l;
+    __s: (lineNo, snapFn) => {
+      line = lineNo;
       if (!snapshots) {
         if (++count > COUNT_LIMIT)
           throw new Stop('Stopped after 4 million steps — is there an infinite loop?');
@@ -482,30 +483,30 @@ function makeTracer({ snapshots }) {
           vars[k] = short(raw[k]);
       }
       steps.push({
-        line: l,
+        line: lineNo,
         vars,
         stack: stack.map((f) => ({ name: f.name, args: f.args, ret: f.ret })),
         logs: out.logs.length,
         viz: out.visuals.length,
       });
     },
-    __enter: (name, args, l) => {
+    __enter: (name, args, lineNo) => {
       if (stack.length > 200) throw new Stop('Stopped: recursion went more than 200 deep.');
       stack.push({
         name,
         args: Object.entries(args)
           .map(([k, v]) => `${k}=${short(v, 1)}`)
           .join(', '),
-        line: l,
+        line: lineNo,
       });
     },
     __exit: () => {
       stack.pop();
     },
-    __ret: (v) => {
+    __ret: (value) => {
       if (snapshots && stack.length > 1 && steps.length < STEP_LIMIT) {
         const top = stack[stack.length - 1];
-        top.ret = short(v, 1);
+        top.ret = short(value, 1);
         steps.push({
           line,
           vars: steps[steps.length - 1]?.vars || {},
@@ -515,7 +516,7 @@ function makeTracer({ snapshots }) {
           viz: out.visuals.length,
         });
       }
-      return v;
+      return value;
     },
   };
   return {
@@ -550,12 +551,12 @@ async function settle() {
     await tick(10);
   }
   if (timers.size) {
-    const n = timers.size;
+    const pending = timers.size;
     const rep = [...timers.values()].some((t) => t.every);
     stopTimers();
     logf('warn')(
       rep
-        ? `(Bento stopped ${n === 1 ? 'a timer that repeats' : `${n} timers that repeat`} after a few seconds, so the run could finish.)`
+        ? `(Bento stopped ${pending === 1 ? 'a timer that repeats' : `${pending} timers that repeat`} after a few seconds, so the run could finish.)`
         : '(Bento stopped waiting for timers after 20 seconds.)',
     );
   }
@@ -638,17 +639,17 @@ async function handle({ id, mode, code, extra }) {
         Object.values(tr.T),
       );
       const pts = [];
-      for (const n of [4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]) {
-        const inp = factory.make(n);
+      for (const size of [4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]) {
+        const inp = factory.make(size);
         tr.reset();
         const ts = performance.now();
         try {
-          factory.f(n, inp);
+          factory.f(size, inp);
         } catch (e) {
           if (e instanceof Stop) break;
           throw e;
         }
-        pts.push([n, tr.count]);
+        pts.push([size, tr.count]);
         if (tr.count > 1_500_000 || performance.now() - ts > 700) break;
       }
       return { logs: [], visuals: [], growth: { pts, fit: fitGrowth(pts) } };
@@ -665,11 +666,11 @@ async function handle({ id, mode, code, extra }) {
       if (!f)
         return { ...out, error: { msg: `Couldn't find a function called ${fn}`, line: null } };
       const results = [];
-      for (const c of cases) {
+      for (const testCase of cases) {
         tr.reset();
         try {
-          const got = await f(...clone(c.args));
-          results.push({ ok: eq(got, c.expect), got: short(got) });
+          const got = await f(...clone(testCase.args));
+          results.push({ ok: eq(got, testCase.expect), got: short(got) });
         } catch (e) {
           results.push({ ok: false, got: errInfo(e).msg });
         }

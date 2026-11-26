@@ -156,8 +156,8 @@ export default function BigPicture({
       setSel(null);
       return;
     }
-    const n = nodes[walk];
-    setSel(n.id);
+    const node = nodes[walk];
+    setSel(node.id);
     let done = false;
     const next = () => {
       if (!done) {
@@ -169,7 +169,7 @@ export default function BigPicture({
     let timer;
     if (sy) {
       sy.cancel();
-      const text = `${n.label}. ${plain(n.more || n.does)}${n.term ? `. The technical word for this is ${n.term}.` : ''}`;
+      const text = `${node.label}. ${plain(node.more || node.does)}${node.term ? `. The technical word for this is ${node.term}.` : ''}`;
       const u = new SpeechSynthesisUtterance(text);
       const lg = document.documentElement.lang || 'en';
       u.lang = lg;
@@ -205,25 +205,25 @@ export default function BigPicture({
   const node = flowLayout.nodes.find((n) => n.id === sel);
   useEffect(() => {
     if (!narrow || !sel) return undefined;
-    const t = setTimeout(
+    const timer = setTimeout(
       () =>
         box.current
           ?.querySelector(walk != null ? '.vf-node.on' : '.dive.open')
           ?.scrollIntoView({ behavior: 'smooth', block: walk != null ? 'start' : 'nearest' }),
       80,
     );
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [sel]); // eslint-disable-line react-hooks/exhaustive-deps
   const toolFor = (n) =>
     (n.stack && (tools.find((t) => t.id === n.stack) || BY_ID[n.stack])) || null;
   const termDef = (t) => {
-    const k = String(t || '').toLowerCase();
-    if (!k) return null;
+    const key = String(t || '').toLowerCase();
+    if (!key) return null;
     return (
-      terms.find((x) => String(x.term).toLowerCase() === k) ||
+      terms.find((x) => String(x.term).toLowerCase() === key) ||
       terms.find((x) => {
         const y = String(x.term).toLowerCase();
-        return y.length > 2 && (k.includes(y) || y.includes(k));
+        return y.length > 2 && (key.includes(y) || y.includes(key));
       })
     );
   };
@@ -328,7 +328,7 @@ export default function BigPicture({
       {narrow ? (
         <div className={`vflow ${flow.fallback ? 'is-fallback' : ''}`} ref={box}>
           {flowLayout.nodes.map((node, i) => {
-            const t = toolFor(node);
+            const tool = toolFor(node);
             const [color, glyph] = KIND[node.kind] || KIND.part;
             const into = flowLayout.edges.find((e) => e.to === node.id);
             return (
@@ -344,8 +344,8 @@ export default function BigPicture({
                   style={{ '--c': node.layer ? LAYER[node.layer][3] : color }}
                   onClick={() => setSel(sel === node.id ? null : node.id)}
                 >
-                  {t ? (
-                    <Brand slug={t.slug} name={t.name} color={t.color} size={28} />
+                  {tool ? (
+                    <Brand slug={tool.slug} name={tool.name} color={tool.color} size={28} />
                   ) : (
                     <span className="fn-glyph" style={{ width: 28, height: 28 }}>
                       <svg viewBox="0 0 24 24" width={16} height={16}>
@@ -372,17 +372,17 @@ export default function BigPicture({
         >
           <svg className="flow-svg" width={w} height={flowLayout.H}>
             {flowLayout.edges.map((e, i) => {
-              const d = path(e);
+              const pathD = path(e);
               const on = sel && (e.from === sel || e.to === sel);
               return (
                 <g key={i} className={`fe ${on ? 'on' : ''} ${sel && !on ? 'dim' : ''}`}>
-                  <path d={d} className="fe-line" />
+                  <path d={pathD} className="fe-line" />
                   <circle r="3.6" className="fe-pkt">
                     <animateMotion
                       dur={`${2.2 + (i % 3) * 0.4}s`}
                       repeatCount="indefinite"
                       begin={`${(i * 0.37) % 2}s`}
-                      path={d}
+                      path={pathD}
                     />
                   </circle>
                 </g>
@@ -411,7 +411,7 @@ export default function BigPicture({
             })}
           {flowLayout.nodes.map((node, i) => {
             const p = flowLayout.pos[node.id];
-            const t = toolFor(node);
+            const tool = toolFor(node);
             const [color, glyph] = KIND[node.kind] || KIND.part;
             return (
               <button
@@ -431,8 +431,13 @@ export default function BigPicture({
                 }}
               >
                 <span className="fn-ic">
-                  {t ? (
-                    <Brand slug={t.slug} name={t.name} color={t.color} size={p.compact ? 30 : 40} />
+                  {tool ? (
+                    <Brand
+                      slug={tool.slug}
+                      name={tool.name}
+                      color={tool.color}
+                      size={p.compact ? 30 : 40}
+                    />
                   ) : (
                     <span
                       className="fn-glyph"
@@ -499,23 +504,23 @@ export default function BigPicture({
       {terms.length > 0 && (
         <div className="bp-words">
           <span className="mini-h">words you’ll meet</span>
-          {terms.map((t) => (
+          {terms.map((term) => (
             <button
-              key={t.term}
-              className={`wchip ${word === t.term ? 'on' : ''}`}
-              onClick={() => setWord(word === t.term ? null : t.term)}
+              key={term.term}
+              className={`wchip ${word === term.term ? 'on' : ''}`}
+              onClick={() => setWord(word === term.term ? null : term.term)}
             >
-              {t.term}
+              {term.term}
             </button>
           ))}
           {word &&
             (() => {
-              const t = termDef(word);
+              const def = termDef(word);
               return (
-                t && (
+                def && (
                   <div className="wdef" key={word}>
-                    <b>{t.term}</b> {t.plain}
-                    {t.like && <i> ≈ {t.like}</i>}
+                    <b>{def.term}</b> {def.plain}
+                    {def.like && <i> ≈ {def.like}</i>}
                   </div>
                 )
               );

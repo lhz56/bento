@@ -35,12 +35,12 @@ module.exports = function registerAgent(ctx) {
     }
     const id = ++agentSeq;
     return new Promise((res, rej) => {
-      const t = setTimeout(() => {
+      const timer = setTimeout(() => {
         agentWaits.delete(id);
         rej(new Error('Bento took too long to answer. Is a lesson still loading? Try again.'));
       }, 90_000);
       agentWaits.set(id, (r) => {
-        clearTimeout(t);
+        clearTimeout(timer);
         r.error ? rej(new Error(String(r.error))) : res(String(r.text ?? ''));
       });
       ctx.win.webContents.send('agent:call', id, tool, args, client);

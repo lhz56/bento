@@ -16,10 +16,10 @@ export default function useFileDrop({
 }) {
   const [dropping, setDropping] = useState(false);
   useEffect(() => {
-    let n = 0;
+    let depth = 0;
     const enter = (e) => {
       if (e.dataTransfer?.types?.includes('Files')) {
-        n++;
+        depth++;
         setDropping(true);
         e.preventDefault();
       }
@@ -28,22 +28,23 @@ export default function useFileDrop({
       if (e.dataTransfer?.types?.includes('Files')) e.preventDefault();
     };
     const leave = () => {
-      n = Math.max(0, n - 1);
-      if (!n) setDropping(false);
+      depth = Math.max(0, depth - 1);
+      if (!depth) setDropping(false);
     };
     const drop = async (e) => {
       e.preventDefault();
-      n = 0;
+      depth = 0;
       setDropping(false);
-      const f = e.dataTransfer?.files?.[0];
-      if (!f) return;
+      const file = e.dataTransfer?.files?.[0];
+      if (!file) return;
       try {
-        const r = await api.dropOpen(f);
-        if (r.kind === 'local') openAtlas({ kind: 'local', root: r.root, name: r.name });
-        else if (r.kind === 'lesson') {
+        const dropped = await api.dropOpen(file);
+        if (dropped.kind === 'local')
+          openAtlas({ kind: 'local', root: dropped.root, name: dropped.name });
+        else if (dropped.kind === 'lesson') {
           const lesson = {
-            ...emptyLesson(r.lesson.q || '', r.lesson),
-            ...r.lesson,
+            ...emptyLesson(dropped.lesson.q || '', dropped.lesson),
+            ...dropped.lesson,
             id: Math.random().toString(36).slice(2, 10),
             status: 'done',
             builtin: false,
@@ -55,10 +56,10 @@ export default function useFileDrop({
           setViewRaw('lesson');
           setStepSel(lesson.steps?.length ? lesson.steps.length - 1 : null);
         } else
-          askLesson(`Explain ${r.name}`, {
+          askLesson(`Explain ${dropped.name}`, {
             mode: 'code',
-            context: { code: r.text, path: r.name },
-            lang: /\.py$/.test(r.name) ? 'python' : 'javascript',
+            context: { code: dropped.text, path: dropped.name },
+            lang: /\.py$/.test(dropped.name) ? 'python' : 'javascript',
           });
       } catch (err) {
         alert(cleanErr(err));

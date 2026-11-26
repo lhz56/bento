@@ -81,8 +81,8 @@ export function explainToken({
           kind: isMember ? 'method/property' : 'name',
         }),
       )
-        .then((s) => {
-          const j = parseJSONLoose(s);
+        .then((result) => {
+          const j = parseJSONLoose(result);
           if (!j) throw new Error('bad');
           return {
             title: j.title || word,

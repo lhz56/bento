@@ -18,9 +18,9 @@ export function fresh() {
   };
 }
 
-const join = (cwd, p) => {
-  if (!p || p === '~') return '/home';
-  let parts = (p.startsWith('/') ? p : `${cwd}/${p}`).split('/');
+const join = (cwd, target) => {
+  if (!target || target === '~') return '/home';
+  let parts = (target.startsWith('/') ? target : `${cwd}/${target}`).split('/');
   const out = [];
   for (const x of parts) {
     if (!x || x === '.') continue;
@@ -59,24 +59,24 @@ export function status(sim) {
     ...new Set([...Object.keys(width), ...Object.keys(index), ...Object.keys(head)]),
   ].sort();
   return names
-    .map((n) => {
+    .map((name) => {
       const staged =
-        index[n] !== head[n]
-          ? head[n] === undefined
+        index[name] !== head[name]
+          ? head[name] === undefined
             ? 'new'
-            : index[n] === undefined
+            : index[name] === undefined
               ? 'deleted'
               : 'modified'
           : null;
       const work =
-        width[n] !== index[n]
-          ? index[n] === undefined
+        width[name] !== index[name]
+          ? index[name] === undefined
             ? 'untracked'
-            : width[n] === undefined
+            : width[name] === undefined
               ? 'deleted'
               : 'modified'
           : null;
-      return { name: n, staged, work };
+      return { name: name, staged, work };
     })
     .filter((x) => x.staged || x.work);
 }
@@ -203,9 +203,9 @@ export function run(S0, line) {
     last: null,
   };
   const say = (s, k = 'out') => sim.out.push({ k, s });
-  const t = tokens(line.trim());
-  if (!t.length) return S0;
-  const [cmd, ...args] = t;
+  const words = tokens(line.trim());
+  if (!words.length) return S0;
+  const [cmd, ...args] = words;
   const key = cmd === 'git' ? `git ${args[0] || ''}`.trim() : cmd;
   sim.last = EXPLAIN[key] ? key : null;
   try {
@@ -328,7 +328,7 @@ function gitCmd(sim, args, say) {
       throw new Error('nothing to commit (did you `git add` your changes?)');
     const parents = repo.branches[repo.head] ? [repo.branches[repo.head]] : [];
     if (repo.merging) parents.push(repo.merging); // finishing a merge you resolved by hand
-    const c = {
+    const commit = {
       id: id(),
       msg,
       parents,
@@ -337,24 +337,24 @@ function gitCmd(sim, args, say) {
       at: Date.now(),
     };
     repo.merging = null;
-    repo.commits[c.id] = c;
-    repo.branches[repo.head] = c.id;
-    say(`[${repo.head} ${c.id.slice(0, 7)}] ${msg}`, 'ok');
+    repo.commits[commit.id] = commit;
+    repo.branches[repo.head] = commit.id;
+    say(`[${repo.head} ${commit.id.slice(0, 7)}] ${msg}`, 'ok');
     return;
   }
   if (sub === 'log') {
-    let c = repo.branches[repo.head];
-    if (!c) throw new Error('No commits yet.');
+    let tip = repo.branches[repo.head];
+    if (!tip) throw new Error('No commits yet.');
     const lines = [];
-    while (c) {
-      const commit = repo.commits[c];
+    while (tip) {
+      const commit = repo.commits[tip];
       lines.push(
         `${commit.id.slice(0, 7)}  ${commit.msg}${Object.entries(repo.branches)
-          .filter(([, v]) => v === c)
+          .filter(([, v]) => v === tip)
           .map(([b]) => `  (${b})`)
           .join('')}`,
       );
-      c = commit.parents[0];
+      tip = commit.parents[0];
     }
     say(lines.join('\n'));
     return;
@@ -451,7 +451,7 @@ function gitCmd(sim, args, say) {
       return;
     }
     repo.index = { ...out };
-    const c = {
+    const commit = {
       id: id(),
       msg: `Merge ${name} into ${repo.head}`,
       parents: [ours, theirs],
@@ -459,8 +459,8 @@ function gitCmd(sim, args, say) {
       branch: repo.head,
       at: Date.now(),
     };
-    repo.commits[c.id] = c;
-    repo.branches[repo.head] = c.id;
+    repo.commits[commit.id] = commit;
+    repo.branches[repo.head] = commit.id;
     say(`Merged ${name} into ${repo.head} with a merge commit.`, 'ok');
     return;
   }

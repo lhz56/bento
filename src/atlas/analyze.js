@@ -36,32 +36,35 @@ export function detectStack(facts) {
   for (const e of CATALOG) {
     const ev = [];
     const used = new Set();
-    for (const m of e.m) {
-      const [k, v] = [m.slice(0, m.indexOf(':')), m.slice(m.indexOf(':') + 1)];
-      if (k === 'npm') {
-        if (npm[v]) ev.push(npm[v].dev ? `${npm[v].where} (dev)` : npm[v].where);
-        (extUse.get(norm(v)) || []).forEach((i) => used.add(i));
-      } else if (k === 'pip') {
-        if (pip.has(norm(v))) ev.push('Python requirements');
-        (extUse.get(norm(v)) || []).forEach((i) => used.add(i));
-        (extUse.get(norm(v).replace(/-python$|^python-|-py$|\.py$/g, '')) || []).forEach((i) =>
+    for (const matcher of e.m) {
+      const [kind, value] = [
+        matcher.slice(0, matcher.indexOf(':')),
+        matcher.slice(matcher.indexOf(':') + 1),
+      ];
+      if (kind === 'npm') {
+        if (npm[value]) ev.push(npm[value].dev ? `${npm[value].where} (dev)` : npm[value].where);
+        (extUse.get(norm(value)) || []).forEach((i) => used.add(i));
+      } else if (kind === 'pip') {
+        if (pip.has(norm(value))) ev.push('Python requirements');
+        (extUse.get(norm(value)) || []).forEach((i) => used.add(i));
+        (extUse.get(norm(value).replace(/-python$|^python-|-py$|\.py$/g, '')) || []).forEach((i) =>
           used.add(i),
         );
-      } else if (k === 'go') {
-        if ((sig.go || []).some((g) => g.startsWith(v))) ev.push('go.mod');
-      } else if (k === 'gem') {
-        if ((sig.gem || []).includes(v)) ev.push('Gemfile');
-      } else if (k === 'cargo') {
-        if ((sig.cargo || []).includes(v)) ev.push('Cargo.toml');
-      } else if (k === 'env') {
-        const hit = env.find((x) => x.startsWith(v));
+      } else if (kind === 'go') {
+        if ((sig.go || []).some((g) => g.startsWith(value))) ev.push('go.mod');
+      } else if (kind === 'gem') {
+        if ((sig.gem || []).includes(value)) ev.push('Gemfile');
+      } else if (kind === 'cargo') {
+        if ((sig.cargo || []).includes(value)) ev.push('Cargo.toml');
+      } else if (kind === 'env') {
+        const hit = env.find((x) => x.startsWith(value));
         if (hit) ev.push(`secret ${hit}`);
-      } else if (k === 'dock') {
-        if ((sig.dock || []).some((d) => d.startsWith(v))) ev.push('docker image');
-      } else if (k === 'prisma') {
-        if ((sig.prisma || []).includes(v)) ev.push('Prisma schema');
-      } else if (k === 'file') {
-        const rx = new RegExp(v, 'i');
+      } else if (kind === 'dock') {
+        if ((sig.dock || []).some((d) => d.startsWith(value))) ev.push('docker image');
+      } else if (kind === 'prisma') {
+        if ((sig.prisma || []).includes(value)) ev.push('Prisma schema');
+      } else if (kind === 'file') {
+        const rx = new RegExp(value, 'i');
         const hit = paths.find((p) => rx.test(p));
         if (hit) ev.push(hit);
       }
@@ -138,18 +141,18 @@ const PKG = new Set(['index', '__init__', 'mod', '__main__']);
 let dupes = new Set();
 // Call once per repo: base names that appear more than once get their folder in front.
 export function setDupes(files) {
-  const c = {};
+  const counts = {};
   files.forEach((f) => {
     const b = f.p
       .split('/')
       .pop()
       .replace(/\.[^.]+$/, '');
-    c[b] = (c[b] || 0) + 1;
+    counts[b] = (counts[b] || 0) + 1;
   });
-  dupes = new Set(Object.keys(c).filter((k) => c[k] > 1));
+  dupes = new Set(Object.keys(counts).filter((k) => counts[k] > 1));
 }
-export function displayName(p) {
-  const parts = p.split('/').map((x) => x.replace(/^\d{8,}_/, ''));
+export function displayName(filePath) {
+  const parts = filePath.split('/').map((x) => x.replace(/^\d{8,}_/, ''));
   const file = parts.pop();
   const base = file.replace(/\.[^.]+$/, '').replace(/\.(test|spec|stories|d)$/, '');
   const low = base.toLowerCase();
@@ -166,11 +169,11 @@ export function displayName(p) {
   return base;
 }
 
-export function guessRole(f) {
-  const p = f.p.toLowerCase();
-  const name = p.split('/').pop();
-  if (f.sub === 'tests') return 'Automatic checks that the code still works';
-  if (f.sub === 'docs')
+export function guessRole(filePath) {
+  const lowerPath = filePath.p.toLowerCase();
+  const name = lowerPath.split('/').pop();
+  if (filePath.sub === 'tests') return 'Automatic checks that the code still works';
+  if (filePath.sub === 'docs')
     return /readme/i.test(name)
       ? 'The front page: what this project is and how to use it'
       : 'Documentation or examples';
@@ -179,77 +182,79 @@ export function guessRole(f) {
   if (/^dockerfile$/.test(name)) return 'Instructions to pack the app into a container';
   if (/tsconfig/.test(name)) return 'Settings for TypeScript';
   if (/\.config\.|rc$|rc\.json$/.test(name)) return 'Settings for one of the tools';
-  if (/\.github\/workflows/.test(p)) return 'A robot job that runs on GitHub';
-  if (f.sub === 'config') return 'Project settings';
-  if (f.sub === 'scripts') return 'A helper script for developers';
+  if (/\.github\/workflows/.test(lowerPath)) return 'A robot job that runs on GitHub';
+  if (filePath.sub === 'config') return 'Project settings';
+  if (filePath.sub === 'scripts') return 'A helper script for developers';
   if (/\.(css|scss|sass|less)$/.test(name))
     return /global|app|main|index/.test(name)
       ? 'The site-wide styles'
       : 'Styles for part of the page';
-  if (/(^|\/)api\/.*route\.[jt]s$/.test(p))
-    return `An API door at /${p.replace(/^.*?api\//, 'api/').replace(/\/route\.[jt]s$/, '')}`;
-  if (/(^|\/)layout\.[jt]sx?$/.test(p)) return 'The frame every page sits inside';
-  if (/(^|\/)page\.[jt]sx?$/.test(p) || /(^|\/)pages\//.test(p)) {
-    const r = p
+  if (/(^|\/)api\/.*route\.[jt]s$/.test(lowerPath))
+    return `An API door at /${lowerPath.replace(/^.*?api\//, 'api/').replace(/\/route\.[jt]s$/, '')}`;
+  if (/(^|\/)layout\.[jt]sx?$/.test(lowerPath)) return 'The frame every page sits inside';
+  if (/(^|\/)page\.[jt]sx?$/.test(lowerPath) || /(^|\/)pages\//.test(lowerPath)) {
+    const r = lowerPath
       .replace(/^.*?(app|pages)\//, '')
       .replace(/\/?(page|index)\.[jt]sx?$/, '')
       .replace(/\.[jt]sx?$/, '');
     return r ? `The screen at /${r}` : 'The home screen';
   }
-  if (/components\/ui\//.test(p))
-    return `A reusable ${displayName(f.p).replace(/-/g, ' ')} building block`;
-  if (/components?\//.test(p))
-    return `A piece of the screen: ${displayName(f.p).replace(/[-_]/g, ' ')}`;
-  if (/^use[a-z]/i.test(name) || /hooks?\//.test(p)) return 'A reusable bit of screen behaviour';
-  if (/utils?|helpers?|lib\//.test(p) && f.used > 3) return 'Small helpers used all over the app';
-  if (/models?|schema/.test(p)) return 'Describes the shape of the stored data';
-  if (/migrations?/.test(p)) return 'A change to the database structure';
-  if (/store|state/.test(p)) return 'Keeps track of data the app shares';
-  if (/auth|login|session/.test(p)) return 'Handles logging in and who you are';
-  if (f.layer === 'server') return 'Handles requests coming in';
-  if (f.entry) return 'Where the program starts';
-  if (f.layer === 'ui') return 'Part of what you see';
-  if (f.layer === 'data') return 'Part of how data is stored';
+  if (/components\/ui\//.test(lowerPath))
+    return `A reusable ${displayName(filePath.p).replace(/-/g, ' ')} building block`;
+  if (/components?\//.test(lowerPath))
+    return `A piece of the screen: ${displayName(filePath.p).replace(/[-_]/g, ' ')}`;
+  if (/^use[a-z]/i.test(name) || /hooks?\//.test(lowerPath))
+    return 'A reusable bit of screen behaviour';
+  if (/utils?|helpers?|lib\//.test(lowerPath) && filePath.used > 3)
+    return 'Small helpers used all over the app';
+  if (/models?|schema/.test(lowerPath)) return 'Describes the shape of the stored data';
+  if (/migrations?/.test(lowerPath)) return 'A change to the database structure';
+  if (/store|state/.test(lowerPath)) return 'Keeps track of data the app shares';
+  if (/auth|login|session/.test(lowerPath)) return 'Handles logging in and who you are';
+  if (filePath.layer === 'server') return 'Handles requests coming in';
+  if (filePath.entry) return 'Where the program starts';
+  if (filePath.layer === 'ui') return 'Part of what you see';
+  if (filePath.layer === 'data') return 'Part of how data is stored';
   return 'Part of the inner workings';
 }
 
 // --------------------------------------------------------------------- hot spots you can measure
 export function measuredHotspots(facts) {
   const code = facts.files.filter((f) => f.lang && f.layer !== 'support');
-  const n = Math.max(1, code.length);
+  const length = Math.max(1, code.length);
   const out = [];
   const hubs = [...code]
     .sort((a, b) => b.used - a.used)
-    .filter((f) => f.used >= Math.max(6, n * 0.12))
+    .filter((f) => f.used >= Math.max(6, length * 0.12))
     .slice(0, 2);
-  for (const f of hubs)
+  for (const hub of hubs)
     out.push({
-      p: f.p,
+      p: hub.p,
       kind: 'fragile',
-      title: `${f.used} files lean on this one`,
-      md: `A change in ${displayName(f.p)} ripples into ${f.used} other files. Keep it small and well tested, or split it so each part has fewer dependents.`,
+      title: `${hub.used} files lean on this one`,
+      md: `A change in ${displayName(hub.p)} ripples into ${hub.used} other files. Keep it small and well tested, or split it so each part has fewer dependents.`,
       measured: true,
     });
   const big = [...code]
     .filter((f) => f.lines > 450 && !/\.(css|scss|json|html|sql)$/.test(f.p))
     .sort((a, b) => b.lines - a.lines)
     .slice(0, 2);
-  for (const f of big)
+  for (const file of big)
     out.push({
-      p: f.p,
+      p: file.p,
       kind: 'complex',
-      title: `${f.lines.toLocaleString()} lines in one file`,
+      title: `${file.lines.toLocaleString()} lines in one file`,
       md: `Long files are hard to read and easy to break. It probably does several jobs; splitting it by job would make it easier to change safely.`,
       measured: true,
     });
   if ((facts.cycles || []).length) {
-    const [a, b] = facts.cycles[0];
+    const [from, to] = facts.cycles[0];
     out.push({
-      p: facts.files[a].p,
-      p2: facts.files[b].p,
+      p: facts.files[from].p,
+      p2: facts.files[to].p,
       kind: 'fragile',
       title: `${facts.cycles.length} import loop${facts.cycles.length > 1 ? 's' : ''}`,
-      md: `${displayName(facts.files[a].p)} and ${displayName(facts.files[b].p)} import each other. Loops like this make load order surprising; moving shared bits into a third file breaks the loop.`,
+      md: `${displayName(facts.files[from].p)} and ${displayName(facts.files[to].p)} import each other. Loops like this make load order surprising; moving shared bits into a third file breaks the loop.`,
       measured: true,
     });
   }
@@ -326,22 +331,22 @@ export function buildAtlasPrompt(facts, meta, stack, level) {
   const hot = measuredHotspots(facts)
     .map((h) => `- ${h.title}${h.p ? ` (${h.p})` : ''}`)
     .join('\n');
-  let p = `LEVEL: ${level === 'kid' ? 'kid (lots of analogies, zero jargon)' : level === 'engineer' ? 'engineer (still plain, but name patterns precisely)' : 'curious beginner'}\n`;
-  p += `REPO: ${meta?.full || facts.name}${meta?.description ? ` — ${meta.description}` : ''}${meta?.stars != null ? ` (★${meta.stars})` : ''}${meta?.topics?.length ? ` topics: ${meta.topics.join(', ')}` : ''}\n`;
+  let prompt = `LEVEL: ${level === 'kid' ? 'kid (lots of analogies, zero jargon)' : level === 'engineer' ? 'engineer (still plain, but name patterns precisely)' : 'curious beginner'}\n`;
+  prompt += `REPO: ${meta?.full || facts.name}${meta?.description ? ` — ${meta.description}` : ''}${meta?.stars != null ? ` (★${meta.stars})` : ''}${meta?.topics?.length ? ` topics: ${meta.topics.join(', ')}` : ''}\n`;
   if (facts.sig?.pkgName)
-    p += `package.json name: ${facts.sig.pkgName}${facts.sig.pkgDesc ? ` — ${facts.sig.pkgDesc}` : ''}\nscripts: ${Object.entries(
+    prompt += `package.json name: ${facts.sig.pkgName}${facts.sig.pkgDesc ? ` — ${facts.sig.pkgDesc}` : ''}\nscripts: ${Object.entries(
       facts.sig.scripts || {},
     )
       .slice(0, 10)
       .map(([k, v]) => `${k}: ${v}`)
       .join(' | ')}\n`;
-  p += `TOTALS: ${facts.totals.files} files, ${facts.totals.lines} lines of code. Languages: ${langs}\n`;
-  p += `\nDETECTED TOOLS (use these ids):\n${st.join('\n') || '(none)'}\n`;
-  p += `\nMEASURED:\n${hot || '- nothing alarming'}\nimport loops: ${(facts.cycles || []).length}\n`;
-  if (facts.readme) p += `\nREADME (excerpt):\n${facts.readme.slice(0, 4500)}\n`;
-  p += `\nFILES (path | layer | lines | used by N files | notes):\n${list.join('\n')}\n`;
-  for (const h of facts.heads || []) p += `\n--- ${h.p} (first lines) ---\n${h.head}\n`;
-  return p;
+  prompt += `TOTALS: ${facts.totals.files} files, ${facts.totals.lines} lines of code. Languages: ${langs}\n`;
+  prompt += `\nDETECTED TOOLS (use these ids):\n${st.join('\n') || '(none)'}\n`;
+  prompt += `\nMEASURED:\n${hot || '- nothing alarming'}\nimport loops: ${(facts.cycles || []).length}\n`;
+  if (facts.readme) prompt += `\nREADME (excerpt):\n${facts.readme.slice(0, 4500)}\n`;
+  prompt += `\nFILES (path | layer | lines | used by N files | notes):\n${list.join('\n')}\n`;
+  for (const h of facts.heads || []) prompt += `\n--- ${h.p} (first lines) ---\n${h.head}\n`;
+  return prompt;
 }
 
 // --------------------------------------------------------------------- narration blocks → state
@@ -390,15 +395,18 @@ export const areaOf = (p) => {
 };
 export function projectParts(facts, max = 10) {
   const by = new Map();
-  for (const f of facts.files) {
-    if (!f.lang || f.layer === 'support' || f.sub === 'docs' || f.sub === 'tests') continue;
-    const a = areaOf(f.p);
-    if (a === '.' || /^(\.github|docs?|scripts|infra|evals?|third-party.*)$/.test(a)) continue;
-    const x = by.get(a) || { area: a, files: 0, lines: 0, top: null };
+  for (const file of facts.files) {
+    if (!file.lang || file.layer === 'support' || file.sub === 'docs' || file.sub === 'tests')
+      continue;
+    const area = areaOf(file.p);
+    if (area === '.' || /^(\.github|docs?|scripts|infra|evals?|third-party.*)$/.test(area))
+      continue;
+    const x = by.get(area) || { area: area, files: 0, lines: 0, top: null };
     x.files++;
-    x.lines += f.lines || 0;
-    if (!x.top || (f.used || 0) > (x.top.used || 0) || (f.entry && !x.top.entry)) x.top = f;
-    by.set(a, x);
+    x.lines += file.lines || 0;
+    if (!x.top || (file.used || 0) > (x.top.used || 0) || (file.entry && !x.top.entry))
+      x.top = file;
+    by.set(area, x);
   }
   return [...by.values()].sort((a, b) => b.lines - a.lines).slice(0, max);
 }
@@ -407,8 +415,8 @@ export const isOverviewQuestion = (q) =>
     q,
   ) && !/\b(where|which file|function|line|bug|error|why does .{0,30} fail)\b/i.test(q);
 
-export function filesForQuestion(facts, narr, q) {
-  const words = (q.toLowerCase().match(/[a-z]{3,}/g) || []).filter(
+export function filesForQuestion(facts, narr, question) {
+  const words = (question.toLowerCase().match(/[a-z]{3,}/g) || []).filter(
     (w) =>
       ![
         'the',
@@ -430,15 +438,16 @@ export function filesForQuestion(facts, narr, q) {
         'why',
       ].includes(w),
   );
-  const score = (f) => {
-    const hay = `${f.p} ${narr?.roles?.[f.p] || ''} ${(f.ext || []).join(' ')}`.toLowerCase();
+  const score = (file) => {
+    const hay =
+      `${file.p} ${narr?.roles?.[file.p] || ''} ${(file.ext || []).join(' ')}`.toLowerCase();
     return (
       words.reduce(
-        (s, w) => s + (hay.includes(w) ? (f.p.toLowerCase().includes(w) ? 3 : 2) : 0),
+        (s, w) => s + (hay.includes(w) ? (file.p.toLowerCase().includes(w) ? 3 : 2) : 0),
         0,
       ) +
-      (f.entry ? 0.5 : 0) +
-      Math.min(1, f.used / 10)
+      (file.entry ? 0.5 : 0) +
+      Math.min(1, file.used / 10)
     );
   };
   return facts.files
@@ -554,9 +563,9 @@ const ALSO = {
   test: ['test', 'spec'],
   tests: ['test', 'spec'],
 };
-export function searchWords(q) {
+export function searchWords(question) {
   const ws = (
-    String(q)
+    String(question)
       .toLowerCase()
       .match(/[a-z][a-z0-9]{2,}/g) || []
   ).filter((w) => !STOP.has(w));

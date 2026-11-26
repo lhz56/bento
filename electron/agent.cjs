@@ -144,7 +144,7 @@ const TOOLS = [
 const TOOL = Object.fromEntries(TOOLS.map((t) => [t.name, t]));
 
 // arguments as the window expects them, or a sentence saying what's wrong (the agent reads it and tries again)
-const s = (v, max) => (typeof v === 'string' ? v.slice(0, max) : undefined);
+const clip = (v, max) => (typeof v === 'string' ? v.slice(0, max) : undefined);
 const strs = (v, n, max) =>
   Array.isArray(v)
     ? v
@@ -157,8 +157,8 @@ const int = (v) =>
 function checkArgs(name, args) {
   args = args && typeof args === 'object' ? args : {};
   if (name === 'show_lesson') {
-    const title = s(args.title, 120),
-      code = s(args.code, 60000);
+    const title = clip(args.title, 120),
+      code = clip(args.code, 60000);
     if (!title) return { error: 'show_lesson needs a title.' };
     if (!code || !code.trim())
       return { error: 'show_lesson needs code: the runnable example the lesson is about.' };
@@ -171,7 +171,7 @@ function checkArgs(name, args) {
           .map((n) => ({
             from: int(n.from),
             to: int(n.to) || int(n.from),
-            label: s(n.label, 40) || '',
+            label: clip(n.label, 40) || '',
             text: n.text.slice(0, 400),
           }))
       : [];
@@ -182,7 +182,7 @@ function checkArgs(name, args) {
           .map((x) => ({
             term: x.term.slice(0, 60),
             plain: x.plain.slice(0, 300),
-            like: s(x.like, 200) || '',
+            like: clip(x.like, 200) || '',
           }))
       : [];
     const q = args.quiz && typeof args.quiz === 'object' ? args.quiz : null;
@@ -197,7 +197,7 @@ function checkArgs(name, args) {
             q: q.q.slice(0, 400),
             choices: strs(q.choices, 5, 200),
             answer: int(q.answer),
-            why: s(q.why, 500) || '',
+            why: clip(q.why, 500) || '',
           }
         : null;
     return {
@@ -205,10 +205,10 @@ function checkArgs(name, args) {
         title,
         code,
         language: args.language,
-        question: s(args.question, 500) || '',
+        question: clip(args.question, 500) || '',
         pseudo: strs(args.pseudo, 400, 200) || [],
-        intro: s(args.intro, 4000) || '',
-        explanation: s(args.explanation, 6000) || '',
+        intro: clip(args.intro, 4000) || '',
+        explanation: clip(args.explanation, 6000) || '',
         notes,
         terms,
         quiz,
@@ -224,7 +224,9 @@ function checkArgs(name, args) {
         error: 'highlight_code needs from: the first line to light up (1 is the first line).',
       };
     const to = Math.max(from, int(args.to) || from);
-    return { args: { from, to, note: s(args.note, 400) || '', label: s(args.label, 40) || '' } };
+    return {
+      args: { from, to, note: clip(args.note, 400) || '', label: clip(args.label, 40) || '' },
+    };
   }
   if (name === 'run_code')
     return { args: { code: typeof args.code === 'string' ? args.code.slice(0, 60000) : null } };
@@ -248,8 +250,8 @@ function serve({ sock, call, log = () => {} }) {
     conn.setEncoding('utf8');
     let buf = '';
     conn.on('error', () => {});
-    conn.on('data', (d) => {
-      buf += d;
+    conn.on('data', (chunk) => {
+      buf += chunk;
       if (buf.length > 2_000_000) {
         conn.destroy();
         return;
@@ -274,7 +276,7 @@ function serve({ sock, call, log = () => {} }) {
           continue;
         }
         Promise.resolve()
-          .then(() => call(String(match.tool), checked.args, s(match.client, 60) || ''))
+          .then(() => call(String(match.tool), checked.args, clip(match.client, 60) || ''))
           .then(
             (text) => reply({ text: String(text) }),
             (e) => reply({ error: String(e?.message || e) }),
@@ -327,38 +329,38 @@ function bridge({
   const send = (o) => output.write(JSON.stringify(o) + '\n');
   const connect = () =>
     new Promise((res, rej) => {
-      const c = net.createConnection(sock);
-      c.once('connect', () => {
-        c.setEncoding('utf8');
+      const connection = net.createConnection(sock);
+      connection.once('connect', () => {
+        connection.setEncoding('utf8');
         let buf = '';
-        c.on('data', (d) => {
-          buf += d;
+        connection.on('data', (chunk) => {
+          buf += chunk;
           let i;
           while ((i = buf.indexOf('\n')) >= 0) {
             const line = buf.slice(0, i);
             buf = buf.slice(i + 1);
-            let m;
+            let match;
             try {
-              m = JSON.parse(line);
+              match = JSON.parse(line);
             } catch {
               continue;
             }
-            const w = waiting.get(m.id);
+            const w = waiting.get(match.id);
             if (w) {
-              waiting.delete(m.id);
-              w(m);
+              waiting.delete(match.id);
+              w(match);
             }
           }
         });
-        c.on('close', () => {
+        connection.on('close', () => {
           conn = null;
           for (const w of waiting.values())
             w({ error: 'Bento closed while it was working on that. Open Bento and try again.' });
           waiting.clear();
         });
-        res(c);
+        res(connection);
       });
-      c.once('error', rej);
+      connection.once('error', rej);
     });
   // the open Bento, or start it (a shipped copy only) and wait for it to be ready
   const reach = async () => {
@@ -377,21 +379,21 @@ function bridge({
     throw new Error('Bento didn’t start in time. Open the Bento app, then try again.');
   };
   const callBento = async (tool, args) => {
-    const c = await reach();
+    const conn = await reach();
     const id = ++seq;
     return new Promise((res) => {
       waiting.set(id, res);
-      c.write(JSON.stringify({ id, tool, args, client }) + '\n');
+      conn.write(JSON.stringify({ id, tool, args, client }) + '\n');
     });
   };
-  const handle = async (m) => {
-    const ok = (result) => m.id != null && send({ jsonrpc: '2.0', id: m.id, result });
+  const handle = async (msg) => {
+    const ok = (result) => msg.id != null && send({ jsonrpc: '2.0', id: msg.id, result });
     const fail = (code, message) =>
-      m.id != null && send({ jsonrpc: '2.0', id: m.id, error: { code, message } });
-    switch (m.method) {
+      msg.id != null && send({ jsonrpc: '2.0', id: msg.id, error: { code, message } });
+    switch (msg.method) {
       case 'initialize': {
-        client = s(m.params?.clientInfo?.title || m.params?.clientInfo?.name, 60) || '';
-        const want = m.params?.protocolVersion;
+        client = clip(msg.params?.clientInfo?.title || msg.params?.clientInfo?.name, 60) || '';
+        const want = msg.params?.protocolVersion;
         return ok({
           protocolVersion: PROTOCOLS.includes(want) ? want : PROTOCOLS[0],
           capabilities: { tools: { listChanged: false } },
@@ -405,45 +407,45 @@ function bridge({
       case 'tools/list':
         return ok({ tools: TOOLS });
       case 'tools/call': {
-        const name = m.params?.name;
+        const name = msg.params?.name;
         if (!TOOL[name]) return fail(-32602, `Unknown tool: ${name}`);
-        const checked = checkArgs(name, m.params?.arguments);
+        const checked = checkArgs(name, msg.params?.arguments);
         if (checked.error)
           return ok({ content: [{ type: 'text', text: checked.error }], isError: true });
-        let r;
+        let result;
         try {
-          r = await callBento(name, checked.args);
+          result = await callBento(name, checked.args);
         } catch (e) {
-          r = { error: e.message };
+          result = { error: e.message };
         }
         return ok(
-          r.error
-            ? { content: [{ type: 'text', text: r.error }], isError: true }
-            : { content: [{ type: 'text', text: r.text }] },
+          result.error
+            ? { content: [{ type: 'text', text: result.error }], isError: true }
+            : { content: [{ type: 'text', text: result.text }] },
         );
       }
       default:
-        if (m.method?.startsWith('notifications/') || m.id == null) return undefined; // notifications need no answer
-        return fail(-32601, `Bento doesn’t support ${m.method}.`);
+        if (msg.method?.startsWith('notifications/') || msg.id == null) return undefined; // notifications need no answer
+        return fail(-32601, `Bento doesn’t support ${msg.method}.`);
     }
   };
   let buf = '';
   input.setEncoding?.('utf8');
-  input.on('data', (d) => {
-    buf += d;
+  input.on('data', (chunk) => {
+    buf += chunk;
     let i;
     while ((i = buf.indexOf('\n')) >= 0) {
       const line = buf.slice(0, i).trim();
       buf = buf.slice(i + 1);
       if (!line) continue;
-      let m;
+      let match;
       try {
-        m = JSON.parse(line);
+        match = JSON.parse(line);
       } catch {
         send({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } });
         continue;
       }
-      for (const one of Array.isArray(m) ? m : [m]) handle(one).catch(() => {});
+      for (const one of Array.isArray(match) ? match : [match]) handle(one).catch(() => {});
     }
   });
   input.on('end', () => {

@@ -68,25 +68,25 @@ function memoryStorage() {
   try {
     localStorage.length;
   } catch (e) {
-    var m = {};
+    var items = {};
     var stand = {
       getItem: function (k) {
-        return k in m ? m[k] : null;
+        return k in items ? items[k] : null;
       },
       setItem: function (k, v) {
-        m[k] = String(v);
+        items[k] = String(v);
       },
       removeItem: function (k) {
-        delete m[k];
+        delete items[k];
       },
       clear: function () {
-        m = {};
+        items = {};
       },
       key: function (i) {
-        return Object.keys(m)[i] || null;
+        return Object.keys(items)[i] || null;
       },
       get length() {
-        return Object.keys(m).length;
+        return Object.keys(items).length;
       },
     };
     try {

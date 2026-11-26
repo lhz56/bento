@@ -50,12 +50,12 @@ module.exports = function registerAsk(ctx) {
   let usageTimer = null;
   function noteUsage(e) {
     usageReady.then(() => {
-      const u = usage();
-      u.push(e);
-      if (u.length > 3000) u.splice(0, u.length - 3000);
+      const used = usage();
+      used.push(e);
+      if (used.length > 3000) used.splice(0, used.length - 3000);
       clearTimeout(usageTimer);
       usageTimer = setTimeout(() => {
-        writeSafeAsync(USAGE, JSON.stringify(u));
+        writeSafeAsync(USAGE, JSON.stringify(used));
       }, 800);
     });
   }
@@ -65,20 +65,20 @@ module.exports = function registerAsk(ctx) {
     clearTimeout(qcTimer);
     qcTimer = setTimeout(() => {
       try {
-        const c = quickCache();
-        const keys = Object.keys(c);
+        const cache = quickCache();
+        const keys = Object.keys(cache);
         if (keys.length > 800)
           keys
-            .sort((a, b) => c[a].at - c[b].at)
+            .sort((a, b) => cache[a].at - cache[b].at)
             .slice(0, keys.length - 800)
-            .forEach((k) => delete c[k]);
-        writeSafeAsync(QCACHE, JSON.stringify(c));
+            .forEach((k) => delete cache[k]);
+        writeSafeAsync(QCACHE, JSON.stringify(cache));
       } catch {}
     }, 800);
   }
   // a short human label for a quick request, from what it asks
   function labelOf(prompt) {
-    const p = String(prompt).slice(0, 400);
+    const preview = String(prompt).slice(0, 400);
     /** @type {Array<[RegExp, string]>} */
     const purposes = [
       [/Translate these short labels/, 'translating the menus'],
@@ -93,7 +93,7 @@ module.exports = function registerAsk(ctx) {
       [/learning path|stops/i, 'designing a path'],
       [/tutoring/i, 'answering a question'],
     ];
-    return (purposes.find(([r]) => r.test(p)) || [null, 'a quick answer'])[1];
+    return (purposes.find(([r]) => r.test(preview)) || [null, 'a quick answer'])[1];
   }
 
   // What a CLI printed when it failed, minus stack traces and dumped request details: the lines that say what went wrong
@@ -230,21 +230,21 @@ module.exports = function registerAsk(ctx) {
             } catch {}
           }
         }, 5000);
-        child.stdout.on('data', (d) => {
+        child.stdout.on('data', (chunk) => {
           last = Date.now();
-          buf += d.toString();
+          buf += chunk.toString();
           let i;
           while ((i = buf.indexOf('\n')) >= 0) {
             const line = buf.slice(0, i);
             buf = buf.slice(i + 1);
             if (!line.trim()) continue;
-            let o;
+            let event;
             try {
-              o = JSON.parse(line);
+              event = JSON.parse(line);
             } catch {
               continue;
             }
-            adapter.parse(o, sink);
+            adapter.parse(event, sink);
           }
         });
         child.stderr.on('data', (d) => {
@@ -321,15 +321,15 @@ module.exports = function registerAsk(ctx) {
       thinkT = 0,
       ticks = 0,
       est = 0;
-    const r = runModel(
+    const run = runModel(
       model,
       system === 'atlas' ? ATLAS_SYSTEM : system === 'site' ? SITE_SYSTEM : SYSTEM,
       prompt,
       (t) => {
         if (!wc.isDestroyed()) wc.send('ask:chunk', id, t);
       },
-      (t, e) => {
-        thinkBuf = (thinkBuf + t).slice(-400);
+      (chunk, e) => {
+        thinkBuf = (thinkBuf + chunk).slice(-400);
         ticks++;
         est += e || 0;
         const now = Date.now();
@@ -339,17 +339,17 @@ module.exports = function registerAsk(ctx) {
         }
       },
     );
-    running.set(id, r);
-    r.promise
+    running.set(id, run);
+    run.promise
       .then(() => !wc.isDestroyed() && wc.send('ask:done', id))
       .catch((err) => !wc.isDestroyed() && wc.send('ask:error', id, err.message))
       .finally(() => running.delete(id));
   });
   ipcMain.on('ask:cancel', (_e, id) => {
     if (typeof id !== 'string' || id.length > 64) return;
-    const r = running.get(id);
-    if (r) {
-      r.kill();
+    const run = running.get(id);
+    if (run) {
+      run.kill();
       running.delete(id);
     } else {
       cancelled.add(id);
@@ -404,12 +404,12 @@ module.exports = function registerAsk(ctx) {
       for (const id of providers.IDS.filter((x) => x !== mine)) {
         if (!(await which(providers.BY[id].bin))) continue;
         try {
-          const a = keep(await runModel(providers.BY[id].fast, QUICK_SYSTEM, prompt).promise);
+          const answer = keep(await runModel(providers.BY[id].fast, QUICK_SYSTEM, prompt).promise);
           _e.sender?.send?.('ai:fallback', {
             from: providers.label(mine),
             to: providers.label(id),
           });
-          return a;
+          return answer;
         } catch (e2) {
           if (!ACCOUNT_TROUBLE.test(e2.message)) throw err;
         }
@@ -420,12 +420,12 @@ module.exports = function registerAsk(ctx) {
   // the last 7 days of AI use, for the sidebar meter and Settings, with each AI's share of today
   ipcMain.handle('usage:get', async () => {
     await usageReady;
-    const u = usage();
+    const used = usage();
     const day = (t) => new Date(t).toISOString().slice(0, 10);
     const today = day(Date.now());
     const days = Array.from({ length: 7 }, (_, i) => day(Date.now() - (6 - i) * 864e5)).map(
-      (d) => ({
-        d,
+      (day) => ({
+        d: day,
         lessons: 0,
         quick: 0,
         other: 0,
@@ -434,7 +434,7 @@ module.exports = function registerAsk(ctx) {
       }),
     );
     const by = {}; // today, per AI: requests and tokens
-    for (const e of u) {
+    for (const e of used) {
       const todayRow = days.find((x) => x.d === day(e.at));
       if (!todayRow) continue;
       if (e.saved) {
@@ -454,7 +454,7 @@ module.exports = function registerAsk(ctx) {
         b.tokens += (e.in || 0) + (e.out || 0);
       }
     }
-    const recent = u
+    const recent = used
       .slice(-14)
       .reverse()
       .map((e) => ({

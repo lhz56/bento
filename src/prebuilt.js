@@ -5,11 +5,11 @@
 export const PRE = { ideas: {}, path: {}, sims: {}, bugs: {}, ready: false };
 const shape = (raw, id) =>
   Object.fromEntries(
-    Object.entries(raw).map(([k, l], i) => [
-      k,
+    Object.entries(raw).map(([key, lesson], i) => [
+      key,
       {
-        ...l,
-        id: id(k, i),
+        ...lesson,
+        id: id(key, i),
         builtin: true,
         status: 'done',
         thinking: null,

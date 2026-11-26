@@ -96,8 +96,8 @@ export default function SkillMap({
   useEffect(() => {
     const el = cardRef.current;
     if (!sel || !el) return;
-    const r = el.getBoundingClientRect();
-    if (r.top > innerHeight - 80 || r.bottom < 0)
+    const rect = el.getBoundingClientRect();
+    if (rect.top > innerHeight - 80 || rect.bottom < 0)
       el.scrollIntoView({
         block: 'nearest',
         behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
@@ -106,7 +106,7 @@ export default function SkillMap({
   // a chosen star brings its constellation close, so it stays big next to the card
   const puzzleFor =
     sel &&
-    PUZZLES.find((p) =>
+    PUZZLES.find((puzzle) =>
       (
         ({
           hash: ['hashmap', 'dict'],
@@ -121,7 +121,7 @@ export default function SkillMap({
           backtrack: ['backtrack'],
           intervals: ['sorting'],
           design: ['cache'],
-        })[p.st] || []
+        })[puzzle.st] || []
       ).includes(sel),
     );
   const next =
@@ -355,14 +355,16 @@ function Review({ quiz, setQuiz, onDone, onOpenLesson, onAsk }) {
         <p>{t('Ask for a fresh lesson instead:')}</p>
         <div className="sm-acts">
           {quiz.skills.slice(0, 3).map((id) => {
-            const s = SKILLS.find((x) => x[0] === id);
+            const skill = SKILLS.find((x) => x[0] === id);
             return (
               <button
                 key={id}
                 className="btn ghost"
-                onClick={() => onAsk(`Teach me ${s[2].toLowerCase()} again, with a new example`)}
+                onClick={() =>
+                  onAsk(`Teach me ${skill[2].toLowerCase()} again, with a new example`)
+                }
               >
-                {s[2]}
+                {skill[2]}
               </button>
             );
           })}

@@ -62,24 +62,26 @@ export default function useLessons({
     (id, p) => setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, ...p } : l))),
     [],
   );
-  const openLesson = (l) => {
-    if (WEB) countOnce('lesson', l.id);
-    setLessons((ls) => (ls.some((x) => x.id === l.id) ? ls : [{ ...l, touched: true }, ...ls]));
-    setCurrentId(l.id);
+  const openLesson = (lesson) => {
+    if (WEB) countOnce('lesson', lesson.id);
+    setLessons((ls) =>
+      ls.some((x) => x.id === lesson.id) ? ls : [{ ...lesson, touched: true }, ...ls],
+    );
+    setCurrentId(lesson.id);
     setViewRaw('lesson');
     setLinkRange(null);
     setPop(null);
-    setStepSel(l.steps?.length ? l.steps.length - 1 : null);
-    award(l, 'open');
+    setStepSel(lesson.steps?.length ? lesson.steps.length - 1 : null);
+    award(lesson, 'open');
   };
-  const openSim = (q) => {
-    if (!PRE.ready) return void loadPrebuilt().then(() => openSim(q));
-    const pre = PRE.sims[q];
+  const openSim = (question) => {
+    if (!PRE.ready) return void loadPrebuilt().then(() => openSim(question));
+    const pre = PRE.sims[question];
     const have = lessons.find((l) => l.id === pre?.id);
     if (have) return openLesson(have);
     if (pre && (!settings.voice || settings.voice === 'English'))
       return openLesson({ ...pre, createdAt: Date.now() });
-    askLesson(`${q} Teach it by simulating it with a small program and a picture.`, {
+    askLesson(`${question} Teach it by simulating it with a small program and a picture.`, {
       mode: 'explain',
     });
   };
@@ -97,30 +99,30 @@ export default function useLessons({
       ),
     );
   };
-  const onPuzzleResult = (pid, r) => {
-    setProgress((p) => {
-      const old = p.puzzles?.[pid] || {};
-      const s = [0, 1, 2].map((k) => !!(old.s?.[k] || r.s[k]));
+  const onPuzzleResult = (pid, result) => {
+    setProgress((prev) => {
+      const old = prev.puzzles?.[pid] || {};
+      const stars = [0, 1, 2].map((k) => !!(old.s?.[k] || result.s[k]));
       return {
-        ...p,
+        ...prev,
         puzzles: {
-          ...(p.puzzles || {}),
-          [pid]: { ...old, s, label: r.label || old.label, at: Date.now() },
+          ...(prev.puzzles || {}),
+          [pid]: { ...old, s: stars, label: result.label || old.label, at: Date.now() },
         },
       };
     });
-    if (r.s.every(Boolean)) award(current, 'challenge');
+    if (result.s.every(Boolean)) award(current, 'challenge');
   };
   // asking for a new lesson
   const askLesson = useCallback(
-    (q, o = {}) => {
+    (question, options = {}) => {
       if (WEB) {
         needsMac('lesson');
         return null;
       } // the web version has no AI: new lessons are the Mac app's
-      const model = o.model || settings.model;
-      const lang = o.lang || settings.lang;
-      const level = o.level || settings.level;
+      const model = options.model || settings.model;
+      const lang = options.lang || settings.lang;
+      const level = options.level || settings.level;
       // asked this exact question before (same kind, language and level)? open that lesson instead of spending your plan again
       const norm = (x) =>
         String(x || '')
@@ -128,86 +130,88 @@ export default function useLessons({
           .replace(/[^\p{L}\p{N}]+/gu, ' ')
           .trim();
       if (
-        !o.fresh &&
-        !o.context &&
-        !o.prev &&
-        !o.routed &&
-        (o.mode || 'explain') !== 'challenge' &&
-        norm(q).length > 3
+        !options.fresh &&
+        !options.context &&
+        !options.prev &&
+        !options.routed &&
+        (options.mode || 'explain') !== 'challenge' &&
+        norm(question).length > 3
       ) {
         const dup = lessonsRef.current.find(
           (l) =>
             l.status === 'done' &&
             !l.builtin &&
-            norm(l.q) === norm(q) &&
-            l.mode === (o.mode || 'explain') &&
+            norm(l.q) === norm(question) &&
+            l.mode === (options.mode || 'explain') &&
             l.lang === lang &&
             (l.level || 'student') === level,
         );
         if (dup) {
           openLesson(dup);
-          setReopened({ id: dup.id, q, o });
+          setReopened({ id: dup.id, q: question, o: options });
           return dup.id;
         }
       }
-      const L0 = emptyLesson(q, {
-        mode: o.mode || 'explain',
+      const L0 = emptyLesson(question, {
+        mode: options.mode || 'explain',
         lang,
         level,
         model,
-        context: ['code', 'idea', 'compare', 'build'].includes(o.mode)
-          ? o.context
-          : o.mode === 'feature' && o.context
+        context: ['code', 'idea', 'compare', 'build'].includes(options.mode)
+          ? options.context
+          : options.mode === 'feature' && options.context
             ? {
-                name: o.context.name,
-                repo: o.context.repo,
-                repoKey: o.context.repoKey,
-                key: (o.context.key || []).map((k) => ({
+                name: options.context.name,
+                repo: options.context.repo,
+                repoKey: options.context.repoKey,
+                key: (options.context.key || []).map((k) => ({
                   path: k.path,
                   text: k.text.slice(0, 20000),
                 })),
               }
             : null,
       });
-      if (o.prev) L0.prevTitle = o.prev.title;
-      if (o.routed) L0.routed = o.routed;
+      if (options.prev) L0.prevTitle = options.prev.title;
+      if (options.routed) L0.routed = options.routed;
       setLessons((ls) => [L0, ...ls]);
       setCurrentId(L0.id);
       setViewRaw('lesson');
       setLinkRange(null);
       setStepSel(null);
       setPop(null);
-      const parser = ndjsonParser((b) => {
-        setLessons((ls) => ls.map((l) => (l.id === L0.id ? applyBlock(l, b) : l)));
-        if (b.t === 'term' && b.term)
-          setProgress((p) => {
-            const k = String(b.term).toLowerCase();
-            if (p.words?.[k]) return p;
+      const parser = ndjsonParser((block) => {
+        setLessons((ls) => ls.map((l) => (l.id === L0.id ? applyBlock(l, block) : l)));
+        if (block.t === 'term' && block.term)
+          setProgress((prev) => {
+            const key = String(block.term).toLowerCase();
+            if (prev.words?.[key]) return prev;
             return {
-              ...p,
+              ...prev,
               words: {
-                ...(p.words || {}),
-                [k]: {
-                  term: b.term,
-                  plain: b.plain,
-                  like: b.like,
+                ...(prev.words || {}),
+                [key]: {
+                  term: block.term,
+                  plain: block.plain,
+                  like: block.like,
                   from: L0.id,
-                  title: q,
+                  title: question,
                   at: Date.now(),
                 },
               },
             };
           });
-        if (b.t === 'step') setStepSel((s) => (s == null ? 0 : s + 1));
+        if (block.t === 'step') setStepSel((s) => (s == null ? 0 : s + 1));
       });
       const prompt = buildPrompt({
-        q,
+        q: question,
         mode: L0.mode,
         lang,
         level,
-        context: o.context,
-        path: o.path,
-        prev: o.prev ? { title: o.prev.title, code: o.prev.work ?? o.prev.code } : null,
+        context: options.context,
+        path: options.path,
+        prev: options.prev
+          ? { title: options.prev.title, code: options.prev.work ?? options.prev.code }
+          : null,
       });
       const cancel = api.ask(model, prompt, {
         chunk: (t) => parser.push(t),
@@ -217,7 +221,7 @@ export default function useLessons({
           if (!document.hasFocus() && window.Notification?.permission !== 'denied') {
             try {
               new Notification('Your lesson is ready', {
-                body: q ? String(q).slice(0, 90) : 'Bento finished writing.',
+                body: question ? String(question).slice(0, 90) : 'Bento finished writing.',
                 silent: true,
               }).onclick = () => {
                 window.focus();
@@ -244,34 +248,34 @@ export default function useLessons({
           );
           cancels.current.delete(L0.id);
         },
-        error: (m) => {
+        error: (message) => {
           parser.end();
           cancels.current.delete(L0.id);
           // Auto-route: if this AI can't answer right now (usage limit, signed out, missing), quietly ask your other one.
           const alt = altOf(model, providersRef.current);
           const account =
             /usage limit|isn’t signed in|isn’t installed|can’t talk to yet|doesn’t have Copilot|no longer lets personal|isn’t set up with a key|doesn’t offer|can’t use Gemini/.test(
-              m,
+              message,
             );
           const cur = lessonsRef.current.find((l) => l.id === L0.id);
           if (
             settings.autoFallback &&
             alt &&
             account &&
-            !o.routed &&
+            !options.routed &&
             !cur?.code &&
             !cur?.story?.length
           ) {
             setLessons((ls) => ls.filter((l) => l.id !== L0.id));
-            askLesson(q, {
-              ...o,
+            askLesson(question, {
+              ...options,
               model: alt,
               routed: {
                 from: modelLabel(model),
                 to: modelLabel(alt),
-                why: /usage limit/.test(m)
+                why: /usage limit/.test(message)
                   ? 'hit its usage limit'
-                  : /signed in/.test(m)
+                  : /signed in/.test(message)
                     ? 'isn’t signed in'
                     : 'isn’t installed',
               },
@@ -280,33 +284,33 @@ export default function useLessons({
           }
           setLessons((ls) =>
             ls.map((l) =>
-              l.id === L0.id ? { ...l, status: l.code ? 'done' : 'error', error: m } : l,
+              l.id === L0.id ? { ...l, status: l.code ? 'done' : 'error', error: message } : l,
             ),
           );
         },
       });
       cancels.current.set(L0.id, cancel);
-      L0._ask = { q, o };
+      L0._ask = { q: question, o: options };
       return L0.id;
     },
     [settings],
   );
   // points toward each concept you learn, once per lesson and kind of activity
-  const award = (l, kind) => {
-    if (!l?.concepts?.length) return;
+  const award = (lesson, kind) => {
+    if (!lesson?.concepts?.length) return;
     const pts = { open: 0.5, run: 1, step: 1.5, quiz: 2, challenge: 3 }[kind] || 0;
-    const key = `${l.id}:${kind}`;
-    setProgress((p) => {
-      if ((p.awarded || []).includes(key)) return p;
-      const c = { ...p.concepts };
-      l.concepts.forEach((id) => {
-        c[id] = (c[id] || 0) + pts;
+    const key = `${lesson.id}:${kind}`;
+    setProgress((prev) => {
+      if ((prev.awarded || []).includes(key)) return prev;
+      const concepts = { ...prev.concepts };
+      lesson.concepts.forEach((id) => {
+        concepts[id] = (concepts[id] || 0) + pts;
       });
       return {
-        ...p,
-        concepts: c,
-        coins: (p.coins ?? 5) + (kind === 'challenge' ? 3 : 0),
-        awarded: [...(p.awarded || []).slice(-400), key],
+        ...prev,
+        concepts: concepts,
+        coins: (prev.coins ?? 5) + (kind === 'challenge' ? 3 : 0),
+        awarded: [...(prev.awarded || []).slice(-400), key],
       };
     });
   };

@@ -28,15 +28,15 @@ export function usePlans() {
   const [limits, setLimits] = useState({});
   const [usage, setUsage] = useState(null);
   useEffect(() => {
-    const b = window.bento;
-    if (!b?.limits) return undefined;
-    b.limits
+    const bridge = window.bento;
+    if (!bridge?.limits) return undefined;
+    bridge.limits
       .get()
       .then((x) => x && setLimits(x))
       .catch(() => {});
-    const off = b.limits.on((x) => x && setLimits(x));
+    const off = bridge.limits.on((x) => x && setLimits(x));
     const get = () =>
-      b
+      bridge
         .usage?.()
         .then(setUsage)
         .catch(() => {});
@@ -108,7 +108,7 @@ const NO_READING = {
 };
 // one AI: its plan, how full, when it resets, and what Bento used of it today
 export function PlanRow({ id, limits, today, now = Date.now() }) {
-  const p = provider(id);
+  const info = provider(id);
   const w = mainWindow(limits);
   const lv = level(w);
   const L1 = today?.lessons || 0,
@@ -125,7 +125,7 @@ export function PlanRow({ id, limits, today, now = Date.now() }) {
       <AIMark id={id} size={22} />
       <div className="pa-main">
         <div className="pa-top">
-          <b>{p.short || p.name}</b>
+          <b>{info.short || info.name}</b>
           {limits?.plan && <span className="pa-plan">{limits.plan}</span>}
           {w && <span className="pa-pct">{w.unlimited ? '∞' : `${w.used}%`}</span>}
         </div>
@@ -171,13 +171,13 @@ export function PlanMeter({ model, providers }) {
   const planLimits = limits[id];
   const w = mainWindow(planLimits);
   const lv = level(w);
-  const p = provider(id);
+  const info = provider(id);
   const place = (btn) => {
-    const r = btn.getBoundingClientRect();
+    const rect = btn.getBoundingClientRect();
     const width = 300;
     setAt({
-      left: Math.max(8, Math.min(r.left, innerWidth - width - 8)),
-      bottom: Math.max(8, innerHeight - r.top + 6),
+      left: Math.max(8, Math.min(rect.left, innerWidth - width - 8)),
+      bottom: Math.max(8, innerHeight - rect.top + 6),
     });
   };
   useEffect(() => {
@@ -204,8 +204,8 @@ export function PlanMeter({ model, providers }) {
   const n = today.lessons + today.quick + today.other;
   const mine = usage?.by?.[id]?.n || 0;
   const said = w
-    ? `${p.short || p.name}: ${usedText(w, t)}${w.resetsAt ? `, ${resetText(w.resetsAt, Date.now(), t)}` : ''}`
-    : `${p.short || p.name}: ${mine} ${t(mine === 1 ? 'request from Bento today' : 'requests from Bento today')}`;
+    ? `${info.short || info.name}: ${usedText(w, t)}${w.resetsAt ? `, ${resetText(w.resetsAt, Date.now(), t)}` : ''}`
+    : `${info.short || info.name}: ${mine} ${t(mine === 1 ? 'request from Bento today' : 'requests from Bento today')}`;
   return (
     <div className="usage compact">
       <button

@@ -500,11 +500,11 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
           <div className="onb-k">step 2 · about you</div>
           <h2>How much code have you seen?</h2>
           <div className="levels">
-            {LEVELS.map(([k, t, d, e]) => (
+            {LEVELS.map(([levelId, t, d, e]) => (
               <button
-                key={k}
-                className={`lvl ${level === k ? 'on' : ''}`}
-                onClick={() => setLevel(k)}
+                key={levelId}
+                className={`lvl ${level === levelId ? 'on' : ''}`}
+                onClick={() => setLevel(levelId)}
               >
                 <span className="lvl-e">{e}</span>
                 <b>{t}</b>
@@ -576,13 +576,15 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
             <div>
               <div className="mini-h">what are you curious about?</div>
               <div className="interests">
-                {INTERESTS.map(([k, l, e]) => (
+                {INTERESTS.map(([interest, l, e]) => (
                   <button
-                    key={k}
-                    className={`int ${interests.includes(k) ? 'on' : ''}`}
+                    key={interest}
+                    className={`int ${interests.includes(interest) ? 'on' : ''}`}
                     onClick={() =>
                       setInterests((xs) =>
-                        xs.includes(k) ? xs.filter((x) => x !== k) : [...xs, k],
+                        xs.includes(interest)
+                          ? xs.filter((x) => x !== interest)
+                          : [...xs, interest],
                       )
                     }
                   >

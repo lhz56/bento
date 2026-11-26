@@ -2,40 +2,44 @@
 import { mockBridge } from './mock.js';
 
 // a stored value of the wrong shape (a damaged file) falls back to the default instead of crashing the app
-export const load = (k, d) => {
+export const load = (key, fallback) => {
   try {
-    const v = JSON.parse(localStorage.getItem(k));
-    if (v == null) return d;
-    if (d != null && (Array.isArray(d) !== Array.isArray(v) || typeof d !== typeof v)) return d;
+    const v = JSON.parse(localStorage.getItem(key));
+    if (v == null) return fallback;
+    if (
+      fallback != null &&
+      (Array.isArray(fallback) !== Array.isArray(v) || typeof fallback !== typeof v)
+    )
+      return fallback;
     return v;
   } catch {
-    return d;
+    return fallback;
   }
 };
-export const save = (k, v) => {
-  const t = Date.now();
+export const save = (key, value) => {
+  const start = Date.now();
   try {
-    localStorage.setItem(k, JSON.stringify(v));
-    localStorage.setItem('bento.savedAt', String(t));
+    localStorage.setItem(key, JSON.stringify(value));
+    localStorage.setItem('bento.savedAt', String(start));
   } catch {}
   try {
     const b = /** @type {BentoBridge} */ (window.bento || mockBridge);
-    b.storeSet?.(k, v);
-    b.storeSet?.('bento.savedAt', t);
+    b.storeSet?.(key, value);
+    b.storeSet?.('bento.savedAt', start);
   } catch {}
 };
 export const cleanErr = (e) =>
   String(e?.message || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
 // Lessons: the newest 60 in browser storage (fast start), every lesson on disk (nothing is ever dropped).
 export const saveLessons = (list) => {
-  const t = Date.now();
+  const start = Date.now();
   try {
     localStorage.setItem('bento.lessons', JSON.stringify(list.slice(0, 60)));
-    localStorage.setItem('bento.savedAt', String(t));
+    localStorage.setItem('bento.savedAt', String(start));
   } catch {}
   try {
     const b = /** @type {BentoBridge} */ (window.bento || mockBridge);
     b.storeSet?.('bento.lessons', list);
-    b.storeSet?.('bento.savedAt', t);
+    b.storeSet?.('bento.savedAt', start);
   } catch {}
 };

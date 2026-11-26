@@ -21,10 +21,10 @@ export const LANG_NAME = {
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
-export function emptyLesson(q, opts = {}) {
+export function emptyLesson(question, opts = {}) {
   return {
     id: uid(),
-    q,
+    q: question,
     mode: opts.mode || 'explain',
     lang: opts.lang || 'python',
     level: opts.level || 'student',
@@ -124,21 +124,22 @@ const tidy = (s) => s.replace(/^\[\s*(?=\{)/, '').replace(/\}\s*,?\s*\]?\s*,?$/,
 // What a model writes by hand isn't always valid JSON: a Python backslash left as it is (r'\d+', it\'s), a tab, or code
 // spread over several lines with real line breaks inside its string. Mended only when a line won't parse as it is:
 // inside strings, raw breaks and tabs become escapes and a backslash that starts no JSON escape is doubled.
-function mendJSON(s) {
+function mendJSON(text) {
   let out = '',
     str = false;
-  for (let i = 0; i < s.length; i++) {
-    const ch = s[i];
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
     if (!str) {
       if (ch === '"') str = true;
       out += ch;
       continue;
     }
     if (ch === '\\') {
-      const nx = s[i + 1];
+      const nx = text[i + 1];
       if (
         nx &&
-        ('"\\/bfnrt'.includes(nx) || (nx === 'u' && /^[0-9a-fA-F]{4}$/.test(s.slice(i + 2, i + 6))))
+        ('"\\/bfnrt'.includes(nx) ||
+          (nx === 'u' && /^[0-9a-fA-F]{4}$/.test(text.slice(i + 2, i + 6))))
       ) {
         out += ch + nx;
         i++;
@@ -154,9 +155,9 @@ function mendJSON(s) {
   }
   return out;
 }
-const asBlock = (t) => {
+const asBlock = (text) => {
   try {
-    const o = JSON.parse(t);
+    const o = JSON.parse(text);
     return o && typeof o === 'object' && !Array.isArray(o) ? o : null;
   } catch {
     return null;
@@ -167,10 +168,10 @@ export function ndjsonParser(onBlock) {
   let buf = '',
     pend = '';
   const tryLine = (line) => {
-    const s = line.trim();
-    if (!s || s.startsWith('```')) return;
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('```')) return;
     if (pend) {
-      const whole = s.startsWith('{') && parseBlock(s);
+      const whole = trimmed.startsWith('{') && parseBlock(trimmed);
       if (whole && typeof whole.t === 'string') {
         pend = '';
         onBlock(whole);
@@ -178,22 +179,22 @@ export function ndjsonParser(onBlock) {
       } // a block of its own (not a part of the one being collected)
       // the block goes on over this line, kept exactly as written (its indentation is Python's): a break inside a string
       // needs an escaped newline, one between parts doesn't
-      const r = line.replace(/\r$/, '');
-      const o = parseBlock(pend + '\n' + r) || parseBlock(pend + '\\n' + r);
-      if (o) {
+      const raw = line.replace(/\r$/, '');
+      const block = parseBlock(pend + '\n' + raw) || parseBlock(pend + '\\n' + raw);
+      if (block) {
         pend = '';
-        onBlock(o);
-      } else pend = (pend + '\n' + r).length < 60000 ? pend + '\n' + r : '';
+        onBlock(block);
+      } else pend = (pend + '\n' + raw).length < 60000 ? pend + '\n' + raw : '';
       return;
     }
-    if (s === '[' || s === ']' || s === '],') return; // the list a lesson was wrapped in
-    const o = parseBlock(s);
-    if (o) onBlock(o);
-    else if (/^\[?\s*\{/.test(s)) pend = s;
+    if (trimmed === '[' || trimmed === ']' || trimmed === '],') return; // the list a lesson was wrapped in
+    const block = parseBlock(trimmed);
+    if (block) onBlock(block);
+    else if (/^\[?\s*\{/.test(trimmed)) pend = trimmed;
   };
   return {
-    push(t) {
-      buf += t;
+    push(text) {
+      buf += text;
       let i;
       while ((i = buf.indexOf('\n')) >= 0) {
         tryLine(buf.slice(0, i));
@@ -220,46 +221,47 @@ const LEVEL = {
 
 export function buildPrompt({ q, mode, lang, level, context, prev, path }) {
   const langInfo = LANG_NAME[lang] || 'Python';
-  let p = `MODE: ${mode}\nLANGUAGE: ${langInfo}\nLEVEL: ${LEVEL[level] || 'student'}\n`;
-  if (path) p += `\nLEARNING PATH: ${path}\n`;
+  let prompt = `MODE: ${mode}\nLANGUAGE: ${langInfo}\nLEVEL: ${LEVEL[level] || 'student'}\n`;
+  if (path) prompt += `\nLEARNING PATH: ${path}\n`;
   if (prev)
-    p += `\nThis is a FOLLOW-UP to the lesson "${prev.title}". Its code was:\n${prev.code}\n`;
-  if (mode === 'explain') p += `\nQUESTION: ${q}\n`;
+    prompt += `\nThis is a FOLLOW-UP to the lesson "${prev.title}". Its code was:\n${prev.code}\n`;
+  if (mode === 'explain') prompt += `\nQUESTION: ${q}\n`;
   if (mode === 'code' && context?.repo && context?.key?.length) {
-    p += `\nREPO MODE. The student is studying the real repository "${context.repo}"${context.gist ? ` (${context.gist})` : ''} and asks: ${q}\nTeach how THIS repo does it. The code block must be a VERBATIM excerpt (12–45 consecutive lines) from the most relevant file below; set "file" to its path. Line links refer to lines of your excerpt. Pseudo must cover every excerpt line. Mention other files by path in backticks when the flow crosses them. The code isn't runnable: skip growth and tests. Keep the quiz about this repo.\n`;
-    p += `\nFILE TREE (partial, path — role):\n${(context.files || []).slice(0, 160).join('\n')}\n`;
-    for (const f of context.key || []) p += `\n--- ${f.path} ---\n${f.text.slice(0, 9000)}\n`;
-    return p;
+    prompt += `\nREPO MODE. The student is studying the real repository "${context.repo}"${context.gist ? ` (${context.gist})` : ''} and asks: ${q}\nTeach how THIS repo does it. The code block must be a VERBATIM excerpt (12–45 consecutive lines) from the most relevant file below; set "file" to its path. Line links refer to lines of your excerpt. Pseudo must cover every excerpt line. Mention other files by path in backticks when the flow crosses them. The code isn't runnable: skip growth and tests. Keep the quiz about this repo.\n`;
+    prompt += `\nFILE TREE (partial, path — role):\n${(context.files || []).slice(0, 160).join('\n')}\n`;
+    for (const f of context.key || []) prompt += `\n--- ${f.path} ---\n${f.text.slice(0, 9000)}\n`;
+    return prompt;
   }
   if (mode === 'code')
-    p += `\nExplain THIS code from the student's own project${context?.path ? ` (${context.path})` : ''}. Use it verbatim as the code block (if longer than 60 lines, pick the most interesting 15–40 line section, keep it verbatim). Pseudo must cover every line. Notes should explain the non-obvious parts. The code may not be runnable; that's fine.${q ? `\nThe student asks: ${q}` : ''}\n\nCODE:\n${context?.code || ''}\n`;
+    prompt += `\nExplain THIS code from the student's own project${context?.path ? ` (${context.path})` : ''}. Use it verbatim as the code block (if longer than 60 lines, pick the most interesting 15–40 line section, keep it verbatim). Pseudo must cover every line. Notes should explain the non-obvious parts. The code may not be runnable; that's fine.${q ? `\nThe student asks: ${q}` : ''}\n\nCODE:\n${context?.code || ''}\n`;
   if (mode === 'compare' && context?.a) {
     const side = (site, n) =>
       `\n=== APP ${n}: ${site.repo}${site.gist ? ` (${site.gist})` : ''} ===\nFILES (partial):\n${(site.files || []).slice(0, 70).join('\n')}\n${(site.key || []).map((f) => `\n--- ${site.repo}: ${f.path} ---\n${f.text.slice(0, 7000)}`).join('\n')}\n`;
-    p += `\nCOMPARE MODE. The learner wants to see how two real apps solve the same problem: ${q}\n${side(context.a, 'A')}${side(context.b, 'B')}`;
-    p += `\nWrite the lesson around the difference. Title like "Two ways to …". The code block shows a VERBATIM excerpt from each app (8–20 lines each), A first, separated by a comment line naming the app and file (e.g. "# ── A · repo/file.py ──" or "// ── B · repo/file.js ──"); set file to "compare". Line links refer to lines of this combined block. Use h blocks: "App A’s way", "App B’s way", "Which would you pick?". Use term blocks for new words. Skip growth/tests. Quiz: which app does X. Next: more comparisons.\n`;
-    return p;
+    prompt += `\nCOMPARE MODE. The learner wants to see how two real apps solve the same problem: ${q}\n${side(context.a, 'A')}${side(context.b, 'B')}`;
+    prompt += `\nWrite the lesson around the difference. Title like "Two ways to …". The code block shows a VERBATIM excerpt from each app (8–20 lines each), A first, separated by a comment line naming the app and file (e.g. "# ── A · repo/file.py ──" or "// ── B · repo/file.js ──"); set file to "compare". Line links refer to lines of this combined block. Use h blocks: "App A’s way", "App B’s way", "Which would you pick?". Use term blocks for new words. Skip growth/tests. Quiz: which app does X. Next: more comparisons.\n`;
+    return prompt;
   }
   if (mode === 'build') {
-    p += `\nBUILD MODE. Guide the learner to build, step by step, a tiny runnable version of: ${q}${context?.inspired ? `\nIt is inspired by the real project ${context.inspired} (${context.gist || ''}).` : ''}\nUse 3–5 step blocks INSTEAD of a single code block. Each step's "code" is the FULL runnable program so far (no network, no files, no input(); simulate outside services with small functions that print or show()). Each step should run and show something new. Step md: what we add and why, with one technical word named in **bold**; put a term block right after a step when it introduces a new word. Order: title → p (what we'll build, 1–2 sentences) → step → [term] → step … → pseudo (for the LAST step) → notes (for the last step) → p (what you built, and how the real project does it bigger) → quiz → try → next.\n`;
-    return p;
+    prompt += `\nBUILD MODE. Guide the learner to build, step by step, a tiny runnable version of: ${q}${context?.inspired ? `\nIt is inspired by the real project ${context.inspired} (${context.gist || ''}).` : ''}\nUse 3–5 step blocks INSTEAD of a single code block. Each step's "code" is the FULL runnable program so far (no network, no files, no input(); simulate outside services with small functions that print or show()). Each step should run and show something new. Step md: what we add and why, with one technical word named in **bold**; put a term block right after a step when it introduces a new word. Order: title → p (what we'll build, 1–2 sentences) → step → [term] → step … → pseudo (for the LAST step) → notes (for the last step) → p (what you built, and how the real project does it bigger) → quiz → try → next.\n`;
+    return prompt;
   }
   if (mode === 'idea' && context) {
     const ctx = context;
-    p += `\nCASE STUDY MODE. Write this like a superb engineering blog post for a curious learner, with runnable code they can play with.\nTITLE: ${ctx.title}\nCOMPANY: ${ctx.company}\nFACTS (stay strictly inside these; do not invent numbers, dates or internal details):\n${ctx.brief}\n${ctx.repo ? `REAL OPEN-SOURCE CODE: github.com/${ctx.repo} (mention it at the end)\n` : ''}`;
-    p += `\nSTRUCTURE (use h blocks for sections):\n1. title (kicker = "${ctx.company}")\n2. h "The problem" + 1–2 p: the real situation at ${ctx.company}, concrete and vivid.\n3. h "The obvious way" + 1 p: ${ctx.vs}, and exactly why it breaks.\n4. h "The clever idea" + 1–2 p with an everyday analogy, then term blocks for new words.\n5. code + pseudo + notes. CODE BRIEF: ${ctx.code} The code MUST run both the obvious way and the clever way and show() the difference, so the learner SEES why it wins. 25–45 lines is fine here.\n6. h "How the code does it" + 1–2 p with line links.\n7. h "Trade-offs" + 1 p: what it costs, when NOT to use it.\n8. h "Where else you’ll see it" + 1 short p.\n9. quiz, try (experiments like changing a constant), next.\n`;
-    return p;
+    prompt += `\nCASE STUDY MODE. Write this like a superb engineering blog post for a curious learner, with runnable code they can play with.\nTITLE: ${ctx.title}\nCOMPANY: ${ctx.company}\nFACTS (stay strictly inside these; do not invent numbers, dates or internal details):\n${ctx.brief}\n${ctx.repo ? `REAL OPEN-SOURCE CODE: github.com/${ctx.repo} (mention it at the end)\n` : ''}`;
+    prompt += `\nSTRUCTURE (use h blocks for sections):\n1. title (kicker = "${ctx.company}")\n2. h "The problem" + 1–2 p: the real situation at ${ctx.company}, concrete and vivid.\n3. h "The obvious way" + 1 p: ${ctx.vs}, and exactly why it breaks.\n4. h "The clever idea" + 1–2 p with an everyday analogy, then term blocks for new words.\n5. code + pseudo + notes. CODE BRIEF: ${ctx.code} The code MUST run both the obvious way and the clever way and show() the difference, so the learner SEES why it wins. 25–45 lines is fine here.\n6. h "How the code does it" + 1–2 p with line links.\n7. h "Trade-offs" + 1 p: what it costs, when NOT to use it.\n8. h "Where else you’ll see it" + 1 short p.\n9. quiz, try (experiments like changing a constant), next.\n`;
+    return prompt;
   }
   if (mode === 'challenge')
-    p += `\nCHALLENGE TOPIC: ${q || 'arrays and loops'}\nWrite a short function with EXACTLY ONE subtle, realistic bug. Emit a tests block (some cases pass, at least one fails because of the bug), and a hints block. The p blocks describe the task and goal but must NOT reveal the bug. The code block should also call the function once with console.log/print. Skip the quiz.\n`;
+    prompt += `\nCHALLENGE TOPIC: ${q || 'arrays and loops'}\nWrite a short function with EXACTLY ONE subtle, realistic bug. Emit a tests block (some cases pass, at least one fails because of the bug), and a hints block. The p blocks describe the task and goal but must NOT reveal the bug. The code block should also call the function once with console.log/print. Skip the quiz.\n`;
   if (mode === 'feature') {
-    p += `\nFEATURE MODE. The student wants to build this in their own project: ${q}\nUse "step" blocks (2–5), using their real stack, file names and conventions.\n`;
+    prompt += `\nFEATURE MODE. The student wants to build this in their own project: ${q}\nUse "step" blocks (2–5), using their real stack, file names and conventions.\n`;
     if (context) {
-      p += `\nPROJECT: ${context.name}\nFILE TREE (partial):\n${(context.files || []).slice(0, 180).join('\n')}\n`;
-      for (const f of context.key || []) p += `\n--- ${f.path} ---\n${f.text.slice(0, 6000)}\n`;
+      prompt += `\nPROJECT: ${context.name}\nFILE TREE (partial):\n${(context.files || []).slice(0, 180).join('\n')}\n`;
+      for (const f of context.key || [])
+        prompt += `\n--- ${f.path} ---\n${f.text.slice(0, 6000)}\n`;
     }
   }
-  return p;
+  return prompt;
 }
 
 export const quickPrompts = {
@@ -281,20 +283,20 @@ export const quickPrompts = {
     `(Context: this runs inside Bento, where show(), print(), size(), background(), circle(), rect(), line() and text() are built-in helpers that always exist.)\nA student's ${lang} code fails with:\n${err}\n\nCODE:\n${code}\n\nReply JSON: {"plain":"what went wrong in plain words, max 25 words","fix":"what to change, max 20 words","line":<1-based line number or null>}`,
 };
 
-export function parseJSONLoose(s) {
-  if (!s) return null;
-  const t = s
+export function parseJSONLoose(text) {
+  if (!text) return null;
+  const trimmed = text
     .replace(/^```(json)?/m, '')
     .replace(/```\s*$/m, '')
     .trim();
   try {
-    return JSON.parse(t);
+    return JSON.parse(trimmed);
   } catch {}
-  const a = t.indexOf('{'),
-    b = t.lastIndexOf('}');
-  if (a >= 0 && b > a) {
+  const start = trimmed.indexOf('{'),
+    end = trimmed.lastIndexOf('}');
+  if (start >= 0 && end > start) {
     try {
-      return JSON.parse(t.slice(a, b + 1));
+      return JSON.parse(trimmed.slice(start, end + 1));
     } catch {}
   }
   return null;

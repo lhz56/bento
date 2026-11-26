@@ -25,13 +25,13 @@ export function useDialog(onClose) {
         return;
       }
       if (e.key !== 'Tab') return;
-      const f = list();
-      if (!f.length) {
+      const items = list();
+      if (!items.length) {
         e.preventDefault();
         return;
       }
-      const first = f[0];
-      const last = f[f.length - 1];
+      const first = items[0];
+      const last = items[items.length - 1];
       if (
         e.shiftKey &&
         (document.activeElement === first || !el.contains(document.activeElement))

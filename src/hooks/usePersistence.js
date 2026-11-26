@@ -5,16 +5,18 @@ import { mergeLessons } from '../sync.js';
 
 // lessons that were mid-stream when the app closed can't resume: keep what arrived, or mark them interrupted
 export const settle = (ls) =>
-  ls.map((l) =>
-    l.status === 'streaming'
+  ls.map((lesson) =>
+    lesson.status === 'streaming'
       ? {
-          ...l,
-          status: l.code || l.steps?.length ? 'done' : 'error',
+          ...lesson,
+          status: lesson.code || lesson.steps?.length ? 'done' : 'error',
           error:
-            l.code || l.steps?.length ? null : 'This lesson was interrupted when Bento closed.',
+            lesson.code || lesson.steps?.length
+              ? null
+              : 'This lesson was interrupted when Bento closed.',
           thinking: null,
         }
-      : l,
+      : lesson,
   );
 
 // What browser storage held at startup, before the app writes its defaults: the disk mirror is compared against this.
@@ -107,27 +109,27 @@ export default function usePersistence({
       });
     const savedProgress = saved['bento.progress'];
     if (savedProgress && typeof savedProgress === 'object')
-      setProgress((p) => {
-        const next = { ...p };
-        next.words = { ...(savedProgress.words || {}), ...(p.words || {}) };
-        next.path = { ...(savedProgress.path || {}), ...(p.path || {}) };
+      setProgress((prev) => {
+        const next = { ...prev };
+        next.words = { ...(savedProgress.words || {}), ...(prev.words || {}) };
+        next.path = { ...(savedProgress.path || {}), ...(prev.path || {}) };
         next.puzzles = { ...(savedProgress.puzzles || {}) };
-        for (const [k, r] of Object.entries(p.puzzles || {})) {
+        for (const [k, r] of Object.entries(prev.puzzles || {})) {
           const o = next.puzzles[k] || {};
           next.puzzles[k] = { ...o, ...r, s: [0, 1, 2].map((i) => !!(o.s?.[i] || r.s?.[i])) };
         }
         next.concepts = { ...(savedProgress.concepts || {}) };
-        for (const [k, v] of Object.entries(p.concepts || {}))
+        for (const [k, v] of Object.entries(prev.concepts || {}))
           next.concepts[k] = Math.max(v, next.concepts[k] || 0);
         for (const k of ['sql', 'git', 'design', 'reviewed', 'daily'])
-          next[k] = { ...(savedProgress[k] || {}), ...(p[k] || {}) };
+          next[k] = { ...(savedProgress[k] || {}), ...(prev[k] || {}) };
         next.tracks = [
-          ...(p.tracks || []),
+          ...(prev.tracks || []),
           ...(savedProgress.tracks || []).filter(
-            (t) => !(p.tracks || []).some((x) => x.id === t.id),
+            (t) => !(prev.tracks || []).some((x) => x.id === t.id),
           ),
         ];
-        next.coins = Math.max(p.coins ?? 5, savedProgress.coins ?? 5);
+        next.coins = Math.max(prev.coins ?? 5, savedProgress.coins ?? 5);
         return next;
       });
     return added;
@@ -150,18 +152,29 @@ export default function usePersistence({
   // a change made on another of your devices (your phone, iPad, or the Mac): show the same here
   useEffect(
     () =>
-      api.onStoreChanged?.((k, v) => {
-        if (k === 'bento.lessons' && Array.isArray(v))
-          setLessons((mine) => mergeLessons(mine, v, cancels.current));
-        else if (k === 'bento.progress' && v && typeof v === 'object' && !Array.isArray(v))
-          setProgress(v);
-        else if (k === 'bento.settings' && v && typeof v === 'object' && !Array.isArray(v))
+      api.onStoreChanged?.((key, value) => {
+        if (key === 'bento.lessons' && Array.isArray(value))
+          setLessons((mine) => mergeLessons(mine, value, cancels.current));
+        else if (
+          key === 'bento.progress' &&
+          value &&
+          typeof value === 'object' &&
+          !Array.isArray(value)
+        )
+          setProgress(value);
+        else if (
+          key === 'bento.settings' &&
+          value &&
+          typeof value === 'object' &&
+          !Array.isArray(value)
+        )
           setSettingsRaw((s0) => {
-            const n = { ...s0, ...v };
+            const n = { ...s0, ...value };
             save('bento.settings', n);
             return n;
           });
-        else if (k === 'bento.projects' && Array.isArray(v)) setProjects(v.filter((x) => x?.key));
+        else if (key === 'bento.projects' && Array.isArray(value))
+          setProjects(value.filter((x) => x?.key));
       }),
     [],
   );

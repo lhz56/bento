@@ -53,17 +53,17 @@ export default function Coach({ screen, ready }) {
     // the thing it points at can go (another Atlas tab, a closed pane): the tip waits, and comes back with it
     const watch = setInterval(() => {
       const el = document.querySelector(step[0]);
-      const r = el?.getBoundingClientRect();
-      setBox((b) =>
-        !r || !r.width
+      const rect = el?.getBoundingClientRect();
+      setBox((prev) =>
+        !rect || !rect.width
           ? null
-          : b &&
-              Math.abs(b.x - r.left) < 1 &&
-              Math.abs(b.y - r.top) < 1 &&
-              b.w === r.width &&
-              b.h === r.height
-            ? b
-            : { x: r.left, y: r.top, w: r.width, h: r.height },
+          : prev &&
+              Math.abs(prev.x - rect.left) < 1 &&
+              Math.abs(prev.y - rect.top) < 1 &&
+              prev.w === rect.width &&
+              prev.h === rect.height
+            ? prev
+            : { x: rect.left, y: rect.top, w: rect.width, h: rect.height },
       );
     }, 400);
     return () => {

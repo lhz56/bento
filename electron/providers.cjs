@@ -31,10 +31,10 @@ const fastOf = (model) => BY[parseModel(model).prov].fast;
 // whether a --help text lists every option Bento passes (null: no usable help text, so no verdict)
 // (a flag can be a list of the ways its help may spell it, such as Claude's "--system-prompt[-file]")
 const missingFlags = (help, flags) => {
-  const t = `${help.out}${help.err}`;
-  if (!help.ok || t.length < 200) return null;
+  const text = `${help.out}${help.err}`;
+  if (!help.ok || text.length < 200) return null;
   const gone = flags
-    .filter((f) => ![].concat(f).some((x) => t.includes(x)))
+    .filter((f) => ![].concat(f).some((x) => text.includes(x)))
     .map((f) => [].concat(f)[0]);
   return gone.length ? gone : null;
 };
@@ -91,16 +91,16 @@ const claude = {
   },
   version: (out) => out.trim().split(' ')[0],
   async auth({ run }) {
-    const a = await run(['auth', 'status']);
+    const status = await run(['auth', 'status']);
     try {
-      const j = JSON.parse(a.out);
+      const j = JSON.parse(status.out);
       return {
         loggedIn: !!j.loggedIn,
         plan: planName(j.subscriptionType),
         method: j.authMethod || null,
       };
     } catch {
-      return { loggedIn: a.ok };
+      return { loggedIn: status.ok };
     }
   },
   build({ name, sysFile, prompt }) {
@@ -126,27 +126,27 @@ const claude = {
       stdin: prompt,
     };
   },
-  parse(o, s) {
-    if (o.type === 'stream_event' && o.event?.delta?.type === 'thinking_delta')
-      s.think(o.event.delta.thinking || '', o.event.delta.estimated_tokens || 0);
+  parse(event, sink) {
+    if (event.type === 'stream_event' && event.event?.delta?.type === 'thinking_delta')
+      sink.think(event.event.delta.thinking || '', event.event.delta.estimated_tokens || 0);
     else if (
-      o.type === 'stream_event' &&
-      o.event?.type === 'content_block_delta' &&
-      o.event.delta?.type === 'text_delta'
+      event.type === 'stream_event' &&
+      event.event?.type === 'content_block_delta' &&
+      event.event.delta?.type === 'text_delta'
     )
-      s.text(o.event.delta.text);
-    else if (o.type === 'rate_limit_event' && o.rate_limit_info)
-      s.limits(claudeLimits(o.rate_limit_info));
-    else if (o.type === 'result') {
-      if (o.usage)
-        s.tokens(
-          (o.usage.input_tokens || 0) +
-            (o.usage.cache_read_input_tokens || 0) +
-            (o.usage.cache_creation_input_tokens || 0),
-          o.usage.output_tokens || 0,
+      sink.text(event.event.delta.text);
+    else if (event.type === 'rate_limit_event' && event.rate_limit_info)
+      sink.limits(claudeLimits(event.rate_limit_info));
+    else if (event.type === 'result') {
+      if (event.usage)
+        sink.tokens(
+          (event.usage.input_tokens || 0) +
+            (event.usage.cache_read_input_tokens || 0) +
+            (event.usage.cache_creation_input_tokens || 0),
+          event.usage.output_tokens || 0,
         );
-      if (o.is_error) s.error(String(o.result || 'model error'));
-      else if (!s.full() && o.result) s.text(o.result);
+      if (event.is_error) sink.error(String(event.result || 'model error'));
+      else if (!sink.full() && event.result) sink.text(event.result);
     }
   },
 };
@@ -160,9 +160,9 @@ const CLAUDE_WINDOWS = {
 function claudeLimits(info) {
   const wins = Object.entries(info.unifiedWindows || {})
     .filter(([k]) => CLAUDE_WINDOWS[k])
-    .map(([k, w]) => ({
-      key: k,
-      label: CLAUDE_WINDOWS[k],
+    .map(([id, w]) => ({
+      key: id,
+      label: CLAUDE_WINDOWS[id],
       used: pct(w.utilization),
       resetsAt: w.resetsAt ? w.resetsAt * 1000 : null,
       warn: w.status === 'allowed_warning',
@@ -223,19 +223,19 @@ const codex = {
   },
   version: (out) => out.trim().split(' ').pop(),
   async auth({ run }) {
-    const a = await run(['login', 'status']);
-    const t = (a.out + a.err).trim();
+    const status = await run(['login', 'status']);
+    const text = (status.out + status.err).trim();
     return {
-      loggedIn: a.ok && /logged in/i.test(t),
-      method: /chatgpt/i.test(t) ? 'ChatGPT' : /api key/i.test(t) ? 'API key' : null,
+      loggedIn: status.ok && /logged in/i.test(text),
+      method: /chatgpt/i.test(text) ? 'ChatGPT' : /api key/i.test(text) ? 'API key' : null,
     };
   },
   async prepare({ run }) {
     if (codexFeatures) return;
-    const r = await run(['features', 'list']);
+    const features = await run(['features', 'list']);
     codexFeatures = new Set(
-      r.ok
-        ? r.out
+      features.ok
+        ? features.out
             .split('\n')
             .map((l) => l.trim().split(/\s+/)[0])
             .filter(Boolean)
@@ -264,28 +264,36 @@ const codex = {
       stdin: `${system}\n\n---\n\n${prompt}\n\n(Do not run any commands. Answer directly in the required format.)`,
     };
   },
-  parse(o, s) {
+  parse(event, sink) {
     // each message on its own line: a short "I'll …" before the answer must never merge into the first line of a lesson
-    if (o.type === 'item.completed' && o.item?.type === 'agent_message' && o.item.text) {
-      if (s.full() && !s.full().endsWith('\n')) s.text('\n');
-      s.text(o.item.text);
-    } else if (o.type === 'item.completed' && o.item?.type === 'reasoning' && o.item.text)
-      s.think(o.item.text + '\n');
-    else if (o.type === 'turn.completed' && o.usage)
-      s.tokens(
-        (o.usage.input_tokens || 0) + (o.usage.cached_input_tokens || 0),
-        o.usage.output_tokens || 0,
+    if (
+      event.type === 'item.completed' &&
+      event.item?.type === 'agent_message' &&
+      event.item.text
+    ) {
+      if (sink.full() && !sink.full().endsWith('\n')) sink.text('\n');
+      sink.text(event.item.text);
+    } else if (
+      event.type === 'item.completed' &&
+      event.item?.type === 'reasoning' &&
+      event.item.text
+    )
+      sink.think(event.item.text + '\n');
+    else if (event.type === 'turn.completed' && event.usage)
+      sink.tokens(
+        (event.usage.input_tokens || 0) + (event.usage.cached_input_tokens || 0),
+        event.usage.output_tokens || 0,
       );
-    else if (o.type === 'error' || o.type === 'turn.failed')
-      s.error(
-        typeof o.error === 'string'
-          ? o.error
-          : o.error?.message || o.message || JSON.stringify(o.error || o),
+    else if (event.type === 'error' || event.type === 'turn.failed')
+      sink.error(
+        typeof event.error === 'string'
+          ? event.error
+          : event.error?.message || event.message || JSON.stringify(event.error || event),
       );
   },
   // the plan's limits, read from Codex's own app server: no model is asked, so this costs nothing
   async limits({ spawnJson }) {
-    const r = await spawnJson(
+    const result = await spawnJson(
       ['app-server'],
       [
         { id: 1, method: 'initialize', params: { clientInfo: { name: 'bento', version: '1' } } },
@@ -294,7 +302,7 @@ const codex = {
       ],
       2,
     );
-    const rl = r?.rateLimits;
+    const rl = result?.rateLimits;
     if (!rl) return null;
     const wins = [rl.primary, rl.secondary].filter(Boolean).map((w) => ({
       key: String(w.windowDurationMins),
@@ -307,7 +315,7 @@ const codex = {
     return {
       plan: planName(rl.planType),
       windows: wins,
-      out: !!rl.rateLimitReachedType || r.ordinaryUsageAllowed === false,
+      out: !!rl.rateLimitReachedType || result.ordinaryUsageAllowed === false,
     };
   },
 };
@@ -388,15 +396,16 @@ const gemini = {
       env: { GEMINI_SYSTEM_MD: sysFile },
     };
   },
-  parse(o, s) {
-    if (o.type === 'message' && o.role === 'assistant' && typeof o.content === 'string')
-      s.text(o.content);
-    else if (o.type === 'result') {
-      const st = o.stats || {};
+  parse(event, sink) {
+    if (event.type === 'message' && event.role === 'assistant' && typeof event.content === 'string')
+      sink.text(event.content);
+    else if (event.type === 'result') {
+      const st = event.stats || {};
       if (st.input_tokens != null || st.output_tokens != null)
-        s.tokens(st.input_tokens || 0, st.output_tokens || 0);
-      if (o.status === 'error') s.error(o.error?.message || 'Gemini error');
-    } else if (o.type === 'error' && o.severity === 'error') s.error(o.message || 'Gemini error');
+        sink.tokens(st.input_tokens || 0, st.output_tokens || 0);
+      if (event.status === 'error') sink.error(event.error?.message || 'Gemini error');
+    } else if (event.type === 'error' && event.severity === 'error')
+      sink.error(event.message || 'Gemini error');
   },
 };
 
@@ -425,13 +434,13 @@ const copilot = {
     if (await ghToken()) return { loggedIn: true, method: 'GitHub' };
     // its own sign-in (copilot login) is in the Keychain; the config only says who
     try {
-      const t = (
+      const text = (
         await fs.promises.readFile(
           path.join(env.COPILOT_HOME || path.join(os.homedir(), '.copilot'), 'config.json'),
           'utf8',
         )
       ).replace(/^\s*\/\/.*$/gm, '');
-      const j = JSON.parse(t);
+      const j = JSON.parse(text);
       if ((j.logged_in_users || j.loggedInUsers || []).length || j.last_logged_in_user)
         return { loggedIn: true, method: 'Copilot' };
     } catch {}
@@ -465,30 +474,34 @@ const copilot = {
       env,
     };
   },
-  parse(o, s) {
-    const data = o.data || {};
-    if (o.type === 'assistant.message_delta' && data.deltaContent) {
-      s.seen(data.messageId);
-      s.text(data.deltaContent);
-    } else if (o.type === 'assistant.message' && data.content && !s.seen(data.messageId, true)) {
-      if (s.full() && !s.full().endsWith('\n')) s.text('\n');
-      s.text(data.content);
-    } else if (o.type === 'assistant.reasoning_delta' && data.deltaContent)
-      s.think(data.deltaContent);
-    else if (o.type === 'session.usage_checkpoint' && data.totalPremiumRequests != null)
-      s.requests(data.totalPremiumRequests);
-    else if (/error/i.test(o.type) && (data.message || data.error))
-      s.error(String(data.message || data.error?.message || data.error));
+  parse(event, sink) {
+    const data = event.data || {};
+    if (event.type === 'assistant.message_delta' && data.deltaContent) {
+      sink.seen(data.messageId);
+      sink.text(data.deltaContent);
+    } else if (
+      event.type === 'assistant.message' &&
+      data.content &&
+      !sink.seen(data.messageId, true)
+    ) {
+      if (sink.full() && !sink.full().endsWith('\n')) sink.text('\n');
+      sink.text(data.content);
+    } else if (event.type === 'assistant.reasoning_delta' && data.deltaContent)
+      sink.think(data.deltaContent);
+    else if (event.type === 'session.usage_checkpoint' && data.totalPremiumRequests != null)
+      sink.requests(data.totalPremiumRequests);
+    else if (/error/i.test(event.type) && (data.message || data.error))
+      sink.error(String(data.message || data.error?.message || data.error));
   },
   // the monthly allowance, from GitHub (the same numbers GitHub shows in its own apps); costs nothing
   async limits({ ghApi }) {
     const j = await ghApi('/copilot_internal/user');
     if (!j) return null;
-    const q = j.quota_snapshots || {};
+    const quotas = j.quota_snapshots || {};
     const pick =
-      q.premium_interactions?.entitlement > 0 || q.premium_interactions?.unlimited
-        ? q.premium_interactions
-        : q.chat;
+      quotas.premium_interactions?.entitlement > 0 || quotas.premium_interactions?.unlimited
+        ? quotas.premium_interactions
+        : quotas.chat;
     const free = /free/i.test(j.access_type_sku || '');
     const plan = free
       ? 'Free'
@@ -586,9 +599,9 @@ const antigravity = {
   version: (out) => (out.match(/\d+\.\d+\.\d+/) || [''])[0],
   // signed in = it can list this account's models (no model is asked)
   async auth({ run }) {
-    const r = await run(['models'], 25000);
-    const ids = r.ok
-      ? r.out
+    const listed = await run(['models'], 25000);
+    const ids = listed.ok
+      ? listed.out
           .split('\n')
           .map((l) => l.split('\t')[0].trim())
           .filter((x) => /^[a-z][\w.-]+$/.test(x))
@@ -628,24 +641,25 @@ const antigravity = {
       noModel: !model && !!AGY_ALIAS[name], // asked for "flash" but this account offers none: say so plainly
     };
   },
-  parse(o, s) {
-    if (o.event === 'step_update') {
-      const u = o.step_update || {};
-      if (u.step_type === 'tool' || u.tool_name)
-        return s.abort(
-          `Gemini (Antigravity) reached for a tool (${u.tool_name || 'unknown'}), so Bento stopped it: lessons never need tools. Try again, or switch model.`,
+  parse(event, sink) {
+    if (event.event === 'step_update') {
+      const update = event.step_update || {};
+      if (update.step_type === 'tool' || update.tool_name)
+        return sink.abort(
+          `Gemini (Antigravity) reached for a tool (${update.tool_name || 'unknown'}), so Bento stopped it: lessons never need tools. Try again, or switch model.`,
         );
-      if (u.step_type === 'agent_response' && typeof u.text_delta === 'string')
-        s.text(u.text_delta);
-    } else if (o.event === 'result') {
-      const r = o.result || {};
-      if (r.usage)
-        s.tokens(
-          (r.usage.input_tokens || 0) + (r.usage.cache_read_tokens || 0),
-          (r.usage.output_tokens || 0) + (r.usage.thinking_tokens || 0),
+      if (update.step_type === 'agent_response' && typeof update.text_delta === 'string')
+        sink.text(update.text_delta);
+    } else if (event.event === 'result') {
+      const result = event.result || {};
+      if (result.usage)
+        sink.tokens(
+          (result.usage.input_tokens || 0) + (result.usage.cache_read_tokens || 0),
+          (result.usage.output_tokens || 0) + (result.usage.thinking_tokens || 0),
         );
-      if (r.status && r.status !== 'SUCCESS') s.error(r.error || 'Antigravity error');
-      else if (!s.full() && r.response) s.text(r.response);
+      if (result.status && result.status !== 'SUCCESS')
+        sink.error(result.error || 'Antigravity error');
+      else if (!sink.full() && result.response) sink.text(result.response);
     }
   },
 };

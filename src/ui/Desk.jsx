@@ -192,7 +192,7 @@ const Desk = forwardRef(function Desk(props, ref) {
       asked.n = 0;
     }
     if (asked.n >= 2) return;
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       const snapshot = code;
       const lines = snapshot.split('\n');
       const only = english.map((e, i) => (e === null ? i + 1 : 0)).filter(Boolean);
@@ -228,7 +228,7 @@ const Desk = forwardRef(function Desk(props, ref) {
         setEnglishAgain((v) => v + 1);
       }
     }, 1300);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingEnglish, code, streaming, englishAgain]);
 
@@ -342,7 +342,7 @@ const Desk = forwardRef(function Desk(props, ref) {
       setLiveLogs([]);
       const mine = lidRef.current;
       const bundle = projectBundle(src);
-      const r = await runCode(
+      const result = await runCode(
         lang,
         'run',
         bundle.main,
@@ -364,14 +364,14 @@ const Desk = forwardRef(function Desk(props, ref) {
         queued.current = null;
         return;
       } // the learner moved to another lesson meanwhile
-      setResult(r);
-      props.onResult?.(mine, r, src);
+      setResult(result);
+      props.onResult?.(mine, result, src);
       if (!opts.quiet) {
         const streakNow = streak.current;
-        if (r.error) {
-          streakNow.n = streakNow.err === r.error.msg ? streakNow.n + 1 : 1;
-          streakNow.err = r.error.msg;
-          if (streakNow.n >= 3) setStuck({ why: 'error', err: r.error });
+        if (result.error) {
+          streakNow.n = streakNow.err === result.error.msg ? streakNow.n + 1 : 1;
+          streakNow.err = result.error.msg;
+          if (streakNow.n >= 3) setStuck({ why: 'error', err: result.error });
         } else {
           streakNow.n = 0;
           streakNow.err = null;
@@ -379,10 +379,10 @@ const Desk = forwardRef(function Desk(props, ref) {
         }
       }
       if (!opts.quiet) {
-        if (r.error)
+        if (result.error)
           setTab((t) => (t === 'steps' || t === 'growth' || t === 'tests' ? t : 'output'));
       }
-      if (!opts.quiet && r.error) haptic('warn'); // (a run you asked for that stopped on an error: you feel it before you read it)
+      if (!opts.quiet && result.error) haptic('warn'); // (a run you asked for that stopped on an error: you feel it before you read it)
       // then the one that waited, as asked: an answer typed meanwhile keeps the answers so far (it used to start over and ask again)
       if (queued.current) {
         const next = queued.current;
@@ -399,15 +399,15 @@ const Desk = forwardRef(function Desk(props, ref) {
     setTracing(true);
     setPlaying(false);
     const bundle = projectBundle(codeRef.current);
-    const r = await runCode(lang, 'trace', bundle.main, {
+    const result = await runCode(lang, 'trace', bundle.main, {
       answers: [...answersRef.current],
       seed: seedRef.current,
       files: bundle.files,
     });
     setTracing(false);
-    setTrace(r);
+    setTrace(result);
     setStepIdx(0);
-    if (r.steps?.length) setPlaying(true);
+    if (result.steps?.length) setPlaying(true);
     onMastery?.('step');
   }, [lang, onMastery]);
 
@@ -419,16 +419,16 @@ const Desk = forwardRef(function Desk(props, ref) {
         { label: (cfg.call || '').replace(/\(.*$/, '') || 'your function', call: cfg.call },
       ];
       const out = [];
-      for (const c of calls) {
-        const r = await runCode(lang, 'growth', codeRef.current, {
+      for (const call of calls) {
+        const result = await runCode(lang, 'growth', codeRef.current, {
           setup: cfg.setup,
-          call: c.call,
+          call: call.call,
         });
         out.push({
-          label: c.label,
-          pts: r.growth?.pts || [],
-          fit: r.growth?.fit,
-          error: r.error?.msg,
+          label: call.label,
+          pts: result.growth?.pts || [],
+          fit: result.growth?.fit,
+          error: result.error?.msg,
         });
       }
       setGrowth(out);
@@ -449,27 +449,27 @@ const Desk = forwardRef(function Desk(props, ref) {
     if (!lesson.tests) return;
     setTab('tests');
     setTesting(true);
-    const r = await runCode(lang, 'tests', codeRef.current, {
+    const result = await runCode(lang, 'tests', codeRef.current, {
       fn: lesson.tests.fn,
       cases: lesson.tests.cases,
     });
     setTesting(false);
-    if (r.error) {
+    if (result.error) {
       haptic('warn');
-      setResult(r);
-      setTests(lesson.tests.cases.map(() => ({ ok: false, got: r.error.msg })));
+      setResult(result);
+      setTests(lesson.tests.cases.map(() => ({ ok: false, got: result.error.msg })));
       return;
     }
-    setTests(r.tests);
-    haptic(r.tests?.every((x) => x.ok) ? 'success' : 'warn');
-    if (r.tests?.every((x) => x.ok)) {
+    setTests(result.tests);
+    haptic(result.tests?.every((x) => x.ok) ? 'success' : 'warn');
+    if (result.tests?.every((x) => x.ok)) {
       onMastery?.('challenge');
       streak.current.tests = 0;
       setStuck(null);
     } else if (++streak.current.tests >= 3)
       setStuck({
         why: 'tests',
-        failing: r.tests.map((x, i) => (x.ok ? null : { i, got: x.got })).filter(Boolean),
+        failing: result.tests.map((x, i) => (x.ok ? null : { i, got: x.got })).filter(Boolean),
       });
   }, [lesson.tests, lang, onMastery]);
 
@@ -603,10 +603,10 @@ const Desk = forwardRef(function Desk(props, ref) {
       return;
     }
     let live = true;
-    const t = setTimeout(() => typeCheck(code).then((d) => live && setTypeErrs(d)), 550);
+    const timer = setTimeout(() => typeCheck(code).then((d) => live && setTypeErrs(d)), 550);
     return () => {
       live = false;
-      clearTimeout(t);
+      clearTimeout(timer);
     };
   }, [code, lang]);
   // pointing at something in a web page lights up the line that made it
@@ -664,11 +664,11 @@ const Desk = forwardRef(function Desk(props, ref) {
     if (lesson.twin && lesson.twin.src === code) return;
     setTwinBusy(true);
     try {
-      const s = await quick(
+      const reply = await quick(
         model,
         quickPrompts.twin({ code, from: LNAME[lang], to: LNAME[other(lang)] }),
       );
-      const j = parseJSONLoose(s);
+      const j = parseJSONLoose(reply);
       if (j?.code)
         onPatch({ twin: { lang: other(lang), code: j.code, map: j.map || [], src: code } });
     } finally {
@@ -704,8 +704,9 @@ const Desk = forwardRef(function Desk(props, ref) {
   const deskRef = useRef(null);
   const dragDiv = (e) => {
     e.preventDefault();
-    const r = deskRef.current.getBoundingClientRect();
-    const mv = (ev) => setSplit(Math.min(0.82, Math.max(0.22, (ev.clientY - r.top) / r.height)));
+    const rect = deskRef.current.getBoundingClientRect();
+    const mv = (ev) =>
+      setSplit(Math.min(0.82, Math.max(0.22, (ev.clientY - rect.top) / rect.height)));
     const up = () => {
       removeEventListener('mousemove', mv);
       removeEventListener('mouseup', up);
@@ -717,21 +718,21 @@ const Desk = forwardRef(function Desk(props, ref) {
   const touchDiv = (e) => {
     if (e.touches.length !== 1) return;
     const el = e.currentTarget;
-    const r = deskRef.current.getBoundingClientRect();
+    const rect = deskRef.current.getBoundingClientRect();
     let y = e.touches[0].clientY;
     el.classList.add('held');
     haptic('light');
     const mv = (ev) => {
       ev.preventDefault();
       y = ev.touches[0].clientY;
-      setSplit(Math.min(0.82, Math.max(0.22, (y - r.top) / r.height)));
+      setSplit(Math.min(0.82, Math.max(0.22, (y - rect.top) / rect.height)));
     };
     const up = () => {
       el.classList.remove('held');
       el.removeEventListener('touchmove', mv);
       el.removeEventListener('touchend', up);
       el.removeEventListener('touchcancel', up);
-      const f = (y - r.top) / r.height;
+      const f = (y - rect.top) / rect.height;
       const snap = [0.3, 0.56, 0.78].reduce((a, c) => (Math.abs(c - f) < Math.abs(a - f) ? c : a));
       deskRef.current.classList.add('settling');
       setSplit(snap);
@@ -943,7 +944,7 @@ const Desk = forwardRef(function Desk(props, ref) {
         </div>
         <div className="lenses">
           {/* (a phone has no room for code and words side by side: Plain already puts each line's words over its code) */}
-          {LENSES.filter(([k]) => !(phone && k === 'both')).map(([k, label, short]) => (
+          {LENSES.filter(([lens]) => !(phone && lens === 'both')).map(([k, label, short]) => (
             <button
               key={k}
               className={`lens ${lens === k ? 'on' : ''}`}

@@ -470,11 +470,11 @@ export function masteryOf({
   const bySkill = Object.fromEntries(
     SKILLS.map(([id]) => [id, { seen: 0, asked: 0, practised: 0, proven: 0, last: 0, from: [] }]),
   );
-  const add = (ids, kind, n, at, label) =>
+  const add = (ids, kind, points, at, label) =>
     ids.forEach((id) => {
       const x = bySkill[id];
-      if (!x || !n) return;
-      x[kind] += n;
+      if (!x || !points) return;
+      x[kind] += points;
       x.last = Math.max(x.last, at || 0);
       if (label && x.from.length < 16 && !x.from.some((f) => f.label === label && f.kind === kind))
         x.from.push({ label, kind, at: at || 0 });
@@ -512,14 +512,14 @@ export function masteryOf({
     if (stars)
       add(STATION_SKILL[p.st] || [], 'proven', stars, r.at, `${'★'.repeat(stars)} ${p.title}`);
   }
-  for (const s of stops)
-    if (progress.path?.[s.id])
+  for (const stop of stops)
+    if (progress.path?.[stop.id])
       add(
-        [...new Set([...(s.sk || []), ...(s.words || []).flatMap(skillsFor)])],
+        [...new Set([...(stop.sk || []), ...(stop.words || []).flatMap(skillsFor)])],
         'seen',
         1,
         0,
-        `path: ${s.t}`,
+        `path: ${stop.t}`,
       );
   for (const idea of ideas)
     if (readIds[idea.id])

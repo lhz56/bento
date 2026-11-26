@@ -145,23 +145,23 @@ export default function Puzzles({ progress = {}, onOpen, onIdeas, onIdea, races 
                   </div>
                   <div className="st-like">{station.like}</div>
                   <div className="st-pz">
-                    {ps.map((p) => (
+                    {ps.map((puzzle) => (
                       <button
-                        key={p.id}
-                        className={`pz-chip t-${p.tier}`}
-                        onClick={() => onOpen(p)}
-                        title={p.hook}
+                        key={puzzle.id}
+                        className={`pz-chip t-${puzzle.tier}`}
+                        onClick={() => onOpen(puzzle)}
+                        title={puzzle.hook}
                       >
-                        <span className="pz-tier">{TIERS[p.tier][0]}</span>
-                        <span className="pz-name">{p.title}</span>
+                        <span className="pz-tier">{TIERS[puzzle.tier][0]}</span>
+                        <span className="pz-name">{puzzle.title}</span>
                         <span className="pz-stars">
                           {[0, 1, 2].map((k) => (
-                            <i key={k} className={done[p.id]?.s?.[k] ? 'on' : ''}>
+                            <i key={k} className={done[puzzle.id]?.s?.[k] ? 'on' : ''}>
                               ★
                             </i>
                           ))}
                         </span>
-                        {p.lc && <span className="pz-lc">#{p.lc[0]}</span>}
+                        {puzzle.lc && <span className="pz-lc">#{puzzle.lc[0]}</span>}
                       </button>
                     ))}
                   </div>
@@ -234,8 +234,8 @@ function ScaleChart({ onOpen }) {
       setAuto(false);
       return;
     }
-    const t = setTimeout(() => setK((x) => x + 1), k === 0 ? 900 : 520);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setK((x) => x + 1), k === 0 ? 900 : 520);
+    return () => clearTimeout(timer);
   }, [k, auto]);
   const n = NS[k];
   const secs = CLASSES.map(([, , f]) => f(n) / 1e7);
@@ -263,16 +263,16 @@ function ScaleChart({ onOpen }) {
         />
       </div>
       <div className="sc-rows">
-        {CLASSES.map(([o, say, , pid, ex], i) => {
+        {CLASSES.map(([cls, say, , pid, ex], i) => {
           const human = humanTime(secs[i]);
           return (
             <button
-              key={o}
+              key={cls}
               className="sc-row"
               onClick={() => onOpen(puzzleById(pid))}
               title={`Example: ${ex}`}
             >
-              <span className="sc-o">{o}</span>
+              <span className="sc-o">{cls}</span>
               <span className="sc-say">{say}</span>
               <span className="sc-bar">
                 <i
@@ -405,14 +405,18 @@ function Compass({ onClose, onOpen }) {
 // Measurements of the obvious and clever ways, kept for the session (they don't change)
 const baseline = new Map();
 async function measure(p, code) {
-  const r = await runCode('python', 'scale', code, {
+  const result = await runCode('python', 'scale', code, {
     setup: p.setup,
     call: p.call,
     ns: p.ns || null,
     fresh: !!p.fresh,
   });
-  if (r.error && !r.scale) return { error: r.error.msg };
-  return { pts: r.scale.pts, crash: r.scale.crash, fit: fitScale(r.scale.pts, p.target) };
+  if (result.error && !result.scale) return { error: result.error.msg };
+  return {
+    pts: result.scale.pts,
+    crash: result.scale.crash,
+    fit: fitScale(result.scale.pts, p.target),
+  };
 }
 async function measureBase(p, which) {
   const k = `${p.id}:${which}`;
@@ -421,7 +425,7 @@ async function measureBase(p, which) {
 }
 
 export function PuzzlePanel({ lesson, rec, getCode, setPuzzleCode, onResult, pyReady, onOpenUrl }) {
-  const p = puzzleById(lesson.puzzle);
+  const puzzle = puzzleById(lesson.puzzle);
   const [phase, setPhase] = useState(null); // null | { lane } | 'done'
   const [res, setRes] = useState(null);
   const [party, setParty] = useState(0);
@@ -429,46 +433,47 @@ export function PuzzlePanel({ lesson, rec, getCode, setPuzzleCode, onResult, pyR
     setPhase(null);
     setRes(null);
   }, [lesson.id]);
-  if (!p) return null;
+  if (!puzzle) return null;
   const s = rec?.s || [];
   const check = async () => {
     const code = getCode?.() ?? lesson.work ?? lesson.code;
     setRes(null);
     setPhase({ lane: 'tests' });
     const t = await runCode('python', 'tests', code, {
-      fn: p.fn,
-      cases: p.tests.map(([args, expect]) => ({ args, expect })),
+      fn: puzzle.fn,
+      cases: puzzle.tests.map(([args, expect]) => ({ args, expect })),
     });
     const g = await runCode('python', 'tests', code, {
-      fn: p.fn,
-      cases: p.gremlins.map(([, args, expect]) => ({ args, expect })),
+      fn: puzzle.fn,
+      cases: puzzle.gremlins.map(([, args, expect]) => ({ args, expect })),
     });
-    const tests = t.tests || p.tests.map(() => ({ ok: false, got: t.error?.msg || 'didn’t run' }));
+    const tests =
+      t.tests || puzzle.tests.map(() => ({ ok: false, got: t.error?.msg || 'didn’t run' }));
     const grem =
-      g.tests || p.gremlins.map(() => ({ ok: false, got: g.error?.msg || 'didn’t run' }));
+      g.tests || puzzle.gremlins.map(() => ({ ok: false, got: g.error?.msg || 'didn’t run' }));
     const works = tests.every((x) => x.ok);
     const lanes = {};
-    if (p.startWorks) {
+    if (puzzle.startWorks) {
       setPhase({ lane: 'obvious' });
-      lanes.obvious = await measureBase(p, 'start');
+      lanes.obvious = await measureBase(puzzle, 'start');
     }
     setPhase({ lane: 'yours' });
-    const same = p.startWorks && code.trim() === codeOf(codeParts(p, 'start')).trim();
-    lanes.yours = !works ? { skipped: true } : same ? lanes.obvious : await measure(p, code);
+    const same = puzzle.startWorks && code.trim() === codeOf(codeParts(puzzle, 'start')).trim();
+    lanes.yours = !works ? { skipped: true } : same ? lanes.obvious : await measure(puzzle, code);
     setPhase({ lane: 'clever' });
-    lanes.clever = await measureBase(p, 'fast');
+    lanes.clever = await measureBase(puzzle, 'fast');
     const scales =
       works &&
       !lanes.yours.crash &&
       !lanes.yours.error &&
       lanes.yours.fit &&
-      lanes.yours.fit.tier <= tierOf(p.target);
+      lanes.yours.fit.tier <= tierOf(puzzle.target);
     const stars = [works, works && grem.every((x) => x.ok), !!scales];
     const r = { tests, grem, lanes, stars, same };
     setRes(r);
     setPhase('done');
     const before = starsOf(rec);
-    onResult?.(p.id, { s: stars, label: lanes.yours?.fit?.label });
+    onResult?.(puzzle.id, { s: stars, label: lanes.yours?.fit?.label });
     if (stars.every(Boolean) && before < 3) setParty((x) => x + 1);
   };
   const busy = phase && phase !== 'done';
@@ -476,9 +481,9 @@ export function PuzzlePanel({ lesson, rec, getCode, setPuzzleCode, onResult, pyR
     <div className="pz-card fade-in">
       <div className="pz-mission">
         {[
-          ['✓', 'Works', `${p.tests.length} tests pass`],
-          ['👾', 'Gremlin-proof', `${p.gremlins.length} hidden edge cases`],
-          ['🚀', `Scales: ${p.target}`, 'fast at a million'],
+          ['✓', 'Works', `${puzzle.tests.length} tests pass`],
+          ['👾', 'Gremlin-proof', `${puzzle.gremlins.length} hidden edge cases`],
+          ['🚀', `Scales: ${puzzle.target}`, 'fast at a million'],
         ].map(([icon, label, sub], k) => (
           <Star
             key={k}
@@ -495,32 +500,32 @@ export function PuzzlePanel({ lesson, rec, getCode, setPuzzleCode, onResult, pyR
         </button>
         <button
           className="chip"
-          onClick={() => setPuzzleCode(p, 'blank')}
+          onClick={() => setPuzzleCode(puzzle, 'blank')}
           title="Start from an empty function, like on LeetCode"
         >
           ⌨ Blank page
         </button>
-        {p.startWorks && (
+        {puzzle.startWorks && (
           <button
             className="chip"
-            onClick={() => setPuzzleCode(p, 'start')}
+            onClick={() => setPuzzleCode(puzzle, 'start')}
             title="Put the obvious way back in the editor"
           >
             ↺ Obvious way
           </button>
         )}
-        {p.lc && (
+        {puzzle.lc && (
           <button
             className="link pz-lclink"
-            onClick={() => onOpenUrl?.(`https://leetcode.com/problems/${p.lc[1]}/`)}
+            onClick={() => onOpenUrl?.(`https://leetcode.com/problems/${puzzle.lc[1]}/`)}
             title="The same puzzle on LeetCode"
           >
-            LeetCode #{p.lc[0]} ↗
+            LeetCode #{puzzle.lc[0]} ↗
           </button>
         )}
       </div>
-      {busy && <Race p={p} lane={phase.lane} />}
-      {res && <Results p={p} r={res} />}
+      {busy && <Race p={puzzle} lane={phase.lane} />}
+      {res && <Results p={puzzle} r={res} />}
       {party > 0 && (
         <div className="confetti" key={party}>
           {Array.from({ length: 18 }, (_, i) => (
@@ -559,7 +564,7 @@ function Race({ p, lane }) {
           ? 'running the tests and the gremlins…'
           : `racing on bigger and bigger inputs: ${fmtN((p.ns || [16])[0])} → ${fmtN((p.ns || [131072]).slice(-1)[0])}`}
       </div>
-      {LANES.filter(([k]) => order.includes(k)).map(([k, l]) => {
+      {LANES.filter(([lane]) => order.includes(lane)).map(([k, l]) => {
         const i = order.indexOf(k);
         return (
           <div key={k} className={`pr-lane ${i < at ? 'done' : i === at ? 'now' : ''}`}>
@@ -839,11 +844,11 @@ function Curves({ rows }) {
 
 // After the story: the solution, and where this puzzle lives at real scale
 export function PuzzleEnd({ lesson, rec, setPuzzleCode, onIdea, onOpenAt, onOpenUrl, onSeen }) {
-  const p = puzzleById(lesson.puzzle);
+  const puzzle = puzzleById(lesson.puzzle);
   const [sure, setSure] = useState(false);
-  if (!p) return null;
-  const idea = p.scale?.idea ? ideaById[p.scale.idea] : null;
-  const real = p.scale?.real;
+  if (!puzzle) return null;
+  const idea = puzzle.scale?.idea ? ideaById[puzzle.scale.idea] : null;
+  const real = puzzle.scale?.real;
   return (
     <div className="pz-end fade-in">
       <div className="pz-reveal">
@@ -852,8 +857,8 @@ export function PuzzleEnd({ lesson, rec, setPuzzleCode, onIdea, onOpenAt, onOpen
             className="try"
             onClick={() => {
               if (!sure) return setSure(true);
-              setPuzzleCode(p, 'fast');
-              onSeen?.(p.id);
+              setPuzzleCode(puzzle, 'fast');
+              onSeen?.(puzzle.id);
             }}
           >
             <span className="try-i">🔓</span>
@@ -862,7 +867,7 @@ export function PuzzleEnd({ lesson, rec, setPuzzleCode, onIdea, onOpenAt, onOpen
               : 'Show me a clever solution'}
           </button>
         ) : (
-          <button className="try" onClick={() => setPuzzleCode(p, 'fast')}>
+          <button className="try" onClick={() => setPuzzleCode(puzzle, 'fast')}>
             <span className="try-i">🔓</span>Load the clever solution again
           </button>
         )}
@@ -870,7 +875,7 @@ export function PuzzleEnd({ lesson, rec, setPuzzleCode, onIdea, onOpenAt, onOpen
       <div className="pz-scale">
         <div className="mini-h">🌍 when n is bigger than one computer</div>
         <p>
-          <Md text={p.scale?.text || ''} />
+          <Md text={puzzle.scale?.text || ''} />
         </p>
         <div className="pz-scale-acts">
           {idea && (

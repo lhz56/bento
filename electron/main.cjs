@@ -238,8 +238,8 @@ protocol.registerSchemesAsPrivileged([
 
 // Lesson code (running in a worker) reaches the web through here, like a script on your Mac would:
 // no browser cross-site rules, http(s) only, small answers, a time limit.
-async function netProxy(req, u) {
-  const target = u.searchParams.get('u') || '';
+async function netProxy(req, url) {
+  const target = url.searchParams.get('u') || '';
   const reply = (status, body, type = 'text/plain') =>
     new Response(body, {
       status: 200,
@@ -348,9 +348,9 @@ function createWindow(saved) {
   }
   // if the page ever crashes, bring it straight back (your lessons are on disk); give up after three crashes in a minute
   let crashes = [];
-  win.webContents.on('render-process-gone', (_e, d) => {
-    logger.log('page gone', d?.reason, d?.exitCode);
-    if (d?.reason === 'clean-exit' || win.isDestroyed()) return;
+  win.webContents.on('render-process-gone', (_e, details) => {
+    logger.log('page gone', details?.reason, details?.exitCode);
+    if (details?.reason === 'clean-exit' || win.isDestroyed()) return;
     crashes = [...crashes.filter((t) => Date.now() - t < 60000), Date.now()];
     if (crashes.length <= 3)
       setTimeout(() => {
@@ -385,7 +385,7 @@ async function offerMove() {
     .then(JSON.parse)
     .catch(() => ({}));
   if (pref.dontAskMove || !(await updater.isDeveloperSigned(app))) return;
-  const r = await dialog.showMessageBox(win, {
+  const choice = await dialog.showMessageBox(win, {
     type: 'question',
     message: 'Move Bento to your Applications folder?',
     detail:
@@ -395,8 +395,8 @@ async function offerMove() {
     cancelId: 1,
     checkboxLabel: 'Don’t ask again',
   });
-  if (r.checkboxChecked) writeSafeAsync(file, JSON.stringify({ ...pref, dontAskMove: true }));
-  if (r.response !== 0) return;
+  if (choice.checkboxChecked) writeSafeAsync(file, JSON.stringify({ ...pref, dontAskMove: true }));
+  if (choice.response !== 0) return;
   try {
     app.moveToApplicationsFolder({ conflictHandler: (kind) => kind !== 'existsAndRunning' });
   } catch (e) {
@@ -513,11 +513,11 @@ app.whenReady().then(async () => {
     });
   });
   protocol.handle('app', async (req) => {
-    const u = new URL(req.url);
-    if (u.pathname === '/__net') return netProxy(req, u);
-    let p = decodeURIComponent(u.pathname);
-    if (p === '/' || !p) p = '/index.html';
-    const file = path.resolve(DIST, `.${p}`);
+    const url = new URL(req.url);
+    if (url.pathname === '/__net') return netProxy(req, url);
+    let pathname = decodeURIComponent(url.pathname);
+    if (pathname === '/' || !pathname) pathname = '/index.html';
+    const file = path.resolve(DIST, `.${pathname}`);
     const inside = path.relative(DIST, file);
     if (!inside || inside.startsWith('..') || path.isAbsolute(inside))
       return new Response('no', { status: 403 });
@@ -578,14 +578,14 @@ app.on('web-contents-created', (_e, wc) => {
     return { action: 'deny' };
   });
   // right-click: the usual Copy, Paste and friends (Electron has no menu of its own), Look Up on a Mac, and a link's address
-  wc.on('context-menu', (_e, p) => {
+  wc.on('context-menu', (_e, params) => {
     const { Menu, clipboard } = require('electron');
     /** @type {Partial<Electron.EditFlags>} */
-    const f = p.editFlags || {};
-    const sel = String(p.selectionText || '').trim();
+    const flags = params.editFlags || {};
+    const sel = String(params.selectionText || '').trim();
     /** @type {any[]} the menu's items (Electron.MenuItemConstructorOptions) */
     const items = [];
-    if (MAC && sel && !p.isEditable)
+    if (MAC && sel && !params.isEditable)
       items.push(
         {
           label: `Look Up “${sel.length > 24 ? `${sel.slice(0, 24)}…` : sel}”`,
@@ -593,22 +593,22 @@ app.on('web-contents-created', (_e, wc) => {
         },
         { type: 'separator' },
       );
-    if (p.isEditable)
+    if (params.isEditable)
       items.push(
-        { role: 'undo', enabled: f.canUndo },
-        { role: 'redo', enabled: f.canRedo },
+        { role: 'undo', enabled: flags.canUndo },
+        { role: 'redo', enabled: flags.canRedo },
         { type: 'separator' },
-        { role: 'cut', enabled: f.canCut },
-        { role: 'copy', enabled: f.canCopy },
-        { role: 'paste', enabled: f.canPaste },
-        { role: 'selectAll', enabled: f.canSelectAll },
+        { role: 'cut', enabled: flags.canCut },
+        { role: 'copy', enabled: flags.canCopy },
+        { role: 'paste', enabled: flags.canPaste },
+        { role: 'selectAll', enabled: flags.canSelectAll },
       );
     else if (sel) items.push({ role: 'copy' });
-    if (/^https?:/i.test(p.linkURL || ''))
+    if (/^https?:/i.test(params.linkURL || ''))
       items.push(
         ...(items.length ? [{ type: 'separator' }] : []),
-        { label: 'Open Link in Browser', click: () => openOutside(p.linkURL) },
-        { label: 'Copy Link', click: () => clipboard.writeText(p.linkURL) },
+        { label: 'Open Link in Browser', click: () => openOutside(params.linkURL) },
+        { label: 'Copy Link', click: () => clipboard.writeText(params.linkURL) },
       );
     if (!items.length) return;
     const owner = BrowserWindow.fromWebContents(wc) || win;

@@ -38,14 +38,14 @@ function Flipbook({ frames }) {
   }, [frames]);
   useEffect(() => {
     if (!playing) return;
-    const t = setTimeout(
+    const timer = setTimeout(
       () => {
         if (i < frames.length - 1) setI(i + 1);
         else setPlaying(false);
       },
       Math.max(140, Math.min(700, 3500 / frames.length)),
     );
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [playing, i, frames.length]);
   const frame = frames[i];
   const palette = useMemo(
@@ -154,12 +154,12 @@ function WebViz({ id, v }) {
       )}
       {logs.length > 0 && (
         <div className="console small">
-          {logs.map((l, i) => (
+          {logs.map((log, i) => (
             <div
               key={i}
-              className={`log ${l.k === 'error' ? 'err' : l.k === 'warn' ? 'warn' : ''}`}
+              className={`log ${log.k === 'error' ? 'err' : log.k === 'warn' ? 'warn' : ''}`}
             >
-              {l.s}
+              {log.s}
             </div>
           ))}
         </div>
@@ -288,15 +288,15 @@ function TreeViz({ root }) {
             />
           ),
       )}
-      {layout.nodes.map((n) => (
+      {layout.nodes.map((node) => (
         <g
-          key={n.path}
-          className={`tree-node ${isNew(n) ? 'new' : ''}`}
-          transform={`translate(${pos[n.path][0]},${pos[n.path][1]})`}
+          key={node.path}
+          className={`tree-node ${isNew(node) ? 'new' : ''}`}
+          transform={`translate(${pos[node.path][0]},${pos[node.path][1]})`}
         >
-          <circle r="17" fill={PAL[n.d % PAL.length]} />
+          <circle r="17" fill={PAL[node.d % PAL.length]} />
           <text dy="5" textAnchor="middle">
-            {String(n.v).slice(0, 4)}
+            {String(node.v).slice(0, 4)}
           </text>
         </g>
       ))}

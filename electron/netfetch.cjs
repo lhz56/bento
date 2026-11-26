@@ -9,33 +9,33 @@ const dns = require('node:dns');
 const net = require('node:net');
 
 function v4Private(ip) {
-  const [a, b] = ip.split('.').map(Number);
+  const [first, second] = ip.split('.').map(Number);
   return (
-    a === 0 ||
-    a === 10 ||
-    a === 127 ||
-    (a === 100 && b >= 64 && b <= 127) ||
-    (a === 169 && b === 254) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168) ||
-    (a === 192 && b === 0) ||
-    (a === 198 && (b === 18 || b === 19)) ||
-    a >= 224
+    first === 0 ||
+    first === 10 ||
+    first === 127 ||
+    (first === 100 && second >= 64 && second <= 127) ||
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168) ||
+    (first === 192 && second === 0) ||
+    (first === 198 && (second === 18 || second === 19)) ||
+    first >= 224
   );
 }
 function isPrivate(ip) {
   if (net.isIPv4(ip)) return v4Private(ip);
-  const s = ip.toLowerCase();
-  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(s);
+  const lower = ip.toLowerCase();
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(lower);
   if (mapped) return v4Private(mapped[1]);
   return (
-    s === '::' ||
-    s === '::1' ||
-    /^f[cd]/.test(s) ||
-    /^fe[89ab]/.test(s) ||
-    /^ff/.test(s) ||
-    s.startsWith('64:ff9b:') ||
-    s.startsWith('2001:db8')
+    lower === '::' ||
+    lower === '::1' ||
+    /^f[cd]/.test(lower) ||
+    /^fe[89ab]/.test(lower) ||
+    /^ff/.test(lower) ||
+    lower.startsWith('64:ff9b:') ||
+    lower.startsWith('2001:db8')
   );
 }
 const BLOCKED = (host) =>
@@ -77,18 +77,18 @@ function guardedLookup(hostname, opts, cb) {
  */
 function once(url, { method = 'GET', headers = {}, body } = {}) {
   return new Promise((resolve, reject) => {
-    let u;
+    let target;
     try {
-      u = new URL(url);
+      target = new URL(url);
     } catch {
       return reject(new Error(`That isn’t a web address: ${url}`));
     }
-    if (!/^https?:$/.test(u.protocol))
+    if (!/^https?:$/.test(target.protocol))
       return reject(new Error('Only http:// and https:// addresses can be fetched.'));
-    if (!hostAllowed(u.hostname)) return reject(new Error(BLOCKED(u.hostname)));
-    const mod = u.protocol === 'https:' ? https : http;
+    if (!hostAllowed(target.hostname)) return reject(new Error(BLOCKED(target.hostname)));
+    const mod = target.protocol === 'https:' ? https : http;
     const req = mod.request(
-      u,
+      target,
       {
         method,
         headers: { 'accept-encoding': 'identity', ...headers },
@@ -98,13 +98,13 @@ function once(url, { method = 'GET', headers = {}, body } = {}) {
       (res) => {
         const chunks = [];
         let size = 0;
-        res.on('data', (c) => {
-          size += c.length;
+        res.on('data', (chunk) => {
+          size += chunk.length;
           if (size > 5e6) {
             req.destroy();
             return;
           }
-          chunks.push(c);
+          chunks.push(chunk);
         });
         res.on('end', () =>
           resolve({
@@ -117,14 +117,16 @@ function once(url, { method = 'GET', headers = {}, body } = {}) {
       },
     );
     req.on('timeout', () =>
-      req.destroy(new Error(`${u.hostname} took longer than 15 seconds to answer.`)),
+      req.destroy(new Error(`${target.hostname} took longer than 15 seconds to answer.`)),
     );
     req.on('error', (/** @type {NodeJS.ErrnoException} */ e) =>
       reject(
         e.code === 'EBLOCKED'
           ? e
           : new Error(
-              e.code === 'ENOTFOUND' ? `Couldn't find ${u.hostname} (are you online?)` : e.message,
+              e.code === 'ENOTFOUND'
+                ? `Couldn't find ${target.hostname} (are you online?)`
+                : e.message,
             ),
       ),
     );
@@ -141,23 +143,23 @@ function once(url, { method = 'GET', headers = {}, body } = {}) {
  */
 async function follow(url, opts = {}, request = once) {
   let cur = url;
-  let o = { ...opts };
+  let options = { ...opts };
   for (let hop = 0; hop < 6; hop++) {
-    const r = await request(cur, o);
-    if (r.status >= 300 && r.status < 400 && r.headers.location) {
-      cur = new URL(r.headers.location, cur).toString();
+    const res = await request(cur, options);
+    if (res.status >= 300 && res.status < 400 && res.headers.location) {
+      cur = new URL(res.headers.location, cur).toString();
       if (
-        r.status === 303 ||
-        ((r.status === 301 || r.status === 302) && o.method && o.method !== 'GET')
+        res.status === 303 ||
+        ((res.status === 301 || res.status === 302) && options.method && options.method !== 'GET')
       )
-        o = { ...o, method: 'GET', body: undefined };
+        options = { ...options, method: 'GET', body: undefined };
       continue;
     }
     return {
-      status: r.status,
-      type: String(r.headers['content-type'] || ''),
-      text: r.text,
-      rawHeaders: r.headers,
+      status: res.status,
+      type: String(res.headers['content-type'] || ''),
+      text: res.text,
+      rawHeaders: res.headers,
       url: cur,
     };
   }

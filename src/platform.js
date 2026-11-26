@@ -7,9 +7,9 @@ export const IS_MAC =
 export const mod = (e) => (IS_MAC ? e.metaKey : e.ctrlKey);
 
 // key names for this computer: "⌘⇧↵" stays as it is on a Mac and becomes "Ctrl+Shift+Enter" elsewhere
-export function keys(s) {
-  if (IS_MAC || !s) return s;
-  return String(s)
+export function keys(shortcut) {
+  if (IS_MAC || !shortcut) return shortcut;
+  return String(shortcut)
     .replace(/⌥ Option/g, 'Alt')
     .replace(/⌥/g, 'Alt')
     .replace(/⌘/g, 'Ctrl+')
@@ -20,14 +20,14 @@ export function keys(s) {
 // a touch screen (a phone, an iPad without a trackpad): no hover, so a first tap shows what hovering would, and hints say
 // "tap" instead of "click"
 export const TOUCH = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
-export const tap = (s) =>
+export const tap = (shortcut) =>
   TOUCH
-    ? String(s)
+    ? String(shortcut)
         .replace(/\bClick\b/g, 'Tap')
         .replace(/\bclick\b/g, 'tap')
         .replace(/\bPoint at\b/g, 'Tap')
         .replace(/\bhover anything · /g, '')
-    : s;
+    : shortcut;
 
 // single keys, for hints drawn as separate <kbd> boxes
 export const K = IS_MAC

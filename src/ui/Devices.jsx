@@ -9,21 +9,21 @@ export function QR({ text, size = 176 }) {
   const qr = qrcode(0, 'M');
   qr.addData(text);
   qr.make();
-  const n = qr.getModuleCount();
+  const modules = qr.getModuleCount();
   let d = '';
-  for (let y = 0; y < n; y++)
-    for (let x = 0; x < n; x++) if (qr.isDark(y, x)) d += `M${x + 2} ${y + 2}h1v1h-1z`;
+  for (let y = 0; y < modules; y++)
+    for (let x = 0; x < modules; x++) if (qr.isDark(y, x)) d += `M${x + 2} ${y + 2}h1v1h-1z`;
   return (
     <svg
       className="qr"
       width={size}
       height={size}
-      viewBox={`0 0 ${n + 4} ${n + 4}`}
+      viewBox={`0 0 ${modules + 4} ${modules + 4}`}
       role="img"
       aria-label="QR code to pair a device"
       shapeRendering="crispEdges"
     >
-      <rect width={n + 4} height={n + 4} fill="#fff" />
+      <rect width={modules + 4} height={modules + 4} fill="#fff" />
       <path d={d} fill="#111" />
     </svg>
   );
@@ -118,8 +118,8 @@ export default function DevicesRow() {
     known.current = ids;
     if (!fresh) return undefined;
     setJoined(fresh.name);
-    const t = setTimeout(() => setJoined(null), 6000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setJoined(null), 6000);
+    return () => clearTimeout(timer);
   }, [st?.devices?.length]);
   const act = async (fn) => {
     setBusy(true);

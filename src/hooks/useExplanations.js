@@ -18,23 +18,23 @@ export default function useExplanations({
   view,
 }) {
   // try chips: make every suggestion actually do something
-  const onTry = async (t) => {
+  const onTry = async (suggestion) => {
     const lesson = current;
     if (!lesson) return;
     const deskEl = desk.current;
     // on a phone the code is on the other page: go there, so you see what the try does
     if (phone) setPane('code');
-    if (/step/i.test(t)) return deskEl?.step();
-    if (/run the tests|tests/i.test(t) && lesson.tests) return deskEl?.tests();
-    if (/measure|growth/i.test(t))
+    if (/step/i.test(suggestion)) return deskEl?.step();
+    if (/run the tests|tests/i.test(suggestion) && lesson.tests) return deskEl?.tests();
+    if (/measure|growth/i.test(suggestion))
       return /** @type {HTMLElement | null} */ (
         document.querySelector('.stab:nth-child(3)')
       )?.click();
     const code = deskEl?.getCode() ?? lesson.code;
-    const m = /^change\s+(.+?)\s+to\s+(.+?)\.?$/i.exec(t);
-    if (m) {
-      const from = m[1].replace(/^["'`]|["'`]$/g, '');
-      let to = m[2].replace(/^["'`]|["'`]$/g, '');
+    const match = /^change\s+(.+?)\s+to\s+(.+?)\.?$/i.exec(suggestion);
+    if (match) {
+      const from = match[1].replace(/^["'`]|["'`]$/g, '');
+      let to = match[2].replace(/^["'`]|["'`]$/g, '');
       // "Change size=4 to 2" means change the value, keep the name
       const kv = /^([\w.]+)\s*(=|:)\s*(.+)$/.exec(from);
       if (kv && !/[=:]/.test(to)) to = from.slice(0, from.length - kv[3].length) + to;
@@ -48,17 +48,17 @@ export default function useExplanations({
     setPop({
       x: innerWidth * 0.3,
       y: innerHeight * 0.5,
-      word: t,
+      word: suggestion,
       info: null,
       loading: true,
       kind: 'try',
     });
     try {
-      const s = await api.quick(
+      const reply = await api.quick(
         settings.model,
-        `Apply this small experiment to the student's ${lesson.lang} code: "${t}". Change as little as possible.\nReply JSON: {"code":"the full updated code","note":"what changed, max 15 words"}\n\nCODE:\n${code}`,
+        `Apply this small experiment to the student's ${lesson.lang} code: "${suggestion}". Change as little as possible.\nReply JSON: {"code":"the full updated code","note":"what changed, max 15 words"}\n\nCODE:\n${code}`,
       );
-      const j = parseJSONLoose(s);
+      const j = parseJSONLoose(reply);
       if (j?.code) {
         deskEl?.setCode(j.code);
         setTimeout(() => deskEl?.run(), 30);
@@ -75,12 +75,17 @@ export default function useExplanations({
       if (e.target.closest?.('.sel-pill, .pop, input, textarea')) return;
       setTimeout(() => {
         const s0 = window.getSelection();
-        const t = s0?.toString().trim();
-        if (!t || t.length < 2 || t.length > 400 || !s0.rangeCount) return setSel(null);
-        const n = s0.anchorNode?.parentElement;
-        if (!n?.closest('.story, .cm-content, .atlas, .ideas, .words')) return setSel(null);
-        const r = s0.getRangeAt(0).getBoundingClientRect();
-        setSel({ text: t, x: r.left + r.width / 2, y: r.top, inCode: !!n.closest('.cm-content') });
+        const text = s0?.toString().trim();
+        if (!text || text.length < 2 || text.length > 400 || !s0.rangeCount) return setSel(null);
+        const parent = s0.anchorNode?.parentElement;
+        if (!parent?.closest('.story, .cm-content, .atlas, .ideas, .words')) return setSel(null);
+        const rect = s0.getRangeAt(0).getBoundingClientRect();
+        setSel({
+          text: text,
+          x: rect.left + rect.width / 2,
+          y: rect.top,
+          inCode: !!parent.closest('.cm-content'),
+        });
       }, 10);
     };
     addEventListener('mouseup', up);
@@ -110,8 +115,8 @@ export default function useExplanations({
           `A learner (${settings.level}) selected this and wants it explained:\n"${selection.text}"\n${ctx}\nExplain what it means in plain words, then name the technical idea if there is one. If the selection is a fragment, quietly explain the idea it belongs to; never comment on the selection itself.\nReply JSON: {"title":"short label, max 5 words","what":"plain explanation, max 45 words","plain":"the key idea in max 10 words","example":"tiny example if useful, max 2 lines, else empty"}`,
         ),
       );
-      setPop((p) =>
-        p?.word === base.word
+      setPop((prev) =>
+        prev?.word === base.word
           ? {
               ...base,
               info: j
@@ -127,7 +132,7 @@ export default function useExplanations({
                     w: 'Couldn’t explain that one. Try selecting a little more.',
                   },
             }
-          : p,
+          : prev,
       );
     } catch {
       setPop(null);
@@ -135,7 +140,7 @@ export default function useExplanations({
   };
   const onTerm = (word, elx) => {
     const lesson = current;
-    const r = elx.getBoundingClientRect();
+    const rect = elx.getBoundingClientRect();
     const doc = lesson.work ?? lesson.code ?? '';
     const info = explainToken({
       word: word.replace(/\(.*$/, '').replace(/^.*\./, ''),
@@ -147,7 +152,7 @@ export default function useExplanations({
       quick: api.quick,
       isMember: /\./.test(word),
     });
-    const base = { x: r.left, y: r.bottom + 8, word };
+    const base = { x: rect.left, y: rect.bottom + 8, word };
     if (info && typeof info.then === 'function') {
       setPop({ ...base, loading: true });
       info

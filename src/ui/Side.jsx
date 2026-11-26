@@ -225,11 +225,11 @@ export const lastTab = (g) => {
   }
 };
 export const rememberTab = (view) => {
-  const g = GROUPS.find((x) => x.views.some(([v]) => v === view));
-  if (!g || g.views.length < 2) return;
+  const group = GROUPS.find((x) => x.views.some(([v]) => v === view));
+  if (!group || group.views.length < 2) return;
   try {
     const m = JSON.parse(localStorage.getItem('bento.lastTab') || '{}');
-    m[g.id] = view;
+    m[group.id] = view;
     localStorage.setItem('bento.lastTab', JSON.stringify(m));
   } catch {}
 };
@@ -546,9 +546,10 @@ function UpdatePill() {
   const [st, setSt] = useState(null);
   const [fresh, setFresh] = useState(null); // just updated: say so once
   useEffect(() => {
-    const u = window.bento?.update;
-    if (!u) return;
-    u.get()
+    const update = window.bento?.update;
+    if (!update) return;
+    update
+      .get()
       .then((x) => {
         setSt(x);
         const seen = localStorage.getItem('bento.seenVersion');
@@ -557,7 +558,7 @@ function UpdatePill() {
         else if (x.current && seen !== x.current) setFresh(x.current);
       })
       .catch(() => {});
-    return u.on((x) => setSt((o) => ({ ...o, ...x })));
+    return update.on((x) => setSt((o) => ({ ...o, ...x })));
   }, []);
   const [notes, setNotes] = useState(null); // the version whose notes are open
   const seenIt = () => {

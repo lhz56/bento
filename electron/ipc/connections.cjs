@@ -60,14 +60,14 @@ module.exports = function registerConnections(ctx) {
   // Onboarding: find what the person already has. Nothing is installed or signed in for them.
   async function runQuiet(cmd, args, timeout = 8000) {
     await envReady;
-    let c, a, o;
+    let command, argv, opts;
     try {
-      [c, a, o] = await launch(...viaFake(cmd, args));
+      [command, argv, opts] = await launch(...viaFake(cmd, args));
     } catch (e) {
       return { ok: false, out: '', err: e.message, timedOut: false };
     }
     return new Promise((res) =>
-      execFile(c, a, { env: ENV, timeout, maxBuffer: 4 << 20, ...o }, (e, out, err) =>
+      execFile(command, argv, { env: ENV, timeout, maxBuffer: 4 << 20, ...opts }, (e, out, err) =>
         res({ ok: !e, out: String(out || ''), err: String(err || ''), timedOut: !!e?.killed }),
       ),
     );
@@ -77,16 +77,19 @@ module.exports = function registerConnections(ctx) {
   async function ghToken() {
     if (HIDDEN.has('gh') || process.env.BENTO_NO_GH) return null;
     if (Date.now() - ghTok.at < 600000) return ghTok.v;
-    const r = await runQuiet('gh', ['auth', 'token'], 5000);
-    const t = r.out.trim();
-    ghTok = { v: r.ok && /^(gh[opsu]_|github_pat_)[\w-]+$/.test(t) ? t : null, at: Date.now() };
+    const result = await runQuiet('gh', ['auth', 'token'], 5000);
+    const text = result.out.trim();
+    ghTok = {
+      v: result.ok && /^(gh[opsu]_|github_pat_)[\w-]+$/.test(text) ? text : null,
+      at: Date.now(),
+    };
     return ghTok.v;
   }
   const ghApi = async (route) => {
     if (HIDDEN.has('gh') || process.env.BENTO_NO_GH) return null;
-    const r = await runQuiet('gh', ['api', route], 8000);
+    const result = await runQuiet('gh', ['api', route], 8000);
     try {
-      return r.ok ? JSON.parse(r.out) : null;
+      return result.ok ? JSON.parse(result.out) : null;
     } catch {
       return null;
     }
@@ -97,31 +100,36 @@ module.exports = function registerConnections(ctx) {
     await envReady;
     await workdirReady;
     if (isHidden(cmd)) return null;
-    let c, a, o;
+    let command, argv, opts;
     try {
-      [c, a, o] = await launch(...viaFake(cmd, args));
+      [command, argv, opts] = await launch(...viaFake(cmd, args));
     } catch {
       return null;
     }
     return new Promise((res) => {
       let child;
       try {
-        child = spawn(c, a, { cwd: WORKDIR, env: ENV, stdio: ['pipe', 'pipe', 'ignore'], ...o });
+        child = spawn(command, argv, {
+          cwd: WORKDIR,
+          env: ENV,
+          stdio: ['pipe', 'pipe', 'ignore'],
+          ...opts,
+        });
       } catch {
         return res(null);
       }
       const done = (v) => {
-        clearTimeout(t);
+        clearTimeout(timer);
         try {
           child.kill();
         } catch {}
         res(v);
       };
-      const t = setTimeout(() => done(null), timeout);
+      const timer = setTimeout(() => done(null), timeout);
       let buf = '';
       child.on('error', () => done(null));
-      child.stdout.on('data', (d) => {
-        buf += d;
+      child.stdout.on('data', (chunk) => {
+        buf += chunk;
         let i;
         while ((i = buf.indexOf('\n')) >= 0) {
           const line = buf.slice(0, i);
@@ -162,7 +170,7 @@ module.exports = function registerConnections(ctx) {
     const at = Object.fromEntries(await Promise.all(bins.map(async (b) => [b, await which(b)])));
     // which installers this Mac already has, so the welcome only suggests commands that will work here
     /** @type {Record<string, any>} what is installed and signed in, per AI and tool */
-    const r = {
+    const report = {
       tools: { npm: !!at.npm, brew: !!at.brew, winget: !!at.winget },
       gh: { installed: !!at.gh },
     };
@@ -171,14 +179,14 @@ module.exports = function registerConnections(ctx) {
         ...providers.IDS.map(async (id) => {
           const adapter = providers.ADAPTERS[id],
             bin = providers.BY[id].bin,
-            x = (r[id] = /** @type {Record<string, any>} */ ({ installed: !!at[bin] }));
+            x = (report[id] = /** @type {Record<string, any>} */ ({ installed: !!at[bin] }));
           if (!at[bin]) return;
           x.brew = /\/(Cellar|Caskroom)\//.test(await fsp.realpath(at[bin]).catch(() => at[bin])); // updates go the way it was installed
-          const [v, h] = await Promise.all([
+          const [versionOut, h] = await Promise.all([
             runPatient(bin, ['--version']),
             runPatient(bin, adapter.compat.help),
           ]);
-          x.version = adapter.version(v.out || '') || null;
+          x.version = adapter.version(versionOut.out || '') || null;
           x.outdated = providers.missingFlags(h, adapter.compat.flags);
           // a pretend CLI in tests only knows the commands real ones have; sign-in that's read from files is assumed
           Object.assign(
@@ -193,13 +201,13 @@ module.exports = function registerConnections(ctx) {
         at.gh &&
           (async () => {
             const a = await runQuiet('gh', ['api', 'user', '--jq', '.login']);
-            r.gh.loggedIn = a.ok && !!a.out.trim();
-            r.gh.user = a.out.trim() || null;
+            report.gh.loggedIn = a.ok && !!a.out.trim();
+            report.gh.user = a.out.trim() || null;
           })(),
       ].filter(Boolean),
     );
     ctx.refreshLimits().catch(() => {});
-    return r;
+    return report;
   }
   let connectionScan;
   function scanOnce() {
@@ -230,24 +238,24 @@ module.exports = function registerConnections(ctx) {
   const wincmd = require('../wincmd.cjs');
   ipcMain.handle('ai:terminal', async (_e, id, action, tools = {}) => {
     if (!MAC && !WIN) return false;
-    const p = wincmd.forPlatform(id === 'gh' ? providers.CAT.github : providers.BY[id]);
-    if (!p || !['install', 'signIn', 'update'].includes(action)) return false;
+    const platformCmd = wincmd.forPlatform(id === 'gh' ? providers.CAT.github : providers.BY[id]);
+    if (!platformCmd || !['install', 'signIn', 'update'].includes(action)) return false;
     const cmd =
       action === 'install'
-        ? (p.install.find((i) => !i.needs || tools[i.needs]) || {}).cmd
+        ? (platformCmd.install.find((i) => !i.needs || tools[i.needs]) || {}).cmd
         : action === 'update'
-          ? (tools.brewInstalled && p.updateBrew) || p.update
-          : p.signIn;
+          ? (tools.brewInstalled && platformCmd.updateBrew) || platformCmd.update
+          : platformCmd.signIn;
     if (!cmd) return false;
     if (WIN) {
-      /** @type {string} */ let c;
-      /** @type {string[]} */ let a;
+      /** @type {string} */ let command;
+      /** @type {string[]} */ let args;
       try {
-        [c, a] = wincmd.powershellWindow(cmd);
+        [command, args] = wincmd.powershellWindow(cmd);
       } catch {
         return false;
       }
-      return new Promise((res) => execFile(c, a, { windowsHide: true }, (e) => res(!e)));
+      return new Promise((res) => execFile(command, args, { windowsHide: true }, (e) => res(!e)));
     }
     const esc = cmd.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     return new Promise((res) =>

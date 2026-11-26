@@ -63,12 +63,12 @@ module.exports = function registerDevices(ctx) {
       await which('tailscale'),
       MAC ? '/Applications/Tailscale.app/Contents/MacOS/Tailscale' : null,
     ].filter(Boolean)) {
-      const r = await runQuiet(bin, ['status', '--json'], 5000);
+      const status = await runQuiet(bin, ['status', '--json'], 5000);
       try {
-        const n = String(JSON.parse(r.out)?.Self?.DNSName || '')
+        const n = String(JSON.parse(status.out)?.Self?.DNSName || '')
           .replace(/\.$/, '')
           .toLowerCase();
-        if (r.ok && /^[a-z0-9.-]+$/.test(n)) return (tsNames.v = [n, n.split('.')[0]]);
+        if (status.ok && /^[a-z0-9.-]+$/.test(n)) return (tsNames.v = [n, n.split('.')[0]]);
       } catch {}
     }
     return (tsNames.v = []);
@@ -147,7 +147,7 @@ module.exports = function registerDevices(ctx) {
     askBox?.ctl.abort();
     const box = new AbortController();
     askBox = { id: ask.id, ctl: box };
-    const t = setTimeout(() => box.abort(), Math.max(1000, ask.exp - Date.now()));
+    const timer = setTimeout(() => box.abort(), Math.max(1000, ask.exp - Date.now()));
     // tests: answer by itself (allow / deny), or leave it waiting (never); a test never puts a dialog on the screen
     if (TEST_BUILD && process.env.BENTO_TEST_ASK) {
       if (process.env.BENTO_TEST_ASK !== 'never')
@@ -180,7 +180,7 @@ module.exports = function registerDevices(ctx) {
     } catch (e) {
       logger.log('ask dialog', e);
     } finally {
-      clearTimeout(t);
+      clearTimeout(timer);
       if (askBox?.ctl === box) askBox = null;
     }
   }
@@ -255,8 +255,12 @@ module.exports = function registerDevices(ctx) {
     ctx.host?.broadcast('store:changed', [key, value], from?.clientId);
   }
   ipcMain.handle('host:get', () => hostState());
-  ipcMain.handle('host:set', async (_e, p) => {
-    hostPrefs = { on: p?.on === true, wifi: p?.wifi === true, awake: p?.awake !== false };
+  ipcMain.handle('host:set', async (_e, prefs) => {
+    hostPrefs = {
+      on: prefs?.on === true,
+      wifi: prefs?.wifi === true,
+      awake: prefs?.awake !== false,
+    };
     await writeSafeAsync(HOST_FILE, JSON.stringify(hostPrefs));
     if (hostPrefs.on)
       await hostNow().start({

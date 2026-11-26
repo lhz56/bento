@@ -165,9 +165,9 @@ export default function Grow({ full }) {
               }
             }}
             onMouseMove={(e) => {
-              const r = e.currentTarget.getBoundingClientRect();
+              const rect = e.currentTarget.getBoundingClientRect();
               const k = Math.round(
-                ((((e.clientX - r.left) / r.width) * width - pad) / (width - 2 * pad)) *
+                ((((e.clientX - rect.left) / rect.width) * width - pad) / (width - 2 * pad)) *
                   (frames.length - 1),
               );
               if (!playing && k >= 0 && k < frames.length) setI(k);
@@ -185,26 +185,26 @@ export default function Grow({ full }) {
               className="gc-line"
             />
             {[...new Set(frames.map((f) => new Date(f.at).getFullYear()))].map((y) => {
-              const k = frames.findIndex((f) => new Date(f.at).getFullYear() === y);
+              const index = frames.findIndex((f) => new Date(f.at).getFullYear() === y);
               return (
-                <text key={y} x={xAt(k)} y={height - 6} className="gc-year">
+                <text key={y} x={xAt(index)} y={height - 6} className="gc-year">
                   {y}
                 </text>
               );
             })}
             {st.moments.map((moment, j) => {
-              const k = momentAt(moment);
+              const index = momentAt(moment);
               return (
                 <g
                   key={j}
                   aria-hidden="true"
-                  className={`gc-moment ${k <= i ? 'on' : ''}`}
+                  className={`gc-moment ${index <= i ? 'on' : ''}`}
                   onClick={() => {
                     setPlaying(false);
-                    setI(k);
+                    setI(index);
                   }}
                 >
-                  <circle cx={xAt(k)} cy={yAt(frames[k].total)} r="5" />
+                  <circle cx={xAt(index)} cy={yAt(frames[index].total)} r="5" />
                   <title>{`${fmtDate(moment.at)}: ${moment.msg} (+${moment.add} −${moment.del} files)`}</title>
                 </g>
               );
@@ -213,14 +213,14 @@ export default function Grow({ full }) {
           </svg>
           <div className="grow-moments">
             {st.moments.map((moment, j) => {
-              const k = momentAt(moment);
+              const index = momentAt(moment);
               return (
                 <button
                   key={j}
-                  className={`gm ${k <= i ? 'on' : ''}`}
+                  className={`gm ${index <= i ? 'on' : ''}`}
                   onClick={() => {
                     setPlaying(false);
-                    setI(k);
+                    setI(index);
                   }}
                 >
                   <b>{fmtDate(moment.at)}</b>
@@ -234,11 +234,11 @@ export default function Grow({ full }) {
             })}
           </div>
           <div className="grow-dirs">
-            {dirs.map((d, k) => {
-              const n = frame.dirs[d] || 0;
+            {dirs.map((dir, k) => {
+              const n = frame.dirs[dir] || 0;
               return (
-                <div key={d} className={`gd ${n ? '' : 'none'}`}>
-                  <span className="gd-name">{d}</span>
+                <div key={dir} className={`gd ${n ? '' : 'none'}`}>
+                  <span className="gd-name">{dir}</span>
                   <span className="gd-bar">
                     <i
                       style={{

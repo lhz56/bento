@@ -437,8 +437,8 @@ let liveId = null,
   liveBuf = [],
   liveT0 = 0,
   liveLast = 0;
-self.bentoLive = (k, s) => {
-  liveBuf.push({ k, s: String(s) });
+self.bentoLive = (key, snapshot) => {
+  liveBuf.push({ k: key, s: String(snapshot) });
   const now = performance.now();
   if (now - liveT0 > 250 && now - liveLast > 50) {
     self.postMessage({ id: liveId, live: liveBuf });
