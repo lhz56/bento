@@ -351,9 +351,7 @@ function createHost(opts) {
       'initial-scale=1, viewport-fit=cover',
       'initial-scale=1, maximum-scale=1, viewport-fit=cover',
     );
-    const csp =
-      /<meta http-equiv="Content-Security-Policy" content="([^"]+)">/.exec(html)?.[1] ||
-      "default-src 'self'";
+    const csp = pageCsp(html);
     const head = [
       '<meta name="bento-host" content="1">',
       '<link rel="manifest" href="/manifest.webmanifest">',
@@ -970,4 +968,14 @@ function createHost(opts) {
   };
 }
 
-module.exports = { createHost, addressesOf, isTailscale, isPrivate, cleanCode, PORT };
+// The page's own Content-Security-Policy (index.html), sent as a header too. The tag may be written on one line or
+// spread over several (as Prettier formats it); without one, only the page's own files are allowed.
+/** @param {string} html */
+function pageCsp(html) {
+  return (
+    /<meta\s+http-equiv="Content-Security-Policy"\s+content="([^"]+)"\s*\/?>/i.exec(html)?.[1] ||
+    "default-src 'self'"
+  );
+}
+
+module.exports = { createHost, pageCsp, addressesOf, isTailscale, isPrivate, cleanCode, PORT };

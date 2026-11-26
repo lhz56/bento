@@ -7,7 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
 const require = createRequire(import.meta.url);
-const { createHost, addressesOf, cleanCode } = require('../electron/host.cjs');
+const { createHost, addressesOf, cleanCode, pageCsp } = require('../electron/host.cjs');
 const { writeSafeAsync } = require('../electron/safewrite.cjs');
 const { mergeLessons } = await import('../src/sync.js');
 
@@ -594,6 +594,21 @@ let key;
       m[3].title === 'renamed on the phone',
     'another device’s lessons win, except one being written here and one just made here; one deleted there goes',
     JSON.stringify(m.map((l) => [l.id, l.code || l.title])),
+  );
+}
+
+// the phone gets the page's own Content-Security-Policy, however index.html's tag is formatted
+{
+  const real = pageCsp(fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8'));
+  check(
+    /img-src 'self' data: blob: https:\/\/avatars\.githubusercontent\.com/.test(real),
+    "the phone page keeps index.html's policy (avatars and inline images allowed)",
+    real.slice(0, 120),
+  );
+  check(
+    pageCsp('<meta http-equiv="Content-Security-Policy" content="img-src data:">') ===
+      'img-src data:' && pageCsp('<title>x</title>') === "default-src 'self'",
+    'a one-line tag is read too, and no tag means only the page’s own files',
   );
 }
 
