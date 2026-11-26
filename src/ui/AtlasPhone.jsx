@@ -1121,7 +1121,7 @@ function StorySheet({ j, tools, pathIdx, onClose, onOpenFile, onAsk }) {
 }
 
 // ---------------------------------------------------------------- what it's made of: the kinds of part, like iPhone Storage
-function Parts({ F, N, tools, onPick }) {
+function Parts({ F, tools, onPick }) {
   const tot = {};
   for (const f of F.files) {
     const x = (tot[f.layer] ||= { n: 0, l: 0 });

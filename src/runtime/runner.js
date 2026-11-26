@@ -68,7 +68,7 @@ function tagLines(html) {
           }
           continue;
         }
-        const m = /<([a-zA-Z][\w-]*)(?=[\s>\/])/.exec(rest);
+        const m = /<([a-zA-Z][\w-]*)(?=[\s>/])/.exec(rest);
         if (!m) {
           out += rest;
           break;

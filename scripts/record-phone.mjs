@@ -8,7 +8,6 @@
 //   --profile: a copy of a Bento data folder to start from (the Atlas scenes need one where pingdotgg/t3code was
 //   taken apart; a recording never changes the original)
 import { _electron as electron, webkit, devices } from 'playwright-core';
-import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';

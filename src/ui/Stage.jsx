@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { t, tx } from '../i18n.js';
+import { useEffect, useMemo, useState } from 'react';
+import { t } from '../i18n.js';
 import { Visual, Visuals } from './Viz.jsx';
 import { explainLocal } from '../errors.js';
 import { announce } from './a11y.js';
@@ -118,7 +118,7 @@ const norm = (x) =>
   String(x)
     .toLowerCase()
     .replace(/[\s'"`]+/g, ' ')
-    .replace(/[\[\](){},:]/g, (c) => ` ${c} `)
+    .replace(/[[\](){},:]/g, (c) => ` ${c} `)
     .replace(/\s+/g, ' ')
     .trim();
 function Predict({ pred, setPred, run, onWhyDiff }) {
@@ -500,7 +500,7 @@ function Movie({ s, prev, plan }) {
   const lists = Object.entries(vars)
     .map(([k, v]) => [k, asBoxes(v)])
     .filter(([, b]) => b?.kind === 'list');
-  const scalars = Object.entries(vars).filter(([k, v]) => !asBoxes(v) && String(v).length <= 24);
+  const scalars = Object.entries(vars).filter(([, v]) => !asBoxes(v) && String(v).length <= 24);
   if (!lists.length) return null;
   return (
     <div className="movie">
@@ -867,7 +867,7 @@ function Growth({ lesson, growth, onMeasure, measuring, code, lang }) {
   }, [code, lang]);
   const g = lesson?.growth;
   const [call, setCall] = useState(g?.call || guess);
-  const [setup, setSetup] = useState(
+  const [setup] = useState(
     g?.setup ||
       (lang === 'python'
         ? 'def make_input(n):\n    return list(range(n))'

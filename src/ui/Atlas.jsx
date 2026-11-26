@@ -10,7 +10,6 @@ import {
   setDupes,
   guessRole,
   measuredHotspots,
-  heat,
   langColor,
   fmtN,
 } from '../atlas/analyze.js';
@@ -798,7 +797,6 @@ function Donut({ langs, total }) {
       </path>
     );
   });
-  const top = langs[0];
   return (
     <div className="donut">
       <svg viewBox="0 0 72 72" width="88" height="88">
@@ -1533,7 +1531,7 @@ const LEAD = /^\s*(\/\*|\*|\/\/|#(?!include|!|\[)|"""|'''|<!--|-->|$)/;
 function Detective({ F, N, readFile, onOpen }) {
   const pool = useMemo(() => {
     const roles = N?.roles || {};
-    const idx = new Map(F.files.map((f, i) => [f.p, f]));
+    const idx = new Map(F.files.map((f) => [f.p, f]));
     return Object.entries(roles)
       .filter(
         ([p, r]) =>
@@ -1665,19 +1663,7 @@ function Detective({ F, N, readFile, onOpen }) {
   );
 }
 
-function Study({
-  F,
-  readFile,
-  onOpen,
-  A,
-  N,
-  onAsk,
-  onFeature,
-  narrating,
-  tour = [],
-  role,
-  onTour,
-}) {
+function Study({ F, readFile, onOpen, A, N, onAsk, onFeature, narrating, tour = [], onTour }) {
   const [feat, setFeat] = useState('');
   const qs = N?.learn?.length
     ? N.learn
@@ -1850,7 +1836,7 @@ const saveThread = (k, th) => {
     save(THREADS, all);
   } catch {}
 }; // also mirrored to disk
-function AskBar({ name, threadKey, onAsk, onQuick, onOpen, pathIdx, initial, onFeature }) {
+function AskBar({ name, threadKey, onAsk, onQuick, onOpen, initial, onFeature }) {
   const [v, setV] = useState('');
   const [thread, setThread] = useState(() => loadThread(threadKey)); // [{ id, q, loading, a, files }]
   useEffect(() => {

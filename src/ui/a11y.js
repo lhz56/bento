@@ -46,7 +46,8 @@ export function useDialog(onClose) {
     el.addEventListener('keydown', key);
     return () => {
       el.removeEventListener('keydown', key);
-      if (before?.focus && document.contains(before)) before.focus({ preventScroll: true });
+      if (before instanceof HTMLElement && document.contains(before))
+        before.focus({ preventScroll: true });
     };
   }, []);
   return ref;

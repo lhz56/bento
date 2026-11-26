@@ -1,66 +1,12 @@
 // Your map: everything there is to learn, as one treemap. Each area is a block sized by how much is in it; each skill
 // is a tile that fills only with evidence (questions you asked, checks you got right, puzzles you solved).
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { REGIONS, SKILLS, EDGES, isFading, skillsFor } from '../skills.js';
+import { useEffect, useRef, useState } from 'react';
+import { REGIONS, SKILLS, isFading, skillsFor } from '../skills.js';
 import { PUZZLES } from '../puzzles.js';
 import { t, tx } from '../i18n.js';
-import { pressable } from './a11y.js';
 
 const LEVEL = ['not yet', 'seen', 'getting it', 'know it'];
-const W = 1230,
-  H = 600;
-// long names on two lines, split near the middle
-const split = (s) => {
-  if (s.length <= 13) return [s];
-  const w = s.split(' ');
-  let best = [s];
-  let d = 1e9;
-  for (let i = 1; i < w.length; i++) {
-    const a = w.slice(0, i).join(' '),
-      b = w.slice(i).join(' ');
-    const dd = Math.abs(a.length - b.length);
-    if (dd < d) {
-      d = dd;
-      best = [a, b];
-    }
-  }
-  return best;
-};
-// a little randomness that's the same every time (so the sky doesn't jump around)
-const rnd = (seed) => {
-  let x = Math.sin(seed * 9301 + 49297) * 233280;
-  return x - Math.floor(x);
-};
 
-// each area is a loose constellation around its centre, in learning order
-function layout() {
-  const pos = {};
-  for (const R of REGIONS) {
-    const mine = SKILLS.filter((s) => s[1] === R.id);
-    const cols = mine.length > 8 ? 4 : mine.length > 4 ? 3 : 2;
-    const rows = Math.ceil(mine.length / cols);
-    mine.forEach(([id], i) => {
-      const r = Math.floor(i / cols),
-        c = i % cols;
-      const inRow = Math.min(cols, mine.length - r * cols);
-      const jx = (rnd(i + R.at[0]) - 0.5) * 26,
-        jy = (rnd(i * 7 + R.at[1]) - 0.5) * 18;
-      pos[id] = [
-        R.at[0] + (c - (inRow - 1) / 2) * 104 + jx,
-        R.at[1] * 0.94 + (r - (rows - 1) / 2) * 78 + jy,
-      ];
-    });
-  }
-  return pos;
-}
-const DUST = Array.from({ length: 140 }, (_, i) => [
-  rnd(i) * W,
-  rnd(i + 999) * H,
-  0.4 + rnd(i + 77) * 1.1,
-  rnd(i + 5) * 6,
-]);
-const sparkle = (x, y, r) =>
-  `M${x},${y - r} Q${x + r * 0.18},${y - r * 0.18} ${x + r},${y} Q${x + r * 0.18},${y + r * 0.18} ${x},${y + r} Q${x - r * 0.18},${y + r * 0.18} ${x - r},${y} Q${x - r * 0.18},${y - r * 0.18} ${x},${y - r}Z`;
 const KIND = {
   seen: ['📖', 'read'],
   asked: ['💬', 'asked'],
@@ -79,7 +25,6 @@ export default function SkillMap({
   quick,
   model,
 }) {
-  const pos = useMemo(layout, []);
   const [sel, setSel] = useState(null);
   // tiles about 100px wide, whatever the window: columns follow each area's real width, not just how many skills it has
   // day one, nothing learned yet: point at where to begin instead of 43 grey tiles
@@ -159,18 +104,6 @@ export default function SkillMap({
       });
   }, [sel]);
   // a chosen star brings its constellation close, so it stays big next to the card
-  const zoom = S
-    ? (() => {
-        const pts = SKILLS.filter((x) => x[1] === S[1]).map((x) => pos[x[0]]);
-        const xs = pts.map((q) => q[0]),
-          ys = pts.map((q) => q[1]);
-        const cx = (Math.min(...xs) + Math.max(...xs)) / 2,
-          cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-        const w = Math.max(520, Math.max(...xs) - Math.min(...xs) + 220),
-          h = Math.max(380, Math.max(...ys) - Math.min(...ys) + 220);
-        return `${cx - w / 2} ${cy - h / 2 - 20} ${w} ${h}`;
-      })()
-    : null;
   const puzzleFor =
     sel &&
     PUZZLES.find((p) =>

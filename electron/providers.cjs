@@ -296,16 +296,14 @@ const codex = {
     );
     const rl = r?.rateLimits;
     if (!rl) return null;
-    const wins = [rl.primary, rl.secondary]
-      .filter(Boolean)
-      .map((w) => ({
-        key: String(w.windowDurationMins),
-        label: windowName(w.windowDurationMins),
-        used: clamp(w.usedPercent),
-        resetsAt: w.resetsAt ? w.resetsAt * 1000 : null,
-        warn: w.usedPercent >= 80,
-        out: w.usedPercent >= 100,
-      }));
+    const wins = [rl.primary, rl.secondary].filter(Boolean).map((w) => ({
+      key: String(w.windowDurationMins),
+      label: windowName(w.windowDurationMins),
+      used: clamp(w.usedPercent),
+      resetsAt: w.resetsAt ? w.resetsAt * 1000 : null,
+      warn: w.usedPercent >= 80,
+      out: w.usedPercent >= 100,
+    }));
     return {
       plan: planName(rl.planType),
       windows: wins,

@@ -2,6 +2,8 @@
 // already written works: the clever ideas, the path, puzzles, the daily bug, simulations and the featured apps taken
 // apart, with lesson code running right in the page. Anything that needs an AI (a new question, a follow-up, taking
 // apart another repo or a website) opens a sheet pointing to the Mac app instead. Built by `npm run build:web`.
+import { PLAY_SHIM } from './runtime/playShim.js';
+
 export const WEB = import.meta.env.VITE_BENTO_WEB === '1';
 
 export const MAC_ONLY = 'That needs the free Mac app: it uses the AI you already have.';
@@ -59,13 +61,8 @@ const RAW = 'https://raw.githubusercontent.com';
 const gh = (root) => (String(root).startsWith('gh:') ? String(root).slice(3) : null);
 
 // a lesson's web page (runtime/runner.js runWeb): the Mac app serves it on its own origin; here it goes into a
-// sandboxed frame (public/web-play.html, ui/Viz.jsx) with no access to this page. Same little script as the app's (electron/main.cjs
+// sandboxed frame (public/web-play.html, ui/Viz.jsx) with no access to this page. Same little script as the app's (electron/play-shim.cjs:
 // PLAY_SHIM) reporting console output and hovered lines, plus a stand-in localStorage (a sandboxed frame has none).
-const STORE_SHIM =
-  '<script>(function(){try{localStorage.length}catch(e){var m={};var s={getItem:function(k){return k in m?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}},key:function(i){return Object.keys(m)[i]||null},get length(){return Object.keys(m).length}};try{Object.defineProperty(window,"localStorage",{value:s})}catch(x){}}})();<\/script>';
-const PLAY_SHIM =
-  STORE_SHIM +
-  `<script>(function(){var send=function(k,a){try{parent.postMessage({bentoPlay:1,k:k,s:Array.prototype.map.call(a,function(x){try{return typeof x==='string'?x:JSON.stringify(x)}catch(e){return String(x)}}).join(' ')},'*')}catch(e){}};['log','info','warn','error'].forEach(function(k){var o=console[k];console[k]=function(){send(k,arguments);o.apply(console,arguments)}});window.addEventListener('error',function(e){send('error',[e.message+(e.lineno?' (line '+e.lineno+')':'')])});var last=null;document.addEventListener('mouseover',function(e){var el=e.target.closest&&e.target.closest('[data-bl]');if(el===last)return;if(last)last.style.outline=last.__o||'';last=el;if(el){el.__o=el.style.outline;el.style.outline='2px solid rgba(124,92,255,.7)';try{parent.postMessage({bentoPlay:1,k:'hover',line:+el.getAttribute('data-bl')},'*')}catch(x){}}},true);document.addEventListener('mouseleave',function(){if(last){last.style.outline=last.__o||'';last=null}try{parent.postMessage({bentoPlay:1,k:'hover',line:0},'*')}catch(x){}});})();<\/script>`;
 const PLAY = new Map();
 export function playPut(html, key) {
   const id = /^[a-z0-9-]{3,40}$/i.test(key || '')
@@ -112,6 +109,10 @@ export const webBridge = {
   atlasRefresh: () => refuse('repo'),
   atlasSearch: () => refuse('repo'),
   // browsing GitHub works (straight from the visitor's browser); taking a result apart is the Mac app's
+  /**
+   * @param {string} q
+   * @param {{ limit?: number, language?: string, stars?: string, size?: string }} [opts]
+   */
   async ghSearch(q, { limit = 18, language, stars, size } = {}) {
     const words = [
       String(q || '').slice(0, 200),

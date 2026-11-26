@@ -221,6 +221,7 @@ const ask = (msg = '') => {
 };
 // fetch() goes through the app, so sites that block browser pages still answer
 async function netFetch(url, opts = {}) {
+  /** @type {Record<string, string>} */
   const headers = {};
   for (const [k, v] of Object.entries(opts.headers || {})) headers[`x-h-${k.toLowerCase()}`] = v;
   const r = await self.fetch(`/__net?u=${encodeURIComponent(String(url))}`, {

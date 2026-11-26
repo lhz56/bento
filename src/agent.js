@@ -3,6 +3,7 @@
 import { emptyLesson, applyBlock } from './lesson.js';
 
 // Agents name themselves in plain words ("Claude Code") or as programs ("claude-code", "codex-mcp-client")
+/** @type {Array<[RegExp, string]>} */
 const KNOWN = [
   [/claude/i, 'Claude Code'],
   [/codex/i, 'Codex'],

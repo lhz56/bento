@@ -783,7 +783,7 @@ function analyze(root, meta = {}) {
     }
     if (/^requirements.*\.txt$/.test(name))
       for (const l of (readText(root, f.p) || '').split('\n')) {
-        const m = /^\s*([A-Za-z0-9][\w.\-]*)/.exec(l);
+        const m = /^\s*([A-Za-z0-9][\w.-]*)/.exec(l);
         if (m && !l.trim().startsWith('#') && !l.trim().startsWith('-'))
           sig.pip.push(m[1].toLowerCase());
       }
@@ -792,27 +792,26 @@ function analyze(root, meta = {}) {
       for (const arr of t.matchAll(
         /(?:dependencies|requires|install_requires|dev)\s*=\s*\[([\s\S]*?)\]/g,
       ))
-        for (const m of arr[1].matchAll(/["']([A-Za-z][\w.\-]*)/g))
+        for (const m of arr[1].matchAll(/["']([A-Za-z][\w.-]*)/g))
           if (m[1].length > 1) sig.pip.push(m[1].toLowerCase());
       const poetry = /\[tool\.poetry\.(?:dev-)?dependencies\]([\s\S]*?)(\n\[|$)/.exec(t)?.[1] || '';
-      for (const m of poetry.matchAll(/^([A-Za-z][\w.\-]*)\s*=/gm))
-        sig.pip.push(m[1].toLowerCase());
+      for (const m of poetry.matchAll(/^([A-Za-z][\w.-]*)\s*=/gm)) sig.pip.push(m[1].toLowerCase());
       const pipfile = /\[(?:dev-)?packages\]([\s\S]*?)(\n\[|$)/.exec(t)?.[1] || '';
-      for (const m of pipfile.matchAll(/^([A-Za-z][\w.\-]*)\s*=/gm))
+      for (const m of pipfile.matchAll(/^([A-Za-z][\w.-]*)\s*=/gm))
         sig.pip.push(m[1].toLowerCase());
     }
     if (name === 'go.mod')
       for (const m of (readText(root, f.p) || '').matchAll(
-        /^\s*(?:require\s+)?([\w.\-]+\.[\w.\-]+\/[\w.\-/]+)\s+v/gm,
+        /^\s*(?:require\s+)?([\w.-]+\.[\w.-]+\/[\w.\-/]+)\s+v/gm,
       ))
         sig.go.push(m[1]);
     if (name === 'Gemfile')
-      for (const m of (readText(root, f.p) || '').matchAll(/^\s*gem\s+['"]([\w\-]+)['"]/gm))
+      for (const m of (readText(root, f.p) || '').matchAll(/^\s*gem\s+['"]([\w-]+)['"]/gm))
         sig.gem.push(m[1]);
     if (name === 'Cargo.toml') {
       const t = readText(root, f.p) || '';
       const d = /\[(?:dev-)?dependencies\]([\s\S]*?)(\n\[|$)/.exec(t)?.[1] || '';
-      for (const m of d.matchAll(/^([\w\-]+)\s*=/gm)) sig.cargo.push(m[1]);
+      for (const m of d.matchAll(/^([\w-]+)\s*=/gm)) sig.cargo.push(m[1]);
     }
     if (name === 'composer.json') {
       const j = jsonLoose(readText(root, f.p) || '');

@@ -1,5 +1,7 @@
 // Spots well-known code constructs as you write, so Bento can say "you just used X" and explain it instantly (no AI).
 // Each: [id, name, langs, regex, plain explanation, everyday comparison]
+/** Each construct: [id, name, language ('py' | 'js' | 'both'), pattern, what it does, an everyday comparison]
+ * @type {Array<[string, string, string, RegExp, string, string]>} */
 const C = [
   [
     'listcomp',

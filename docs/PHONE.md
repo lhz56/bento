@@ -117,7 +117,7 @@ updates, the bookmarklet. Those are hidden on the phone.
 - Lesson web pages come from a different port, an origin of their own, as `play://` does in the app. Lesson code
   reaches the internet through the same guarded fetch as on the Mac: public sites only, never your home network.
 
-How it's built: `electron/host.cjs` (the server, pairing, Approve on Mac, the stream), `electron/main.cjs` (the Allow
+How it's built: `electron/host.cjs` (the server, pairing, Approve on Mac, the stream), `electron/ipc/devices.cjs` (the Allow
 dialog, Bonjour, keeping the Mac awake), `ios/` (the Bento Code app), `src/remote.js` (the page's side),
 `src/ui/Phone.jsx` and `src/styles/touch` (the phone layout), `src/ui/touch.js` (the gestures and the keyboard). Tests: `node test/host.test.mjs` and
 `node scripts/smoke-phone.mjs [--ipad]` (needs `npx playwright-core install webkit` once).

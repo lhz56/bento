@@ -13,7 +13,6 @@ import {
   puzzleById,
   codeParts,
   codeOf,
-  englishMap,
   fitScale,
   tierOf,
   humanTime,
@@ -212,7 +211,7 @@ export default function Puzzles({ progress = {}, onOpen, onIdeas, onIdea, races 
 // The one chart behind every puzzle: how long each kind of algorithm takes as n grows.
 // Assumes Python doing about 10 million simple steps a second.
 const CLASSES = [
-  ['O(1)', 'look it up', (n) => 1, 'dupes', 'a dictionary lookup'],
+  ['O(1)', 'look it up', () => 1, 'dupes', 'a dictionary lookup'],
   ['O(log n)', 'halve it', (n) => Math.log2(n), 'search', 'binary search'],
   ['O(n)', 'look at each once', (n) => n, 'twosum', 'Two Sum, the clever way'],
   ['O(n log n)', 'sort first', (n) => n * Math.log2(n), 'merge', 'merging intervals'],

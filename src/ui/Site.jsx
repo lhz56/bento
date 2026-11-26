@@ -51,7 +51,7 @@ const fallback = (F, tools) => {
   };
 };
 
-export default function Site({ site: X, onAsk, onRetry, onOpenUrl, onOpenRepo, modelLabel }) {
+export default function Site({ site: X, onAsk, onRetry, onOpenUrl, onOpenRepo }) {
   const F = X.facts;
   const N = X.narr || {};
   const found = useMemo(() => (F ? detectSite(F) : []), [F]);

@@ -1662,7 +1662,7 @@ if (process.platform !== 'win32') {
   });
   check(
     /they changed it/.test(v) &&
-      /  2  print\(a\)/.test(v) &&
+      / {2}2 {2}print\(a\)/.test(v) &&
       /Printed:\n5/.test(v) &&
       !/earlier version/.test(v),
     'the learner’s own edits are shown with line numbers, with the run of that very code',

@@ -92,14 +92,13 @@ export const CHALLENGES = [
   ],
 ];
 
-// Split a simple SELECT into its clauses (top level only; anything fancier just skips the picture)
-const KW = ['SELECT', 'FROM', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY', 'LIMIT'];
 export function clauses(q) {
   const s = String(q || '')
     .trim()
     .replace(/;\s*$/, '');
   if (!/^select\b/i.test(s) || /\(\s*select\b/i.test(s) || /;\s*\S/.test(s) || /\bunion\b/i.test(s))
     return null;
+  /** @type {Array<[number, string, number]>} where each clause starts, its keyword, the keyword's length */
   const marks = [];
   const re = /\b(SELECT|FROM|WHERE|GROUP\s+BY|HAVING|ORDER\s+BY|LIMIT)\b/gi;
   let m;

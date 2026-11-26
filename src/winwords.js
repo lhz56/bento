@@ -42,7 +42,9 @@ export function winWords(root = document.body) {
           else if (n.nodeType === 1) {
             walk(n);
             attrs(n);
-            n.querySelectorAll?.('[title], [aria-label], [placeholder]').forEach(attrs);
+            /** @type {Element} */ (n)
+              .querySelectorAll?.('[title], [aria-label], [placeholder]')
+              .forEach(attrs);
           }
         });
     }

@@ -26,6 +26,9 @@ const PY_NAMES = {
   size: 'len(x)',
   add: 'set.add(x) — or .append(x) for a list',
 };
+/** @typedef {{ plain: string, fix?: string, word?: string }} Explained */
+/** Each rule: an error message pattern, and how to explain a match
+ * @type {Array<[RegExp, (m: RegExpMatchArray) => Explained]>} */
 const RULES = [
   // Python
   [

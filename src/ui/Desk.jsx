@@ -1,5 +1,5 @@
 import { spotConstructs } from '../constructs.js';
-import { t, tx } from '../i18n.js';
+import { t } from '../i18n.js';
 import {
   forwardRef,
   useCallback,
@@ -13,7 +13,7 @@ import { haptic } from './touch.js';
 import { Md } from './Story.jsx';
 import Editor from './Editor.jsx';
 import Stage from './Stage.jsx';
-import { run as runCode, pyState, typeCheck } from '../runtime/runner.js';
+import { run as runCode, typeCheck } from '../runtime/runner.js';
 import { explainToken } from '../explain.js';
 import { quickPrompts, parseJSONLoose } from '../lesson.js';
 import { localChecks, checkPrompt, applyCheck } from '../verify.js';

@@ -100,7 +100,7 @@ module.exports = function registerAsk(ctx) {
     const ls = String(err)
       .split('\n')
       .map((l) => l.trim())
-      .filter((l) => l && !/^at |^\{|^\}|^[\w$]+: [\[{'"\w]|^[\]}),]+$/.test(l));
+      .filter((l) => l && !/^at |^\{|^\}|^[\w$]+: [[{'"\w]|^[\]}),]+$/.test(l));
     const said = ls.filter((l) =>
       /error|fail|denied|exhausted|quota|limit|not |unable|requires|invalid|unknown|eligib/i.test(
         l,

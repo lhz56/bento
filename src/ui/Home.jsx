@@ -10,17 +10,12 @@ import {
   resetText,
 } from '../ai.js';
 import { usePlans, Ring as PlanRing } from './Plans.jsx';
-import { t, tx } from '../i18n.js';
+import { t } from '../i18n.js';
 import { fmtStars, bestBuiltin, projectNames, namesALesson } from '../findProject.js';
 import { parseRepo } from './Explore.jsx';
-import { Art } from './Onboarding.jsx';
-import { IdeaArt } from './Ideas.jsx';
-import Brand from './Brand.jsx';
 import Icon from './Icons.jsx';
 import IdeaFlow from './IdeaFlow.jsx';
-import { IDEAS as CLEVER, ideaById } from '../ideas.js';
-import { langColor } from '../atlas/analyze.js';
-import { mod, keys, IS_MAC, TOUCH } from '../platform.js';
+import { mod, TOUCH } from '../platform.js';
 import { REGIONS } from '../skills.js';
 
 const IDEAS = {
@@ -49,44 +44,8 @@ const MODES = [
   ['challenge', 'Challenge me', '⚑'],
 ];
 
-// The last four weeks of learning, one bar per day (darker = more lessons and new words that day).
-function LearnGrid({ days }) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const start = new Date(today);
-  start.setDate(start.getDate() - 27);
-  const cells = [];
-  let total = 0;
-  for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
-    const n = days[d.toDateString()] || 0;
-    total += n ? 1 : 0;
-    cells.push([new Date(d), n]);
-  }
-  const lvl = (n) => (n === 0 ? 0 : n < 3 ? 1 : n < 6 ? 2 : n < 10 ? 3 : 4);
-  return (
-    <div
-      className="lgrid"
-      title={`${total} learning day${total === 1 ? '' : 's'} in the last 12 weeks`}
-    >
-      <div className="lg-cells">
-        {cells.map(([d, n], i) => (
-          <i
-            key={i}
-            className={`l${lvl(n)} ${d.getTime() === today.getTime() ? 'today' : ''}`}
-            title={`${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}: ${n ? `${n} thing${n === 1 ? '' : 's'} learned` : 'nothing yet'}`}
-          />
-        ))}
-      </div>
-      <span className="lg-cap">
-        {total} day{total === 1 ? '' : 's'} in 4 weeks
-      </span>
-    </div>
-  );
-}
-
 export default function Home({
   builtins = [],
-  threads = [],
   skyDots = [],
   about,
   onDropAbout,
@@ -108,20 +67,13 @@ export default function Home({
   loadRepos,
   samples,
   onOpen,
-  challenge,
   user,
-  recent,
   providers,
   onOpenRepo,
-  onExplore,
-  onIdea,
-  onWords,
   onScratch,
-  onDaily,
   onSetup,
   onSuggest,
   onSim,
-  words = {},
   stats,
 }) {
   const [picks, setPicks] = useState(() => {
@@ -146,25 +98,6 @@ export default function Home({
       })
       .catch(() => {});
   }, [user, repos?.length]);
-  const wordList = Object.values(words);
-  const THEME = {
-    games: 'maps',
-    ai: 'data',
-    data: 'data',
-    systems: 'scale',
-    web: 'together',
-    bots: 'scale',
-    apps: 'safety',
-    art: 'maps',
-  };
-  const pool = CLEVER.filter(
-    (i) =>
-      !(settings.interests || []).length ||
-      (settings.interests || []).some((x) => THEME[x] === i.theme),
-  );
-  const idea = (pool.length ? pool : CLEVER)[
-    Math.floor(Date.now() / 86400000) % (pool.length || CLEVER.length)
-  ];
   const [mode, setMode] = useState('explain');
   const [q, setQ] = useState('');
   const [ph, setPh] = useState(0);
@@ -266,40 +199,10 @@ export default function Home({
     addEventListener('mousedown', close);
     return () => removeEventListener('mousedown', close);
   }, [menu]);
-  const tries = (
-    picks?.length
-      ? picks.map((p) => ({ q: p.q, label: p.title, lang: p.lang }))
-      : IDEAS.explain.map((x) => ({ q: x, label: x }))
-  ).slice(0, 3);
   const [mi, ml, md] = MODE_INFO[mode];
   const hero = today.find((x) => x.k === 'path');
   const plan = today.filter((x) => x !== hero);
   const doneN = plan.filter((x) => x.done).length;
-  const ago = (at) => {
-    if (!at) return '';
-    const d = (Date.now() - at) / 1000;
-    if (d < 90) return t('just now');
-    if (d < 3600) return `${Math.round(d / 60)}m`;
-    const day = new Date(at).toDateString();
-    if (day === new Date().toDateString()) return `${Math.round(d / 3600)}h`;
-    if (day === new Date(Date.now() - 864e5).toDateString()) return t('yesterday');
-    return new Date(at).toLocaleDateString(
-      undefined,
-      d < 6 * 864e5 ? { weekday: 'short' } : { month: 'short', day: 'numeric' },
-    );
-  };
-  const metaOf = (th) =>
-    th.kind === 'project'
-      ? [
-          t('project'),
-          th.asked ? `${th.asked} ${th.asked === 1 ? t('question') : t('questions')}` : null,
-        ]
-      : [
-          th.stop ? `${t('path')} · ${t('stop')} ${th.stop}` : null,
-          th.asked ? `${th.asked} ${th.asked === 1 ? t('question') : t('questions')}` : null,
-          th.right ? `${th.right} ${t('right')}` : null,
-          th.live ? t('writing…') : null,
-        ];
   // already covered by a lesson that ships with Bento? offer it, ready now, before spending your AI on it
   const ready =
     mode === 'explain' &&
@@ -824,193 +727,5 @@ function Ring({ i, n }) {
       </svg>
       <b>{i}</b>
     </span>
-  );
-}
-
-function Thumb({ id }) {
-  if (id === 'sim-traffic')
-    return (
-      <svg viewBox="0 0 120 70" className="thumb" aria-hidden="true">
-        <ellipse
-          cx="60"
-          cy="35"
-          rx="44"
-          ry="21"
-          fill="none"
-          stroke="var(--line-2)"
-          strokeWidth="9"
-        />
-        {[0, 0.5, 0.9, 1.25, 1.55, 2.6, 3.5, 4.3, 5.1, 5.7].map((a, k) => {
-          const bunched = a > 0.4 && a < 1.7;
-          return (
-            <rect
-              key={k}
-              x={60 + Math.cos(a) * 44 - 3.5}
-              y={35 + Math.sin(a) * 21 - 2.5}
-              width="7"
-              height="5"
-              rx="1.6"
-              fill={bunched ? '#ef476f' : '#4cc9a0'}
-              transform={`rotate(${(a * 180) / Math.PI + 90} ${60 + Math.cos(a) * 44} ${35 + Math.sin(a) * 21})`}
-            />
-          );
-        })}
-      </svg>
-    );
-  if (id === 'sim-herd')
-    return (
-      <svg viewBox="0 0 120 70" className="thumb" aria-hidden="true">
-        {Array.from({ length: 45 }, (_, k) => {
-          const x = 16 + (k % 9) * 11,
-            y = 13 + Math.floor(k / 9) * 11;
-          const sick = [12, 13, 21, 22, 23].includes(k);
-          const safe = (k * 7) % 5 !== 0;
-          return (
-            <circle
-              key={k}
-              cx={x}
-              cy={y}
-              r="3.6"
-              fill={sick ? '#ef476f' : safe ? '#4cc9a0' : 'var(--line-2)'}
-            />
-          );
-        })}
-      </svg>
-    );
-  if (id === 'sample-bst')
-    return (
-      <svg viewBox="0 0 120 70" className="thumb" aria-hidden="true">
-        <g stroke="var(--line-2)" strokeWidth="2">
-          <line x1="60" y1="14" x2="34" y2="36" />
-          <line x1="60" y1="14" x2="86" y2="36" />
-          <line x1="34" y1="36" x2="20" y2="58" />
-          <line x1="34" y1="36" x2="48" y2="58" />
-          <line x1="86" y1="36" x2="100" y2="58" />
-        </g>
-        {[
-          [60, 14, '#ff8a5b'],
-          [34, 36, '#a78bfa'],
-          [86, 36, '#a78bfa'],
-          [20, 58, '#4cc9a0'],
-          [48, 58, '#4cc9a0'],
-          [100, 58, '#4cc9a0'],
-        ].map(([x, y, c], i) => (
-          <circle key={i} cx={x} cy={y} r="8" fill={c} />
-        ))}
-      </svg>
-    );
-  if (id === 'sample-bigo')
-    return (
-      <svg viewBox="0 0 120 70" className="thumb" aria-hidden="true">
-        <path
-          d="M10 62 Q 70 60 110 8"
-          stroke="#ff8a5b"
-          strokeWidth="3"
-          fill="none"
-          strokeLinecap="round"
-        />
-        <path
-          d="M10 62 L110 46"
-          stroke="#4cc9a0"
-          strokeWidth="3"
-          fill="none"
-          strokeLinecap="round"
-        />
-        <text x="84" y="22" fontSize="10" fill="#ff8a5b" fontWeight="700">
-          n²
-        </text>
-        <text x="94" y="58" fontSize="10" fill="#16a37b" fontWeight="700">
-          n
-        </text>
-      </svg>
-    );
-  if (id === 'sample-spiral')
-    return (
-      <svg viewBox="0 0 120 70" className="thumb" aria-hidden="true">
-        {Array.from({ length: 70 }, (_, i) => {
-          const a = i * 0.5,
-            r = i * 0.42;
-          return (
-            <circle
-              key={i}
-              cx={60 + Math.cos(a) * r}
-              cy={35 + Math.sin(a) * r}
-              r={1.4 + i * 0.02}
-              fill={['#ff8a5b', '#ff5d8f', '#a78bfa', '#5aa9ff'][i % 4]}
-            />
-          );
-        })}
-      </svg>
-    );
-  if (id === 'sample-closure')
-    return (
-      <svg viewBox="0 0 120 70" className="thumb" aria-hidden="true">
-        <rect
-          x="14"
-          y="12"
-          width="52"
-          height="46"
-          rx="10"
-          fill="none"
-          stroke="#a78bfa"
-          strokeDasharray="4 3"
-          strokeWidth="2"
-        />
-        <text x="22" y="30" fontSize="9" fill="#7c5cff" fontFamily="ui-monospace">
-          outer()
-        </text>
-        <path d="M66 36 L80 36" stroke="var(--ink-2)" strokeWidth="2" />
-        <rect x="82" y="22" width="30" height="30" rx="8" fill="#ffe3d6" />
-        <text x="88" y="41" fontSize="9" fill="#d9480f" fontFamily="ui-monospace">
-          n=2
-        </text>
-      </svg>
-    );
-  if (id === 'scratch')
-    return (
-      <svg viewBox="0 0 120 70" className="thumb" aria-hidden="true">
-        {[0, 1, 2].map((i) => (
-          <g key={i}>
-            <rect
-              x="14"
-              y={16 + i * 14}
-              width={[34, 52, 26][i]}
-              height="5"
-              rx="2.5"
-              fill={['#d9480f', '#6a45f5', '#2b8a3e'][i]}
-              opacity=".55"
-            />
-            <rect
-              x="72"
-              y={16 + i * 14}
-              width={[30, 22, 34][i]}
-              height="5"
-              rx="2.5"
-              fill="var(--line-2)"
-            />
-          </g>
-        ))}
-        <rect x={14 + 26 + 3} y="42" width="2" height="10" fill="var(--accent)">
-          <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite" />
-        </rect>
-        <line x1="64" y1="12" x2="64" y2="60" stroke="var(--line-2)" strokeDasharray="2 3" />
-      </svg>
-    );
-  return (
-    <svg viewBox="0 0 120 70" className="thumb" aria-hidden="true">
-      {[0, 1, 2, 3].map((i) => (
-        <g key={i}>
-          <circle cx="22" cy={14 + i * 14} r="4.5" fill={i === 2 ? '#ef476f' : '#4cc9a0'} />
-          <rect
-            x="34"
-            y={11 + i * 14}
-            width={50 + (i % 2) * 20}
-            height="6"
-            rx="3"
-            fill="var(--line-2)"
-          />
-        </g>
-      ))}
-    </svg>
   );
 }

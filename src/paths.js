@@ -550,7 +550,8 @@ export const TRACKS = [
     stops: AGENTS,
   },
 ];
-export const ALL_STOPS = TRACKS.flatMap((x) => x.stops);
+/** @type {any[]} every stop on every built-in path */
+export const ALL_STOPS = TRACKS.flatMap((x) => /** @type {any[]} */ (x.stops));
 // the map skills a stop teaches
 export const stopSkills = (s, skillsFor) => [
   ...new Set([...(s.sk || []), ...(s.words || []).flatMap(skillsFor)]),

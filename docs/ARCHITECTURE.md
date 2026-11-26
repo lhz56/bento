@@ -12,7 +12,7 @@ Bento is an Electron app. The **main process** (`electron/`) owns everything out
 
 ## 1. Talking to AI without API keys
 
-`runModel()` in `electron/main.cjs` spawns the CLI the user already signed into:
+`runModel()` in `electron/ipc/ask.cjs` spawns the CLI the user already signed into:
 
 Each AI has one adapter in `electron/providers.cjs`; its name, models, plan and install, sign-in and update commands are in `electron/ai-catalog.json`, which the screens read too (`src/ai.js`). An adapter checks the CLI (`--help` must list every option Bento passes; the sign-in), builds its command, reads its stream and, where it can for free, reads the plan's limits. Instructions go in a private temporary file and the request on standard input, never on the command line (where other programs can read it, and Windows cuts it short). Every one runs as a writer only:
 
@@ -86,7 +86,7 @@ To add a path: add its stops and a `TRACKS` entry, run `npx vite build`, then `n
 ## Checking lessons and counting AI use
 
 - **`src/verify.js`** tidies a lesson the moment it finishes writing (`tidyLesson`, called from `askLesson`): plain English that has slipped off its lines (`pseudoFits`: lengths, and blank code lines against blank English) is cleared so Desk writes it again by line number, line links and margin notes an AI counted wrong (`fixLinks`, `fixNotes`: pointing at blank lines, or a code-shaped label like `btn.textContent` that's on the next line) are moved back, and the free checks below run at once, web pages included (Bento never runs those). It also checks a fresh lesson once its code has run cleanly. `localChecks` fixes what can be proven for free (line links and notes past the end of the code, quizzes without a valid answer, plain-words lines that don't match the code). `checkPrompt` sends the numbered code, the real output, the paragraphs and the quizzes to the fast model; `applyCheck` applies only answers the model is sure of and only text fixes whose exact quote is in the lesson. Desk stores the result on the lesson as `check`, and Story shows it as the *✓ Checked* badge.
-- **Usage**: `runModel` in `electron/main.cjs` records every request that got an answer (what it was for, the AI and model, time, and token counts where the CLI reports them) in `usage.json`. Quick answers are saved in `quick-cache.json` for 14 days, keyed by model, voice and prompt. `usage:get` gives the week, and today per AI.
+- **Usage**: `runModel` in `electron/ipc/ask.cjs` records every request that got an answer (what it was for, the AI and model, time, and token counts where the CLI reports them) in `usage.json`. Quick answers are saved in `quick-cache.json` for 14 days, keyed by model, voice and prompt. `usage:get` gives the week, and today per AI.
 - **Plan limits**: how full each plan is, as the plan counts it, kept in `plan-limits.json` and pushed to the screens (`limits`). Claude sends a `rate_limit_event` with each answer (5-hour and weekly windows); Codex answers `account/rateLimits/read` from its app server and Copilot's allowance comes from GitHub, both without asking a model, so they're read when you open the panel and after each answer. Gemini doesn't share its numbers. `src/ui/Plans.jsx` turns a reading into the sidebar ring, the "Your plans" rows and Home's warning, translating only fixed words (never the numbers).
 
 ## Questions about real projects
@@ -121,7 +121,7 @@ own agent (Claude Code, Codex, Gemini, Copilot, Cursor…) does the thinking and
 spends nothing of your plan.
 
 ```
- agent ──stdio, MCP──▶ Bento --mcp (no window, no Dock icon) ──socket──▶ the open Bento (main.cjs) ──IPC──▶ App.jsx
+ agent ──stdio, MCP──▶ Bento --mcp (no window, no Dock icon) ──socket──▶ the open Bento (ipc/agent.cjs) ──IPC──▶ App.jsx
 ```
 
 - **`Bento --mcp`** is the app itself, started by the agent with one switch. `main.cjs` sees it before anything else
@@ -147,6 +147,37 @@ checks `--mcp` on the signed release too.
 Everything is local. The renderer saves to `localStorage` and mirrors to `bento-store.json` on disk (`store:set`). On launch, whichever copy is newer wins. Lessons are the exception to "same data in both": browser storage holds the newest 60 for a fast start, and the disk copy holds all of them (up to 2,000), merged back in at launch (`saveLessons` in `src/store.js`). Atlases and site results live in their own cache files.
 
 Every day (at launch and every 4 hours), `electron/snapshots.cjs` writes `Backups/Bento backup YYYY-MM-DD.json` in the backup format `backup:load` reads, and keeps the newest seven.
+
+## Code layout
+
+```
+electron/                 the main process (Node)
+  main.cjs                app lifecycle, the window, the IPC guard, process helpers, and the shared context
+  ipc/<area>.cjs          one module per group of IPC handlers; each exports register(ctx)
+    connections           finding each AI's CLI, its sign-in, Terminal for install and login
+    plan-limits           how full each plan is
+    ask                   runModel(), lessons streaming in (ask:*), quick answers, what used your AI
+    folders, files        local folders; lesson web pages, exports, saving
+    github, atlas, search gh, bringing a repo in and taking it apart, search and websites
+    store                 the disk mirror of what the page saves, backups
+    devices, agent        your phone and iPad; your own AI agent (MCP)
+  providers.cjs           one adapter per AI CLI;  prompts.cjs  the system prompts
+  atlas.cjs, worker.cjs   static analysis of a repo, on a thread of its own
+src/                      the renderer (React)
+  App.jsx                 app state and navigation; each screen is its own component
+  screens/                the larger screens App.jsx shows (a lesson, a project's Atlas)
+  ui/                     components
+  hooks/                  state that belongs together (useLibrary: repos, folders, sites)
+  runtime/                running code: Python, JavaScript, TypeScript workers
+  atlas/                  what a repo is made of (stack detection, the catalog, prompts)
+  styles/app, styles/touch  the styles, one file per screen, imported in cascade order by index.css
+```
+
+`main.cjs` builds one `ctx` object of getters, so a module always sees the current window and settings, and each
+module's exports join it for the modules after it. Nothing else is shared between modules.
+
+Checks: `npm run lint` (ESLint), `npm run format:check` (Prettier), `npm run typecheck` (TypeScript over the
+JavaScript, with `checkJs`), `npm test` and `npm run smoke`.
 
 ## Where to add things
 

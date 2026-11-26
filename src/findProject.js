@@ -160,6 +160,7 @@ export function projectNames(q) {
       break;
     }
   }
+  /** @type {string[] & { weak?: boolean }} */
   const names = [...new Set(out)].filter((n) => {
     const k = norm(n);
     const w = n.split(/\s+/).length;

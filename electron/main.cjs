@@ -10,27 +10,21 @@ const {
   net,
   shell,
   nativeTheme,
-  powerSaveBlocker,
-  powerMonitor,
 } = require('electron');
 const path = require('node:path');
-const crypto = require('node:crypto');
 const fs = require('node:fs');
 const fsp = fs.promises;
 const os = require('node:os');
-const { spawn, execFile } = require('node:child_process');
+const { spawn } = require('node:child_process');
 const { Worker } = require('node:worker_threads');
 const { pathToFileURL } = require('node:url');
-const { SYSTEM, QUICK_SYSTEM, ATLAS_SYSTEM, SITE_SYSTEM } = require('./prompts.cjs');
-const atlas = require('./atlas.cjs');
-const { safeFetch, follow, hostAllowed } = require('./netfetch.cjs');
+const { safeFetch } = require('./netfetch.cjs');
 const updater = require('./updater.cjs');
 const menu = require('./menu.cjs');
 const winstate = require('./winstate.cjs');
 const logger = require('./log.cjs');
 const snapshots = require('./snapshots.cjs');
-const { projectRootOk } = require('./roots.cjs');
-const { writeSafe, writeSafeAsync, stopWrites } = require('./safewrite.cjs'); // a new copy, then swapped in: never half a file
+const { writeSafe, writeSafeAsync } = require('./safewrite.cjs'); // a new copy, then swapped in: never half a file
 
 // development only: a shipped copy never loads its page from a local server, whatever the environment says
 const DEV = !!process.env.BENTO_DEV && !app.isPackaged;
@@ -125,7 +119,7 @@ if (process.argv.includes('--mcp')) {
     }
   };
   agent.bridge({ sock, version: app.getVersion(), launch, onEnd: () => app.exit(0) });
-  return; // eslint-disable-line no-unreachable
+  return;
 }
 const DIST = path.join(__dirname, '..', 'dist');
 // errors go to ~/Library/Logs/Bento/main.log (Help → Show Logs); test and demo profiles keep theirs inside the profile

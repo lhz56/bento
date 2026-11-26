@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { t, tx } from '../i18n.js';
+import { t } from '../i18n.js';
 
 const bucket = (t) => {
   if (!t) return 'Earlier';
@@ -8,11 +8,6 @@ const bucket = (t) => {
   const days = Math.floor((new Date(n.toDateString()) - new Date(d.toDateString())) / 864e5);
   return days <= 0 ? 'Today' : days === 1 ? 'Yesterday' : days < 7 ? 'This week' : 'Earlier';
 };
-const dayLabel = (l, prev) => {
-  const b = bucket(l.createdAt);
-  return !prev || bucket(prev.createdAt) !== b ? b : null;
-};
-import { langColor } from '../atlas/analyze.js';
 import Brand from './Brand.jsx';
 import { ideaById } from '../ideas.js';
 import { IS_MAC, keys } from '../platform.js';
@@ -323,7 +318,6 @@ export function Sidebar({
     ...mine.map((l) => ({ kind: 'lesson', key: `l:${l.id}`, at: l.createdAt || 0, l })),
   ].sort((a, b) => b.at - a.at);
   const shown = items.slice(0, more ? 60 : 9);
-  const avail = MODELS.filter((m) => !providers || providers[m[2]]);
   const active = groupOf(view)?.id || null;
   const ai = GROUPS.findIndex((g) => g.id === active);
   const search = () =>

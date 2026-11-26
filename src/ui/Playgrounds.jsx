@@ -1,6 +1,6 @@
 // Playgrounds: hands-on sandboxes for the things beginners hit first in real work — SQL, the terminal and Git —
 // and, later, designing a system that survives a billion users.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Editor from './Editor.jsx';
 import { run as runCode } from '../runtime/runner.js';
 import { TABLES, CHALLENGES, pipeline, runnerCode, sameResult } from '../sql.js';
@@ -85,7 +85,6 @@ function SqlPlay({ done, onDone, quick, model, pyReady }) {
   const [verdict, setVerdict] = useState(null);
   const [plain, setPlain] = useState(null);
   const C = CHALLENGES[ci];
-  const steps = useMemo(() => pipeline(q), [q]);
   const go = async (query = q) => {
     if (!query.trim()) return;
     setBusy(true);

@@ -37,7 +37,9 @@ if (IN_APP) {
   addEventListener(
     'click',
     (e) => {
-      const b = e.target.closest?.(TICK);
+      const b = /** @type {HTMLButtonElement | null} */ (
+        /** @type {Element} */ (e.target).closest?.(TICK)
+      );
       if (!b || b.disabled) return;
       // (a switch ticks both ways; a tab or segment only when it changes)
       if (
@@ -72,7 +74,9 @@ if (IN_APP) {
   addEventListener(
     'click',
     (e) => {
-      const b = e.target.closest?.('.send, .ask-go');
+      const b = /** @type {HTMLButtonElement | null} */ (
+        /** @type {Element} */ (e.target).closest?.('.send, .ask-go')
+      );
       if (b && !b.disabled) haptic('light');
     },
     true,
@@ -145,6 +149,7 @@ function glide(e) {
     height: `${r.height}px`,
   });
   Object.assign(ghost.style, at(fr));
+  /** @type {{ ghost: HTMLElement, anim?: Animation }} */
   const me = (box.__glide = { ghost });
   let tries = 0;
   // the page shows the new choice once it has heard the tap: then the thumb follows it there
@@ -477,12 +482,12 @@ export function useTouch(on, o) {
         b.getAttribute('aria-disabled') !== 'true'
       ) {
         pressed = b;
-        pressT = setTimeout(() => pressed === b && press(b), 60);
+        pressT = window.setTimeout(() => pressed === b && press(b), 60);
       }
       for (const h of HOLD) {
         const row = tgt.closest(h.sel);
         if (!row || tgt.closest('.rl-x') || document.querySelector('.hold-menu')) continue;
-        holdT = setTimeout(() => {
+        holdT = window.setTimeout(() => {
           holdT = 0;
           unpressNow();
           g = null;

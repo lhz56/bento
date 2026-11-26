@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { t, tx } from '../i18n.js';
+import { t } from '../i18n.js';
 import { Seg } from './Home.jsx';
 import { MODELS } from './Side.jsx';
 import { PlanList, usePlans, AIMark } from './Plans.jsx';

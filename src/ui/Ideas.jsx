@@ -7,7 +7,6 @@ import { hexPath } from './Onboarding.jsx';
 export default function Ideas({
   onRead,
   readIds = {},
-  interests = [],
   races = [],
   onRace,
   instant = {},

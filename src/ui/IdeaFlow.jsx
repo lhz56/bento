@@ -340,7 +340,7 @@ const ROWS = [
 ];
 
 export default function IdeaFlow({ samples = [], onOpen, onSim, onScratch, onAsk }) {
-  const go = (key, label) => {
+  const go = (key) => {
     const s = samples.find((x) => x.id === key);
     if (s) return onOpen(s);
     if (key === 'scratch') return onScratch?.();

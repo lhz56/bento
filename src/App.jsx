@@ -13,11 +13,8 @@ import { tidyLesson } from './verify.js'; // when a lesson finishes: slipped pla
 import { projectNames, decide, mentionedProject, pointsBack, namesALesson } from './findProject.js';
 import { explainToken } from './explain.js';
 import { pyState, warmPython } from './runtime/runner.js';
-import Story from './ui/Story.jsx';
-import Desk from './ui/Desk.jsx';
 import Home from './ui/Home.jsx';
 import Explore, { parseBlob, parseRepo, parseSite } from './ui/Explore.jsx';
-import Atlas from './ui/Atlas.jsx';
 import Ideas from './ui/Ideas.jsx';
 import Onboarding from './ui/Onboarding.jsx';
 import Words from './ui/Words.jsx';
@@ -27,8 +24,8 @@ import Path from './ui/Path.jsx';
 import Settings from './ui/Settings.jsx';
 import Site from './ui/Site.jsx';
 import Coach from './ui/Coach.jsx';
-import Puzzles, { PuzzlePanel, PuzzleEnd } from './ui/Puzzles.jsx';
-import { puzzleLesson, puzzleById, codeParts, codeOf, englishMap } from './puzzles.js';
+import Puzzles from './ui/Puzzles.jsx';
+import { puzzleLesson, codeParts, codeOf, englishMap } from './puzzles.js';
 import { setUILanguage, useT, t } from './i18n.js';
 import SkillMap from './ui/SkillMap.jsx';
 import Playgrounds from './ui/Playgrounds.jsx';
@@ -39,18 +36,15 @@ import { PUZZLES } from './puzzles.js';
 import { RACES } from './races.js';
 import { ideaById, IDEAS } from './ideas.js';
 import { PRE, loadPrebuilt } from './prebuilt.js'; // lessons that ship already written, loaded just after the first screen
-import { useDialog } from './ui/a11y.js';
+import FindBar from './ui/FindBar.jsx';
+import KeySheet from './ui/KeySheet.jsx';
+import LessonScreen from './screens/LessonScreen.jsx';
+import AtlasScreen from './screens/AtlasScreen.jsx';
 import { ALL_STOPS, tracksWith, stopSkills } from './paths.js';
 import { noAI, altOf } from './ai.js';
 import { Sidebar, modelLabel, groupOf, rememberTab, lastTab, GROUPS } from './ui/Side.jsx';
 import Icon from './ui/Icons.jsx';
-import {
-  filesForQuestion,
-  guessRole,
-  projectParts,
-  isOverviewQuestion,
-  searchWords,
-} from './atlas/analyze.js';
+import { filesForQuestion, guessRole } from './atlas/analyze.js';
 import { mockBridge } from './mock.js';
 import { WEB, needsMac, countOnce } from './web.js';
 import useLibrary, { FEATURED } from './hooks/useLibrary.js';
@@ -253,7 +247,6 @@ export default function App() {
     siteKey,
     setSiteKey,
     stopReading,
-    patchAtlas,
     asProject,
     narrate,
     openAtlas,
@@ -410,20 +403,16 @@ export default function App() {
       d: j.d || goal,
       project: j.project || '',
       end: j.end || '',
-      stops: j.stops
-        .slice(0, 10)
-        .map((x, i) => ({
-          id: `${id}-${i}`,
-          t: x.t,
-          d: x.d,
-          make: x.make || '',
-          mins: Math.max(3, Math.min(20, +x.mins || 8)),
-          q: x.q,
-          lang: ['python', 'javascript', 'html', 'typescript'].includes(x.lang)
-            ? x.lang
-            : undefined,
-          words: (x.words || []).slice(0, 3),
-        })),
+      stops: j.stops.slice(0, 10).map((x, i) => ({
+        id: `${id}-${i}`,
+        t: x.t,
+        d: x.d,
+        make: x.make || '',
+        mins: Math.max(3, Math.min(20, +x.mins || 8)),
+        q: x.q,
+        lang: ['python', 'javascript', 'html', 'typescript'].includes(x.lang) ? x.lang : undefined,
+        words: (x.words || []).slice(0, 3),
+      })),
     };
     setProgress((p) => ({ ...p, tracks: [...(p.tracks || []), track] }));
     return id;
@@ -582,7 +571,6 @@ export default function App() {
     pyState.listeners.add(f);
     warmPython();
     return () => pyState.listeners.delete(f);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const current = useMemo(
@@ -2161,11 +2149,15 @@ export default function App() {
           projects={projects}
           words={progress.words || {}}
           actions={[
-            ['home', 'Learn: ask anything', <Icon name="learn" size={15} />],
-            ['path', 'Paths: learn it in order', <Icon name="path" size={15} />],
-            ['explore', 'Explore code', <Icon name="explore" size={15} />],
+            ['home', 'Learn: ask anything', <Icon key="home" name="learn" size={15} />],
+            ['path', 'Paths: learn it in order', <Icon key="path" name="path" size={15} />],
+            ['explore', 'Explore code', <Icon key="explore" name="explore" size={15} />],
             ['ideas', 'Clever ideas', '⬡'],
-            ['puzzles', 'Puzzles: LeetCode, from the top down', <Icon name="practice" size={15} />],
+            [
+              'puzzles',
+              'Puzzles: LeetCode, from the top down',
+              <Icon key="puzzles" name="practice" size={15} />,
+            ],
             ['play', 'Playgrounds: SQL, Git and the terminal, designing for a billion', '▦'],
             ['map', 'Your map: everything you know', '✺'],
             ['words', 'Your words', 'Aa'],
@@ -2529,669 +2521,87 @@ export default function App() {
             onConnectGitHub={api.remote ? null : () => setOnb(1)}
           />
         )}
-        {view === 'atlas' &&
-          atlases[atlasKey] &&
-          (() => {
-            const A = atlases[atlasKey];
-            return (
-              <Atlas
-                key={atlasKey}
-                atlas={A}
-                asked={atlasQ?.key === A.key ? atlasQ : null}
-                onAskedDone={() => setAtlasQ(null)}
-                onIdeaInstead={(q) => {
-                  setAtlasQ(null);
-                  askLesson(q, { noRoute: true });
-                }}
-                onMakePath={async (goal) => {
-                  const id = await makePath(goal);
-                  if (id) {
-                    localStorage.setItem('bento.track', id);
-                    setViewRaw('path');
-                  }
-                }}
-                onStopReading={() => stopReading(A.key)}
-                onBig={() => {
-                  setAtlases((m) => {
-                    const n = { ...m };
-                    delete n[A.key];
-                    atlasRef.current = n;
-                    return n;
-                  });
-                  setTimeout(() => openAtlas(A.src, { big: true }), 0);
-                }}
-                initialFile={pendingFile?.key === A.key ? pendingFile.path : null}
-                onInitialFileShown={() => setPendingFile(null)}
-                modelLabel={modelLabel(settings.model)}
-                readFile={(p) =>
-                  A.src.root
-                    ? api.readFile(A.src.root, p)
-                    : Promise.reject(
-                        new Error(
-                          A.fetchError
-                            ? `Couldn’t download the code: ${A.fetchError}`
-                            : 'Downloading the code… try again in a few seconds.',
-                        ),
-                      )
-                }
-                onAsk={(q, focus) => askRepo(A, q, focus)}
-                onPlanIssue={
-                  noAI(providers)
-                    ? null
-                    : async (iss) => {
-                        const tree = (A.facts?.files || [])
-                          .filter((f) => f.lang)
-                          .slice(0, 160)
-                          .map((f) => `${f.p} — ${A.narr?.roles?.[f.p] || guessRole(f)}`)
-                          .join('\n');
-                        const j = parseJSONLoose(
-                          await api.quick(
-                            settings.model,
-                            `A ${settings.level} learner wants to make their first open-source contribution by fixing this open issue in ${A.name}${A.narr?.gist?.one ? ` (${A.narr.gist.one})` : ''}.\nISSUE #${iss.n}: ${iss.title}\n${iss.body}\n\nFILES (path — role):\n${tree}\n\nBe encouraging and concrete. Only name files that appear in the list.\nReply JSON: {"plain":"what the issue asks for, in plain words, at most 60 words","files":["2-4 exact paths from the list most likely to change"],"steps":["4-6 short, concrete steps to fix it"],"skills":["2-3 skills they will practise"]}`,
-                          ),
-                        );
-                        return j?.plain
-                          ? j
-                          : {
-                              err: 'No plan this time. Read the issue on GitHub, then ask about it in the box below.',
-                            };
-                      }
-                }
-                onOthers={
-                  providers?.gh
-                    ? async (p, text) => {
-                        // find the most telling name in this file, look for it in other public projects, compare the two real files
-                        const py = /\.py$/.test(p);
-                        const names = [
-                          ...text.matchAll(
-                            py
-                              ? /^(?:async\s+)?def\s+([A-Za-z_]\w{3,})|^class\s+([A-Z]\w{2,})/gm
-                              : /export\s+(?:default\s+)?(?:async\s+)?(?:function|class|const)\s+([A-Za-z_$][\w$]{3,})/g,
-                          ),
-                        ]
-                          .map((m) => m[1] || m[2])
-                          .filter(
-                            (n) =>
-                              !/^(main|App|Page|Home|Layout|default|handler|GET|POST)$/.test(n),
-                          );
-                        const base = p
-                          .split('/')
-                          .pop()
-                          .replace(/\.[^.]+$/, '');
-                        const query = names[0] ? `${py ? 'def' : 'function'} ${names[0]}` : base;
-                        const rows = (
-                          await api.ghCode(
-                            query,
-                            py ? 'python' : /\.tsx?$/.test(p) ? 'typescript' : 'javascript',
-                          )
-                        ).filter((r) => r.repo.toLowerCase() !== (A.src.full || '').toLowerCase());
-                        if (!rows.length)
-                          throw new Error(
-                            `No other public project found using “${names[0] || base}”.`,
-                          );
-                        const other = rows[0];
-                        const otherText = await api.ghFile(other.repo, other.path);
-                        askLesson(
-                          `How do ${A.name.split('/').pop()} and ${other.repo.split('/').pop()} each write ${names[0] ? `\`${names[0]}\`` : `their ${base}`}?`,
-                          {
-                            mode: 'compare',
-                            lang: py ? 'python' : 'javascript',
-                            context: {
-                              a: {
-                                repo: A.name,
-                                repoKey: A.key,
-                                gist: A.narr?.gist?.one,
-                                key: [{ path: p, text: text.slice(0, 8000) }],
-                                files: [],
-                              },
-                              b: {
-                                repo: other.repo,
-                                key: [{ path: other.path, text: String(otherText).slice(0, 8000) }],
-                                files: [],
-                              },
-                            },
-                          },
-                        );
-                      }
-                    : null
-                }
-                onQuick={async (q, history = []) => {
-                  // an overview question reads the README and the top file of each main part; others read the best-matching files
-                  const overview = !history.length && isOverviewQuestion(q);
-                  const mainParts = overview ? projectParts(A.facts, 8) : [];
-                  // specific questions: files whose names match, plus files whose contents mention the words (searched on this Mac)
-                  const asked = [q, ...history.slice(-2).map((h) => h.q)].join(' ');
-                  const byName = overview ? [] : filesForQuestion(A.facts, A.narr, asked);
-                  const code = A.facts.files
-                    .filter((f) => f.lang && f.sub !== 'tests' && f.sub !== 'docs')
-                    .map((f) => f.p);
-                  const hits =
-                    overview || !api.atlasSearch
-                      ? []
-                      : await api.atlasSearch(A.src.root, searchWords(asked), code).catch(() => []);
-                  const at = new Map(hits.map((h) => [h.p, h.at]));
-                  // cover every part of the question ("Claude or Codex" needs both), at most 2 files from one folder
-                  const chosen = [];
-                  const seen = new Set();
-                  const perDir = {};
-                  while (chosen.length < 3) {
-                    const dirOf = (h) => h.p.split('/').slice(0, -1).join('/');
-                    const best = hits
-                      .filter((h) => !chosen.includes(h) && (perDir[dirOf(h)] || 0) < 2)
-                      .map((h) => [
-                        h,
-                        h.score * (1 + 1.5 * (h.words || []).filter((w) => !seen.has(w)).length),
-                      ])
-                      .sort((a, b) => b[1] - a[1])[0]?.[0];
-                    if (!best) break;
-                    chosen.push(best);
-                    (best.words || []).forEach((w) => seen.add(w));
-                    perDir[dirOf(best)] = (perDir[dirOf(best)] || 0) + 1;
-                  }
-                  const paths = overview
-                    ? mainParts.slice(0, 4).map((x) => x.top.p)
-                    : [...new Set([...chosen.map((h) => h.p), ...byName.slice(0, 2)])].slice(0, 4);
-                  const parts = [];
-                  for (const p of paths) {
-                    try {
-                      const text = await api.readFile(A.src.root, p);
-                      const k = at.get(p) ?? 0;
-                      // show the part of the file where the words are, not just its first lines
-                      const from = k > 3500 ? Math.max(0, text.lastIndexOf('\n', k - 1500)) : 0;
-                      parts.push(
-                        `--- ${p}${from ? ` (from character ${from})` : ''} ---\n${text.slice(from, from + 5000)}`,
-                      );
-                    } catch {}
-                  }
-                  // the map of the project: every main part, then the files next to the ones being read
-                  const near = new Set(paths.map((p) => p.split('/').slice(0, -1).join('/')));
-                  const files = A.facts.files.filter((f) => f.lang);
-                  const tree =
-                    files.length <= 150
-                      ? files
-                          .map((f) => `${f.p} — ${A.narr?.roles?.[f.p] || guessRole(f)}`)
-                          .join('\n')
-                      : `${projectParts(A.facts, 14)
-                          .map((x) => `${x.area}/ — ${x.files} code files`)
-                          .join('\n')}\n…\n${files
-                          .filter((f) => near.has(f.p.split('/').slice(0, -1).join('/')))
-                          .slice(0, 60)
-                          .map((f) => `${f.p} — ${A.narr?.roles?.[f.p] || guessRole(f)}`)
-                          .join('\n')}`;
-                  const big = overview
-                    ? `\nREADME (start):\n${String(A.facts.readme || '').slice(0, 2500)}\n\nMAIN PARTS (folder — code files, lines, its most-used file):\n${mainParts.map((x) => `${x.area} — ${x.files} files, ${x.lines} lines, ${x.top.p}`).join('\n')}\n`
-                    : '';
-                  const j = parseJSONLoose(
-                    await api.quick(
-                      settings.model,
-                      `A ${settings.level} learner is studying the repository ${A.name}${A.narr?.gist?.one ? ` (${A.narr.gist.one})` : ''} and asks: ${q}${big}\n${
-                        history.length
-                          ? `\nEARLIER IN THIS CONVERSATION (answer the new question in that light):\n${history
-                              .slice(-3)
-                              .map((h) => `Q: ${h.q}\nA: ${String(h.a || '').slice(0, 600)}`)
-                              .join('\n')}\n`
-                          : ''
-                      }\nFILES (path — role):\n${tree}\n\nMOST RELEVANT FILES:\n${parts.join('\n\n')}\n\nAnswer in at most ${overview ? 150 : 110} words, plainly, naming real files in backticks. Only say what the code supports.${overview ? ' This is a general question: start with one sentence on what the project is, then how its main parts fit together.' : ' Answer just this question; do not introduce the project again.'}\nReply JSON: {"answer":"...","files":["exact paths you referred to, max 4"]}`,
-                    ),
-                  );
-                  return {
-                    a:
-                      j?.answer ||
-                      (phone || TOUCH
-                        ? 'No answer this time. Turn it into a full lesson below.'
-                        : `No answer this time. Try a full lesson (${keys('⌘↵')}).`),
-                    files: j?.files || paths,
-                  };
-                }}
-                onExplainFile={(p, text) =>
-                  askLesson(`Explain ${p}`, {
-                    mode: 'code',
-                    context: { code: text, path: p, repo: A.name, repoKey: A.key },
-                    lang: /\.py$/.test(p) ? 'python' : 'javascript',
-                  })
-                }
-                onFeature={async (q) =>
-                  askLesson(q, {
-                    mode: 'feature',
-                    context: await buildContext(asProject(A), q),
-                    lang:
-                      Object.keys(A.facts.langs).includes('Python') &&
-                      !Object.keys(A.facts.langs).some((l) => /Script/.test(l))
-                        ? 'python'
-                        : 'javascript',
-                  })
-                }
-                onRefresh={async () => {
-                  if (A.src.kind === 'github') await api.atlasRefresh(A.src.full);
-                  else await api.cachePut(A.key, null);
-                  setAtlases((m) => {
-                    const n = { ...m };
-                    delete n[A.key];
-                    atlasRef.current = n;
-                    return n;
-                  });
-                  setTimeout(
-                    () =>
-                      openAtlas(
-                        A.src.kind === 'github' ? { kind: 'github', full: A.src.full } : A.src,
-                      ),
-                    0,
-                  );
-                }}
-                onBuild={(mini) =>
-                  askLesson(mini, {
-                    mode: 'build',
-                    lang: (() => {
-                      const ls = Object.entries(A.facts.langs).sort((a, b) => b[1] - a[1]);
-                      const top = ls[0]?.[0];
-                      const ui = A.facts.files.filter((f) => f.layer === 'ui' && f.lang).length;
-                      const code =
-                        A.facts.files.filter((f) => f.lang && f.layer !== 'support').length || 1;
-                      return top === 'Python'
-                        ? 'python'
-                        : /Script|HTML|CSS|Vue|Svelte|Astro/.test(top || '') && ui / code > 0.3
-                          ? 'html'
-                          : top === 'TypeScript'
-                            ? 'typescript'
-                            : 'javascript';
-                    })(),
-                    context: {
-                      inspired: A.name,
-                      gist: A.narr?.gist?.one,
-                      repoKey: A.key,
-                      repo: A.name,
-                    },
-                  })
-                }
-                onCompare={() => openCompare(A.key)}
-                onFork={() => api.ghFork(A.src.full)}
-                onOpenUrl={(u) => api.openExternal(u)}
-                onRetry={() =>
-                  A.facts
-                    ? narrate(A.key)
-                    : (setAtlases((m) => {
-                        const n = { ...m };
-                        delete n[A.key];
-                        atlasRef.current = n;
-                        return n;
-                      }),
-                      setTimeout(() => openAtlas(A.src), 0))
-                }
-              />
-            );
-          })()}
+        {view === 'atlas' && atlases[atlasKey] && (
+          <AtlasScreen
+            {...{
+              api,
+              asProject,
+              askLesson,
+              askRepo,
+              atlasKey,
+              atlasQ,
+              atlasRef,
+              atlases,
+              buildContext,
+              makePath,
+              narrate,
+              openAtlas,
+              openCompare,
+              pendingFile,
+              phone,
+              providers,
+              setAtlasQ,
+              setAtlases,
+              setPendingFile,
+              setViewRaw,
+              settings,
+              stopReading,
+            }}
+          />
+        )}
         {view === 'lesson' && current && (
-          <div
-            className={`lesson ${article && current.code && current.lang !== 'html' && !current.steps?.length ? 'article' : ''} ${phone ? `pane-${pane}` : ''}`}
-            style={{ '--story-w': `${storyW * 100}%` }}
-          >
-            <Story
-              pathInfo={pathOf(current)}
-              onPathStop={goStop}
-              onPathPage={() => setViewRaw('path')}
-              lesson={current}
-              streaming={streaming}
-              modelLabel={modelLabel(current.model || settings.model)}
-              onLink={setLinkRange}
-              onLinkClick={(r) => {
-                setLinkRange(r);
-                if (phone) setPane('code');
-              }}
-              onTerm={onTerm}
-              onTry={onTry}
-              onNext={(q) =>
-                current.mode === 'challenge'
-                  ? askLesson(/another/i.test(q) ? current.concepts?.[0] || 'arrays' : q, {
-                      mode: /another/i.test(q) ? 'challenge' : 'explain',
-                      lang: current.lang,
-                    })
-                  : askLesson(q, { prev: current, lang: current.lang })
-              }
-              onFollowUp={(q) => askLesson(q, { prev: current, lang: current.lang })}
-              onSecondOpinion={async (i) => {
-                const L = current;
-                const id = L.id;
-                const c = L.chat[i];
-                const altModel = altFor(c.by || settings.model);
-                if (!altModel) return;
-                const set = (second) =>
-                  setLessons((ls) =>
-                    ls.map((l) =>
-                      l.id === id
-                        ? { ...l, chat: l.chat.map((x, k) => (k === i ? { ...x, second } : x)) }
-                        : l,
-                    ),
-                  );
-                set({ who: modelLabel(altModel), loading: true });
-                const code = (L.work ?? L.code ?? '')
-                  .split('\n')
-                  .map((x, k) => `${k + 1}| ${x}`)
-                  .join('\n')
-                  .slice(0, 5000);
-                try {
-                  const j = parseJSONLoose(
-                    await api.quick(
-                      altModel,
-                      `You are tutoring a ${settings.level} learner inside a lesson titled "${L.title}".\nThe lesson's ${L.lang} code (with line numbers):\n${code}\n\nThe learner asks: ${c.q}\nAnother tutor already answered: "${c.a}"\nGive YOUR answer in at most 90 words: agree, add what they missed, or politely correct them. You may use **bold**, \`code\` and [[line|links]].\nReply JSON: {"answer":"..."}`,
-                    ),
-                  );
-                  set({ who: modelLabel(altModel), a: j?.answer || 'No answer this time.' });
-                } catch {
-                  set({
-                    who: modelLabel(altModel),
-                    a: 'That model didn’t answer. Is it signed in?',
-                  });
-                }
-              }}
-              onTeachBack={
-                noAI(providers)
-                  ? null
-                  : async (L, said) => {
-                      const id = L.id;
-                      const story = (L.story || [])
-                        .map((b) => b.md || b.text || '')
-                        .filter(Boolean)
-                        .join('\n')
-                        .slice(0, 3500);
-                      let j = null;
-                      const pz = L.puzzle ? puzzleById(L.puzzle) : null;
-                      if (pz) {
-                        try {
-                          j = parseJSONLoose(
-                            await api.quick(
-                              settings.model,
-                              `You are a warm, fair coding interviewer. The candidate (a ${settings.level}) is solving the puzzle "${pz.title}":\n${pz.md}\nThe best known approach runs in ${pz.target}.\nTheir current Python code:\n${(desk.current?.getCode?.() ?? L.work ?? L.code).slice(0, 4000)}\n\nThey talk you through their solution:\n"${said}"\n\nJudge the explanation the way a good interviewer would: is the idea right, do they know why it works, and do they state its time complexity correctly (for THEIR code)? Judge understanding, not grammar. Score 0–3 (3 = you'd hire on this answer).\nReply JSON: {"score":0-3,"got":["what they explained well, ≤ 14 words each, max 2"],"missing":["the most important gap, said plainly, ≤ 22 words, max 2; empty if score is 3"],"next":"the follow-up question an interviewer would ask next, ≤ 18 words"}`,
-                            ),
-                          );
-                        } catch (e) {
-                          j = { score: 0, got: [], missing: [cleanErr(e)], next: '' };
-                        }
-                      } else
-                        try {
-                          j = parseJSONLoose(
-                            await api.quick(
-                              settings.model,
-                              `A ${settings.level} learner just finished a lesson titled "${L.title}" (concepts: ${(L.concepts || []).join(', ')}).\nLESSON TEXT:\n${story}\n\nThey explained it back in their own words:\n"${said}"\n\nBe a warm, honest tutor. Judge understanding, not grammar or spelling. Score 0–3 (0 = wrong idea, 1 = partly, 2 = right but missing one key piece, 3 = solid).\nReply JSON: {"score":0-3,"got":["what they got right, ≤ 14 words each, max 2"],"missing":["the most important missing or wrong piece, said plainly, ≤ 22 words, max 2; empty if score is 3"],"next":"one short question that would push them further, ≤ 18 words"}`,
-                            ),
-                          );
-                        } catch (e) {
-                          j = { score: 0, got: [], missing: [cleanErr(e)], next: '' };
-                        }
-                      if (!j)
-                        j = {
-                          score: 0,
-                          got: [],
-                          missing: ['Couldn’t read the answer this time. Try again.'],
-                          next: '',
-                        };
-                      const teach = {
-                        said,
-                        score: Math.max(0, Math.min(3, +j.score || 0)),
-                        got: j.got || [],
-                        missing: j.missing || [],
-                        next: j.next || '',
-                      };
-                      setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, teach } : l)));
-                    }
-              }
-              onPractice={(L) =>
-                askLesson(
-                  `${L.title}: ${(L.concepts || []).join(', ') || L.kicker || ''}`.slice(0, 120),
-                  { mode: 'challenge', lang: L.lang === 'typescript' ? 'typescript' : L.lang },
-                )
-              }
-              onQuickAsk={async (q) => {
-                const L = current;
-                const id = L.id;
-                const n = (L.chat || []).length;
-                const put = (c) =>
-                  setLessons((ls) =>
-                    ls.map((l) =>
-                      l.id === id ? { ...l, chat: [...(l.chat || []).slice(0, n), c] } : l,
-                    ),
-                  );
-                if (noAI(providers)) {
-                  put({
-                    q,
-                    a: 'Bento needs an AI to answer questions. Connect one (bottom-left → **Connect an AI**): Claude, ChatGPT, Gemini or Copilot, on the plan you already have.',
-                  });
-                  return;
-                }
-                put({ q, loading: true });
-                const code = (L.work ?? L.code ?? '')
-                  .split('\n')
-                  .map((x, i) => `${i + 1}| ${x}`)
-                  .join('\n')
-                  .slice(0, 5000);
-                const hist = (L.chat || [])
-                  .slice(-3)
-                  .map((c) => `Q: ${c.q}\nA: ${c.a}`)
-                  .join('\n');
-                try {
-                  const j = parseJSONLoose(
-                    await api.quick(
-                      settings.model,
-                      `You are tutoring a ${settings.level} learner inside a lesson titled "${L.title}".\nThe lesson's ${L.lang} code (with line numbers):\n${code}\n${hist ? `\nEarlier in this chat:\n${hist}\n` : ''}\nThe learner asks: ${q}\nAnswer warmly and precisely in at most 110 words. You may use **bold**, \`code\` and line links like [[3-5|the loop]] that point at lines of the code above.\nAlso suggest 2 short questions they might ask next (at most 8 words each). If, and only if, the answer teaches something checkable, add one quick multiple-choice check about it (3 choices, one right); otherwise check is null.\nReply JSON: {"answer":"...","term":"a technical term you used that they may not know, or null","plain":"one-line definition of it, or null","next":["...","..."],"check":{"q":"...","choices":["...","...","..."],"answer":0,"why":"one sentence"}}`,
-                    ),
-                  );
-                  const ck =
-                    j?.check &&
-                    Array.isArray(j.check.choices) &&
-                    j.check.choices.length >= 2 &&
-                    Number.isInteger(j.check.answer) &&
-                    j.check.answer >= 0 &&
-                    j.check.answer < j.check.choices.length
-                      ? j.check
-                      : null;
-                  put(
-                    j?.answer
-                      ? {
-                          q,
-                          a: j.answer,
-                          term: j.term,
-                          plain: j.plain,
-                          by: settings.model,
-                          next: (Array.isArray(j.next) ? j.next : [])
-                            .filter((x) => typeof x === 'string' && x.trim())
-                            .slice(0, 2),
-                          check: ck,
-                        }
-                      : { q, a: 'I couldn’t answer that one. Try making it a full lesson.' },
-                  );
-                  if (j?.term && j?.plain)
-                    setProgress((p) => {
-                      const k = String(j.term).toLowerCase();
-                      if (p.words?.[k]) return p;
-                      return {
-                        ...p,
-                        words: {
-                          ...(p.words || {}),
-                          [k]: {
-                            term: j.term,
-                            plain: j.plain,
-                            from: id,
-                            title: L.title,
-                            at: Date.now(),
-                          },
-                        },
-                      };
-                    });
-                } catch {
-                  put({ q, a: 'The model didn’t answer. Check your connection and try again.' });
-                }
-              }}
-              onDepth={(dir) => {
-                const lv = ['kid', 'student', 'engineer'];
-                const base = current.level || settings.level;
-                const level =
-                  lv[Math.max(0, Math.min(2, lv.indexOf(base) + (dir === 'deeper' ? 1 : -1)))];
-                askLesson(
-                  dir === 'deeper'
-                    ? `Go deeper on "${current.title}": what's really happening under the hood, and the trade-offs a pro would think about`
-                    : `Explain "${current.title}" again, much simpler, with an everyday analogy and a smaller example`,
-                  { prev: current, lang: current.lang, level },
-                );
-              }}
-              onQuiz={(ok) => ok && award(current, 'quiz')}
-              onCheck={(ok) => {
-                if (ok) award(current, 'quiz');
-                setLessons((ls) =>
-                  ls.map((l) =>
-                    l.id === current.id
-                      ? { ...l, checks: [...(l.checks || []), { ok, at: Date.now() }].slice(-20) }
-                      : l,
-                  ),
-                );
-              }}
-              onConcept={(c) =>
-                askLesson(`Teach me ${c.replace(/-/g, ' ')}`, { lang: current.lang })
-              }
-              stepSel={stepSel}
-              onStepSelect={setStepSel}
-              onWild={providers?.gh ? findWild : null}
-              onOpenAt={openRepoAt}
-              onOpenRepo={openRepo}
-              altModel={altModel ? modelLabel(altModel) : null}
-              altFor={(c) => {
-                const m = altFor(c.by || settings.model);
-                return m ? modelLabel(m) : null;
-              }}
-              onRetryWith={() => {
-                const a = current;
-                setSettings({ model: altModel });
-                setLessons((ls) => ls.filter((l) => l.id !== a.id));
-                setTimeout(
-                  () =>
-                    askLesson(a.q, {
-                      model: altModel,
-                      mode: a.mode,
-                      lang: a.lang,
-                      context: a.context,
-                    }),
-                  0,
-                );
-              }}
-              article={article}
-              onArticle={() =>
-                setArticle((a) => {
-                  localStorage.setItem('bento.article', a ? '' : '1');
-                  return !a;
-                })
-              }
-              run={runs[current.id]}
-              onStop={() => {
-                const id = current.id;
-                cancels.current.get(id)?.();
-                cancels.current.delete(id);
-                setLessons((ls) =>
-                  ls.map((l) =>
-                    l.id === id
-                      ? {
-                          ...l,
-                          status: l.code || l.story.length ? 'done' : 'error',
-                          error:
-                            l.code || l.story.length ? null : 'Stopped before anything arrived.',
-                          thinking: null,
-                        }
-                      : l,
-                  ),
-                );
-              }}
-              onBackToRepo={showAtlas}
-              onOpenUrl={(u) => api.openExternal(u)}
-              knownWords={progress.words}
-              reopened={
-                reopened?.id === current.id
-                  ? () => {
-                      const r = reopened;
-                      setReopened(null);
-                      askLesson(r.q, { ...r.o, fresh: true });
-                    }
-                  : null
-              }
-              puzzleTop={
-                current.puzzle ? (
-                  <PuzzlePanel
-                    L={current}
-                    rec={progress.puzzles?.[current.puzzle]}
-                    getCode={() => desk.current?.getCode()}
-                    setPuzzleCode={setPuzzleCode}
-                    onResult={onPuzzleResult}
-                    pyReady={pyReady}
-                    onOpenUrl={(u) => api.openExternal(u)}
-                  />
-                ) : null
-              }
-              puzzleEnd={
-                current.puzzle ? (
-                  <PuzzleEnd
-                    L={current}
-                    rec={progress.puzzles?.[current.puzzle]}
-                    setPuzzleCode={setPuzzleCode}
-                    onIdea={readIdea}
-                    onOpenAt={openRepoAt}
-                    onOpenUrl={(u) => api.openExternal(u)}
-                    onSeen={(pid) =>
-                      setProgress((p) => ({
-                        ...p,
-                        puzzles: {
-                          ...(p.puzzles || {}),
-                          [pid]: { ...(p.puzzles?.[pid] || {}), seen: true },
-                        },
-                      }))
-                    }
-                  />
-                ) : null
-              }
-              onRetry={() => {
-                const a = current;
-                setLessons((ls) => ls.filter((l) => l.id !== a.id));
-                askLesson(a.q, { model: altModel, mode: a.mode, lang: a.lang, context: a.context });
-              }}
-            />
-            <div className="vdivider" onMouseDown={dragStory} />
-            <Desk
-              ref={desk}
-              phone={phone}
-              lesson={current}
-              onPatch={(p) => patch(current.id, p)}
-              quick={api.quick}
-              model={settings.model}
-              knownWords={knownWordSet}
-              onWord={(w) =>
-                setProgress((p) => {
-                  const k = w.term.toLowerCase();
-                  if (p.words?.[k]) return p;
-                  return {
-                    ...p,
-                    words: {
-                      ...(p.words || {}),
-                      [k]: { ...w, from: current.id, title: current.title, at: Date.now() },
-                    },
-                  };
-                })
-              }
-              linkRange={linkRange}
-              noteFlash={noteFlash}
-              stepSel={current.steps?.length ? stepSel : null}
-              pyReady={pyReady}
-              streaming={streaming}
-              onResult={(id, r, src) => {
-                setRuns((m) => ({ ...m, [id]: { r, src } }));
-                runWaits.current = runWaits.current.filter((w) =>
-                  w.id === id ? (w.res({ r, src }), false) : true,
-                );
-              }}
-              onMastery={(k) => award(current, k)}
-              onRemix={(code, lang) =>
-                newScratch(lang, {
-                  title: current.title,
-                  code,
-                  pseudo: code === current.code ? current.pseudo : [],
-                })
-              }
-            />
-          </div>
+          <LessonScreen
+            {...{
+              altFor,
+              altModel,
+              api,
+              article,
+              askLesson,
+              award,
+              cancels,
+              current,
+              desk,
+              dragStory,
+              findWild,
+              goStop,
+              knownWordSet,
+              linkRange,
+              newScratch,
+              noteFlash,
+              onPuzzleResult,
+              onTerm,
+              onTry,
+              openRepo,
+              openRepoAt,
+              pane,
+              patch,
+              pathOf,
+              phone,
+              progress,
+              providers,
+              pyReady,
+              readIdea,
+              reopened,
+              runWaits,
+              runs,
+              setArticle,
+              setLessons,
+              setLinkRange,
+              setPane,
+              setProgress,
+              setPuzzleCode,
+              setReopened,
+              setRuns,
+              setSettings,
+              setStepSel,
+              setViewRaw,
+              settings,
+              showAtlas,
+              stepSel,
+              storyW,
+              streaming,
+            }}
+          />
         )}
         {sel && !pop && (
           <button
@@ -3255,151 +2665,6 @@ export default function App() {
           }
         />
       )}
-    </div>
-  );
-}
-
-// ⌘/ : every shortcut on one card
-const KEYS = [
-  ['⌘K', 'Search everything, ask, or paste a repo'],
-  ['⌘N', 'New question'],
-  ['⌘[ / ⌘]', 'Back / forward'],
-  ['⌘F', 'Find on this page'],
-  ['⌘\\', 'Show or hide the sidebar'],
-  ['⌘,', 'Settings'],
-  ['⌘/', 'This list'],
-  ['⌘L', 'Jump to the ask box'],
-  ['⌘↵', 'Run the code'],
-  ['⌘⇧↵', 'Step through it'],
-  ['↵ / ⌘↵', 'In a lesson: quick answer / full lesson'],
-  ['⌥ drag', 'Scrub any number in the code'],
-  ['select text', 'Explain anything you highlight'],
-  ['Esc', 'Close panels'],
-  ['?', 'This sheet'],
-];
-// ⌘F: find words on the page. Every match is marked (the CSS highlight API: no change to the page itself), the current
-// one in orange and scrolled into view; Enter for the next, ⇧Enter for the one before, Esc to close.
-function findRanges(q) {
-  const out = [];
-  const needle = q.toLowerCase();
-  const root = document.querySelector('.app') || document.body;
-  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-    acceptNode: (n) =>
-      n.parentElement?.closest('.findbar, script, style, [aria-hidden="true"]') ||
-      !n.parentElement?.getClientRects().length
-        ? NodeFilter.FILTER_REJECT
-        : NodeFilter.FILTER_ACCEPT,
-  });
-  for (let n = w.nextNode(); n && out.length < 2000; n = w.nextNode()) {
-    const t = n.nodeValue.toLowerCase();
-    let i = t.indexOf(needle);
-    while (i >= 0 && out.length < 2000) {
-      const r = document.createRange();
-      r.setStart(n, i);
-      r.setEnd(n, i + needle.length);
-      out.push(r);
-      i = t.indexOf(needle, i + needle.length);
-    }
-  }
-  return out;
-}
-function FindBar({ onClose }) {
-  const [q, setQ] = useState('');
-  const [at, setAt] = useState(0);
-  const [hits, setHits] = useState([]);
-  const box = useRef(null);
-  const HL = typeof CSS !== 'undefined' && CSS.highlights && typeof Highlight !== 'undefined';
-  useEffect(() => {
-    box.current?.focus();
-    return () => {
-      if (HL) {
-        CSS.highlights.delete('bento-find');
-        CSS.highlights.delete('bento-find-now');
-      }
-    };
-  }, []);
-  useEffect(() => {
-    const t = setTimeout(() => {
-      const r = q.trim().length >= 2 || (q.trim() && /\S/.test(q)) ? findRanges(q.trim()) : [];
-      setHits(r);
-      setAt(0);
-    }, 120);
-    return () => clearTimeout(t);
-  }, [q]);
-  useEffect(() => {
-    if (!HL) return;
-    CSS.highlights.set('bento-find', new Highlight(...hits));
-    const cur = hits[at];
-    if (cur) {
-      CSS.highlights.set('bento-find-now', new Highlight(cur));
-      cur.startContainer.parentElement?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    } else CSS.highlights.delete('bento-find-now');
-  }, [hits, at]);
-  const step = (d) => {
-    if (hits.length) setAt((x) => (x + d + hits.length) % hits.length);
-  };
-  return (
-    <div className="findbar" role="search">
-      <input
-        ref={box}
-        value={q}
-        placeholder="Find on this page"
-        aria-label="Find on this page"
-        onChange={(e) => setQ(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            step(e.shiftKey ? -1 : 1);
-          }
-          if (e.key === 'Escape') {
-            e.preventDefault();
-            e.stopPropagation();
-            onClose();
-          }
-        }}
-      />
-      <span className="findbar-n" aria-live="polite">
-        {q.trim() ? (hits.length ? `${at + 1} of ${hits.length}` : 'No matches') : ''}
-      </span>
-      <button className="btn tiny ghost" aria-label="Previous match" onClick={() => step(-1)}>
-        ↑
-      </button>
-      <button className="btn tiny ghost" aria-label="Next match" onClick={() => step(1)}>
-        ↓
-      </button>
-      <button className="btn tiny ghost" aria-label="Close find" onClick={onClose}>
-        ✕
-      </button>
-    </div>
-  );
-}
-function KeySheet({ onClose }) {
-  const box = useDialog(onClose);
-  return (
-    <div className="pal-veil" onMouseDown={onClose}>
-      <div
-        className="keys"
-        ref={box}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="keys-title"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <h2 id="keys-title">Keyboard</h2>
-        <dl>
-          {KEYS.map(([k, d]) => (
-            <div key={k} className="key-row">
-              <dt>
-                <kbd>{keys(k)}</kbd>
-              </dt>
-              <dd>{d}</dd>
-            </div>
-          ))}
-        </dl>
-        <button className="btn ghost" onClick={onClose}>
-          Close
-        </button>
-      </div>
     </div>
   );
 }

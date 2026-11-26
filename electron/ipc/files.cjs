@@ -4,12 +4,12 @@ const path = require('node:path');
 const fsp = require('node:fs').promises;
 const { app, ipcMain, dialog, shell } = require('electron');
 const { execFile } = require('node:child_process');
+const { PLAY_SHIM } = require('../play-shim.cjs');
 
 /** @param {Record<string, any>} ctx what main.cjs shares with this module (see "const ctx" there) */
 module.exports = function registerFiles(ctx) {
   const { MAC, WIN, openOutside, optStr, refuse, sizeOf, str, work } = ctx;
   const PLAY = new Map();
-  const PLAY_SHIM = `<script>(function(){var send=function(k,a){try{parent.postMessage({bentoPlay:1,k:k,s:Array.prototype.map.call(a,function(x){try{return typeof x==='string'?x:JSON.stringify(x)}catch(e){return String(x)}}).join(' ')},'*')}catch(e){}};['log','info','warn','error'].forEach(function(k){var o=console[k];console[k]=function(){send(k,arguments);o.apply(console,arguments)}});window.addEventListener('error',function(e){send('error',[e.message+(e.lineno?' (line '+e.lineno+')':'')])});var last=null;document.addEventListener('mouseover',function(e){var el=e.target.closest&&e.target.closest('[data-bl]');if(el===last)return;if(last)last.style.outline=last.__o||'';last=el;if(el){el.__o=el.style.outline;el.style.outline='2px solid rgba(124,92,255,.7)';try{parent.postMessage({bentoPlay:1,k:'hover',line:+el.getAttribute('data-bl')},'*')}catch(x){}}},true);document.addEventListener('mouseleave',function(){if(last){last.style.outline=last.__o||'';last=null}try{parent.postMessage({bentoPlay:1,k:'hover',line:0},'*')}catch(x){}});})();<\/script>`;
   ipcMain.handle('play:put', (_e, html, key) => {
     html = str(html, 2_000_000);
     key = typeof key === 'string' ? key : '';

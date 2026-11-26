@@ -1,7 +1,7 @@
 import { IDEAS } from '../ideas.js';
 import { haptic } from './touch.js';
 import PathBar from './PathBar.jsx';
-import { t, tx } from '../i18n.js';
+import { t } from '../i18n.js';
 import { lessonHtml } from '../exportHtml.js';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import BigPicture from './BigPicture.jsx';
@@ -314,11 +314,10 @@ export default function Story(p) {
               .map((b, i) => (
                 <button
                   key={i}
-                  onClick={() =>
-                    scroller.current
-                      ?.querySelectorAll('.story-h')
-                      [i]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                  }
+                  onClick={() => {
+                    const headings = scroller.current?.querySelectorAll('.story-h');
+                    headings?.[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
                 >
                   <i>{i + 1}</i>
                   {b.text}

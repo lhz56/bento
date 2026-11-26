@@ -19,7 +19,7 @@ export const save = (k, v) => {
     localStorage.setItem('bento.savedAt', String(t));
   } catch {}
   try {
-    const b = window.bento || mockBridge;
+    const b = /** @type {BentoBridge} */ (window.bento || mockBridge);
     b.storeSet?.(k, v);
     b.storeSet?.('bento.savedAt', t);
   } catch {}
@@ -34,7 +34,7 @@ export const saveLessons = (list) => {
     localStorage.setItem('bento.savedAt', String(t));
   } catch {}
   try {
-    const b = window.bento || mockBridge;
+    const b = /** @type {BentoBridge} */ (window.bento || mockBridge);
     b.storeSet?.('bento.lessons', list);
     b.storeSet?.('bento.savedAt', t);
   } catch {}

@@ -142,6 +142,10 @@ export default function useLibrary({
       finish('narr-error', 'You stopped the reading. Press retry to continue.', true);
     };
   };
+  /**
+   * @param {any} src what to open: { kind: 'github', full } or { kind: 'local', root, name }
+   * @param {{ quiet?: boolean, big?: boolean }} [opts]
+   */
   const openAtlas = async (src, { quiet, big } = {}) => {
     const key = src.kind === 'github' ? src.full : `local:${src.root}`;
     const name = src.kind === 'github' ? src.full : src.name;

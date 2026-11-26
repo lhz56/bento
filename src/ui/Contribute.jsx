@@ -40,7 +40,7 @@ export default function Contribute({ full, onPlan, onOpen, onOpenUrl, pathIdx })
       }
     }
   };
-  const [owner, name] = full.split('/');
+  const [, name] = full.split('/');
   const cmds = sel
     ? [
         ['Make your own copy on GitHub (a fork)', `gh repo fork ${full} --clone`],

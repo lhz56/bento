@@ -2,7 +2,7 @@
 // Capacities are round numbers on purpose; the shape of the problem is the lesson, not the exact figures.
 import { useMemo, useState } from 'react';
 import { ideaById } from '../ideas.js';
-import { t, tx } from '../i18n.js';
+import { t } from '../i18n.js';
 import { pressable } from './a11y.js';
 
 const PARTS = {

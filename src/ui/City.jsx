@@ -1,4 +1,4 @@
-import { TOUCH, tap } from '../platform.js';
+import { TOUCH } from '../platform.js';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { BY_ID } from '../atlas/catalog.js';
 import { ICONS } from '../atlas/icons.js';

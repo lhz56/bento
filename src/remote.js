@@ -416,7 +416,9 @@ export function createRemote() {
     if (!r.ok) return null;
     const { code } = await r.json();
     history.replaceState(history.state, '', `${location.pathname}${location.search}#pair=${code}`);
-    const link = document.querySelector('link[rel="manifest"]');
+    const link = /** @type {HTMLLinkElement | null} */ (
+      document.querySelector('link[rel="manifest"]')
+    );
     if (link) link.href = `/manifest.webmanifest?pair=${code}`;
     return code;
   }

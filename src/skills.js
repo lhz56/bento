@@ -10,6 +10,8 @@ export const REGIONS = [
 ];
 
 // [id, region, name, aliases (matched as whole words in any concept, word or tag), plain words]
+/** Each skill: [id, region, name, words that count as this skill, what it is]
+ * @type {Array<[string, string, string, string[], string]>} */
 export const SKILLS = [
   [
     'program',
@@ -418,6 +420,7 @@ const norm = (s) =>
     .toLowerCase()
     .replace(/[^a-z0-9+]+/g, ' ')
     .trim()} `;
+/** @type {Array<[string, string[]]>} */
 const MATCH = SKILLS.map(([id, , , aliases]) => [id, aliases.map((a) => norm(a))]);
 // which skills a free-form concept ("hash maps", "Big-O", "binary search trees") belongs to
 export function skillsFor(text) {
@@ -450,6 +453,10 @@ const STATION_SKILL = {
 //   practised: you ran or stepped through its code, or did a playground mission
 //   proven: a quiz or quick check you got right, a puzzle star, a solved challenge, a review you passed
 // and its level follows from that: 1 seen, 2 getting it, 3 know it. Only 2 and 3 light a star.
+/**
+ * How well you know each skill, from the evidence: lessons, puzzles, path stops, ideas read, checks.
+ * @param {{ progress?: Record<string, any>, lessons?: any[], puzzles?: any[], stops?: any[], ideas?: any[], readIds?: Record<string, any> }} input
+ */
 export function masteryOf({
   progress = {},
   lessons = [],
@@ -458,6 +465,8 @@ export function masteryOf({
   ideas = [],
   readIds = {},
 }) {
+  /** @typedef {{ seen: number, asked: number, practised: number, proven: number, last: number, from: any[], level?: number, pts?: number }} Mastery */
+  /** @type {Record<string, Mastery>} */
   const m = Object.fromEntries(
     SKILLS.map(([id]) => [id, { seen: 0, asked: 0, practised: 0, proven: 0, last: 0, from: [] }]),
   );
