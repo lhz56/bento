@@ -1,0 +1,31 @@
+name: checks
+# Fast checks on every push and pull request: lint, formatting, types, and the logic tests (including every puzzle,
+# run in real Python). The full app suites (ci.yml) run on the Mac before each commit, and on all three systems
+# for a release tag.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - name: Lint (ESLint)
+        run: npm run lint
+      - name: Formatting (Prettier)
+        run: npm run format:check
+      - name: Types (TypeScript over the JavaScript)
+        run: npm run typecheck
+      - name: Logic tests
+        run: npm test

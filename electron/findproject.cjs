@@ -202,6 +202,10 @@ function localClones(names, fulls) {
   return out.sort((a, b) => Number(b.byRemote) - Number(a.byRemote));
 }
 
+/**
+ * @param {string[]} names
+ * @param {{ searchGitHub?: Function, repoMeta?: Function, localClones?: Function, installedApps?: Function }} [sources]
+ */
 async function find(
   names,
   { searchGitHub, repoMeta, localClones: findClones, installedApps: findApps } = {},

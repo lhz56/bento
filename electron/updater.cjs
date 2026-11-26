@@ -7,6 +7,7 @@ const { execFile } = require('node:child_process');
 
 const HOURS = 4;
 let state = { status: 'off', version: null, reason: null };
+/** @type {(state: object) => void} */
 let send = () => {};
 let updater = null;
 let auto = true;

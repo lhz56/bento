@@ -63,7 +63,8 @@ import {
 import { useTouch, STANDALONE } from './ui/touch.js';
 import { mod, keys, TOUCH } from './platform.js';
 
-const api = window.bento || mockBridge;
+/** the main process (electron/preload.cjs), the Mac on a phone, or the stand-in for the browser version */
+const api = /** @type {BentoBridge} */ (window.bento || mockBridge);
 
 // lessons that were mid-stream when the app closed can't resume: keep what arrived, or mark them interrupted
 // days in a row (ending today or yesterday) with at least one finished lesson

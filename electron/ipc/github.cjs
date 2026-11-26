@@ -89,7 +89,7 @@ module.exports = function registerGithub(ctx) {
     const [c, a, o] = await launch('gh', args);
     return new Promise((res, rej) =>
       execFile(c, a, { env: ENV, maxBuffer: 20 * 1024 * 1024, ...o }, (e, out, se) =>
-        e ? rej(new Error((se || e.message).trim())) : res(out),
+        e ? rej(new Error(String(se || e.message).trim())) : res(out),
       ),
     );
   }

@@ -164,6 +164,7 @@ module.exports = function registerDevices(ctx) {
     }
     if (parent?.isMinimized()) parent.restore();
     const what = a.kind === 'tablet' ? 'iPad' : 'iPhone';
+    /** @type {Electron.MessageBoxOptions & { signal: AbortSignal }} */
     const opts = {
       type: 'question',
       message: `Allow “${a.name}” to use Bento on this Mac?`,

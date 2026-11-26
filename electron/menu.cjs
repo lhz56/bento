@@ -14,6 +14,7 @@ function build({ dev, send, checkForUpdates, logsDir }) {
     const body = `What happened:\n\n\nWhat you expected:\n\n\n---\nBento ${app.getVersion()} · ${mac ? 'macOS' : process.platform} ${os.release()} · ${process.arch}`;
     return `${REPO}/issues/new?body=${encodeURIComponent(body)}`;
   };
+  /** @type {any[]} the menu bar (Electron.MenuItemConstructorOptions) */
   const template = [
     ...(mac
       ? [

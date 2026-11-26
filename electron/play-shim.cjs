@@ -39,7 +39,9 @@ function playPageReporter() {
     'mouseover',
     function (e) {
       var target = /** @type {Element} */ (e.target);
-      var el = /** @type {HTMLElement & { __o?: string }} */ (target.closest && target.closest('[data-bl]'));
+      var el = /** @type {HTMLElement & { __o?: string }} */ (
+        target.closest && target.closest('[data-bl]')
+      );
       if (el === last) return;
       if (last) last.style.outline = last.__o || '';
       last = el;

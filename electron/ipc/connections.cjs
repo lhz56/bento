@@ -160,6 +160,7 @@ module.exports = function registerConnections(ctx) {
     ];
     const at = Object.fromEntries(await Promise.all(bins.map(async (b) => [b, await which(b)])));
     // which installers this Mac already has, so the welcome only suggests commands that will work here
+    /** @type {Record<string, any>} what is installed and signed in, per AI and tool */
     const r = {
       tools: { npm: !!at.npm, brew: !!at.brew, winget: !!at.winget },
       gh: { installed: !!at.gh },
@@ -169,7 +170,7 @@ module.exports = function registerConnections(ctx) {
         ...P.IDS.map(async (id) => {
           const A = P.ADAPTERS[id],
             bin = P.BY[id].bin,
-            x = (r[id] = { installed: !!at[bin] });
+            x = (r[id] = /** @type {Record<string, any>} */ ({ installed: !!at[bin] }));
           if (!at[bin]) return;
           x.brew = /\/(Cellar|Caskroom)\//.test(await fsp.realpath(at[bin]).catch(() => at[bin])); // updates go the way it was installed
           const [v, h] = await Promise.all([
@@ -238,7 +239,8 @@ module.exports = function registerConnections(ctx) {
           : p.signIn;
     if (!cmd) return false;
     if (WIN) {
-      let c, a;
+      /** @type {string} */ let c;
+      /** @type {string[]} */ let a;
       try {
         [c, a] = wincmd.powershellWindow(cmd);
       } catch {

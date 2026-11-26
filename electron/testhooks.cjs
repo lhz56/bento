@@ -4,6 +4,9 @@
 //
 // And a release that's asked for the pretend AIs (a test pointed at the wrong build) hides every AI instead: it must
 // never quietly fall back to your real ones and spend your plan on a test.
+/**
+ * @param {{ packaged: boolean, testBuild?: boolean, offscreen: boolean, env?: Record<string, string | undefined> }} o
+ */
 function testHooks({ packaged, testBuild, offscreen, env = {} }) {
   const allowed = (!packaged || testBuild === true) && !!offscreen;
   const fakeAI = allowed && env.BENTO_FAKE_AI ? env.BENTO_FAKE_AI : null;

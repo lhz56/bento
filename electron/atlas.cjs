@@ -970,6 +970,7 @@ async function history({ full, base, env, onProgress }) {
   );
   const files = new Set();
   const people = new Set();
+  /** @type {Array<{ n?: number, at: number, author: any, msg: string, add: number, del: number, total: number, people: number, snap: any, files?: any }>} */
   const commits = [];
   for (const chunk of log.split('\x1e')) {
     if (!chunk.trim()) continue;

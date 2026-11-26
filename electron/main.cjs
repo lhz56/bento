@@ -30,7 +30,8 @@ const { writeSafe, writeSafeAsync } = require('./safewrite.cjs'); // a new copy,
 const DEV = !!process.env.BENTO_DEV && !app.isPackaged;
 // Test builds (`npm run app`, CI) are packaged with "bentoTestBuild": true; releases never are (the release check
 // refuses one). Only they, or a copy run from source, listen to the switches that swap in pretend AIs or fake answers.
-const TEST_BUILD = !app.isPackaged || require('../package.json').bentoTestBuild === true;
+const TEST_BUILD =
+  !app.isPackaged || /** @type {any} */ (require('../package.json')).bentoTestBuild === true;
 // Bento's own page: app://bento in the app, the Vite server in development. Nothing else may use Bento's powers.
 const isAppUrl = (url) => {
   try {
@@ -119,6 +120,7 @@ if (process.argv.includes('--mcp')) {
     }
   };
   agent.bridge({ sock, version: app.getVersion(), launch, onEnd: () => app.exit(0) });
+  // @ts-ignore: CommonJS allows a return at the top level, and the rest of this file is the app
   return;
 }
 const DIST = path.join(__dirname, '..', 'dist');
@@ -578,8 +580,10 @@ app.on('web-contents-created', (_e, wc) => {
   // right-click: the usual Copy, Paste and friends (Electron has no menu of its own), Look Up on a Mac, and a link's address
   wc.on('context-menu', (_e, p) => {
     const { Menu, clipboard } = require('electron');
+    /** @type {Partial<Electron.EditFlags>} */
     const f = p.editFlags || {};
     const sel = String(p.selectionText || '').trim();
+    /** @type {any[]} the menu's items (Electron.MenuItemConstructorOptions) */
     const items = [];
     if (MAC && sel && !p.isEditable)
       items.push(

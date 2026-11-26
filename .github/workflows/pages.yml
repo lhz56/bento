@@ -5,7 +5,17 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['site/**', 'src/**', 'public/**', 'index.html', 'vite.config.js', 'package.json', 'package-lock.json', '.github/workflows/pages.yml']
+    paths:
+      [
+        'site/**',
+        'src/**',
+        'public/**',
+        'index.html',
+        'vite.config.js',
+        'package.json',
+        'package-lock.json',
+        '.github/workflows/pages.yml',
+      ]
 
 permissions:
   contents: read

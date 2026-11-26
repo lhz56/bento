@@ -53,20 +53,28 @@ function hostAllowed(host) {
   return !(net.isIP(h) && isPrivate(h));
 }
 // runs when the socket connects: refuse if the name resolves to a private address
+/**
+ * @param {string} hostname
+ * @param {any} opts
+ * @param {(err: Error | null, address?: any, family?: number) => void} cb
+ */
 function guardedLookup(hostname, opts, cb) {
-  dns.lookup(hostname, { ...opts, all: true }, (err, addrs) => {
+  dns.lookup(hostname, { ...opts, all: true }, (err, /** @type {any[]} */ addrs) => {
     if (err) return cb(err);
     const bad = addrs.find((a) => isPrivate(a.address));
     if (bad) {
-      const e = new Error(BLOCKED(hostname));
-      e.code = 'EBLOCKED';
-      return cb(e);
+      return cb(Object.assign(new Error(BLOCKED(hostname)), { code: 'EBLOCKED' }));
     }
     if (opts && opts.all) return cb(null, addrs);
     cb(null, addrs[0].address, addrs[0].family);
   });
 }
 
+/**
+ * One request, no redirects.
+ * @param {string} url
+ * @param {{ method?: string, headers?: Record<string, string>, body?: any }} [opts]
+ */
 function once(url, { method = 'GET', headers = {}, body } = {}) {
   return new Promise((resolve, reject) => {
     let u;
@@ -111,7 +119,7 @@ function once(url, { method = 'GET', headers = {}, body } = {}) {
     req.on('timeout', () =>
       req.destroy(new Error(`${u.hostname} took longer than 15 seconds to answer.`)),
     );
-    req.on('error', (e) =>
+    req.on('error', (/** @type {NodeJS.ErrnoException} */ e) =>
       reject(
         e.code === 'EBLOCKED'
           ? e
@@ -126,6 +134,11 @@ function once(url, { method = 'GET', headers = {}, body } = {}) {
 }
 
 // every hop goes through `request` (the guarded one), so a public site can't redirect you into your own network
+/**
+ * A request that follows redirects, checking every hop.
+ * @param {string} url
+ * @param {{ method?: string, headers?: Record<string, string>, body?: any }} [opts]
+ */
 async function follow(url, opts = {}, request = once) {
   let cur = url;
   let o = { ...opts };

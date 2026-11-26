@@ -40,7 +40,7 @@ module.exports = function registerStore(ctx) {
     });
   ipcMain.handle('store:get', async (e) => {
     await storeReady;
-    return e?.remote ? storeCache : bootStore;
+    return /** @type {any} */ (e)?.remote ? storeCache : bootStore; // remote: a paired phone or iPad (host.cjs)
   });
   // Back up everything to one file (to move to another Mac, or just to be safe), and bring it back
   ipcMain.handle('backup:save', async () => {
@@ -92,7 +92,7 @@ module.exports = function registerStore(ctx) {
     await storeReady;
     // your lessons, progress, settings and projects are the same on every device: a change here is passed on to the others
     const before =
-      SHARED.test(key) && (ctx.host?.isOn() || _e?.sender?.remote)
+      SHARED.test(key) && (ctx.host?.isOn() || /** @type {any} */ (_e?.sender)?.remote)
         ? JSON.stringify(storeCache[key] ?? null)
         : null;
     if (value === undefined) delete storeCache[key];

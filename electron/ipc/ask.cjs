@@ -79,6 +79,7 @@ module.exports = function registerAsk(ctx) {
   // a short human label for a quick request, from what it asks
   function labelOf(prompt) {
     const p = String(prompt).slice(0, 400);
+    /** @type {Array<[RegExp, string]>} */
     const L = [
       [/Translate these short labels/, 'translating the menus'],
       [/checking a beginner coding lesson/, 'checking a lesson'],

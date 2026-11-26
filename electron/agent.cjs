@@ -234,6 +234,10 @@ function checkArgs(name, a) {
 
 // ---------------------------------------------------------------- the open Bento: listen for agents
 // call(tool, args, client) → Promise<text>. One JSON message per line each way: { id, tool, args, client } → { id, text } | { id, error }.
+/**
+ * Listen for agent tool calls on the socket.
+ * @param {{ sock: string, call: (tool: string, args: any, client: string) => Promise<string>, log?: (...a: any[]) => void }} o
+ */
 function serve({ sock, call, log = () => {} }) {
   if (process.platform !== 'win32') {
     try {
@@ -304,6 +308,10 @@ function serve({ sock, call, log = () => {} }) {
 // Speaks MCP on standard input and output (one JSON-RPC message per line) and passes tool calls to the open Bento.
 // Nothing else may ever be written to standard output: it is the agent's channel.
 const PROTOCOLS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
+/**
+ * `Bento --mcp`: speak MCP on stdio to the agent, and pass its tool calls to the open Bento over the socket.
+ * @param {{ sock: string, version?: string, launch?: () => boolean, input?: NodeJS.ReadableStream, output?: NodeJS.WritableStream, onEnd?: () => void }} o
+ */
 function bridge({
   sock,
   version = '0',

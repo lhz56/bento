@@ -7,6 +7,10 @@ const forPlatform = (c, platform = process.platform) =>
 // a PowerShell string in single quotes: a quote inside is doubled, nothing else is special
 const psQuote = (s) => `'${String(s).replace(/'/g, "''")}'`;
 // powershell.exe -Command "Start-Process powershell.exe -ArgumentList '-NoExit -Command <cmd>'": a new window that stays open
+/**
+ * @param {string} cmd
+ * @returns {[string, string[]]} the program and its arguments
+ */
 function powershellWindow(cmd) {
   if (typeof cmd !== 'string' || !cmd.trim() || /[\r\n]/.test(cmd))
     throw new Error('No command to run.');
