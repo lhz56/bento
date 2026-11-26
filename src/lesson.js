@@ -21,6 +21,16 @@ export const LANG_NAME = {
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
+// A chat entry is written twice: once when asked (loading), once when answered. Each has its own id, so an answer
+// that arrives late replaces only its own question, never one asked after it.
+export const newChatId = () =>
+  `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+/** @param {Array<{ id?: string }>} chat @param {{ id: string }} entry */
+export const putChatEntry = (chat = [], entry) =>
+  chat.some((x) => x.id === entry.id)
+    ? chat.map((x) => (x.id === entry.id ? entry : x))
+    : [...chat, entry];
+
 export function emptyLesson(question, opts = {}) {
   return {
     id: uid(),

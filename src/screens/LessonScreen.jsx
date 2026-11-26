@@ -1,5 +1,5 @@
 import { noAI } from '../ai.js';
-import { parseJSONLoose } from '../lesson.js';
+import { newChatId, parseJSONLoose, putChatEntry } from '../lesson.js';
 import { puzzleById } from '../puzzles.js';
 import { cleanErr } from '../store.js';
 import Desk from '../ui/Desk.jsx';
@@ -184,11 +184,11 @@ export default function LessonScreen({
         onQuickAsk={async (question) => {
           const lesson = current;
           const id = lesson.id;
-          const before = (lesson.chat || []).length;
-          const put = (c) =>
+          const entryId = newChatId();
+          const put = (entry) =>
             setLessons((ls) =>
               ls.map((l) =>
-                l.id === id ? { ...l, chat: [...(l.chat || []).slice(0, before), c] } : l,
+                l.id === id ? { ...l, chat: putChatEntry(l.chat, { ...entry, id: entryId }) } : l,
               ),
             );
           if (noAI(providers)) {

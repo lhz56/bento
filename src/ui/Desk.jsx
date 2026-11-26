@@ -398,6 +398,7 @@ const Desk = forwardRef(function Desk(props, ref) {
     setTab('steps');
     setTracing(true);
     setPlaying(false);
+    const mine = lidRef.current;
     const bundle = projectBundle(codeRef.current);
     const result = await runCode(lang, 'trace', bundle.main, {
       answers: [...answersRef.current],
@@ -405,6 +406,7 @@ const Desk = forwardRef(function Desk(props, ref) {
       files: bundle.files,
     });
     setTracing(false);
+    if (lidRef.current !== mine) return; // the learner moved to another lesson meanwhile
     setTrace(result);
     setStepIdx(0);
     if (result.steps?.length) setPlaying(true);
@@ -415,6 +417,7 @@ const Desk = forwardRef(function Desk(props, ref) {
     async (cfg) => {
       setTab('growth');
       setMeasuring(true);
+      const mine = lidRef.current;
       const calls = cfg.calls || [
         { label: (cfg.call || '').replace(/\(.*$/, '') || 'your function', call: cfg.call },
       ];
@@ -431,8 +434,9 @@ const Desk = forwardRef(function Desk(props, ref) {
           error: result.error?.msg,
         });
       }
-      setGrowth(out);
       setMeasuring(false);
+      if (lidRef.current !== mine) return;
+      setGrowth(out);
     },
     [lang],
   );
@@ -449,11 +453,13 @@ const Desk = forwardRef(function Desk(props, ref) {
     if (!lesson.tests) return;
     setTab('tests');
     setTesting(true);
+    const mine = lidRef.current;
     const result = await runCode(lang, 'tests', codeRef.current, {
       fn: lesson.tests.fn,
       cases: lesson.tests.cases,
     });
     setTesting(false);
+    if (lidRef.current !== mine) return; // a pass must not count for the lesson you moved to
     if (result.error) {
       haptic('warn');
       setResult(result);

@@ -18,5 +18,4 @@ export default function useScriptHooks({ askLesson, openLesson, readIdea }) {
       });
     };
   });
-  return {};
 }

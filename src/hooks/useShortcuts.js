@@ -131,5 +131,4 @@ export default function useShortcuts({
       off?.();
     };
   }, []);
-  return {};
 }

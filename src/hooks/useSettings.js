@@ -46,6 +46,8 @@ export default function useSettings() {
       Kiswahili: 'sw',
     };
     document.documentElement.lang = CODES[settings.voice] || 'en'; // read-aloud picks a matching voice
+  }, [settings.voice, settings.autoFallback]);
+  useEffect(() => {
     // menus and buttons in the same language: translated once by your own AI, then kept on this Mac
     setUILanguage(settings.voice || 'English', async (strings, language) =>
       parseJSONLoose(
@@ -55,6 +57,7 @@ export default function useSettings() {
         ),
       ),
     );
-  }, [settings.voice, settings.autoFallback]);
+    // the same language again only swaps in the translator for the model you have now: nothing is re-translated
+  }, [settings.voice, settings.model]);
   return { setSettings, setSettingsRaw, settings };
 }

@@ -1743,4 +1743,25 @@ if (process.platform !== 'win32') {
   );
 }
 
+// two quick questions in a lesson, answered out of order: each answer replaces only its own question
+{
+  const { putChatEntry, newChatId } = await import('../src/lesson.js');
+  let chat = [{ id: 'old', q: 'earlier', a: 'kept' }];
+  const ask = (q) => {
+    const id = newChatId();
+    chat = putChatEntry(chat, { id, q, loading: true });
+    return (a) => (chat = putChatEntry(chat, { id, q, a }));
+  };
+  const answerFirst = ask('what is a loop?');
+  const answerSecond = ask('and a list?');
+  answerSecond('a list holds things in order');
+  answerFirst('a loop repeats');
+  check(
+    chat.map((x) => `${x.q}=${x.a ?? '…'}`).join(' | ') ===
+      'earlier=kept | what is a loop?=a loop repeats | and a list?=a list holds things in order',
+    'quick questions answered out of order keep both answers, in the order they were asked',
+    JSON.stringify(chat),
+  );
+}
+
 process.exit(fail ? 1 : 0);
