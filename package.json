@@ -179,6 +179,8 @@
     "@codemirror/view": "^6.43.15",
     "@eslint/js": "^9.39.5",
     "@lezer/highlight": "^1.2.5",
+    "@types/react": "^19.3.3",
+    "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.2.1",
     "acorn": "^8.19.0",
     "acorn-walk": "^8.3.5",

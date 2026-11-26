@@ -126,7 +126,7 @@ export function enter(main, dir) {
   ['transform', 'transition', 'boxShadow', 'visibility', 'animation'].forEach((p) => {
     main.style[p] = '';
   });
-  const bar = document.querySelector('.pbar-mid');
+  const bar = /** @type {HTMLElement | null} */ (document.querySelector('.pbar-mid'));
   if (bar) {
     bar.style.opacity = '';
     bar.style.transition = '';

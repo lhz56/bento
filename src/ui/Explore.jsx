@@ -10,6 +10,7 @@ const monthAgo = () => {
   const d = new Date(Date.now() - 30 * 864e5);
   return d.toISOString().slice(0, 10);
 };
+/** @type {Array<[name: string, query: string | (() => string), icon: string, language?: string, extra?: object]>} */
 const SHELVES = [
   ['New this month', () => `created:>${monthAgo()}`, '🆕', null, { stars: '>100' }],
   ['Tiny games', 'topic:game', '🎮', 'javascript', { stars: '>50' }],

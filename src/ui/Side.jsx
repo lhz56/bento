@@ -5,7 +5,7 @@ const bucket = (t) => {
   if (!t) return 'Earlier';
   const d = new Date(t),
     n = new Date();
-  const days = Math.floor((new Date(n.toDateString()) - new Date(d.toDateString())) / 864e5);
+  const days = Math.floor((+new Date(n.toDateString()) - +new Date(d.toDateString())) / 864e5);
   return days <= 0 ? 'Today' : days === 1 ? 'Yesterday' : days < 7 ? 'This week' : 'Earlier';
 };
 import Brand from './Brand.jsx';
@@ -286,7 +286,7 @@ function MacCard({ model, onSettings }) {
 }
 
 export function Sidebar({
-  progress = {},
+  progress = /** @type {{ path?: Record<string, string> }} */ ({}),
   onClose,
   closed,
   view,
@@ -600,6 +600,7 @@ function UpdatePill() {
   );
 }
 
+/** @param {{ l: any, path?: boolean }} props */
 function LessonIcon({ l, path }) {
   const idea = l.mode === 'idea' && ideaById[l.context?.ideaId];
   if (idea)

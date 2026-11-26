@@ -556,7 +556,8 @@ export const ALL_STOPS = TRACKS.flatMap((x) => /** @type {any[]} */ (x.stops));
 export const stopSkills = (s, skillsFor) => [
   ...new Set([...(s.sk || []), ...(s.words || []).flatMap(skillsFor)]),
 ];
-// a built-in or custom path, in one shape
+// a built-in or custom path, in one shape (own: one you designed; pack: from a content pack)
+/** @returns {Array<{ k: string, icon: string, title: string, d: string, end?: string, stops: any[], own?: boolean, pack?: any }>} */
 export const tracksWith = (custom = []) => [
   ...TRACKS,
   ...custom.map((c) => ({

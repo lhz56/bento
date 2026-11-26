@@ -16,6 +16,9 @@ const lum = (hex) => {
 
 // A real brand mark (simple-icons, CC0) on a paper medallion. Near-black or near-white marks use
 // the ink color so they stay visible in both light and dark mode. Unknown tools get a monogram.
+/**
+ * @param {{ slug: string, name?: string, color?: string, size?: number, plain?: boolean, title?: string }} props
+ */
 export default function Brand({ slug, name = '', color, size = 34, plain, title }) {
   const guess = String(name)
     .replace(/\s*\(.*?\)\s*/g, '')
@@ -43,7 +46,9 @@ export default function Brand({ slug, name = '', color, size = 34, plain, title 
       <span
         className="brand-med"
         title={title || name}
-        style={{ width: size, height: size, '--bc': fill }}
+        style={
+          /** @type {import('react').CSSProperties} */ ({ width: size, height: size, '--bc': fill })
+        }
       >
         {svg}
       </span>
@@ -62,12 +67,14 @@ export default function Brand({ slug, name = '', color, size = 34, plain, title 
     <span
       className={`brand-med mono-g ${plain ? 'plain' : ''}`}
       title={title || name}
-      style={{
-        width: size,
-        height: size,
-        '--bc': color || `hsl(${hue} 42% 52%)`,
-        fontSize: size * 0.36,
-      }}
+      style={
+        /** @type {import('react').CSSProperties} */ ({
+          width: size,
+          height: size,
+          '--bc': color || `hsl(${hue} 42% 52%)`,
+          fontSize: size * 0.36,
+        })
+      }
     >
       {letters}
     </span>

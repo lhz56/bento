@@ -29,6 +29,10 @@ function findDef(word, lang, lines) {
 }
 
 // Returns info synchronously when we can (instant), else a Promise from the model.
+/**
+ * @param {{ word: string, lineText?: string, lineNo?: number, lang: string, doc?: string, english?: any[],
+ *   model: string, quick: Function, isMember?: boolean }} args
+ */
 export function explainToken({
   word,
   lineText = '',
