@@ -97,7 +97,7 @@ updates, the bookmarklet. Those are hidden on the phone.
   a haptic tick per step), like Alt-drag on a Mac.
 - Built for a thumb: anything you tap is at least about 36 points tall, rows across the screen light up under your
   finger as in any iPhone list, and rows of choices (kinds of project, Atlas filters, paths) scroll sideways
-  instead of piling up. `src/mobile.css` holds all of it; the Mac's layout doesn't change.
+  instead of piling up. `src/styles/touch` holds all of it; the Mac's layout doesn't change.
 
 ## Safety
 
@@ -119,7 +119,7 @@ updates, the bookmarklet. Those are hidden on the phone.
 
 How it's built: `electron/host.cjs` (the server, pairing, Approve on Mac, the stream), `electron/main.cjs` (the Allow
 dialog, Bonjour, keeping the Mac awake), `ios/` (the Bento Code app), `src/remote.js` (the page's side),
-`src/ui/Phone.jsx` and `src/mobile.css` (the phone layout), `src/ui/touch.js` (the gestures and the keyboard). Tests: `node test/host.test.mjs` and
+`src/ui/Phone.jsx` and `src/styles/touch` (the phone layout), `src/ui/touch.js` (the gestures and the keyboard). Tests: `node test/host.test.mjs` and
 `node scripts/smoke-phone.mjs [--ipad]` (needs `npx playwright-core install webkit` once).
 
 ## Using your AI plan without the Mac

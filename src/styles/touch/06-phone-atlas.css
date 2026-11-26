@@ -1,0 +1,254 @@
+/* ---------------------------------------------------------------- a project's Atlas on a phone (what Lin uses most) */
+.ab-more,
+.ab-veil {
+  display: none;
+}
+.app.phone .atlas-bar {
+  padding: 8px 0;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+.app.phone .ab-id {
+  display: none;
+}
+.app.phone .ab-nav {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  border-radius: 0;
+  background: none;
+  padding: 0 4px 0 14px;
+  gap: 6px;
+}
+.app.phone .ab-nav button {
+  flex: none;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 99px;
+  background: var(--bg-2);
+  color: var(--ink-2);
+  font: 600 14px var(--round);
+}
+.app.phone .ab-nav button.on {
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: none;
+}
+.app.phone .ab-more {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 34px;
+  margin-right: 10px;
+  border-radius: 99px;
+  background: var(--bg-2);
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 700;
+}
+.app.phone .ab-act {
+  display: none;
+}
+.app.phone .ab-veil {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+}
+.app.phone .ab-act.open {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  position: fixed;
+  z-index: 45;
+  right: 10px;
+  top: calc(100px + env(safe-area-inset-top));
+  width: min(280px, calc(100vw - 20px));
+  padding: 6px;
+  border-radius: 16px;
+  background: var(--popover);
+  box-shadow:
+    var(--shadow-2),
+    0 0 0 0.5px var(--line-2);
+  animation: pfade 0.15s ease both;
+}
+.app.phone .ab-act.open .chip {
+  justify-content: flex-start;
+  gap: 10px;
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: none;
+  box-shadow: none;
+  font-size: 16px;
+}
+.app.phone .ab-act.open .chip .lbl {
+  display: none;
+}
+.app.phone .ab-act.open .chip[aria-label]::after {
+  content: attr(aria-label);
+  font: 500 16px var(--sans);
+  color: var(--ink);
+}
+.app.phone .ab-act.open .chip:active {
+  background: var(--bg-2);
+}
+.app.phone .ab-live {
+  order: -1;
+  padding: 8px 14px;
+}
+.app.phone .asec {
+  padding: 26px 18px 8px;
+  scroll-margin-top: 54px;
+}
+.app.phone .a-over {
+  padding-top: 14px;
+}
+.app.phone .over-top {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.app.phone .over-text h1 {
+  font-size: 26px;
+  line-height: 1.18;
+  letter-spacing: -0.4px;
+}
+.app.phone .over-text .analogy {
+  font-size: 17px;
+}
+.app.phone .vitals {
+  padding: 14px;
+}
+.app.phone .ss-row {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin: 0 -18px;
+  padding: 0 18px 4px;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.app.phone .ss-row::-webkit-scrollbar {
+  display: none;
+}
+.app.phone .ss-t {
+  flex: none;
+  width: 78px;
+  scroll-snap-align: start;
+}
+/* asking about the project: a full-width bar above the home indicator; the conversation, a sheet over the page */
+.app.phone .atlas-ask {
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  justify-content: stretch;
+}
+.app.phone .atlas-ask .fu,
+.app.phone .atlas-ask .fu:focus-within {
+  width: 100%;
+}
+.app.phone .aq-card {
+  width: 100%;
+  max-height: 60dvh;
+}
+.app.phone .aq-dock {
+  top: calc(56px + env(safe-area-inset-top));
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  border-radius: 20px 20px 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 50;
+}
+.app.phone .aq-dock .aq-a {
+  font-size: 16px;
+}
+/* a file, opened from anywhere in the Atlas: a sheet that slides up */
+.app.phone .drawer {
+  top: calc(56px + env(safe-area-inset-top));
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  border-radius: 20px 20px 0 0;
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: psheet 0.32s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.app.phone .drawer-veil {
+  z-index: 49;
+  background: rgba(10, 8, 6, 0.3);
+}
+@keyframes psheet {
+  from {
+    transform: translateY(40%);
+    opacity: 0;
+  }
+}
+/* (a blurred bar would trap the ⋯ menu inside itself: fixed things inside a backdrop-filter are fixed to it) */
+.app.phone .atlas-bar {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--bg);
+}
+.app.phone .atlas {
+  overflow-x: hidden;
+}
+.app.phone .ab-act.open .chip,
+.app.phone .ab-act.open .chip.icon {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--ink-3);
+}
+/* a section's title, then its controls underneath (side by side on a Mac) */
+.app.phone .sec-head {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.app.phone .sec-head h2 {
+  font-size: 24px;
+  letter-spacing: -0.3px;
+}
+.app.phone .sec-tools {
+  flex-wrap: wrap;
+}
+/* the code city: a city you drag sideways through, with momentum, like a map */
+.app.phone .city {
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 0 -18px;
+  padding: 0 0 6px;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  touch-action: pan-x pan-y;
+}
+.app.phone .city::-webkit-scrollbar {
+  display: none;
+}
+.app.phone .city-cap {
+  position: sticky;
+  left: 0;
+  font-size: 15px;
+}
+.app.phone .city .lg {
+  font-size: 13px;
+}
+.app.phone .atlas-ask .aq-dock .fu {
+  width: auto;
+  margin: 0 12px 12px;
+}
+.app.phone .cap-f {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+.app.phone :is(.drawer, .aq-dock) .ib {
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 18px;
+}

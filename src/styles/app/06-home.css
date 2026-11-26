@@ -1,0 +1,244 @@
+/* ------------------------------------------------------------ home */
+.home {
+  height: 100%;
+  overflow: auto;
+}
+.home-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 9vh 32px 60px;
+}
+.hello {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--ink-3);
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+.home-h {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 44px;
+  letter-spacing: -1px;
+  line-height: 1.08;
+  margin: 0 0 26px;
+}
+.home-h em {
+  color: var(--accent-big);
+}
+.composer {
+  background: var(--panel);
+  border-radius: 18px;
+  box-shadow:
+    var(--shadow-2),
+    0 0 0 1px var(--line);
+  padding: 10px 12px 12px;
+  transition: box-shadow 0.2s;
+}
+.composer:focus-within {
+  box-shadow:
+    var(--shadow-2),
+    0 0 0 1.5px var(--accent);
+}
+.modes {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.mode {
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 9px;
+  font: 650 12.5px var(--round);
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mode:hover {
+  color: var(--ink);
+}
+.mode.on {
+  background: var(--bg-2);
+  color: var(--ink);
+}
+.mode-i {
+  font-size: 11px;
+  color: var(--accent-ink);
+}
+.composer textarea {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  resize: none;
+  background: transparent;
+  font-size: 19px;
+  line-height: 1.45;
+  padding: 10px 8px 6px;
+  font-family: var(--sans);
+  user-select: text;
+}
+.composer textarea.mono {
+  font: 13px/1.6 var(--mono);
+}
+.composer textarea::placeholder {
+  color: var(--ink-4);
+}
+.comp-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 0;
+}
+.pills {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+.seg {
+  display: flex;
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--bg-2);
+}
+.seg button {
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 7px;
+  font: 600 11.5px var(--round);
+  color: var(--ink-3);
+}
+.seg button.on {
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+}
+.send {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 11px;
+  background: var(--accent-ink);
+  color: var(--on-ink);
+  font: 700 13.5px var(--round);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.12s;
+}
+.send kbd {
+  background: color-mix(in srgb, var(--on-ink) 22%, transparent);
+  color: var(--on-ink);
+  border: 0;
+}
+.send:hover {
+  transform: translateY(-1px);
+}
+.send:disabled {
+  opacity: 0.4;
+  transform: none;
+}
+.proj-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px 8px;
+  font-size: 12.5px;
+  flex-wrap: wrap;
+}
+.proj {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.proj-ic {
+  color: var(--accent-ink);
+}
+.repo-pick {
+  position: relative;
+}
+.repo-pick .menu {
+  top: 32px;
+  left: 0;
+}
+.warn {
+  margin-top: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: var(--butter-soft);
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.starts {
+  margin-top: 40px;
+}
+.pebbles {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+.pebble {
+  text-align: left;
+  padding: 10px;
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+.pebble:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    var(--shadow-2),
+    0 0 0 1px var(--line);
+}
+.thumb {
+  width: 100%;
+  height: 64px;
+  border-radius: 9px;
+  background: var(--bg);
+  margin-bottom: 8px;
+  display: block;
+}
+.peb-t {
+  font-weight: 650;
+  font-size: 12.5px;
+  line-height: 1.3;
+}
+.peb-k {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: 4px;
+}
+.pebble.bug .thumb {
+  background: var(--rose-soft);
+}
+.recent-home {
+  margin-top: 34px;
+}
+
+.cv-feature {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 14px;
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow:
+    var(--shadow-1),
+    0 0 0 1px var(--line);
+}
+.cv-feature input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 14px;
+}
+.cv-fi {
+  color: var(--accent-ink);
+}

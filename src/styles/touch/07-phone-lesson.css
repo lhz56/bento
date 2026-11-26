@@ -1,0 +1,121 @@
+/* ---------------------------------------------------------------- a lesson on a phone: two pages, Lesson and Code */
+.app.phone .lesson {
+  position: relative;
+  display: block;
+  height: 100%;
+  overflow: hidden;
+}
+.app.phone .lesson .story,
+.app.phone .lesson .desk {
+  position: absolute;
+  inset: 0;
+  width: auto !important;
+  min-width: 0 !important;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+  transition:
+    transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1),
+    visibility 0s 0.32s;
+}
+.app.phone .lesson .vdivider {
+  display: none;
+}
+.app.phone .lesson.pane-story .desk {
+  transform: translateX(100%);
+  visibility: hidden;
+}
+.app.phone .lesson.pane-code .story {
+  transform: translateX(-30%);
+  visibility: hidden;
+}
+.app.phone .lesson.pane-story .story,
+.app.phone .lesson.pane-code .desk {
+  transition:
+    transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1),
+    visibility 0s;
+}
+.app.phone .lesson.article .desk {
+  left: -10000px;
+  right: auto;
+  width: 900px !important;
+}
+.app.phone .story > .story-inner {
+  padding: 14px 18px 0;
+}
+.app.phone .story-head h1 {
+  font-size: 28px;
+  letter-spacing: -0.4px;
+}
+.app.phone .story-h {
+  font-size: 20px;
+}
+.app.phone .lesson-acts {
+  gap: 6px;
+}
+.app.phone .desk-head {
+  height: 50px;
+  padding: 0 8px 0 12px;
+}
+
+/* "Put Bento on your Home Screen" (Safari on an iPhone or iPad, once) */
+.hs-tip {
+  position: fixed;
+  z-index: 70;
+  left: 12px;
+  right: 12px;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 8px 12px 14px;
+  border-radius: 18px;
+  background: var(--popover);
+  box-shadow:
+    var(--shadow-2),
+    0 0 0 0.5px var(--line-2);
+  animation: psheet 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  max-width: 520px;
+  margin: 0 auto;
+}
+.app.phone.at-root ~ .hs-tip {
+  bottom: calc(66px + env(safe-area-inset-bottom));
+}
+.hs-tip > div {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
+  color: var(--ink-2);
+  line-height: 1.35;
+}
+.hs-tip b {
+  font-size: 15px;
+  color: var(--ink);
+}
+.hs-ico {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.hs-tip .ib {
+  width: 40px;
+  height: 40px;
+  flex: none;
+}
+
+/* (the devices row's header is a row: picture, words, switch) */
+.set-row > div.dev-top {
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+}
+.set-row > div.dev-top > div {
+  display: grid;
+  gap: 2px;
+}

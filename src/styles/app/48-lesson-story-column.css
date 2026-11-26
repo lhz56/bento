@@ -1,0 +1,123 @@
+/* ---- lessons: a story column wide enough to read and talk in */
+.lesson .story {
+  min-width: min(440px, 52%);
+}
+
+/* ---- the path bar on a path lesson: where you are, and the next stop */
+.pathbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+  padding: 8px 10px 8px 12px;
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.pb-name {
+  font: 700 12.5px var(--round);
+  color: var(--accent-ink);
+}
+.pb-dots {
+  display: flex;
+  gap: 3px;
+}
+.pb-dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--line-2);
+}
+.pb-dots i.past {
+  background: var(--mint);
+}
+.pb-dots i.now {
+  width: 16px;
+  border-radius: 4px;
+  background: var(--accent);
+}
+.pb-at b {
+  color: var(--ink);
+  font-weight: 650;
+}
+.pb-nav {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+/* when the bar is narrow (a lesson beside its code, a small window), the dots say where you are: drop the words */
+.pathbar {
+  container-type: inline-size;
+}
+@container (max-width: 520px) {
+  .pb-at {
+    display: none;
+  }
+}
+.phero-side .btn.ghost {
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line-2);
+  color: var(--ink);
+}
+.phero-side .next-path {
+  height: auto;
+  min-height: 36px;
+  padding: 7px 14px;
+  gap: 8px;
+  line-height: 1.25;
+  text-align: left;
+  white-space: normal;
+  max-width: 100%;
+}
+
+/* ---- talking in a lesson: whole-width turns instead of phone bubbles pushed to the side */
+.qa {
+  margin: 22px 0 6px;
+}
+.qa-q {
+  align-self: auto;
+  margin: 0 0 10px;
+  max-width: none;
+  width: auto;
+  padding: 0 0 0 26px;
+  position: relative;
+  background: none;
+  color: var(--ink);
+  font: 650 15px/1.45 var(--round);
+  border-radius: 0;
+}
+.qa-q::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  background: var(--ink);
+  -webkit-mask: none;
+}
+.qa-q::after {
+  content: '?';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  font: 800 11px var(--round);
+  color: var(--bg);
+}
+.qa-a {
+  margin: 0;
+  max-width: none;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+}

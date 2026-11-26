@@ -1,0 +1,93 @@
+/* ---------------------------------------------------------------- pages on a phone: one column, sizes for a thumb */
+.app.phone .pseg {
+  width: min(100%, 300px);
+}
+.app.phone .pseg button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 6px 8px;
+}
+.app.phone :is(.home-inner, .ex-inner, .ideas-inner) {
+  padding: 16px 18px 36px;
+}
+.app.phone .hello {
+  font-size: 15px;
+  margin-bottom: 2px;
+}
+.app.phone .home-h {
+  font-size: clamp(28px, 8.4vw, 34px);
+  letter-spacing: -0.5px;
+  line-height: 1.08;
+  margin: 0 0 12px;
+}
+.app.phone .ex-sub {
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0 0 18px;
+}
+/* side by side on a Mac, one under the other here */
+.app.phone
+  :is(
+    .step-cols,
+    .ex-cols,
+    .study,
+    .idea-hero,
+    .cmp-cols,
+    .doors,
+    .pr-cols,
+    .dt-body,
+    .pz-hero,
+    .station,
+    .pz-mission,
+    .pg-sql,
+    .pg-git,
+    .sb-grid,
+    .contrib,
+    .tm-wrap.open,
+    .home.split,
+    .sky.open,
+    .lang-wrap,
+    .picks,
+    .tracks,
+    .takes,
+    .idea-grid,
+    .pcards,
+    .belt2,
+    .venn,
+    .cmp-ask,
+    .race-row,
+    .today-row,
+    .nextcard,
+    .grow-dirs,
+    .onb-promises,
+    .starts3
+  ) {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+.app.phone .tm-row {
+  flex-direction: column;
+}
+.app.phone .tm {
+  height: auto;
+  min-height: 0;
+}
+.app.phone .pz-hero-art {
+  max-width: 280px;
+}
+/* touch: everything you tap is at least 44 points */
+body.touch :is(.btn, .chip, .int, .seg button, .pz-chip, .choice, .door) {
+  min-height: 44px;
+}
+
+/* first-visit tips: a card above your thumb, not a bubble pointing at something off-screen */
+.app.phone .coach-tip {
+  left: 12px !important;
+  right: 12px !important;
+  top: auto !important;
+  bottom: calc(14px + env(safe-area-inset-bottom)) !important;
+  width: auto !important;
+  font-size: 15px;
+}
+.app.phone.at-root .coach-tip {
+  bottom: calc(66px + env(safe-area-inset-bottom)) !important;
+}

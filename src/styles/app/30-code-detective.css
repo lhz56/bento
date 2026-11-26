@@ -1,0 +1,188 @@
+/* code detective */
+.detective {
+  margin: 0 0 22px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+  animation: fadeUp 0.25s both;
+}
+.detective.intro {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--violet, #7c6cf0) 9%, var(--panel)),
+    var(--panel)
+  );
+}
+.detective.intro b {
+  display: block;
+  font: 650 16px var(--round);
+}
+.detective.intro span {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.detective.intro .btn {
+  margin-left: auto;
+  flex: none;
+}
+.dt-badge {
+  font-size: 30px;
+  line-height: 1;
+}
+.dt-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.dt-score {
+  color: #f2b632;
+  letter-spacing: 2px;
+}
+.dt-score i {
+  font-style: normal;
+  color: var(--line-2);
+}
+.dt-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 16px;
+}
+.dt-code {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font: 12px/1.55 var(--mono);
+  max-height: 300px;
+  overflow: auto;
+  white-space: pre;
+}
+.dt-q {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dt-q > b {
+  font: 650 15px var(--round);
+  margin-bottom: 2px;
+}
+.dt-opt {
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  background: var(--bg);
+  box-shadow: 0 0 0 1px var(--line);
+  transition:
+    box-shadow 0.15s,
+    background 0.2s;
+}
+.dt-opt:not(:disabled):hover {
+  box-shadow: 0 0 0 1.5px var(--violet, #7c6cf0);
+}
+.dt-opt.ok {
+  box-shadow: 0 0 0 1.5px var(--mint, #2fb380);
+  background: color-mix(in srgb, var(--mint, #2fb380) 12%, var(--bg));
+}
+.dt-opt.no {
+  box-shadow: 0 0 0 1.5px var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+}
+.dt-opt:disabled {
+  cursor: default;
+}
+.dt-opt:disabled:not(.ok):not(.no) {
+  opacity: 0.55;
+}
+.dt-reveal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 13px;
+  animation: fadeUp 0.2s both;
+}
+.dt-reveal > div {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-end;
+}
+.dt-reveal code {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.side-more {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 12px;
+  margin: 2px 0 6px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  border-radius: 8px;
+}
+.side-more:hover {
+  color: var(--ink);
+  background: var(--bg-2);
+}
+.ih-pick {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font: 700 10.5px var(--round);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.lgrid {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lg-cells {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.5px;
+  height: 14px;
+}
+.lg-cells i {
+  width: 5px;
+  height: 4px;
+  border-radius: 1.5px;
+  background: var(--bg-3);
+}
+.lg-cells i.l1 {
+  height: 7px;
+  background: color-mix(in srgb, var(--accent) 40%, var(--bg-3));
+}
+.lg-cells i.l2 {
+  height: 10px;
+  background: color-mix(in srgb, var(--accent) 65%, var(--bg-3));
+}
+.lg-cells i.l3 {
+  height: 12px;
+  background: color-mix(in srgb, var(--accent) 85%, var(--bg-3));
+}
+.lg-cells i.l4 {
+  height: 14px;
+  background: var(--accent);
+}
+.lg-cells i.today {
+  outline: 1.5px solid var(--ink-3);
+  outline-offset: 1px;
+}
+.lg-cap {
+  font: 600 11px var(--round);
+  color: var(--ink-3);
+  white-space: nowrap;
+}

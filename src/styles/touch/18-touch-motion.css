@@ -1,0 +1,118 @@
+/* ---------------------------------------------------------------- the feel of touching things (touch.js) */
+/* a card gives under the finger at once and springs back when you let go (--spring-press: a real spring curve) */
+body.touch .pressed.big {
+  transform: scale(0.97);
+  transition: transform 0.12s cubic-bezier(0.3, 0.7, 0.4, 1) !important;
+}
+body.touch .unpress.big {
+  transition:
+    opacity 0.3s ease-out,
+    transform 0.5s var(--spring-press, ease-out) !important;
+}
+
+/* a switch's thumb glides to what you picked: a stand-in moves while the real one waits, with no fade at either end */
+.glide {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  pointer-events: none;
+  will-change: transform, width;
+}
+.gliding > .on:not(.predict, .twin) {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+:is(.gliding, .glided) > * {
+  transition: none !important;
+}
+
+/* press and hold a recent: the row lifts out of a blurred page and its menu opens under it */
+.hold-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(0, 0, 0, 0.14);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+  animation: pfade 0.22s ease both;
+}
+.hold-lift {
+  position: fixed !important;
+  z-index: 91;
+  margin: 0 !important;
+  display: flex;
+  align-items: center;
+  border-radius: 14px !important;
+  background: var(--gcell, var(--panel)) !important;
+  box-shadow:
+    0 14px 40px -10px rgba(0, 0, 0, 0.35),
+    0 0 0 0.5px var(--gsep, var(--line));
+  pointer-events: none;
+}
+.hold-lift::before {
+  display: none !important;
+}
+.hold-lift .rl-x {
+  display: none;
+}
+.hold-menu {
+  position: fixed;
+  z-index: 92;
+  width: 250px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--popover) 88%, transparent);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  backdrop-filter: blur(30px) saturate(1.8);
+  box-shadow:
+    0 0 0 0.5px var(--gsep, var(--line)),
+    0 18px 50px -12px rgba(0, 0, 0, 0.4);
+  animation: menuIn 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+.hold-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 46px;
+  padding: 0 16px;
+  font: 400 17px var(--sans);
+  letter-spacing: -0.3px;
+  color: var(--ink);
+  text-align: left;
+}
+.hold-menu button + button {
+  box-shadow: inset 0 0.5px 0 var(--gsep, var(--line));
+}
+.hold-menu button:active {
+  background: color-mix(in srgb, var(--ink) 9%, transparent);
+}
+.hold-menu button.danger {
+  color: var(--rose-ink);
+}
+:is(.hold-veil, .hold-lift, .hold-menu).out {
+  animation: pfadeOut 0.18s ease both;
+}
+@keyframes pfadeOut {
+  to {
+    opacity: 0;
+  }
+}
+/* (so a finger has no little × on every row: holding the row is how you remove it; VoiceOver still finds the button) */
+body.touch .side .rl-x {
+  position: absolute;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hold-menu,
+  .hold-veil {
+    animation: none;
+  }
+}

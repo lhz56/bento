@@ -1,0 +1,51 @@
+/* ------------------------------------------------------------ home → explore */
+.atlas-cta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px 18px 12px 12px;
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+  text-align: left;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+.atlas-cta:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    var(--shadow-2),
+    0 0 0 1px var(--line);
+}
+.cta-art {
+  width: 150px;
+  height: 64px;
+  flex: none;
+  border-radius: 10px;
+  background: var(--bg);
+}
+.cta-t {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+.cta-t b {
+  font-size: 14px;
+}
+.cta-t span {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  line-height: 1.45;
+}
+.cta-go {
+  font: 700 12.5px var(--round);
+  color: var(--accent-ink);
+  white-space: nowrap;
+}
+.send b {
+  font-weight: 800;
+}

@@ -1,0 +1,222 @@
+:root {
+  --bg: #fbf8f3;
+  --bg-2: #f3eee6;
+  --bg-3: #ebe4d9;
+  --panel: #fffdfa;
+  --popover: #ffffff;
+  --ink: #1f1b16;
+  --ink-2: #4f4841;
+  --ink-3: #655c53;
+  --ink-4: #6e655b; /* every text colour passes WCAG AA (4.5:1) on every background: ink-3 5.2:1+, ink-4 4.5:1+ */
+  --line: #ece5da;
+  --line-2: #ddd3c5;
+  --accent: #ff6b3d;
+  --accent-soft: #fff0e8;
+  --violet: #7c5cff;
+  --violet-soft: #f0ecff;
+  --mint: #12a37a;
+  --mint-soft: #e3f6ef;
+  --sky: #2f80ed;
+  --butter: #f5b82e;
+  --butter-soft: #fff5d6;
+  --rose: #e5484d;
+  --rose-soft: #fdeceb;
+  /* the bright colours above are for pictures, dots and lines. Words in colour use these "-ink" shades (4.5:1+), and so do
+     solid buttons with words on them (white words, 4.6:1+). --accent-big is for headline words 24px and up (3:1+). */
+  --accent-ink: #bd4218;
+  --violet-ink: #6347e0;
+  --mint-ink: #0b7354;
+  --rose-ink: #b7353a;
+  --butter-ink: #805800;
+  --sky-ink: #2362b5;
+  --accent-big: #e0552a;
+  --on-ink: #ffffff;
+  --active-line: rgba(31, 27, 22, 0.028);
+  --selection: rgba(124, 92, 255, 0.16);
+  --syn-kw: #b33b0b;
+  --syn-fn: #6743f0;
+  --syn-type: #0b736a;
+  --syn-str: #237233;
+  --syn-num: #1866bc;
+  --syn-com: #69625b;
+  --syn-prop: #955800;
+  --syn-punc: #6e665d;
+  --serif: 'New York', ui-serif, 'Iowan Old Style', Georgia, 'Noto Serif', 'DejaVu Serif', serif;
+  --round:
+    ui-rounded, 'SF Pro Rounded', -apple-system, 'Segoe UI Variable Display', 'Segoe UI', system-ui,
+    'Noto Sans', Ubuntu, Cantarell, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Noto Color Emoji';
+  --sans:
+    -apple-system, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', system-ui, 'Noto Sans', Ubuntu,
+    Cantarell, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+  --mono:
+    'SF Mono', ui-monospace, Menlo, 'Cascadia Code', Consolas, 'DejaVu Sans Mono', 'Noto Sans Mono',
+    monospace;
+  --code-size: 13.5px;
+  --shadow-1: 0 1px 2px rgba(40, 30, 20, 0.05), 0 4px 14px rgba(40, 30, 20, 0.05);
+  --shadow-2: 0 2px 6px rgba(40, 30, 20, 0.06), 0 18px 48px rgba(40, 30, 20, 0.14);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #18171b;
+    --bg-2: #222027;
+    --bg-3: #2b2931;
+    --panel: #1d1c21;
+    --popover: #2a2830;
+    --ink: #f3efe9;
+    --ink-2: #cfc8bf;
+    --ink-3: #a09aa7;
+    --ink-4: #958f9c;
+    --line: #2c2a31;
+    --line-2: #3a3740;
+    --accent: #ff8a5b;
+    --accent-soft: #3a2620;
+    --violet: #a58bff;
+    --violet-soft: #2b2540;
+    --mint: #3fd1a3;
+    --mint-soft: #193229;
+    --butter: #ffcf5c;
+    --butter-soft: #3a3220;
+    --rose: #ff6b6f;
+    --rose-soft: #3a2224;
+    --sky: #6aaeff;
+    --accent-ink: #ff8a5b;
+    --violet-ink: #a58bff;
+    --mint-ink: #3fd1a3;
+    --rose-ink: #ff6b6f;
+    --butter-ink: #ffcf5c;
+    --sky-ink: #6aaeff;
+    --accent-big: #ff8a5b;
+    --on-ink: #17151b;
+    --active-line: rgba(255, 255, 255, 0.025);
+    --selection: rgba(165, 139, 255, 0.25);
+    --syn-kw: #ff9e64;
+    --syn-fn: #b9a3ff;
+    --syn-type: #5fd4c8;
+    --syn-str: #9be29b;
+    --syn-num: #7cc4ff;
+    --syn-com: #958f9c;
+    --syn-prop: #f2c46d;
+    --syn-punc: #a7a0ae;
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.25);
+    --shadow-2: 0 2px 6px rgba(0, 0, 0, 0.35), 0 18px 48px rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+  }
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background: transparent;
+  -webkit-font-smoothing: antialiased;
+  font-size: 13.5px;
+  overflow: hidden;
+  user-select: none;
+}
+body.browser {
+  background: #e9e4dc;
+}
+@media (prefers-color-scheme: dark) {
+  body.browser {
+    background: #101013;
+  }
+}
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+}
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+code,
+.mono {
+  font-family: var(--mono);
+}
+kbd {
+  font-family: var(--round);
+  font-size: 10.5px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--bg-2);
+  color: var(--ink-3);
+  border: 1px solid var(--line);
+}
+.muted {
+  color: var(--ink-3);
+}
+.small {
+  font-size: 12px;
+}
+.pad {
+  padding: 8px 12px;
+}
+.link {
+  color: var(--accent-ink);
+  margin-left: 8px;
+  font-weight: 600;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 13px;
+  border-radius: 9px;
+  background: var(--ink);
+  color: var(--bg);
+  font-family: var(--round);
+  font-weight: 650;
+  font-size: 12.5px;
+  transition:
+    transform 0.12s,
+    opacity 0.12s;
+}
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn:active {
+  transform: none;
+}
+.btn:disabled {
+  opacity: 0.45;
+  transform: none;
+}
+.btn.ghost {
+  background: var(--bg-2);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.btn.tiny {
+  height: 24px;
+  padding: 0 9px;
+  font-size: 11.5px;
+  border-radius: 7px;
+}
+.chip {
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 99px;
+  background: var(--bg-2);
+  font-family: var(--round);
+  font-weight: 600;
+  font-size: 12px;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.chip:hover {
+  background: var(--bg-3);
+}

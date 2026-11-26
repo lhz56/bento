@@ -1,0 +1,355 @@
+/* words you'll meet: cards you swipe */
+.pw {
+  flex: none;
+  width: 76%;
+  scroll-snap-align: start;
+  padding: 14px 16px 16px;
+  border-radius: 16px;
+  background: var(--gcell);
+}
+.pw b {
+  display: block;
+  font: 600 16px var(--sans);
+  letter-spacing: -0.25px;
+}
+.pw p {
+  margin: 5px 0 0;
+  font: 400 14.5px/1.42 var(--sans);
+  color: var(--ink-2);
+}
+.pw i {
+  display: block;
+  margin-top: 8px;
+  font: italic 400 14px/1.4 var(--sans);
+  color: var(--ink-3);
+}
+.pw i::before {
+  content: '≈ ';
+  font-style: normal;
+}
+
+/* what it's made of: a bar like iPhone Storage, then a row per kind with the tools it's made with */
+.pk-card {
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--gcell);
+}
+.pk-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.pk-top b {
+  font: 600 17px var(--sans);
+  letter-spacing: -0.3px;
+}
+.pk-top span {
+  font: 400 14px var(--sans);
+  color: var(--ink-3);
+}
+.pk-bar {
+  display: flex;
+  gap: 2px;
+  height: 22px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--gfill);
+}
+.pk-bar i {
+  display: block;
+  min-width: 4px;
+}
+.pk-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 11px;
+  font: 400 13px var(--sans);
+  color: var(--ink-2);
+}
+.pk-key span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.pk-key i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.pk-key b {
+  font-weight: 400;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.pk-logos {
+  flex: none;
+  display: flex;
+}
+.pk-logos > * + * {
+  margin-left: -8px;
+}
+.pk-logos .brand-med {
+  box-shadow:
+    0 0 0 2px var(--gcell),
+    0 0 0 2.5px var(--gsep);
+}
+
+/* services: a card each, two by two; the code it's built from, three rows you page through (as in the App Store) */
+.sv-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.sv {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 14px 14px 16px;
+  border-radius: 16px;
+  background: var(--gcell);
+  text-align: left;
+  color: var(--ink);
+}
+.sv .brand-med {
+  margin-bottom: 12px;
+}
+.sv-cat {
+  font: 600 11px var(--sans);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.sv b {
+  max-width: 100%;
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 600 17px/1.25 var(--sans);
+  letter-spacing: -0.35px;
+}
+.sv-what {
+  margin-top: 4px;
+  font: 400 13.5px/1.36 var(--sans);
+  color: var(--ink-3);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.lib-pager {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(3, auto);
+  grid-auto-columns: calc(100% - 44px);
+  column-gap: 14px;
+}
+.lib {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 66px;
+  padding: 8px 0;
+  text-align: left;
+  color: var(--ink);
+}
+.lib:nth-child(3n + 1) {
+  scroll-snap-align: start;
+}
+.lib:not(:nth-child(3n + 1))::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 56px;
+  right: 0;
+  height: 0.5px;
+  background: var(--gsep);
+}
+.lib .ph-ct > span {
+  -webkit-line-clamp: 1;
+}
+
+/* where the technical side begins */
+.ph-chapter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 56px 20px 0;
+  padding-top: 36px;
+  border-top: 0.5px solid var(--gsep);
+  text-align: center;
+}
+.pc-ic {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--gbg);
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.55);
+}
+.ph-chapter h2 {
+  margin: 14px 0 0;
+  font: 700 28px/1.15 var(--sans);
+  letter-spacing: -0.7px;
+}
+.ph-chapter p {
+  max-width: 300px;
+  margin: 6px 0 0;
+  font: 400 15px/1.4 var(--sans);
+  color: var(--ink-3);
+}
+
+/* the code city: a picture of it, then the whole city full screen */
+.cc-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--gcell);
+}
+.cc-city {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 760px;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+.cc-city :is(.city-tools, .journeys, .city-cap, .tag, .sign, .sky-h, .svc-name) {
+  display: none !important;
+}
+.app.phone .cc-city .city {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+.cc-hit {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 14px;
+  background: linear-gradient(transparent 55%, color-mix(in srgb, var(--gcell) 88%, transparent));
+}
+.cc-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 19px;
+  background: color-mix(in srgb, var(--gcell) 72%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(1.8);
+  backdrop-filter: blur(16px) saturate(1.8);
+  box-shadow:
+    0 0 0 0.5px var(--gsep),
+    0 6px 16px -6px rgba(0, 0, 0, 0.25);
+  font: 600 15px var(--sans);
+  color: var(--ink);
+}
+.cv-full {
+  position: fixed;
+  z-index: 48;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--gbg);
+  animation: cvIn 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+@keyframes cvIn {
+  from {
+    transform: translateY(100%);
+  }
+}
+.cv-bar {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(50px + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+  border-bottom: 0.5px solid var(--gsep);
+}
+.cv-bar b {
+  font: 600 17px var(--sans);
+  letter-spacing: -0.3px;
+}
+.cv-done {
+  position: absolute;
+  right: 6px;
+  bottom: 5px;
+  height: 40px;
+  padding: 0 12px;
+  font: 600 17px var(--sans);
+  color: var(--accent-ink);
+}
+.cv-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 10px 0 env(safe-area-inset-bottom);
+}
+.cv-body .city-tools {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 12px 6px;
+}
+.app.phone .cv-body .city {
+  margin: 0;
+}
+.app.phone .cv-body .journeys {
+  margin: 0 0 8px;
+  padding: 0 12px;
+}
+/* (names appear one at a time, in the caption, as you tap: a phone's width has no room for all of them at once) */
+.cv-body .tag {
+  display: none;
+}
+
+/* where it could break: a count of each kind, then a row each */
+.hs-tiles {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 0 -16px 12px;
+  padding: 0 16px;
+  scrollbar-width: none;
+}
+.hs-tiles::-webkit-scrollbar {
+  display: none;
+}
+.hs-t {
+  flex: 1 0 auto;
+  min-width: 88px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 11px 12px 10px;
+  border-radius: 14px;
+  background: var(--gcell);
+}
+.hs-t .ph-ic {
+  margin-bottom: 7px;
+  background: var(--c);
+}
+.hs-t b {
+  font: 700 24px/1 var(--sans);
+  letter-spacing: -0.5px;
+}
+.hs-t > span:last-child {
+  font: 400 13px var(--sans);
+  color: var(--ink-3);
+  white-space: nowrap;
+}

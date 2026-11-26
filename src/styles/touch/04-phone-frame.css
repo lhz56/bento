@@ -1,0 +1,260 @@
+/* ---------------------------------------------------------------- the phone frame (Phone.jsx): bars, tabs, drawer */
+body.touch {
+  -webkit-tap-highlight-color: transparent;
+}
+body.touch kbd,
+body.touch .kbd-hint {
+  display: none !important;
+}
+/* iOS zooms into any text box under 16px when you tap it: never under 16px on touch */
+body.touch input:not([type='checkbox']):not([type='radio']):not([type='range']),
+body.touch textarea,
+body.touch select {
+  font-size: max(16px, 1em);
+}
+.app.phone {
+  display: block;
+  height: 100dvh;
+  font-size: 15px;
+  background: var(--bg);
+}
+.app.phone .sheet {
+  position: fixed;
+  top: calc(48px + env(safe-area-inset-top));
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  overscroll-behavior: contain;
+}
+.app.phone.at-root .sheet {
+  bottom: calc(54px + env(safe-area-inset-bottom));
+}
+.app.phone .titlebar-drag,
+.app.phone .side-open,
+.app.phone .gtabs {
+  display: none !important;
+}
+.app.phone .sheet.has-tabs {
+  padding-top: 0;
+}
+
+.pbar {
+  position: fixed;
+  z-index: 40;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(48px + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) max(4px, env(safe-area-inset-right)) 0
+    max(4px, env(safe-area-inset-left));
+  display: grid;
+  grid-template-columns: minmax(48px, max-content) minmax(0, 1fr) minmax(48px, max-content);
+  align-items: center;
+  gap: 4px;
+  background: color-mix(in srgb, var(--bg) 84%, transparent);
+  -webkit-backdrop-filter: saturate(1.8) blur(20px);
+  backdrop-filter: saturate(1.8) blur(20px);
+  border-bottom: 0.5px solid transparent;
+  transition: border-color 0.2s;
+}
+.pbar.scrolled {
+  border-bottom-color: var(--line-2);
+}
+.pbar > :last-child {
+  justify-self: end;
+}
+.pbar-btn {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: var(--accent-ink);
+  border-radius: 12px;
+}
+.pbar-btn:active,
+.pbar-back:active {
+  opacity: 0.45;
+}
+.pbar-back {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 44px;
+  padding: 0 10px 0 8px;
+  color: var(--accent-ink);
+  font: 400 17px var(--sans);
+}
+.pbar-mid {
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+.pbar-title {
+  font: 600 17px var(--sans);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+.pseg {
+  display: flex;
+  background: color-mix(in srgb, var(--ink) 9%, transparent);
+  border-radius: 9px;
+  padding: 2px;
+  max-width: 100%;
+}
+.pseg button {
+  flex: 1;
+  padding: 6px 12px;
+  border-radius: 7px;
+  font: 500 13px var(--sans);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
+}
+.pseg button.on {
+  background: var(--panel);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.12),
+    0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  font-weight: 600;
+}
+
+.ptabs {
+  position: fixed;
+  z-index: 40;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(54px + env(safe-area-inset-bottom));
+  padding: 3px max(4px, env(safe-area-inset-right)) env(safe-area-inset-bottom)
+    max(4px, env(safe-area-inset-left));
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  background: color-mix(in srgb, var(--bg) 84%, transparent);
+  -webkit-backdrop-filter: saturate(1.8) blur(20px);
+  backdrop-filter: saturate(1.8) blur(20px);
+  border-top: 0.5px solid var(--line-2);
+}
+.ptabs button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--ink-3);
+  font: 500 10.5px var(--sans);
+  letter-spacing: 0.01em;
+}
+.ptabs button.on {
+  color: var(--accent-ink);
+}
+.ptabs button:active .icon {
+  transform: scale(0.88);
+}
+.ptabs .icon {
+  transition: transform 0.15s;
+  stroke-width: 1.7;
+}
+/* on a page opened from a tab, and while you type, the tabs slide down out of the way */
+.ptabs {
+  transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.ptabs.away,
+body.touch:has(
+    :is(
+      input:not([type='checkbox'], [type='radio'], [type='range']),
+      textarea,
+      [contenteditable='true']
+    ):focus
+  )
+  .ptabs {
+  transform: translateY(calc(100% + 2px));
+}
+
+/* the sidebar becomes a drawer: your recent lessons and projects, the model, settings (the tabs do the rest) */
+.app.phone .side {
+  position: fixed;
+  z-index: 60;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(86vw, 340px);
+  padding: calc(6px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+  background: var(--bg-2);
+  box-shadow: var(--shadow-2);
+  transform: translateX(-104%);
+  visibility: hidden;
+  transition:
+    transform 0.34s cubic-bezier(0.2, 0.9, 0.3, 1),
+    visibility 0s 0.34s;
+}
+.app.phone.drawer-open .side {
+  transform: none;
+  visibility: visible;
+  transition:
+    transform 0.34s cubic-bezier(0.2, 0.9, 0.3, 1),
+    visibility 0s;
+}
+.app.phone .side nav,
+.app.phone .side-drag {
+  display: none;
+}
+.app.phone .side .brand {
+  height: 48px;
+}
+.app.phone .side .new {
+  min-height: 46px;
+  font-size: 16px;
+  border-radius: 12px;
+}
+.app.phone .side .rl-main {
+  min-height: 44px;
+  font-size: 16px;
+}
+.app.phone .side .rl-x {
+  width: 36px;
+  height: 36px;
+  opacity: 0.6;
+}
+.app.phone .side .side-h {
+  font-size: 12px;
+  margin-top: 14px;
+}
+.app.phone .side .side-foot {
+  min-height: 52px;
+}
+.pveil {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  background: rgba(10, 8, 6, 0.32);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.pveil.on {
+  opacity: 1;
+  pointer-events: auto;
+}
+@keyframes pfade {
+  from {
+    opacity: 0;
+  }
+}
+.app.phone .sheet {
+  overflow: hidden;
+}
+.app.phone .sheet > * {
+  max-width: 100%;
+}

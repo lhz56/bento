@@ -1,0 +1,48 @@
+/* ---------------------------------------------------------------- an iPad (and any narrow window): the same app, roomier */
+@container atlas (max-width: 820px) {
+  .over-top {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+}
+body.touch .side nav button {
+  height: 42px;
+  font-size: 15px;
+}
+body.touch .side .rl-main {
+  min-height: 40px;
+}
+body.touch .ab-nav button {
+  height: 34px;
+}
+body.touch .chip {
+  min-height: 36px;
+}
+.set-row > div.dev-top > div.dev-art {
+  display: flex;
+  gap: 4px;
+}
+/* a paired device's little picture: a phone, a tablet, or a computer */
+.dev-ico {
+  width: 22px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.dev-ico i {
+  display: block;
+  border: 2px solid var(--ink-3);
+  border-radius: 3px;
+}
+.dev-ico.phone i {
+  width: 9px;
+  height: 15px;
+}
+.dev-ico.tablet i {
+  width: 13px;
+  height: 17px;
+}
+.dev-ico.computer i {
+  width: 17px;
+  height: 12px;
+}

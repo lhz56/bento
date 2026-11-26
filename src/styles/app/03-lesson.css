@@ -1,0 +1,439 @@
+/* ------------------------------------------------------------ lesson */
+.lesson {
+  display: flex;
+  height: 100%;
+}
+.story {
+  width: var(--story-w);
+  flex: none;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.story > .story-inner {
+  flex: 1;
+  overflow: auto;
+  padding: 34px 34px 0 40px;
+  user-select: text;
+}
+.vdivider {
+  width: 8px;
+  flex: none;
+  cursor: col-resize;
+  position: relative;
+}
+.vdivider::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 40%;
+  height: 40px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--line-2);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.vdivider:hover::after {
+  opacity: 1;
+}
+.ask-echo {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--ink-3);
+  font-size: 14.5px;
+  margin-bottom: 14px;
+  min-height: 4px;
+}
+.story-head {
+  margin-bottom: 18px;
+}
+.kicker {
+  font-family: var(--round);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  margin-bottom: 8px;
+}
+.story-head h1 {
+  font-family: var(--serif);
+  font-weight: 650;
+  font-size: 34px;
+  line-height: 1.12;
+  letter-spacing: -0.6px;
+  margin: 0 0 12px;
+}
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--ink-3);
+  flex-wrap: wrap;
+}
+.sep {
+  color: var(--ink-4);
+}
+.concept {
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--bg-2);
+  color: var(--ink-2);
+  cursor: pointer;
+  font-family: var(--round);
+  font-weight: 600;
+  font-size: 11px;
+}
+.concept:hover {
+  background: var(--violet-soft);
+  color: var(--violet-ink);
+}
+.para {
+  font-family: var(--serif);
+  font-size: 16.5px;
+  line-height: 1.62;
+  color: var(--ink-2);
+  margin: 0 0 16px;
+}
+.para b {
+  color: var(--ink);
+  font-weight: 650;
+}
+.term {
+  font-size: 0.84em;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--bg-2);
+  color: var(--ink);
+  border-bottom: 1.5px dotted var(--accent);
+  cursor: help;
+  transition: background 0.12s;
+}
+.term:hover {
+  background: var(--accent-soft);
+}
+.lnk {
+  color: var(--ink);
+  background-image: linear-gradient(transparent 62%, var(--butter-soft) 62%);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.15s;
+  padding: 0 1px;
+}
+.lnk:hover {
+  background: var(--butter-soft);
+}
+.lnk sup {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-3);
+  margin-left: 2px;
+  white-space: nowrap;
+}
+.fade-in {
+  animation: fadeUp 0.35s ease-out both;
+}
+.mini-h {
+  font-family: var(--round);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 8px;
+}
+.quiz {
+  margin: 22px 0;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--violet-soft);
+  animation: fadeUp 0.35s ease-out both;
+}
+.quiz-q {
+  font-family: var(--serif);
+  font-size: 16.5px;
+  line-height: 1.45;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+.quiz-k {
+  display: block;
+  font-family: var(--round);
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--violet-ink);
+  margin-bottom: 4px;
+}
+.quiz-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.choice {
+  padding: 7px 13px;
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow:
+    0 0 0 1px var(--line),
+    var(--shadow-1);
+  font-weight: 550;
+  font-size: 13px;
+  transition:
+    transform 0.12s,
+    background 0.15s;
+}
+.choice:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.choice.right {
+  background: var(--mint-ink);
+  color: var(--on-ink);
+  box-shadow: none;
+  animation: pop 0.3s;
+}
+.choice.wrong {
+  background: var(--rose-soft);
+  color: var(--rose-ink);
+  box-shadow: none;
+  animation: shake 0.35s;
+}
+.choice:disabled:not(.right):not(.wrong) {
+  opacity: 0.5;
+}
+.quiz-why {
+  margin-top: 12px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  animation: fadeUp 0.25s both;
+}
+.quiz-why.ok b {
+  color: var(--mint-ink);
+}
+.tries,
+.nexts,
+.hints {
+  margin: 22px 0;
+}
+.try {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 6px 6px 0;
+  padding: 6px 12px 6px 9px;
+  border-radius: 99px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+.try:hover {
+  box-shadow: 0 0 0 1px var(--accent);
+  color: var(--accent-ink);
+}
+.try em {
+  font-style: normal;
+  color: var(--ink-3);
+  font-size: 11.5px;
+}
+.try-i {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 11px;
+  font-weight: 700;
+}
+.next {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  font-family: var(--serif);
+  font-size: 15.5px;
+  color: var(--ink-2);
+  transition:
+    color 0.15s,
+    padding 0.15s;
+}
+.next span:last-child {
+  margin-left: auto;
+  color: var(--ink-4);
+  transition: transform 0.15s;
+}
+.next:hover {
+  color: var(--ink);
+  padding-left: 6px;
+}
+.next:hover span:last-child {
+  transform: translateX(3px);
+  color: var(--accent-ink);
+}
+.hint {
+  display: flex;
+  gap: 10px;
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.5;
+  margin-bottom: 8px;
+  animation: fadeUp 0.3s both;
+}
+.hint > span {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--butter-soft);
+  color: var(--butter-ink);
+  display: grid;
+  place-items: center;
+  font: 700 11px var(--round);
+  margin-top: 2px;
+}
+.recipe-step {
+  display: flex;
+  gap: 14px;
+  padding: 12px 14px;
+  margin: 0 -14px 4px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.recipe-step:hover {
+  background: var(--bg-2);
+}
+.recipe-step.on {
+  background: var(--mint-soft);
+}
+.rs-num {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--bg-3);
+  font: 750 12px var(--round);
+}
+.recipe-step.on .rs-num {
+  background: var(--mint-ink);
+  color: var(--on-ink);
+}
+.rs-title {
+  font-weight: 650;
+  font-size: 14.5px;
+  margin: 3px 0 4px;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.rs-file {
+  font: 11px var(--mono);
+  color: var(--ink-3);
+}
+.rs-md {
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.writing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-3);
+  font-size: 12.5px;
+  margin: 10px 0;
+}
+.dots {
+  display: inline-flex;
+  gap: 4px;
+}
+.dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: bounce 1s infinite;
+}
+.dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.story-err {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--rose-soft);
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.story-err b {
+  color: var(--rose-ink);
+}
+.story-err div {
+  margin-top: 8px;
+}
+.followup {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 26px 30px 16px 36px;
+  background: linear-gradient(transparent, var(--bg) 40%);
+}
+.fu {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow:
+    var(--shadow-1),
+    0 0 0 1px var(--line);
+  transition: box-shadow 0.15s;
+}
+.fu:focus-within {
+  box-shadow:
+    var(--shadow-2),
+    0 0 0 1.5px var(--accent);
+}
+.fu input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 14px;
+}
+.shimmer {
+  height: 12px;
+  border-radius: 6px;
+  margin: 8px 0;
+  background: linear-gradient(90deg, var(--bg-2), var(--bg-3), var(--bg-2));
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite linear;
+}
+.shimmer.short {
+  width: 60%;
+}
+.shimmer.h1 {
+  height: 34px;
+  width: 80%;
+}

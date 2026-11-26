@@ -1,0 +1,136 @@
+/* pages that belong together: tabs floating at the top of the page */
+.gtabs {
+  position: absolute;
+  z-index: 20;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel) 84%, transparent);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 6px 22px rgba(40, 30, 20, 0.07);
+  -webkit-app-region: no-drag;
+  animation: fadeUp 0.25s both;
+}
+.gtabs button {
+  height: 28px;
+  padding: 0 14px;
+  border-radius: 9px;
+  font: 650 12.5px var(--round);
+  color: var(--ink-3);
+  white-space: nowrap;
+  transition:
+    background 0.18s,
+    color 0.15s,
+    transform 0.12s;
+}
+.gtabs button:hover {
+  color: var(--ink);
+  background: rgba(127, 110, 90, 0.08);
+}
+.gtabs button.on {
+  background: var(--ink);
+  color: var(--bg);
+}
+.gt-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--line-2);
+  margin: 0 4px;
+}
+.gt-extra {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.gt-extra .coins {
+  margin-left: 2px;
+}
+
+/* tactile: things give a little when pressed, and cards lift a little when you point at them */
+:where(
+    .btn,
+    .chip,
+    .pebble,
+    .door,
+    .shelf,
+    .new,
+    .send,
+    .rl,
+    .today-tile,
+    .pc-card,
+    .spec,
+    .side nav button,
+    .gtabs button,
+    .model-pick,
+    .side-search,
+    .ib,
+    .mode,
+    .seg button,
+    .choice,
+    .pz-chip,
+    .ch-row,
+    .act,
+    .stab,
+    .listen,
+    .try,
+    .lens,
+    .idea-card,
+    .feat-i,
+    .sb-lv,
+    .sim,
+    .file-chip,
+    .aq-folded,
+    .usage-btn,
+    .onb-go,
+    .jchip,
+    .wchip,
+    .peb,
+    .gm
+  ):active:not(:disabled) {
+  transform: scale(0.97);
+  transition-duration: 0.06s;
+}
+:where(.pebble, .today-tile, .idea-card, .spec, .feat-i):hover {
+  transform: translateY(-2px);
+}
+:where(.pebble, .today-tile, .idea-card, .spec, .feat-i) {
+  transition:
+    transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+    box-shadow 0.2s;
+}
+:where(button, [role='button']) {
+  -webkit-tap-highlight-color: transparent;
+}
+.usage.compact .usage-bars i {
+  min-height: 2px;
+}
+.usage.compact .usage-bars i:not(.today) {
+  opacity: 0.55;
+}
+.rl {
+  padding: 0 4px 0 0;
+}
+.rl-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 100%;
+  padding: 0 4px 0 10px;
+  text-align: left;
+  color: inherit;
+  border-radius: 8px;
+}
+.gt-list {
+  display: flex;
+  gap: 2px;
+}

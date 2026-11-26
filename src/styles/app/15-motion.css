@@ -1,0 +1,177 @@
+/* ------------------------------------------------------------ motion */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes popc {
+  0% {
+    transform: scale(0.2);
+  }
+  70% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@keyframes bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-4px);
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes shake {
+  20%,
+  60% {
+    transform: translateX(-3px);
+  }
+  40%,
+  80% {
+    transform: translateX(3px);
+  }
+}
+@keyframes flash {
+  from {
+    background: var(--butter);
+  }
+}
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes slideL {
+  from {
+    transform: translateX(40px);
+    opacity: 0;
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes draw {
+  from {
+    stroke-dashoffset: 600;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes travel {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
+  }
+}
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes confetti {
+  0% {
+    transform: translate(-50%, 0) rotate(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + cos(var(--a)) * 180px), calc(sin(var(--a)) * 120px + 80px))
+      rotate(540deg);
+    opacity: 0;
+  }
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 10px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background-color: var(--line-2);
+}
+.grid:has(.cell:only-child) {
+  grid-template-columns: auto !important;
+}
+
+.lens-both .note-pin {
+  padding: 0;
+  width: 18px;
+  justify-content: center;
+}
+.lens-both .note-pin .note-label {
+  display: none;
+}
+.lens-both .note-pin.open .note-label {
+  display: inline;
+}
+.lens-both .note-pin.open {
+  width: auto;
+  padding: 0 9px 0 7px;
+}
+.newfile {
+  font: 650 10.5px var(--round);
+  color: var(--mint-ink);
+  background: var(--mint-soft);
+  padding: 2px 7px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.recipe-foot.repo-foot {
+  color: var(--ink-2);
+  background: var(--bg-2);
+  font-weight: 500;
+}
+.repo-foot b {
+  font: 600 11.5px var(--mono);
+}

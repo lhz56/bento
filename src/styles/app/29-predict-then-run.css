@@ -1,0 +1,123 @@
+/* predict, then run */
+.stab.predict {
+  margin-left: 6px;
+}
+.stab.predict.on {
+  background: color-mix(in srgb, var(--violet, #7c6cf0) 14%, transparent);
+  color: var(--violet, #7c6cf0);
+}
+.predict-card,
+.predict-res {
+  margin: 4px 0 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+  animation: fadeUp 0.25s both;
+}
+.pc-h {
+  font-size: 15px;
+}
+.pc-h b {
+  font: 650 15px var(--round);
+}
+.predict-card p {
+  margin: 4px 0 10px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.predict-card textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 0;
+  outline: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: 13px/1.5 var(--mono);
+  background: var(--bg);
+  box-shadow: 0 0 0 1px var(--line);
+  user-select: text;
+}
+.predict-card textarea:focus {
+  box-shadow: 0 0 0 1.5px var(--violet, #7c6cf0);
+}
+.pc-act {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.pr-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pr-top .link {
+  margin-left: auto;
+}
+.pr-emo {
+  font-size: 28px;
+  line-height: 1;
+  animation: popc 0.45s ease-out;
+  display: inline-block;
+}
+.pr-top b {
+  display: block;
+  font: 700 16px var(--round);
+}
+.pr-top span {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.predict-res.exact {
+  box-shadow: 0 0 0 1.5px var(--mint, #2fb380);
+  background: color-mix(in srgb, var(--mint, #2fb380) 7%, var(--panel));
+}
+.predict-res.close {
+  box-shadow: 0 0 0 1.5px #f2b632;
+}
+.predict-res.miss,
+.predict-res.crash {
+  box-shadow: 0 0 0 1.5px var(--accent);
+}
+.pr-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 12px 0 8px;
+}
+.pr-cols pre {
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--bg);
+  font: 12.5px/1.5 var(--mono);
+  white-space: pre-wrap;
+  max-height: 160px;
+  overflow: auto;
+}
+.predict-res .err-ex {
+  margin-top: 8px;
+}
+.pr-cols .ln {
+  display: block;
+  border-radius: 4px;
+  padding: 0 4px;
+  margin: 0 -4px;
+}
+.pr-cols .ln.ok {
+  background: color-mix(in srgb, var(--mint, #2fb380) 16%, transparent);
+}
+.pr-cols .ln.no {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.routed {
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--ink-2);
+  background: color-mix(in srgb, var(--violet, #7c6cf0) 9%, transparent);
+}

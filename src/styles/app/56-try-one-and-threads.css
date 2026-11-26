@@ -1,0 +1,196 @@
+/* try one: bigger pictures on a soft tinted ground */
+.calm-row .pebble {
+  background: color-mix(in srgb, var(--panel) 75%, transparent);
+}
+.calm-row .thumb {
+  height: 96px;
+  background: linear-gradient(160deg, var(--bg-2), var(--bg));
+}
+.calm-row .pebble:hover {
+  box-shadow:
+    0 0 0 1px var(--line-2),
+    var(--shadow-2);
+}
+:where(.hero-card, .mini-tile):active {
+  transform: scale(0.98);
+  transition-duration: 0.06s;
+}
+
+/* dark: one deep frame around the page instead of grey on grey */
+@media (prefers-color-scheme: dark) {
+  .app {
+    background: #0e0d12;
+  }
+  .side {
+    background: #0e0d12;
+  }
+  .sheet {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.06),
+      0 10px 40px rgba(0, 0, 0, 0.5);
+  }
+  .side nav button.on,
+  .nav-pill {
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+  .new {
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07);
+  }
+}
+.home.calm .home-h {
+  font-size: 44px;
+  letter-spacing: -1px;
+}
+
+/* ===================================================================================================
+   Home, split: your conversations on the left, today's plan on the right. */
+.home.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  height: 100%;
+  overflow: hidden;
+  padding: 0;
+}
+.sp-main {
+  position: relative;
+  overflow: auto;
+  min-width: 0;
+}
+.sp-main .home-glow {
+  left: 45%;
+  top: -120px;
+}
+.sp-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 11vh 44px 60px;
+}
+.sp-hello {
+  margin: 0;
+  font: 600 38px/1.1 var(--serif);
+  letter-spacing: -0.8px;
+  color: var(--ink);
+}
+.sp-sub {
+  margin: 8px 0 26px;
+  font-size: 15px;
+  color: var(--ink-3);
+}
+.tries.left {
+  justify-content: flex-start;
+}
+.sp-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  font: 750 11px var(--round);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.sp-h .link {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: none;
+  letter-spacing: 0;
+  font: 600 12px var(--round);
+  color: var(--ink-3);
+}
+.sp-h .link:hover {
+  color: var(--ink);
+}
+.sp-h kbd {
+  font-size: 10px;
+}
+.sp-threads {
+  margin-top: 40px;
+}
+.thread {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px 12px;
+  margin: 0 -12px;
+  width: calc(100% + 24px);
+  border-radius: 14px;
+  text-align: left;
+  transition:
+    background 0.15s,
+    transform 0.12s;
+}
+.thread + .thread {
+  box-shadow: 0 -1px 0 var(--line);
+}
+.thread:hover {
+  background: color-mix(in srgb, var(--panel) 80%, transparent);
+  box-shadow: none;
+}
+.thread:hover + .thread {
+  box-shadow: none;
+}
+.th-ic,
+.th-av {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: var(--bg-2);
+  color: var(--ink-3);
+}
+.th-av {
+  object-fit: cover;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.th-ic .lang-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.th-t {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.th-t b {
+  font: 600 14.5px var(--sans);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.th-t em {
+  font-style: normal;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.th-when {
+  flex: none;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.th-go {
+  flex: none;
+  color: var(--ink-4);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+.thread:hover .th-go {
+  opacity: 1;
+  transform: none;
+}

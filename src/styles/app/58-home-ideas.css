@@ -1,0 +1,296 @@
+/* ---- ideas drifting across Home: two slow rows, each card with a tiny moving picture */
+.ideaflow {
+  margin-top: 40px;
+  margin-left: -44px;
+  margin-right: -44px;
+}
+.if-h {
+  padding: 0 44px;
+  margin-bottom: 12px;
+  font: 750 11px var(--round);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.if-row {
+  overflow: hidden;
+  padding: 6px 0;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 44px,
+    #000 calc(100% - 44px),
+    transparent
+  );
+  mask-image: linear-gradient(90deg, transparent, #000 44px, #000 calc(100% - 44px), transparent);
+}
+.ex-gh {
+  padding: 4px 2px;
+  line-height: 1.5;
+}
+.ex-gh .link {
+  padding: 0;
+}
+.if-track {
+  display: flex;
+  gap: 12px;
+  width: max-content;
+  animation: flow 60s linear infinite;
+}
+.if-row.rev .if-track {
+  animation-direction: reverse;
+  animation-duration: 70s;
+}
+.if-row:hover .if-track,
+.if-row:focus-within .if-track {
+  animation-play-state: paused;
+}
+@keyframes flow {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.if-card {
+  flex: none;
+  width: 196px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 10px 12px;
+  border-radius: 16px;
+  text-align: left;
+  background: color-mix(in srgb, var(--panel) 80%, transparent);
+  box-shadow: 0 0 0 1px var(--line);
+  transition:
+    transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+    box-shadow 0.2s,
+    background 0.2s;
+}
+.if-card:hover {
+  transform: translateY(-3px);
+  background: var(--panel);
+  box-shadow:
+    0 0 0 1px var(--line-2),
+    var(--shadow-2);
+}
+.if-card span {
+  padding: 0 4px;
+  font: 600 13px/1.35 var(--round);
+  color: var(--ink);
+}
+.if-art {
+  width: 100%;
+  height: 86px;
+  border-radius: 11px;
+  background: linear-gradient(160deg, var(--bg-2), var(--bg));
+}
+.ia-bar {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: bars 2.4s ease-in-out infinite alternate;
+}
+@keyframes bars {
+  from {
+    transform: scaleY(1);
+  }
+  to {
+    transform: scaleY(0.35);
+  }
+}
+.ia-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: popin 3.5s ease-out infinite;
+}
+@keyframes popin {
+  0% {
+    transform: scale(0);
+  }
+  15%,
+  85% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+.ia-grow {
+  stroke-dasharray: 40;
+  animation: grow 3.5s ease-out infinite;
+}
+@keyframes grow {
+  0% {
+    stroke-dashoffset: 40;
+  }
+  15%,
+  85% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 40;
+  }
+}
+.ia-draw {
+  stroke-dasharray: 160;
+  animation: draw2 3.2s ease-in-out infinite;
+}
+@keyframes draw2 {
+  0% {
+    stroke-dashoffset: 160;
+  }
+  55%,
+  90% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 160;
+  }
+}
+.ia-spin {
+  transform-origin: 60px 35px;
+  animation: spin 24s linear infinite;
+}
+.ia-tick {
+  opacity: 0;
+  animation: tick 3s steps(1) infinite;
+}
+.ia-tick.b {
+  animation-delay: 1s;
+}
+.ia-tick.c {
+  animation-delay: 2s;
+}
+@keyframes tick {
+  0%,
+  33% {
+    opacity: 1;
+  }
+  34%,
+  100% {
+    opacity: 0;
+  }
+}
+.ia-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pulse 1s ease-in-out infinite;
+}
+.ia-type {
+  transform-box: fill-box;
+  transform-origin: left;
+  animation: typeline 3.6s ease-out infinite;
+}
+@keyframes typeline {
+  0% {
+    transform: scaleX(0);
+  }
+  30%,
+  90% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(0);
+  }
+}
+.ia-blink {
+  animation: blink 1s steps(1) infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+.ia-orbit {
+  transform-origin: 60px 35px;
+  animation: spin 9s linear infinite;
+}
+.ia-herd {
+  fill: #3fd1a3;
+  animation: herd 4.6s ease-in-out infinite;
+}
+.ia-herd.sus {
+  fill: var(--line-2);
+  animation-name: herd2;
+}
+@keyframes herd {
+  0%,
+  60%,
+  100% {
+    fill: #3fd1a3;
+  }
+}
+@keyframes herd2 {
+  0%,
+  25% {
+    fill: var(--line-2);
+  }
+  40%,
+  60% {
+    fill: #ef476f;
+  }
+  80%,
+  100% {
+    fill: #3fd1a3;
+  }
+}
+.ia-fire {
+  animation: fire 2s ease-in-out infinite;
+}
+@keyframes fire {
+  0%,
+  100% {
+    fill: #a58bff;
+    opacity: 0.5;
+  }
+  40% {
+    fill: #ffcf5c;
+    opacity: 1;
+  }
+}
+.ia-rise {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: rise 3s ease-out infinite;
+}
+@keyframes rise {
+  0% {
+    transform: scaleY(0);
+  }
+  40%,
+  85% {
+    transform: scaleY(1);
+  }
+  100% {
+    transform: scaleY(0);
+  }
+}
+.ia-burn {
+  fill: #3fd1a3;
+  opacity: 0.75;
+  animation: burn 4s ease-in-out infinite;
+}
+@keyframes burn {
+  0%,
+  20% {
+    fill: #3fd1a3;
+  }
+  35% {
+    fill: #ffcf5c;
+  }
+  50% {
+    fill: #ef476f;
+  }
+  70%,
+  100% {
+    fill: var(--line-2);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .if-track,
+  .if-art * {
+    animation: none !important;
+  }
+}

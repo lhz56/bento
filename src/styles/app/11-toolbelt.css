@@ -1,0 +1,154 @@
+/* toolbelt */
+.belt {
+  columns: 2 420px;
+  column-gap: 40px;
+}
+.belt-group {
+  break-inside: avoid;
+  margin-bottom: 26px;
+}
+.bg-h {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+}
+.bg-h b {
+  font: 750 11px var(--round);
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.bg-h span {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.tool {
+  display: flex;
+  gap: 14px;
+  padding: 12px 0;
+  break-inside: avoid;
+}
+.tool + .tool {
+  border-top: 1px dashed var(--line);
+}
+.tool-main {
+  flex: 1;
+  min-width: 0;
+}
+.tool-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tool-top b {
+  font-size: 15px;
+  font-weight: 700;
+}
+.tool-used {
+  font: 650 11px var(--round);
+  color: var(--mint-ink);
+}
+.tool-used:hover {
+  text-decoration: underline;
+}
+.tool-tag {
+  font: 650 10px var(--round);
+  color: var(--violet-ink);
+  background: var(--violet-soft);
+  padding: 1px 7px;
+  border-radius: 99px;
+}
+.tool-what {
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.45;
+  margin: 2px 0 6px;
+}
+.tool-why {
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+  animation: fadeUp 0.35s both;
+}
+.tool-why .k {
+  color: var(--accent-ink);
+}
+.tool-alts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin-top: 8px;
+}
+.tool-alts .k {
+  margin-right: 2px;
+}
+.alt {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 9px 0 4px;
+  border-radius: 99px;
+  font: 600 11.5px var(--round);
+  color: var(--ink-3);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: all 0.15s;
+}
+.alt .brand-plain {
+  filter: grayscale(1);
+  opacity: 0.6;
+  transition: all 0.15s;
+}
+.alt:hover,
+.alt.on {
+  color: var(--ink);
+  background: var(--panel);
+  box-shadow:
+    inset 0 0 0 1px var(--line-2),
+    var(--shadow-1);
+}
+.alt:hover .brand-plain,
+.alt.on .brand-plain {
+  filter: none;
+  opacity: 1;
+}
+.alt-when {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  max-height: 0;
+  overflow: hidden;
+  transition:
+    max-height 0.2s,
+    margin 0.2s;
+}
+.alt-when.show {
+  max-height: 60px;
+  margin-top: 7px;
+}
+.alt-when b {
+  color: var(--ink);
+}
+.workshop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  padding-top: 6px;
+}
+.workshop .mini-h {
+  margin: 0 4px 0 0;
+}
+.ws {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}

@@ -1,0 +1,265 @@
+/* ------------------------------------------------------------ path: the picker, hero, finish line */
+/* each path is a small card: an icon, its name, and a dot per stop (filled when done) */
+.pcards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 8px;
+  margin: -8px 0 14px;
+}
+.pcard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 12px 11px;
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+  text-align: left;
+  transition: box-shadow 0.15s;
+}
+.pcard:hover {
+  box-shadow:
+    0 0 0 1px var(--line-2),
+    var(--shadow-1);
+}
+.pcard.on {
+  box-shadow:
+    0 0 0 1.5px var(--accent),
+    var(--shadow-1);
+}
+.pcard-i {
+  font-size: 20px;
+  line-height: 1;
+}
+.pcard.own .pcard-i {
+  font-size: 15px;
+  color: var(--accent-ink);
+}
+.pcard-t {
+  font: 650 13px/1.25 var(--round);
+  color: var(--ink-2);
+}
+.pcard.on .pcard-t {
+  color: var(--ink);
+}
+.pcard-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: auto;
+  padding-top: 2px;
+}
+.pcard-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 16%, transparent);
+}
+.pcard-dots i.on {
+  background: var(--mint);
+}
+.pcard.own {
+  padding-right: 26px;
+}
+.pcard .track-x {
+  top: 6px;
+  right: 6px;
+}
+.pcard.all {
+  background: color-mix(in srgb, var(--mint) 9%, var(--panel));
+} /* a finished path */
+.stop-card > span.stop-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 700 10px var(--round);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.stop-kind > span {
+  font-size: 12px;
+  letter-spacing: 0;
+}
+.ring-bg {
+  fill: none;
+  stroke: var(--bg-3);
+}
+.ring-fg {
+  fill: none;
+  stroke: var(--mint);
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.6s;
+}
+.make-path.busy {
+  background: linear-gradient(90deg, var(--panel) 0%, var(--accent-soft) 50%, var(--panel) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+.phero {
+  display: flex;
+  gap: 26px;
+  align-items: stretch;
+  margin: 4px 0 34px;
+  padding: 24px 26px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, var(--panel), var(--accent-soft));
+  box-shadow:
+    0 0 0 1px var(--line),
+    var(--shadow-1);
+  animation: fadeUp 0.35s both;
+}
+.phero-main {
+  flex: 1;
+  min-width: 0;
+}
+.phero-k {
+  font: 700 11px var(--round);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+.phero h2 {
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  margin: 6px 0 6px;
+  line-height: 1.1;
+}
+.phero p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 14.5px;
+  line-height: 1.5;
+  max-width: 470px;
+}
+.phero-end {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 16px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+  font-size: 13.5px;
+  color: var(--ink);
+  max-width: 470px;
+  line-height: 1.4;
+}
+.phero-end > span {
+  font-size: 18px;
+  line-height: 1.2;
+}
+.phero-end i {
+  display: block;
+  font: normal 700 10.5px var(--round);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 1px;
+}
+.phero-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+  padding-left: 26px;
+  border-left: 1px dashed var(--line-2);
+  width: 230px;
+  flex: none;
+}
+.phero-prog {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.phero-prog b {
+  display: block;
+  font: 800 26px var(--round);
+  line-height: 1;
+}
+.phero-prog span {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.phero-side .btn {
+  height: 36px;
+  padding: 0 16px;
+  font-size: 13.5px;
+}
+.phero-side .btn span {
+  margin-left: 2px;
+}
+.phero-next {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  line-height: 1.35;
+}
+.phero-done {
+  font: 700 14px var(--round);
+  color: var(--mint-ink);
+}
+.stop-make {
+  display: block;
+  font-size: 12.5px !important;
+  color: var(--ink-2) !important;
+}
+.stop-make i {
+  font-style: normal;
+  font: 700 10px var(--round);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--mint-ink);
+  margin-right: 6px;
+}
+.stop-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+.stop-min {
+  margin-left: auto;
+  font: 600 11px var(--mono);
+  color: var(--ink-4);
+}
+.stop-flag {
+  position: relative;
+  z-index: 2;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 12px 18px;
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1.5px var(--line-2);
+  max-width: 440px;
+}
+.stop-flag span {
+  font-size: 20px;
+}
+.stop-flag b {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 600;
+}
+.stop-flag.done {
+  box-shadow: 0 0 0 1.5px var(--mint);
+  background: var(--mint-soft);
+}

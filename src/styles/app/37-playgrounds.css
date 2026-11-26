@@ -1,0 +1,284 @@
+/* playgrounds */
+.ideas-inner.wide {
+  max-width: 1240px;
+}
+.playgrounds .shelves {
+  margin-bottom: 18px;
+}
+.pg-sql,
+.pg-git {
+  display: grid;
+  grid-template-columns: 270px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+.pg-side {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.pg-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.tbl-card {
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+  transition: transform 0.12s;
+}
+.tbl-card:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    var(--shadow-1),
+    0 0 0 1px var(--line-2);
+}
+.tbl-h {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.tbl-h b {
+  font: 700 14px var(--mono);
+}
+.tbl-h span {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.tbl-what {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin: 2px 0 6px;
+}
+.tbl-cols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tbl-cols code,
+.tbl-key code {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--bg-2);
+}
+code.pk {
+  background: var(--butter-soft) !important;
+  color: var(--butter-ink);
+}
+code.fk {
+  background: var(--violet-soft) !important;
+  color: var(--violet-ink);
+}
+.tbl-key {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.ch-row {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  padding: 7px 9px;
+  border-radius: 11px;
+  text-align: left;
+}
+.ch-row:hover {
+  background: var(--bg-2);
+}
+.ch-row.on {
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line-2);
+}
+.ch-n {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--bg-2);
+  font: 700 11px var(--round);
+  color: var(--ink-3);
+}
+.ch-row.done .ch-n,
+.ms-row.done .ch-n {
+  background: var(--mint-ink);
+  color: var(--on-ink);
+}
+.ms-row.now .ch-n {
+  background: var(--accent-ink);
+  color: var(--on-ink);
+}
+.ch-t {
+  display: flex;
+  flex-direction: column;
+}
+.ch-t b {
+  font: 650 13px var(--round);
+}
+.ch-t em {
+  font-style: normal;
+  font: 11px var(--mono);
+  color: var(--ink-3);
+}
+.ch-goal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+}
+.ch-goal > div:first-child {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.ch-goal b {
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 600;
+}
+.ch-goal.ok {
+  box-shadow: 0 0 0 2px var(--mint);
+}
+.ch-ok {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mint-ink);
+  font: 700 13px var(--round);
+}
+.ch-no {
+  color: var(--rose-ink);
+  font-size: 12.5px;
+}
+.ch-hint {
+  flex-basis: 100%;
+  font-size: 13px;
+  color: var(--ink-2);
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--butter-soft);
+}
+.ch-hint code {
+  font-size: 12px;
+}
+.sql-ed {
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+}
+.sql-ed .cm-editor {
+  min-height: 96px;
+  max-height: 220px;
+}
+.sql-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 8px 10px;
+  border-top: 1px solid var(--line);
+}
+.sql-bar .muted {
+  margin-right: auto;
+}
+.sql-plain {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--violet-soft);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.sql-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 4px;
+}
+.sf-step {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sf-arrow {
+  color: var(--ink-4);
+  font-weight: 700;
+}
+.sf-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 210px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.sf-box code {
+  font: 700 10.5px var(--mono);
+  color: var(--accent-ink);
+}
+.sf-box b {
+  font: 700 12px var(--round);
+  color: var(--ink);
+}
+.sf-box.out {
+  background: var(--mint-soft);
+}
+.sf-box.out code {
+  color: var(--mint-ink);
+}
+.k-WHERE .sf-box code {
+  color: var(--violet-ink);
+}
+.k-GROUPBY .sf-box code {
+  color: #b8860b;
+}
+.k-JOIN .sf-box code {
+  color: var(--sky-ink);
+}
+.sql-res {
+  overflow: auto;
+  max-height: 360px;
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px var(--line);
+  background: var(--panel);
+}
+.sql-res table {
+  border-collapse: collapse;
+  width: 100%;
+  font: 12.5px var(--mono);
+}
+.sql-res th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-2);
+  text-align: left;
+  padding: 6px 10px;
+  font: 700 11px var(--round);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--ink-3);
+}
+.sql-res td {
+  padding: 5px 10px;
+  border-top: 1px solid var(--line);
+}
+.sql-res td.num {
+  text-align: right;
+  color: var(--syn-num);
+}
+.sql-res td i {
+  color: var(--ink-4);
+}

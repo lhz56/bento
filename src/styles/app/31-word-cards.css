@@ -1,0 +1,123 @@
+/* words: term and analogy first, definition on hover or click */
+.word {
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.word:hover {
+  box-shadow: 0 0 0 1.5px var(--line-2);
+}
+.word .w-term {
+  font-size: 17px;
+}
+.word .w-like {
+  margin-top: 2px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.word.has-like .w-plain {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition:
+    max-height 0.25s ease,
+    opacity 0.2s,
+    margin 0.2s;
+  margin-top: 0;
+}
+.word.has-like:hover .w-plain,
+.word.has-like.open .w-plain {
+  max-height: 140px;
+  opacity: 1;
+  margin-top: 8px;
+}
+.w-foot {
+  gap: 10px;
+  align-items: baseline;
+}
+.w-foot .link:first-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  color: var(--ink-3);
+}
+.w-foot .link:last-child {
+  flex: none;
+}
+/* "new in your code" spotter */
+.spot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px 8px;
+  border-bottom: 1px solid var(--line);
+  animation: fadeUp 0.25s both;
+}
+.spot-h {
+  font: 700 10.5px var(--round);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--violet, #7c6cf0);
+  margin-right: 2px;
+}
+.spot-chip {
+  padding: 3px 10px;
+  border-radius: 99px;
+  font: 600 12px var(--mono);
+  color: var(--violet, #7c6cf0);
+  background: color-mix(in srgb, var(--violet, #7c6cf0) 10%, transparent);
+  transition: background 0.15s;
+}
+.spot-chip:hover,
+.spot-chip.on {
+  background: color-mix(in srgb, var(--violet, #7c6cf0) 20%, transparent);
+}
+.spot-card {
+  flex-basis: 100%;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+  font-size: 13px;
+  animation: fadeUp 0.2s both;
+}
+.spot-card p {
+  margin: 4px 0 0;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+.spot-like {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--violet, #7c6cf0) !important;
+}
+.spot-line {
+  font: 600 11px var(--mono);
+  color: var(--ink-3);
+  cursor: default;
+}
+.spot-act {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+}
+.tk-path {
+  margin-top: 10px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font: 650 12.5px var(--round);
+  color: var(--accent-ink);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  text-align: left;
+}
+.tk-path:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.tk-path:disabled {
+  opacity: 0.7;
+}

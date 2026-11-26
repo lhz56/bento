@@ -1,0 +1,169 @@
+/* the project conversation, docked beside the code */
+.atlas:has(.aq-dock) {
+  padding-right: 392px;
+}
+.atlas-ask.docked {
+  position: static;
+  padding: 0;
+  height: 0;
+}
+.aq-dock {
+  position: fixed;
+  z-index: 25;
+  top: 70px;
+  right: 18px;
+  bottom: 18px;
+  width: 372px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  background: var(--popover);
+  box-shadow:
+    var(--shadow-2),
+    0 0 0 1px var(--line);
+  animation: slideL 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  user-select: text;
+}
+.aq-dock-h {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 10px 8px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.aq-dock-h .mini-h {
+  flex: 1;
+  margin: 0;
+}
+.aq-dock-h b {
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+}
+.aq-dock .aq-thread {
+  flex: 1;
+  overflow: auto;
+  max-height: none;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.aq-dock .fu {
+  margin: 0 10px 10px;
+  width: auto;
+  box-shadow: 0 0 0 1px var(--line);
+  pointer-events: auto;
+}
+.aq-dock .fu:focus-within {
+  width: auto;
+  box-shadow: 0 0 0 1.5px var(--accent-ink);
+}
+.aq-dock .aq-a {
+  font-size: 14.5px;
+}
+.aq-pill {
+  pointer-events: auto;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 99px;
+  background: var(--ink);
+  color: var(--bg);
+  font: 650 13px var(--round);
+  box-shadow: var(--shadow-2);
+}
+@media (max-width: 1280px) {
+  .atlas:has(.aq-dock) {
+    padding-right: 0;
+  }
+  .aq-dock {
+    width: 340px;
+  }
+}
+.aq-dock,
+.aq-pill {
+  pointer-events: auto;
+}
+.aq-dock .aq-a code {
+  word-break: break-all;
+}
+.aq-dock .aq-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.aq-dock .file-chip {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.atlas:has(.aq-dock) .ab-act .lbl {
+  display: none;
+}
+.atlas:has(.aq-dock) .ab-id {
+  flex: none;
+  min-width: 0;
+  max-width: 200px;
+}
+.atlas:has(.aq-dock) .ab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.atlas:has(.aq-dock) .ab-id .muted {
+  display: none;
+}
+
+/* ---- the sidebar can close; the page takes the whole window */
+.app {
+  transition: grid-template-columns 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.app.side-closed {
+  grid-template-columns: 0 1fr;
+}
+.app.side-closed .side {
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+  padding: 0;
+}
+.side {
+  transition: opacity 0.2s;
+}
+.app.side-closed .sheet {
+  margin-left: 8px;
+}
+.side-open {
+  position: absolute;
+  z-index: 30;
+  top: 11px;
+  left: 12px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+  background: color-mix(in srgb, var(--panel) 80%, transparent);
+  box-shadow: 0 0 0 1px var(--line);
+  -webkit-app-region: no-drag;
+  animation: fadeUp 0.25s both;
+}
+.side-open:hover {
+  color: var(--ink);
+  background: var(--panel);
+}
+body.mac .side-open {
+  left: 80px;
+}
+.app.side-closed .atlas-bar {
+  padding-left: 56px;
+}
+body.mac .app.side-closed .atlas-bar {
+  padding-left: 124px;
+}
+.app.side-closed .story-inner {
+  padding-top: 20px;
+}

@@ -1,0 +1,700 @@
+/* ================================================================ every page on a phone, one system: the phone Atlas's
+   One typeface, the iPhone's own, at the iPhone's own sizes: a Large Title for a page, Title 2 for a section, Body to
+   read. The switch or the title in the bar at the top already names the page, so the page doesn't say it again; and a
+   line of words under a title, not a paragraph (the Mac keeps its longer ones). */
+.ex-sub.short {
+  display: none;
+}
+.app.phone .ex-sub.long {
+  display: none;
+}
+.app.phone .ex-sub.short {
+  display: block;
+}
+.app.phone {
+  --serif: var(--sans);
+}
+.app.phone .hello {
+  display: none;
+}
+.app.phone :is(.home-h, .sp-hello) {
+  font-family: var(--sans);
+  font-weight: 700;
+  letter-spacing: -0.9px;
+  color: var(--ink);
+}
+.app.phone .home-h {
+  font-size: 31px;
+  line-height: 1.12;
+  margin: 4px 0 8px;
+  text-wrap: balance;
+}
+.app.phone .sp-hello {
+  font-size: 34px;
+  line-height: 1.1;
+}
+.app.phone :is(.home-h, .sp-hello) em {
+  font-style: normal;
+}
+.app.phone .ex-sub {
+  margin: 0 0 18px;
+  font: 400 16px/1.4 var(--sans);
+  letter-spacing: -0.2px;
+  color: var(--ink-3);
+  max-width: 34em;
+}
+.app.phone .ex-sub b {
+  color: var(--ink-2);
+  font-weight: 600;
+}
+/* every heading: the system's weights (a serif's 600 reads thin in SF), tight like an iPhone's titles */
+.app.phone :is(h1, h2, h3) {
+  letter-spacing: -0.4px;
+}
+.app.phone :is(.story-head h1, .ih-text h2, .phero h2, .crash h2, .over-text h1, .a-hero h1) {
+  font-weight: 700;
+  letter-spacing: -0.6px;
+}
+
+/* the drawer on a phone: the Mac you're on (tap for your Macs), New question as the one big button, what you opened
+   lately as rows on a card, and the AI and Settings at the bottom, each with its name */
+/* (on an iPad's sidebar: the same card, at the sidebar's size) */
+.mac-card {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0 0 10px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow:
+    var(--shadow-1),
+    inset 0 0 0 1px var(--line);
+  text-align: left;
+  color: var(--ink);
+}
+.app:not(.phone) .mac-card .mc-ic {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+.app:not(.phone) .mac-card .mc-ic svg {
+  width: 18px;
+  height: 16px;
+}
+.app:not(.phone) .mac-card .mc-t b {
+  font-size: 13px;
+}
+.app:not(.phone) .mac-card .mc-t > span {
+  font-size: 11.5px;
+}
+.app.phone .side {
+  background: var(--gbg);
+  padding-left: max(14px, env(safe-area-inset-left));
+  padding-right: 14px;
+}
+.app.phone .side .brand {
+  height: 52px;
+  padding: 0 4px;
+  font-size: 21px;
+  gap: 10px;
+}
+.app.phone .side .brand .side-search {
+  margin-left: auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--gfill);
+  color: var(--ink-2);
+}
+.app.phone .mac-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  margin: 4px 0 12px;
+  padding: 10px 12px 10px 10px;
+  border-radius: 16px;
+  background: var(--gcell);
+  text-align: left;
+  color: var(--ink);
+  box-shadow: 0 0.5px 0 var(--gsep);
+}
+.mc-ic {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: var(--ink);
+  color: var(--bg);
+}
+.mac-card.off .mc-ic {
+  background: var(--gfill-2);
+  color: var(--ink-3);
+}
+.mc-t {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.mc-t b {
+  font: 600 16px/1.25 var(--sans);
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mc-t > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 400 13px/1.3 var(--sans);
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mc-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--mint);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mint) 22%, transparent);
+}
+.mac-card.off .mc-dot {
+  background: var(--butter);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--butter) 22%, transparent);
+}
+.mc-chev {
+  flex: none;
+  color: var(--ink-4);
+}
+.app.phone .side .new {
+  justify-content: center;
+  gap: 8px;
+  min-height: 50px;
+  margin: 0 0 6px;
+  border-radius: 14px;
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: none;
+  font: 600 17px var(--sans);
+  letter-spacing: -0.2px;
+}
+.app.phone .side .new .icon {
+  color: var(--bg);
+}
+.app.phone .side .side-h {
+  margin: 22px 4px 7px;
+  padding: 0;
+  font: 500 13px var(--sans);
+  letter-spacing: 0.1px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.app.phone .side .recent {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+}
+.app.phone .side .side-empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 26px 18px;
+  border-radius: 16px;
+  background: var(--gcell);
+  color: var(--ink-3);
+  font: 400 15px/1.4 var(--sans);
+  text-align: center;
+}
+.app.phone .side .side-empty::before {
+  content: '';
+  width: 34px;
+  height: 34px;
+  margin-bottom: 4px;
+  background: var(--ink-4);
+  opacity: 0.5;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+.app.phone .side .rl-day {
+  margin: 14px 4px 6px;
+  padding: 0;
+  font: 500 13px var(--sans);
+  letter-spacing: 0.1px;
+  color: var(--ink-3);
+}
+.app.phone .side .rl-day:first-child {
+  margin-top: 0;
+}
+.app.phone .side .rl {
+  height: auto;
+  min-height: 48px;
+  padding: 0 4px 0 12px;
+  border-radius: 0;
+  background: var(--gcell);
+  color: var(--ink);
+  position: relative;
+}
+.app.phone .side .rl + .rl::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 42px;
+  right: 0;
+  height: 0.5px;
+  background: var(--gsep);
+}
+.app.phone .side :is(.rl-day, :first-child) + .rl,
+.app.phone .side .recent > .rl:first-child {
+  border-radius: 14px 14px 0 0;
+}
+.app.phone .side .rl:has(+ .rl-day),
+.app.phone .side .rl:last-of-type:not(:has(+ .rl)) {
+  border-radius: 0 0 14px 14px;
+}
+.app.phone .side :is(.rl-day, :first-child) + .rl:has(+ .rl-day),
+.app.phone .side :is(.rl-day, :first-child) + .rl:last-of-type:not(:has(+ .rl)) {
+  border-radius: 14px;
+}
+.app.phone .side .rl.on {
+  background: color-mix(in srgb, var(--accent) 12%, var(--gcell));
+}
+.app.phone .side .rl-main {
+  gap: 12px;
+  font: 400 16px var(--sans);
+}
+.app.phone .side .rl-t {
+  font-size: 16px;
+  letter-spacing: -0.2px;
+}
+.app.phone .side .rl-av {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+}
+.app.phone .side .rl-ic {
+  width: 22px;
+  height: 22px;
+  font-size: 14px;
+}
+.app.phone .side .rl-x {
+  opacity: 1;
+  color: var(--ink-4);
+}
+.app.phone .side .side-more {
+  margin: 8px 4px 0;
+  color: var(--accent-ink);
+  font: 500 15px var(--sans);
+}
+.app.phone .side .side-foot {
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 10px 0 0;
+  border-top: 0.5px solid var(--gsep);
+}
+.app.phone .side .model-wrap {
+  flex: 1;
+  min-width: 0;
+}
+.app.phone .side .model-pick {
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 14px;
+  background: var(--gcell);
+  font: 600 16px var(--sans);
+  letter-spacing: -0.2px;
+}
+.app.phone .side .model-pick .caret {
+  margin-left: auto;
+  color: var(--ink-4);
+}
+.app.phone .side .usage,
+.app.phone .side .avatar {
+  display: none;
+}
+.app.phone .side-gear {
+  width: auto;
+  height: 46px;
+  padding: 0 14px;
+  gap: 7px;
+  display: flex;
+  align-items: center;
+  border-radius: 14px;
+  background: var(--gcell);
+  color: var(--ink);
+  font: 600 16px var(--sans);
+}
+.app.phone .side-gear::after {
+  content: attr(aria-label);
+}
+
+/* Settings on a phone: a sheet that scrolls (it ran off the bottom of the screen before, with no way down), and each
+   setting a card on the grouped grey, as in the iPhone's own Settings: its name, a line about it, then its control */
+.app.phone .pal-veil:has(> .settings) {
+  padding-top: calc(10px + env(safe-area-inset-top));
+  background: rgba(10, 8, 6, 0.3);
+}
+.app.phone .settings {
+  align-self: stretch;
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 16px calc(28px + env(safe-area-inset-bottom));
+  background: var(--gbg);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -1px 0 var(--gsep);
+}
+.app.phone .set-h {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 -16px 6px;
+  padding: 18px 16px 10px;
+  background: color-mix(in srgb, var(--gbg) 92%, transparent);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+.app.phone .set-h h2 {
+  font: 700 28px/1.15 var(--sans);
+  letter-spacing: -0.6px;
+}
+.app.phone .set-h .ib {
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--gfill-2);
+  color: var(--ink-3);
+  font-size: 13px;
+  font-weight: 700;
+}
+.app.phone .settings .set-row {
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 14px 16px 16px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--gcell);
+}
+.app.phone .settings .set-row > div:first-child {
+  gap: 3px;
+}
+.app.phone .settings .set-row b {
+  font: 600 17px/1.25 var(--sans);
+  letter-spacing: -0.3px;
+  color: var(--ink);
+}
+.app.phone .settings .set-row span {
+  font: 400 14px/1.38 var(--sans);
+  letter-spacing: -0.1px;
+  color: var(--ink-3);
+}
+.app.phone .settings .seg {
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--gfill-2);
+}
+.app.phone .settings .seg button {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 4px;
+  border-radius: 7px;
+  font: 500 13px var(--sans);
+  letter-spacing: -0.1px;
+  color: var(--ink);
+}
+.app.phone .settings .seg button.on {
+  background: var(--gcell);
+  font-weight: 600;
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.1),
+    0 0 0 0.5px rgba(0, 0, 0, 0.04);
+}
+@media (prefers-color-scheme: dark) {
+  .app.phone .settings .seg button.on {
+    background: #636066;
+  }
+}
+.app.phone .settings .set-sel {
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: var(--gfill);
+  font: 400 17px var(--sans);
+}
+.app.phone .settings .set-models {
+  gap: 8px;
+}
+.app.phone .settings .set-models button {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 20px;
+  background: var(--gfill);
+  box-shadow: none;
+  font: 500 15px var(--sans);
+  color: var(--ink);
+}
+.app.phone .settings .set-models button.on {
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: none;
+}
+.app.phone .settings .interests {
+  gap: 8px;
+}
+.app.phone .settings .int {
+  height: 38px;
+  min-height: 38px;
+  padding: 0 14px;
+  background: var(--gfill);
+  box-shadow: none;
+  font: 500 15px var(--sans);
+  color: var(--ink);
+}
+.app.phone .settings .int.on {
+  background: var(--ink);
+  color: var(--bg);
+}
+.app.phone .settings .btn.ghost {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 20px;
+  background: var(--gfill-2);
+  box-shadow: none;
+  color: var(--accent-ink);
+  font: 600 15px var(--sans);
+}
+.app.phone .settings .set-foot {
+  justify-content: center;
+  padding: 6px 0 0;
+  border: 0;
+}
+/* this device: the picture, the Mac it uses, and how it's doing, then Your Macs (in the app) or Disconnect */
+.app.phone .settings .dev-row .dev-top {
+  flex-wrap: wrap;
+  row-gap: 12px;
+}
+.app.phone .settings .dev-row .dev-top > div:nth-child(2) {
+  flex: 1 1 60%;
+}
+.app.phone .settings .dev-row .dev-top > .btn {
+  flex: 1 0 100%;
+}
+.app.phone .settings .dev-seen.on {
+  color: var(--mint-ink);
+}
+.app.phone .set-h {
+  background: var(--gbg);
+  box-shadow: 0 0.5px 0 transparent;
+}
+.app.phone .settings .pack-add {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+.app.phone .settings .pack-add > label.btn {
+  grid-column: 1 / -1;
+  justify-content: center;
+}
+.app.phone .settings .set-input {
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--gfill);
+  font: 400 16px var(--sans);
+  color: var(--ink);
+}
+
+/* Explore: an iPhone search field (grey, no box around it; its button only once there's something to search); the
+   websites a row you swipe under a small heading, not a wall of chips */
+.app.phone .ex-search {
+  min-height: 50px;
+  padding: 4px 6px 4px 14px;
+  border-radius: 14px;
+  background: var(--gfill-2);
+  box-shadow: none;
+}
+.app.phone .ex-search:focus-within {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.app.phone .ex-search .ex-ic {
+  color: var(--ink-3);
+  font-size: 18px;
+}
+.app.phone .ex-search input {
+  height: 42px;
+  font: 400 17px var(--sans);
+  letter-spacing: -0.2px;
+}
+.app.phone .ex-search .send:disabled {
+  display: none;
+}
+.app.phone .ex-search .send {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 11px;
+  font: 600 15px var(--sans);
+}
+.app.phone .site-try {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin: 14px -18px 0;
+  padding: 22px 18px 2px;
+  gap: 8px;
+  position: relative;
+  scrollbar-width: none;
+  font-size: 0;
+}
+.app.phone .site-try::-webkit-scrollbar {
+  display: none;
+}
+.app.phone .site-try > span {
+  position: absolute;
+  top: 0;
+  left: 18px;
+  font: 500 13px var(--sans);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.app.phone .site-try button {
+  flex: none;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 18px;
+  background: var(--gcell);
+  box-shadow: 0 0 0 0.5px var(--gsep);
+  font: 500 15px var(--sans);
+  color: var(--ink);
+}
+.app.phone .shelf {
+  height: 36px;
+  min-height: 36px;
+  padding: 0 14px 0 12px;
+  border-radius: 18px;
+  background: var(--gcell);
+  box-shadow: 0 0 0 0.5px var(--gsep);
+  font: 500 15px var(--sans);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.app.phone .shelf.on {
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: none;
+}
+
+/* Puzzles: the picture across the width, then one line, then one big button (the pattern game and your stars under it) */
+.app.phone .pz-hero {
+  gap: 14px;
+  margin: 4px 0 26px;
+}
+.app.phone .pz-hero-art {
+  max-width: none;
+  display: grid;
+  place-items: center;
+  height: 150px;
+  padding: 10px;
+  border-radius: 18px;
+  background: var(--gcell);
+  box-shadow: none;
+}
+.app.phone .pz-hero-art > * {
+  max-height: 130px;
+  width: auto;
+}
+/* (the line above already says it: make it work, then a billion) */
+.app.phone .pz-3 {
+  display: none;
+}
+.app.phone .pz-hero-acts {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+.app.phone .pz-hero-acts > .btn:first-child {
+  grid-column: 1 / -1;
+  min-height: 50px;
+  justify-content: center;
+  border-radius: 14px;
+  font: 600 17px var(--sans);
+  letter-spacing: -0.2px;
+}
+.app.phone .pz-hero-acts > .btn.ghost {
+  min-height: 44px;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--gcell);
+  box-shadow: 0 0 0 0.5px var(--gsep);
+  font: 500 15px var(--sans);
+}
+.app.phone .pz-total {
+  align-self: center;
+  padding: 0 4px;
+  font: 500 15px var(--sans);
+}
+
+/* Your map: how much you know, two by two (not pills that wrap unevenly), each kind's colour first */
+.app.phone .sm-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 6px 0 18px;
+}
+.app.phone .sm-pill {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: var(--gcell);
+  box-shadow: 0 0 0 0.5px var(--gsep);
+  font: 500 15px var(--sans);
+  color: var(--ink-2);
+}
+
+/* Your words, before there are any: the eight to start with, under a plain line (the title already says what this is) */
+.app.phone .words-empty {
+  padding: 2px 0 0;
+  text-align: left;
+}
+.app.phone .words-empty > p {
+  margin: 10px 4px 10px;
+  font: 400 15px/1.4 var(--sans);
+  color: var(--ink-3);
+}
+.app.phone .words-empty .words.starter {
+  margin-top: 0;
+  font-size: 15px;
+}
+
+/* an iPad (anything you touch): the iPhone's one typeface too, the Mac's layout kept */
+body.touch .app:not(.phone) {
+  --serif: var(--sans);
+}
+body.touch .app:not(.phone) :is(.home-h, .sp-hello) {
+  font-family: var(--sans);
+  font-weight: 700;
+  letter-spacing: -1.2px;
+}
+body.touch .app:not(.phone) :is(.home-h, .sp-hello) em {
+  font-style: normal;
+}
+body.touch .app:not(.phone) .hello {
+  font-style: normal;
+  font-weight: 600;
+}

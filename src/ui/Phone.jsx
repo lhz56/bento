@@ -1,5 +1,5 @@
 // Bento's frame on a phone: a bar at the top (Back, or your recent things), tabs at the bottom, like any iPhone app.
-// The pages inside are Bento's own; mobile.css lays them out for a small screen you hold in one hand.
+// The pages inside are Bento's own; styles/touch lays them out for a small screen you hold in one hand.
 import { useEffect, useState } from 'react';
 import Icon from './Icons.jsx';
 import { GROUPS, groupOf, lastTab } from './Side.jsx';

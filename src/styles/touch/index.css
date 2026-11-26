@@ -1,0 +1,22 @@
+/* Bento on a phone, an iPad, and anything you touch. Layered over the Mac styles (../app), so the Mac app
+   looks the same. Kept in cascade order. */
+@import './01-pairing.css';
+@import './02-settings-devices.css';
+@import './03-settings-devices-guide.css';
+@import './04-phone-frame.css';
+@import './05-phone-pages.css';
+@import './06-phone-atlas.css';
+@import './07-phone-lesson.css';
+@import './08-phone-settings.css';
+@import './09-ipad.css';
+@import './10-touch-feel.css';
+@import './11-every-screen-fits.css';
+@import './12-home-screen-and-sheets.css';
+@import './13-atlas-rows-and-cards.css';
+@import './14-atlas-words-and-stack.css';
+@import './15-atlas-code-browser.css';
+@import './16-story-and-asking.css';
+@import './17-type-and-drawer.css';
+@import './18-touch-motion.css';
+@import './19-code-reading.css';
+@import './20-quick-check.css';

@@ -1,0 +1,295 @@
+/* nine sections: the tab row shrinks and scrolls instead of pushing the buttons onto a second line */
+.atlas-bar {
+  flex-wrap: nowrap;
+}
+.ab-nav {
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ab-nav::-webkit-scrollbar {
+  display: none;
+}
+.ab-nav button {
+  flex: none;
+  padding: 0 8px;
+}
+.ab-act {
+  flex: none;
+}
+.ab-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* labels go when the Atlas itself is narrow (sidebar open, smaller windows), not only when the window is */
+.atlas {
+  container: atlas / inline-size;
+}
+@container atlas (max-width: 1320px) {
+  .ab-act .chip .lbl {
+    display: none;
+  }
+}
+.set-row.col {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.pack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pack-chip {
+  font-size: 12.5px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--bg-2);
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.pack-chip .link {
+  margin-left: auto;
+}
+.pack-add {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.pack-add .set-input {
+  flex: 1;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 0;
+  background: var(--bg-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.set-note.bad {
+  color: var(--rose-ink);
+}
+/* ✓ Checked */
+.checked {
+  position: relative;
+  display: inline-flex;
+  margin-left: 6px;
+}
+.checked > button {
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 99px;
+  background: var(--mint-soft);
+  color: var(--mint-ink);
+  font: 700 11px var(--round);
+}
+.checked.fixed > button {
+  background: var(--butter-soft);
+  color: #8a6100;
+}
+.checked-pop {
+  position: absolute;
+  top: 26px;
+  left: 0;
+  z-index: 30;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--popover);
+  box-shadow:
+    var(--shadow-2),
+    0 0 0 1px var(--line);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.4;
+}
+.checked-pop b {
+  color: var(--ink);
+}
+.checked-pop s {
+  color: var(--rose-ink);
+}
+.cp-fix {
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+.switch {
+  flex: none;
+  width: 40px;
+  height: 24px;
+  border-radius: 99px;
+  background: var(--bg-3);
+  position: relative;
+  transition: background 0.2s;
+}
+.switch i {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s;
+}
+.switch.on {
+  background: var(--mint);
+}
+.switch.on i {
+  transform: translateX(16px);
+}
+.switch:not(.on) {
+  background: color-mix(in srgb, var(--ink) 15%, transparent);
+} /* an off switch stays visible on a dark sheet too */
+/* AI usage meter */
+.usage {
+  position: relative;
+  margin: 0 0 6px;
+}
+.usage-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: var(--ink-3);
+  text-align: left;
+}
+.usage-btn:hover {
+  background: rgba(127, 110, 90, 0.1);
+}
+.usage-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  width: 30px;
+  height: 16px;
+  flex: none;
+}
+.usage-bars i {
+  flex: 1;
+  border-radius: 1.5px;
+  background: var(--ink-4);
+}
+.usage-bars i.today {
+  background: var(--accent);
+}
+.usage-t b {
+  color: var(--ink);
+  font-weight: 700;
+}
+.usage-saved {
+  margin-left: auto;
+  color: var(--mint-ink);
+  font-weight: 650;
+}
+.usage-pop {
+  position: absolute;
+  bottom: 34px;
+  left: 0;
+  z-index: 40;
+  width: 270px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--popover);
+  box-shadow:
+    var(--shadow-2),
+    0 0 0 1px var(--line);
+  font-size: 12.5px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.up-row,
+.up-recent {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.up-row span,
+.up-recent span {
+  color: var(--ink-2);
+}
+.up-recent em {
+  font-style: normal;
+  color: var(--ink-3);
+  font: 11px var(--mono);
+  white-space: nowrap;
+}
+.reopened {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--mint-soft);
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.uchart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.uc-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+.uc-stack {
+  width: 22px;
+  display: flex;
+  flex-direction: column-reverse;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--bg-2);
+}
+.uc-stack i {
+  display: block;
+  width: 100%;
+}
+.uc-lessons {
+  background: var(--accent);
+}
+.uc-quick {
+  background: var(--violet);
+}
+.uc-other {
+  background: var(--sky);
+}
+.uc-saved {
+  background: var(--mint);
+}
+.uc-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-left: 8px;
+  align-self: center;
+}
+.uc-key i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 4px;
+}
+.sheet:focus {
+  outline: none;
+}

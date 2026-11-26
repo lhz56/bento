@@ -1,0 +1,291 @@
+/* ---- the sidebar shelf: small tiles that say what each thing is */
+.rl-tile {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  font: 650 10px var(--serif);
+  color: var(--ink-2);
+  background: color-mix(in srgb, #3776ab 18%, var(--bg-2));
+}
+.rl-tile.mono.javascript {
+  background: color-mix(in srgb, #f0c419 20%, var(--bg-2));
+}
+.rl-tile.mono.typescript {
+  background: color-mix(in srgb, #3178c6 20%, var(--bg-2));
+}
+.rl-tile.mono.html {
+  background: color-mix(in srgb, #e34f26 18%, var(--bg-2));
+}
+.rl-tile.g {
+  font: 700 10px var(--round);
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+}
+.rl-tile.brand {
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+}
+.shelf-list .rl-day {
+  padding: 10px 10px 4px;
+}
+
+/* ===================================================================================================
+   Your map as a treemap: areas sized by how much is in them, skills filled by how well you know them. */
+.tl {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: none;
+  --c: var(--accent);
+}
+.tl.lv3 {
+  background: var(--accent);
+}
+.tl.lv2 {
+  background: color-mix(in srgb, var(--accent) 45%, var(--panel));
+}
+.tl.lv1 {
+  background: color-mix(in srgb, var(--accent) 14%, var(--panel));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.tl.lv0 {
+  background: var(--bg-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.tm-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  transition: grid-template-columns 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.tm-wrap.open {
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+.tm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: min(620px, calc(100vh - 290px));
+  min-height: 440px;
+}
+.tm-row {
+  display: flex;
+  gap: 8px;
+  min-height: 0;
+  flex-basis: 0;
+}
+.tm-area {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex-basis: 0;
+  padding: 10px;
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+}
+.tm-h {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 4px 8px;
+}
+.tm-h b {
+  font: 700 13px var(--round);
+  color: color-mix(in srgb, var(--c) 60%, var(--ink));
+}
+.tm-h span {
+  font: 650 12px var(--round);
+  color: var(--ink-3);
+}
+.tm-grid {
+  flex: 1;
+  display: grid;
+  grid-auto-rows: 1fr;
+  gap: 5px;
+  min-height: 0;
+}
+.tm-cell {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4px;
+  min-height: 0;
+  padding: 7px 9px;
+  border-radius: 10px;
+  text-align: left;
+  overflow: hidden;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    filter 0.15s;
+}
+.tm-n {
+  font: 650 12px/1.25 var(--round);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.tm-l {
+  flex: none;
+  font: 800 12px var(--round);
+}
+.tm-cell.lv0 {
+  background: var(--bg-2);
+  color: var(--ink-3);
+}
+.tm-cell.lv1 {
+  background: color-mix(in srgb, var(--c) 13%, var(--panel));
+  color: var(--ink-2);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 35%, transparent);
+}
+.tm-cell.lv2 {
+  background: color-mix(in srgb, var(--c) 42%, var(--panel));
+  color: var(--ink);
+}
+.tm-cell.lv3 {
+  background: var(--c);
+  color: #141318;
+  box-shadow: 0 6px 16px -8px var(--c);
+}
+.tm-cell.fading {
+  opacity: 0.6;
+  outline: 1.5px dashed color-mix(in srgb, var(--c) 70%, transparent);
+  outline-offset: -3px;
+}
+.tm-cell:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow:
+    0 0 0 1.5px var(--c),
+    var(--shadow-1);
+}
+.tm-cell.sel {
+  box-shadow: 0 0 0 2.5px var(--ink);
+}
+.tm-card {
+  position: relative;
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow:
+    0 0 0 1px var(--line),
+    var(--shadow-1);
+  align-self: start;
+  max-height: min(620px, calc(100vh - 290px));
+  overflow: auto;
+}
+.tm-x {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+.tc-region {
+  font: 750 10.5px var(--round);
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--c) 60%, var(--ink));
+}
+.tc-name {
+  display: block;
+  margin: 4px 0 6px;
+  font: 600 24px/1.15 var(--serif);
+  color: var(--ink);
+}
+.tm-card p {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.tc-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.tc-steps span {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font: 650 11px var(--round);
+  color: var(--ink-3);
+}
+.tc-steps i {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--bg-3);
+}
+.tc-steps span.on {
+  color: var(--ink);
+}
+.tc-steps span.on i {
+  background: var(--c);
+}
+.tc-next {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bg-2);
+  margin-bottom: 12px;
+}
+.tc-ev {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.tm-card .ev {
+  color: var(--ink-2);
+}
+.tm-card .ev i {
+  background: var(--bg-2);
+}
+.tm-card .ev.ev-proven i {
+  background: var(--mint-soft);
+  color: var(--mint-ink);
+}
+.tm-card .ev.ev-asked i {
+  background: var(--violet-soft);
+}
+.tc-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (max-width: 1150px) {
+  .tm-wrap.open {
+    grid-template-columns: 1fr;
+  }
+}
+.tm-cell {
+  align-items: flex-end;
+}
+.tm-n {
+  overflow-wrap: anywhere;
+  padding-right: 2px;
+}
+.tm-l {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 11px;
+  opacity: 0.85;
+}
+.tm-n {
+  overflow-wrap: break-word;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+.tm-area.a-algo .tm-cell.lv3 {
+  background: color-mix(in srgb, var(--c) 80%, #000);
+  color: #fff;
+}

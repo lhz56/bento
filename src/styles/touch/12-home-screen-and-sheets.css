@@ -1,0 +1,394 @@
+/* "Put Bento on your Home Screen": a short note above the tabs, on a tab's own page only, under any sheet */
+.hs-tip {
+  z-index: 45;
+}
+.app.phone ~ .hs-tip {
+  left: 10px;
+  right: 10px;
+  padding: 8px 4px 8px 10px;
+  gap: 10px;
+  border-radius: 16px;
+}
+.app.phone.at-detail ~ .hs-tip,
+.app.phone.drawer-open ~ .hs-tip,
+html.kb .hs-tip {
+  display: none;
+}
+.app.phone ~ .hs-tip .hs-ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+.app.phone ~ .hs-tip > div {
+  font-size: 13px;
+}
+.app.phone ~ .hs-tip b {
+  font-size: 14.5px;
+}
+.app.phone .wn-depth button {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13.5px;
+}
+.app.phone .desk-head .act {
+  min-width: 36px;
+  height: 36px;
+  justify-content: center;
+}
+.app.phone .fe-label {
+  font-size: 11.5px;
+}
+.app.phone .sc-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 10px;
+}
+.app.phone .sc-o {
+  white-space: nowrap;
+}
+.app.phone .sc-t {
+  max-width: 40vw;
+}
+
+/* a file's sheet on a phone: one page that scrolls (what it uses, who'd feel a change, then its code), with ✕ and
+   the ask box always in reach. (On a Mac it's a column of fixed parts; on a phone that squeezed the lists to nothing.) */
+.app.phone .drawer {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.app.phone .drawer > * {
+  flex: none;
+}
+.app.phone .dr-top {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 18px 12px 8px 18px;
+  background: var(--panel);
+}
+.app.phone .dr-path,
+.app.phone .dr-meta {
+  padding-left: 18px;
+  padding-right: 18px;
+}
+.app.phone .dr-role {
+  margin: 6px 18px;
+  font-size: 24px;
+}
+.app.phone .dr-path {
+  font-size: 13px;
+}
+.app.phone .dr-meta {
+  font-size: 13px;
+}
+.app.phone .dr-actions {
+  padding: 14px 18px 4px;
+  flex-wrap: wrap;
+}
+.app.phone .dr-rel {
+  grid-template-columns: minmax(0, 1fr);
+  max-height: none;
+  overflow: visible;
+  padding: 14px 18px 4px;
+  gap: 12px;
+}
+.app.phone .drawer .ripple {
+  margin: 10px 12px 4px;
+}
+.app.phone .dr-code {
+  height: 64dvh;
+  min-height: 0;
+  margin: 12px 12px 0;
+}
+.app.phone .dr-ask {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: var(--panel);
+  padding: 10px 12px;
+  box-shadow: 0 -0.5px 0 var(--line);
+}
+.app.phone .dr-ask input {
+  height: 44px;
+  font-size: 16px;
+  border-radius: 12px;
+}
+
+/* the big picture: a part you tap opens right under it, one column, and Show me in the code fills the width */
+.app.phone .vf-node {
+  min-height: 48px;
+  scroll-margin-top: 64px;
+}
+.app.phone .vf-node b {
+  font-size: 16px;
+}
+.app.phone .vf-edge {
+  font-size: 11.5px;
+}
+.app.phone .dive-in {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  margin: 8px 0 2px;
+  padding: 16px 16px 14px;
+  border-radius: 16px;
+}
+.app.phone .dive-main h3 {
+  font-size: 21px;
+}
+.app.phone .dive-main p {
+  font-size: 16px;
+}
+.app.phone .dive-k {
+  font-size: 11px;
+}
+.app.phone .dive-side .btn {
+  width: 100%;
+  justify-content: center;
+  min-height: 44px;
+  font-size: 15px;
+}
+
+/* Explore: a pasted link turns the button into "Take apart <name>": it gets its own line under the link */
+.app.phone .ex-search {
+  flex-wrap: wrap;
+  height: auto;
+  min-height: 58px;
+  padding: 6px 8px 6px 16px;
+  row-gap: 4px;
+}
+.app.phone .ex-search input {
+  min-width: 0;
+  height: 46px;
+  font-size: 17px;
+}
+.app.phone .ex-search.is-repo .send {
+  flex-basis: 100%;
+  height: 46px;
+  justify-content: center;
+  margin: 0 0 2px -8px;
+  font-size: 16px;
+}
+.app.phone .ex-search .send {
+  height: 40px;
+}
+
+/* the city's caption for a building: its path and what it does across the width, the numbers on a line under them */
+.app.phone .city-cap {
+  width: calc(100vw - 24px);
+  margin: 0 12px 6px;
+  left: 12px;
+  padding: 10px 14px;
+}
+.app.phone .cap-f {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+.app.phone .cap-f .cap-main {
+  flex: 1 1 calc(100% - 40px);
+}
+.app.phone .cap-f .cap-stats {
+  flex-basis: 100%;
+  padding-left: 24px;
+  font-size: 12.5px;
+}
+.app.phone .cap-where {
+  font-size: 12px;
+}
+.app.phone .cap-md {
+  font-size: 16px;
+}
+
+/* ================================================================ a project's Atlas on a phone (AtlasPhone.jsx)
+   An iPhone page: a grouped background with white rows and cards on it, one typeface (the system's) at the iPhone's
+   own sizes, a sheet from the bottom for anything you tap, and the question box floating over the bottom as glass.
+   Words keep Bento's ink colours (every one passes AA on these backgrounds). */
+.vf-t {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.vf-does {
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--ink-3);
+}
+.ask-go,
+.ask-spark {
+  display: none;
+}
+
+.app.phone {
+  --gbg: #f2efe9;
+  --gcell: #ffffff;
+  --gsep: rgba(60, 48, 36, 0.14);
+  --gfill: rgba(120, 104, 88, 0.1);
+  --gfill-2: rgba(120, 104, 88, 0.16);
+}
+@media (prefers-color-scheme: dark) {
+  .app.phone {
+    --gbg: #0f0e11;
+    --gcell: #1d1c21;
+    --gsep: rgba(255, 255, 255, 0.1);
+    --gfill: rgba(255, 255, 255, 0.07);
+    --gfill-2: rgba(255, 255, 255, 0.12);
+  }
+}
+.app.phone .atlas {
+  background: var(--gbg);
+  font-family: var(--sans);
+}
+.app.phone:has(.atlas) .pbar {
+  background: color-mix(in srgb, var(--gbg) 86%, transparent);
+}
+.app.phone .atlas .asec {
+  padding: 36px 16px 0;
+  scroll-margin-top: 52px;
+}
+.app.phone .atlas code {
+  font-size: 0.88em;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--gfill);
+}
+
+/* the top bar: the project's name only once its own big name has scrolled away; the sections, once past the top */
+.app.phone .pbar-title {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+body.atlas-named .app.phone .pbar-title {
+  opacity: 0;
+  transform: translateY(5px);
+}
+.app.phone .atlas-bar {
+  height: 50px;
+  margin-bottom: -50px;
+  padding: 8px 0;
+  background: color-mix(in srgb, var(--gbg) 96%, transparent);
+  box-shadow: 0 0.5px 0 var(--gsep);
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+}
+.app.phone .atlas-bar.tucked {
+  opacity: 0;
+  transform: translateY(-12px);
+  pointer-events: none;
+}
+.app.phone .ab-nav {
+  gap: 2px;
+  padding: 0 4px 0 10px;
+}
+.app.phone .ab-nav button {
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 17px;
+  background: none;
+  color: var(--ink-3);
+  font: 600 15px var(--sans);
+  letter-spacing: -0.15px;
+}
+.app.phone .ab-nav button.on {
+  background: var(--gcell);
+  color: var(--ink);
+  box-shadow:
+    0 1px 3px rgba(40, 30, 20, 0.1),
+    0 0 0 0.5px var(--gsep);
+}
+.app.phone .ab-more {
+  width: 34px;
+  border-radius: 50%;
+  background: var(--gfill-2);
+  color: var(--accent-ink);
+  font-size: 17px;
+}
+
+/* titles: a section's (Title 2), a part of one (Title 3); a list's heading, small capitals in grey, as in Settings */
+.ph-h {
+  margin: 0 4px 14px;
+}
+.ph-h h2 {
+  margin: 0;
+  font: 700 24px/1.17 var(--sans);
+  letter-spacing: -0.5px;
+  color: var(--ink);
+}
+.ph-h p {
+  margin: 5px 0 0;
+  font: 400 15px/1.4 var(--sans);
+  letter-spacing: -0.1px;
+  color: var(--ink-3);
+}
+.app.phone .atlas .sec-head {
+  flex-direction: column;
+  align-items: stretch;
+  margin: 0 4px 14px;
+}
+.app.phone .atlas .sec-head .kicker {
+  display: none;
+}
+.app.phone .atlas .sec-head h2 {
+  margin: 0;
+  font: 700 24px/1.17 var(--sans);
+  letter-spacing: -0.5px;
+}
+.app.phone .atlas .sec-sub {
+  margin: 5px 0 0;
+  font: 400 15px/1.4 var(--sans);
+  color: var(--ink-3);
+}
+.ph-sh {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 28px 4px 8px;
+}
+.ph-sh h3 {
+  margin: 0;
+  font: 700 20px/1.2 var(--sans);
+  letter-spacing: -0.4px;
+}
+.ph-sh span {
+  font: 400 15px var(--sans);
+  color: var(--ink-3);
+}
+.ph-group {
+  margin-top: 24px;
+}
+.ph-gh {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 20px;
+  margin: 0 16px 7px;
+  font: 500 13px/1.3 var(--sans);
+  letter-spacing: 0.1px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.ph-gh-btn {
+  min-height: 30px;
+  padding: 0 2px;
+  font: 400 16px var(--sans);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--accent-ink);
+}
+.ph-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 16px 0;
+  font: 400 13px/1.4 var(--sans);
+  color: var(--ink-3);
+}
+.ph-foot b {
+  font-weight: 600;
+  color: var(--ink-2);
+  margin-right: 3px;
+}
+.ph-hero .ph-foot {
+  display: block;
+}

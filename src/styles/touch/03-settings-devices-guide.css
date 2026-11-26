@@ -1,0 +1,341 @@
+/* ---------------------------------------------------------------- Settings → Your phone and iPad (the Mac) */
+/* a guided card: what it is and a switch; then how to connect (tap this Mac in the app and Allow, or scan), where the
+   phone can reach this Mac, keeping it awake, and the devices you allowed */
+.set-row.dv {
+  gap: 14px;
+}
+.set-row.dv > div.dv-head {
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+.set-row.dv .dv-words {
+  flex: 1;
+  display: grid;
+  gap: 3px;
+}
+.set-row.dv .dv-words b {
+  font-size: 15px;
+}
+.set-row.dv .dv-words span {
+  font-size: 13px;
+  line-height: 1.45;
+}
+.dv-art {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  color: var(--ink-2);
+}
+.dv-art svg,
+.dv-tile svg,
+.dv-ico svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.dv-phone svg {
+  width: 20px;
+  height: 30px;
+  display: block;
+}
+.dv-mac svg {
+  width: 34px;
+  height: 30px;
+  display: block;
+}
+.dv-wire {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 4px;
+  padding: 0 2px;
+}
+.dv-wire i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--line-2);
+}
+.dv-wire.live i {
+  background: var(--accent);
+  animation: dvflow 1.2s ease-in-out infinite;
+}
+.dv-wire.live i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.dv-wire.live i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes dvflow {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.dv-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.dv-steps li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.dv-steps em {
+  font-style: normal;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--bg);
+  font: 700 11px/20px var(--round);
+  text-align: center;
+}
+.set-row.dv .dv-steps span {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.dv-steps strong {
+  color: var(--ink);
+  font-weight: 650;
+}
+.set-row.dv code {
+  font: 12px/1.4 var(--mono);
+  background: var(--bg-3);
+  padding: 1px 6px;
+  border-radius: 6px;
+  color: var(--ink-2);
+  word-break: break-all;
+}
+.dv-steps.off {
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--bg-2);
+}
+.dv-steps.off li {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dv-body {
+  display: grid;
+  gap: 18px;
+}
+.dv-connect {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 22px;
+  align-items: center;
+  padding: 18px 18px 18px 20px;
+  border-radius: 18px;
+  background: var(--bg-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.dv-how {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+.set-row.dv .dv-how > b {
+  font: 650 16px/1.2 var(--round);
+}
+.dv-qr {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: 172px;
+  text-align: center;
+}
+.dv-qr .qr {
+  border-radius: 12px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 0 0 1px var(--line);
+}
+.set-row.dv .dv-or {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--ink-3);
+}
+.set-row.dv .dv-code {
+  font: 600 19px/1.1 var(--mono);
+  letter-spacing: 0.08em;
+  color: var(--ink);
+}
+.set-row.dv .dv-left {
+  font-size: 11px;
+  color: var(--ink-4);
+  word-break: break-all;
+}
+.set-row.dv .dv-near {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mint-ink);
+}
+.dv-near i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--mint);
+  animation: dvping 2s ease-out infinite;
+}
+@keyframes dvping {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--mint) 55%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+
+.dv-group {
+  display: grid;
+}
+.dv-group h3 {
+  margin: 0 0 4px;
+  font: 650 11px/1.2 var(--round);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.dv-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.dv-group h3 + .dv-line,
+.dv-list > .dv-line:first-child {
+  border-top: 0;
+}
+.dv-tile {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--bg-2);
+  color: var(--ink-3);
+}
+.dv-tile.ok {
+  background: var(--mint-soft);
+  color: var(--mint-ink);
+}
+.dv-tile svg {
+  width: 18px;
+  height: 18px;
+}
+.set-row.dv .dv-what {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.set-row.dv .dv-what b {
+  font-size: 13.5px;
+}
+.set-row.dv .dv-what span {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-3);
+}
+.set-row.dv .dv-what .dv-live {
+  color: var(--mint-ink);
+  font-weight: 600;
+}
+.set-row.dv .dv-state {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--mint-ink);
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: var(--mint-soft);
+}
+.dv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.dv-asking,
+.dv-joined {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  animation: pop 0.2s ease-out;
+}
+.dv-asking {
+  background: var(--accent-soft);
+}
+.dv-joined {
+  background: var(--mint-soft);
+  color: var(--mint-ink);
+  font-size: 13.5px;
+}
+.set-row.dv .dv-asking > span:last-child {
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.set-row.dv .dv-asking b {
+  display: block;
+  font-size: 14px;
+  color: var(--ink);
+}
+.set-row.dv .dv-num {
+  font: 700 14px var(--mono);
+  letter-spacing: 0.25em;
+  margin: 0 -0.25em 0 0.35em;
+  color: var(--ink);
+}
+.set-row.dv .dv-ico {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--popover);
+  color: var(--ink-2);
+  flex: none;
+}
+.dv-joined .dv-ico {
+  color: var(--mint-ink);
+}
+.dv-ico svg {
+  width: 17px;
+  height: 17px;
+}
+.dv-err {
+  color: var(--rose-ink);
+  font-size: 13px;
+  margin: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dv-wire.live i,
+  .dv-near i {
+    animation: none;
+  }
+}

@@ -1,0 +1,276 @@
+/* design for a billion */
+.sb-levels {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.sb-lv {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px 0 6px;
+  border-radius: 99px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+  font: 700 12px var(--round);
+}
+.sb-lv::first-letter {
+  color: var(--ink-3);
+}
+.sb-lv span {
+  font-weight: 600;
+}
+.sb-lv.on {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.sb-lv.done {
+  color: var(--mint-ink);
+}
+.sb-mission {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--accent-soft);
+  margin-bottom: 12px;
+}
+.sb-mission b {
+  font-family: var(--serif);
+  font-size: 19px;
+}
+.sb-mission span {
+  font-size: 13.5px;
+}
+.sb-mission em {
+  font-style: normal;
+  font: 600 12px var(--round);
+  color: var(--ink-2);
+}
+.sb-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 14px;
+  align-items: start;
+}
+.sb-svg {
+  width: 100%;
+  background: var(--panel);
+  border-radius: 18px;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.sb-node {
+  cursor: pointer;
+}
+.sb-node rect {
+  fill: var(--panel);
+  stroke-width: 2;
+  transition:
+    fill 0.3s,
+    stroke 0.3s;
+}
+.sb-node.h-cool rect {
+  fill: var(--mint-soft);
+  stroke: var(--mint);
+}
+.sb-node.h-warm rect {
+  fill: var(--butter-soft);
+  stroke: var(--butter);
+}
+.sb-node.h-hot rect {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+}
+.sb-node.h-fire rect {
+  fill: var(--rose-soft);
+  stroke: var(--rose);
+  animation: sbshake 0.25s infinite;
+}
+.sb-node.off rect {
+  fill: transparent;
+  stroke: var(--line-2);
+  stroke-dasharray: 5 5;
+}
+.sb-node.off text {
+  fill: var(--ink-4);
+}
+.sb-node.sel rect {
+  stroke-width: 3;
+}
+@keyframes sbshake {
+  25% {
+    transform: translateX(1px);
+  }
+  75% {
+    transform: translateX(-1px);
+  }
+}
+.sb-n {
+  font: 700 12.5px var(--round);
+  fill: var(--ink);
+}
+.sb-u {
+  font: 600 10.5px var(--round);
+  fill: var(--ink-3);
+}
+.sb-users circle {
+  fill: var(--violet-soft);
+  stroke: var(--violet);
+  stroke-width: 2;
+}
+.sb-users text {
+  font-size: 18px;
+}
+.sb-flow {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-dasharray: 2 10;
+  stroke-linecap: round;
+  animation: sbflow var(--dur) linear infinite;
+  opacity: 0.7;
+}
+.sb-flow.none {
+  opacity: 0.15;
+  animation: none;
+}
+@keyframes sbflow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.sb-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sb-traffic {
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sb-traffic b {
+  font: 800 18px var(--round);
+}
+.sb-traffic input {
+  accent-color: var(--accent);
+}
+.sb-meters {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.sb-meters div {
+  padding: 8px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+}
+.sb-meters span {
+  font: 600 10.5px var(--round);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.sb-meters b {
+  font: 800 17px var(--round);
+}
+.sb-meters .ok {
+  background: var(--mint-soft);
+}
+.sb-meters .ok b {
+  color: var(--mint-ink);
+}
+.sb-meters .bad {
+  background: var(--rose-soft);
+}
+.sb-meters .bad b {
+  color: var(--rose-ink);
+}
+.sb-pass {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--mint-soft);
+  font-size: 13px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.sb-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+  font: 600 13px var(--round);
+}
+.sb-tools label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sb-tools label.step b {
+  min-width: 26px;
+  text-align: center;
+}
+.sb-tools label.step button {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--bg-2);
+  font-weight: 800;
+}
+.sb-tools label.step {
+  justify-content: flex-start;
+}
+.sb-tools label.step button:first-of-type {
+  margin-left: auto;
+}
+.sb-info {
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--violet-soft);
+  font-size: 13px;
+}
+.sb-info p {
+  margin: 4px 0;
+}
+.sb-info i {
+  color: var(--ink-3);
+}
+.sb-info-h {
+  display: flex;
+  justify-content: space-between;
+}
+.sb-info-acts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.sb-info-acts .link {
+  margin-left: auto;
+}
+.set-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.set-note {
+  font-size: 12.5px;
+  color: var(--mint-ink);
+  padding: 0 0 10px;
+}
+.bookmarklet {
+  cursor: grab;
+  text-decoration: none;
+}

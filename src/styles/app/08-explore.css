@@ -1,0 +1,251 @@
+/* ------------------------------------------------------------ explore */
+.explore {
+  height: 100%;
+  overflow: auto;
+}
+.ex-inner {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 7vh 36px 60px;
+}
+.ex-sub {
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 640px;
+  margin: -12px 0 24px;
+}
+.ex-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 58px;
+  padding: 0 10px 0 18px;
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow:
+    var(--shadow-2),
+    0 0 0 1px var(--line);
+  transition: box-shadow 0.2s;
+}
+.ex-search:focus-within {
+  box-shadow:
+    var(--shadow-2),
+    0 0 0 1.5px var(--accent);
+}
+.ex-search.is-repo {
+  box-shadow:
+    var(--shadow-2),
+    0 0 0 1.5px var(--mint);
+}
+.ex-search.is-repo .send {
+  background: var(--mint-ink);
+}
+.ex-ic {
+  font-size: 18px;
+  color: var(--ink-3);
+  width: 20px;
+  text-align: center;
+}
+.ex-search input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 18px;
+  user-select: text;
+}
+.ex-search input::placeholder {
+  color: var(--ink-4);
+}
+.shelves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 16px 0 30px;
+}
+.shelf {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px 0 10px;
+  border-radius: 99px;
+  font: 600 12.5px var(--round);
+  color: var(--ink-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: all 0.15s;
+}
+.shelf span {
+  font-size: 12px;
+}
+.shelf:hover {
+  background: var(--bg-2);
+}
+.shelf.on {
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: none;
+}
+.ex-cols {
+  display: grid;
+  grid-template-columns: 1fr 270px;
+  gap: 34px;
+  align-items: start;
+}
+.faded {
+  opacity: 0.45;
+  transition: opacity 0.2s;
+}
+.spec {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 10px;
+  margin: 0 -10px;
+  border-radius: 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  transition: background 0.15s;
+}
+.spec:hover {
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+  border-color: transparent;
+}
+.spec-av {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  flex: none;
+  background: var(--bg-2);
+}
+.spec-main {
+  flex: 1;
+  min-width: 0;
+}
+.spec-name {
+  font-weight: 650;
+  font-size: 14.5px;
+}
+.spec-desc {
+  font-family: var(--serif);
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  margin: 3px 0 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.spec-meta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+.spec-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.sz {
+  padding: 1px 7px;
+  border-radius: 99px;
+  font: 650 10.5px var(--round);
+  background: var(--bg-2);
+}
+.sz-0 {
+  background: var(--mint-soft);
+  color: var(--mint-ink);
+}
+.sz-1 {
+  background: var(--butter-soft);
+  color: var(--butter-ink);
+}
+.sz-2 {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.sz-3 {
+  background: var(--rose-soft);
+  color: var(--rose-ink);
+}
+.spec-go {
+  align-self: center;
+  font: 700 12px var(--round);
+  color: var(--ink-4);
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.spec:hover .spec-go {
+  color: var(--accent-ink);
+}
+.spec-go span {
+  display: inline-block;
+  transition: transform 0.15s;
+}
+.spec:hover .spec-go span {
+  transform: translateX(3px);
+}
+.spec.ghost {
+  pointer-events: none;
+}
+.ldot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  flex: none;
+}
+.ex-side {
+  position: sticky;
+  top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.ex-proj {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  margin: 0 -8px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ex-proj:hover {
+  background: var(--bg-2);
+}
+.ex-proj.strong {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.ex-pi {
+  color: var(--accent-ink);
+  width: 16px;
+  display: inline-grid;
+  place-items: center;
+  margin-right: 4px;
+}
+.priv {
+  margin-left: auto;
+  font: 650 10px var(--round);
+  color: var(--ink-3);
+  background: var(--bg-2);
+  padding: 1px 6px;
+  border-radius: 99px;
+}
+.side-projects {
+  margin: 0 -4px 12px;
+  padding: 0 4px;
+}

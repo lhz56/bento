@@ -1,0 +1,161 @@
+/* the model picker: each AI as a card, with what it's good at */
+.mpick {
+  width: 330px;
+  padding: 8px;
+  border-radius: 16px;
+}
+.mp-h {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px 10px;
+}
+.mp-h b {
+  font: 700 14px var(--round);
+}
+.mp-h span {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.mpick .mc {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  border-radius: 12px;
+  text-align: left;
+  transition:
+    background 0.12s,
+    box-shadow 0.15s,
+    transform 0.12s;
+}
+.mpick .mc:hover:not(:disabled),
+.mpick .mc:focus-visible {
+  background: var(--bg-2);
+  outline: none;
+}
+.mpick .mc.on {
+  background: var(--bg-2);
+  box-shadow: inset 0 0 0 1.5px var(--accent-ink);
+}
+.mpick .mc:disabled {
+  opacity: 0.5;
+}
+.pm {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 15px;
+}
+.pm.claude {
+  background: #d97757;
+}
+.pm.codex {
+  background: #10a37f;
+}
+.mc-t {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mc-t > b {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 13.5px var(--round);
+  color: var(--ink);
+}
+.mc-t > b em {
+  font: 700 9.5px var(--round);
+  font-style: normal;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.mc-t > span {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-3);
+}
+.mc-m {
+  display: flex !important;
+  gap: 14px;
+  margin-top: 4px;
+}
+.mm {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.mm em {
+  font-style: normal;
+  font: 600 10.5px var(--round);
+  color: var(--ink-3);
+  margin-right: 3px;
+}
+.mm i {
+  width: 10px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line-2);
+}
+.mm i.on {
+  background: var(--ink-2);
+}
+.mc-tick {
+  color: var(--accent-ink);
+  font-weight: 800;
+}
+.mc-off {
+  font: 600 10.5px var(--round);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.mp-connect {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  text-align: left;
+  font: 650 12.5px var(--round);
+  color: var(--accent-ink);
+}
+.mp-connect:hover {
+  background: var(--bg-2);
+}
+.mp-note {
+  margin: 6px 8px 2px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+.mp-note b {
+  color: var(--ink-2);
+}
+.mpick .mp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 9px;
+  font-size: 12.5px;
+}
+.mpick .mp-row:hover {
+  background: var(--bg-2);
+}
+.mpick .mp-row span {
+  margin-left: auto;
+  color: var(--ink-3);
+  font-size: 11px;
+}

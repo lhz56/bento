@@ -1,0 +1,128 @@
+/* answers you can do something with */
+.qa-acts {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.qa-chip {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 99px;
+  font: 650 11.5px var(--round);
+  color: var(--ink-2);
+  background: var(--bg-2);
+  transition:
+    background 0.15s,
+    color 0.15s,
+    transform 0.12s;
+}
+.qa-chip:hover {
+  background: var(--bg-3);
+  color: var(--ink);
+}
+.qa-chip.alt {
+  color: var(--mint-ink);
+}
+.qa-next {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+.qa-next button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  text-align: left;
+  font: 600 13px var(--round);
+  color: var(--ink-2);
+  background: var(--bg);
+  box-shadow: 0 0 0 1px var(--line);
+  transition:
+    box-shadow 0.15s,
+    transform 0.12s,
+    color 0.15s;
+}
+.qa-next button:hover {
+  color: var(--ink);
+  box-shadow: 0 0 0 1.5px var(--accent-ink);
+}
+.qa-next button span {
+  color: var(--ink-4);
+  font-size: 11px;
+}
+.qcheck {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--violet-soft) 70%, var(--panel));
+  font-family: var(--sans);
+}
+.qc-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 750 10.5px var(--round);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--violet-ink);
+}
+.qc-h i {
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-3);
+}
+.qc-q {
+  margin: 6px 0 10px;
+  font: 600 14px/1.45 var(--sans);
+  color: var(--ink);
+}
+.qc-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.qc-row button {
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+  font: 600 13px var(--sans);
+  color: var(--ink-2);
+  transition:
+    transform 0.12s,
+    box-shadow 0.15s;
+}
+.qc-row button:hover:not(:disabled) {
+  box-shadow: 0 0 0 1.5px var(--violet-ink);
+  color: var(--ink);
+}
+.qc-row button.right {
+  background: var(--mint-ink);
+  color: var(--on-ink);
+  box-shadow: none;
+  animation: pop 0.3s;
+}
+.qc-row button.wrong {
+  background: var(--rose-soft);
+  color: var(--rose-ink);
+  box-shadow: none;
+}
+.qc-row button:disabled:not(.right):not(.wrong) {
+  opacity: 0.55;
+}
+.qc-why {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.qcheck.ok .qc-why {
+  color: var(--mint-ink);
+}

@@ -1,0 +1,222 @@
+/* ---------------------------------------------------------------- code you read with a finger (Editor.jsx touch mode) */
+/* the notes sit at the end of their line; a tap opens what they say right under it */
+.ed-wrap.touch .note-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  margin-left: 10px;
+  padding: 0 9px 0 7px;
+  border-radius: 99px;
+  vertical-align: 1px;
+  text-indent: 0;
+  font: 600 11.5px var(--sans);
+  white-space: nowrap;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.ed-wrap.touch .note-chip .note-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.ed-wrap.touch .note-chip.c1,
+.ed-wrap.touch .note-say.c1 {
+  background: var(--violet-soft);
+  color: var(--violet-ink);
+}
+.ed-wrap.touch .note-chip.c2,
+.ed-wrap.touch .note-say.c2 {
+  background: var(--mint-soft);
+  color: var(--mint-ink);
+}
+.ed-wrap.touch .note-chip.c3,
+.ed-wrap.touch .note-say.c3 {
+  background: var(--butter-soft);
+  color: var(--butter-ink);
+}
+.ed-wrap.touch .note-chip.open {
+  box-shadow: 0 0 0 1.5px currentColor;
+}
+.ed-wrap.touch .note-say {
+  margin: 4px 14px 8px 40px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font: 400 14.5px/1.45 var(--sans);
+  white-space: normal;
+  animation: noteIn 0.32s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+@keyframes noteIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+/* the word you tapped, or the number you're dragging */
+/* (a light tint, so every code colour keeps its contrast on it, and a ring around it that does the showing) */
+.ed-wrap.touch .cm-tapped {
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--ink) 28%, transparent);
+}
+/* numbers you can drag: a dotted line under each while you're reading */
+.ed-wrap.touch.reading .cm-num {
+  text-decoration: underline dotted color-mix(in srgb, var(--syn-num) 70%, transparent);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
+}
+.ed-wrap.touch.reading .cm-content {
+  -webkit-user-select: none;
+  user-select: none;
+}
+.ed-wrap.touch.reading .cm-cursor {
+  display: none;
+}
+.scrub-badge.touch {
+  transform: translateX(-50%);
+  padding: 7px 12px;
+  border-radius: 12px;
+  font: 600 17px var(--mono);
+  box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.4);
+}
+
+/* a tapped word's card, with an arrow at the word */
+.tok-card.tap {
+  position: fixed;
+  z-index: 60;
+  padding: 13px 15px 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--popover) 97%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: blur(24px) saturate(1.6);
+  box-shadow:
+    0 0 0 0.5px var(--gsep, var(--line)),
+    0 16px 44px -12px rgba(0, 0, 0, 0.38);
+  transform-origin: var(--arrow) 0;
+  animation: tapIn 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.12) both;
+  user-select: text;
+}
+.tok-card.tap.up {
+  transform-origin: var(--arrow) 100%;
+}
+.tok-card.tap::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: calc(var(--arrow) - 7px);
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: inherit;
+  transform: rotate(45deg);
+  box-shadow: -0.5px -0.5px 0 0 var(--gsep, var(--line));
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.tok-card.tap.up::before {
+  top: auto;
+  bottom: -6px;
+  box-shadow: 0.5px 0.5px 0 0 var(--gsep, var(--line));
+}
+@keyframes tapIn {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+}
+.tok-card.tap .tok-word {
+  font-size: 16px;
+}
+.tok-card.tap .tok-kind {
+  font: 600 10.5px var(--sans);
+  letter-spacing: 0.3px;
+}
+.tok-card.tap .tok-what {
+  font: 400 15px/1.45 var(--sans);
+  color: var(--ink-2);
+}
+.tok-card.tap .tok-plain {
+  font: 400 15px/1.45 var(--sans);
+  font-style: normal;
+}
+.tok-card.tap .tok-jump {
+  display: block;
+  margin-top: 10px;
+  font: 600 15px var(--sans);
+  color: var(--accent-ink);
+}
+.tok-card.tap .tok-hint {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font: 400 15px/1.4 var(--sans);
+  color: var(--ink-2);
+}
+.tok-card.tap .tok-hint span {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--syn-num) 16%, transparent);
+  color: var(--syn-num);
+  font-weight: 700;
+}
+/* Edit / Done, as in any iPhone app that shows you something you could change */
+.app.phone .desk-head .act.edit {
+  padding: 0 10px;
+  font: 500 16px var(--sans);
+  color: var(--accent-ink);
+  background: none;
+  box-shadow: none;
+}
+.app.phone .desk-head .act.edit.on {
+  font-weight: 600;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tok-card.tap,
+  .ed-wrap.touch .note-say {
+    animation: none;
+  }
+}
+/* the bar between the code and what it does: big enough for a thumb, and it settles where you leave it */
+.app.phone .desk .divider {
+  height: 22px;
+  touch-action: none;
+  background: var(--panel);
+}
+.app.phone .desk .divider span {
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--line-2);
+  transition:
+    width 0.2s,
+    background 0.2s;
+}
+.app.phone .desk .divider.held span {
+  width: 56px;
+  background: var(--ink-3);
+}
+.app.phone .desk.settling :is(.desk-main, .desk-stage) {
+  transition: height 0.42s var(--spring-press, ease-out);
+}
+/* the code's own bar on a phone: how to look at it, then Edit and Run (the file's name is the lesson's, and stepping
+   through is the Steps tab right under the code) */
+.app.phone .desk-head .file > :is(.lang-dot, .fname, .newfile) {
+  display: none;
+}
+.app.phone .desk-head .file:not(:has(button)) {
+  display: none;
+}
+.app.phone .desk-head :is(.act.step, .live) {
+  display: none;
+}
+.app.phone .desk-head .actions {
+  margin-left: auto;
+  gap: 4px;
+}

@@ -1,0 +1,146 @@
+/* ---------------------------------------------------------------- a quick check you answer with a thumb */
+/* the answers are rows across the card; the right one turns green with a tick that draws itself, a wrong pick shakes */
+.app.phone .quiz {
+  padding: 16px 14px 14px;
+  border-radius: 18px;
+}
+.app.phone .quiz-q {
+  margin: 0 2px 14px;
+  font: 600 17px/1.4 var(--sans);
+  letter-spacing: -0.2px;
+}
+.app.phone .quiz-choices,
+.app.phone .qc-row {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+.app.phone :is(.choice, .qc-row button) {
+  position: relative;
+  width: 100%;
+  min-height: 50px;
+  padding: 12px 46px 12px 16px;
+  border-radius: 14px;
+  text-align: left;
+  font: 500 16px/1.3 var(--sans);
+  letter-spacing: -0.2px;
+  color: var(--ink);
+  background: var(--gcell, var(--panel));
+  box-shadow: 0 0 0 0.5px var(--gsep, var(--line));
+}
+.app.phone :is(.choice, .qc-row button):is(.right, .wrong)::after {
+  content: '';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  margin-top: -11px;
+  border-radius: 50%;
+  background: currentColor no-repeat center / 14px;
+}
+.app.phone :is(.choice, .qc-row button).right {
+  color: var(--on-ink);
+  background: var(--mint-ink);
+  box-shadow: none;
+  animation: rightPop 0.5s var(--spring-press, ease-out) both;
+}
+.app.phone :is(.choice, .qc-row button).right::after {
+  background: var(--on-ink);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E");
+}
+.app.phone :is(.choice, .qc-row button).right::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  right: 19px;
+  top: 50%;
+  width: 12px;
+  height: 6px;
+  margin-top: -5px;
+  border-left: 2.5px solid var(--mint-ink);
+  border-bottom: 2.5px solid var(--mint-ink);
+  transform: rotate(-45deg);
+  clip-path: inset(0 100% 0 0);
+  animation: tickDraw 0.32s 0.12s ease-out forwards;
+}
+.app.phone :is(.choice, .qc-row button).wrong {
+  color: var(--rose-ink);
+  background: var(--rose-soft);
+  box-shadow: none;
+  animation: shake 0.38s;
+}
+.app.phone :is(.choice, .qc-row button).wrong::after {
+  background: none;
+  content: '✕';
+  display: grid;
+  place-items: center;
+  font: 700 15px var(--sans);
+}
+.app.phone :is(.choice, .qc-row button):disabled:not(.right, .wrong) {
+  opacity: 0.45;
+}
+.app.phone :is(.quiz-why, .qc-why) {
+  margin: 12px 2px 0;
+  font: 400 15px/1.45 var(--sans);
+}
+.app.phone .quiz-why .link {
+  display: inline-block;
+  margin-left: 4px;
+  font-weight: 600;
+}
+@keyframes rightPop {
+  0% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes tickDraw {
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app.phone :is(.choice, .qc-row button):is(.right, .wrong),
+  .app.phone :is(.choice, .qc-row button).right::before {
+    animation: none;
+    clip-path: none;
+  }
+}
+
+/* sheets come up from the bottom edge on a spring (--spring-sheet, touch.js), the way an iPhone's do, instead of fading in part-way */
+.app.phone :is(.drawer, .settings) {
+  animation: psheetUp 0.52s var(--spring-sheet, cubic-bezier(0.2, 0.9, 0.3, 1)) both;
+}
+.app.phone .drawer.psheet {
+  animation-duration: 0.5s;
+}
+@keyframes psheetUp {
+  from {
+    transform: translateY(100%);
+  }
+}
+.pal-veil:has(> .settings) {
+  animation: pfade 0.3s ease both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app.phone :is(.drawer, .settings) {
+    animation: pfade 0.2s ease both;
+  }
+}
+/* "Explain what I changed" (once you've changed the code): a round sparkle button, not a stray little star */
+.app.phone .desk-head .act.coach-act {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--violet-soft);
+  color: var(--violet-ink);
+  font-size: 15px;
+  box-shadow: none;
+}

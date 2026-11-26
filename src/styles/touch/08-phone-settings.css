@@ -1,0 +1,36 @@
+/* ---------------------------------------------------------------- Settings on a phone: a sheet from the bottom */
+.app.phone .pal-veil {
+  padding: calc(56px + env(safe-area-inset-top)) 0 0;
+  align-items: stretch;
+}
+.app.phone .settings {
+  width: 100%;
+  max-height: none;
+  border-radius: 20px 20px 0 0;
+  padding: 4px 18px calc(24px + env(safe-area-inset-bottom));
+  animation: psheet 0.32s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  overscroll-behavior: contain;
+}
+.app.phone .set-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.app.phone .set-row > div.dev-top {
+  flex-direction: row;
+}
+.app.phone .set-row b {
+  font-size: 16px;
+}
+.app.phone .set-row span {
+  font-size: 14px;
+}
+.app.phone .set-h h2 {
+  font-size: 26px;
+}
+.app.phone .settings .seg {
+  width: 100%;
+}
+.app.phone .settings .seg button {
+  flex: 1;
+}
