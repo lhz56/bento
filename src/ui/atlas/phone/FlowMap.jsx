@@ -1,7 +1,7 @@
 import { useRef, useState, useLayoutEffect, useMemo } from 'react';
 import { BY_ID } from '../../../atlas/catalog.js';
 import Brand from '../../Brand.jsx';
-import { Md } from '../../Story.jsx';
+import Md from '../../Md.jsx';
 import { tint, I, Chev, Sheet, Group, FileRow, base, lc } from './kit.jsx';
 
 // How a project works, as a tree of steps you tap through (laid out by treeLayout), with a sheet for each step.

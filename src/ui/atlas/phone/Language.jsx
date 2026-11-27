@@ -1,7 +1,7 @@
 import { langColor } from '../../../atlas/analyze.js';
 import { LANGS } from '../../../atlas/catalog.js';
 import Brand from '../../Brand.jsx';
-import { Md } from '../../Story.jsx';
+import Md from '../../Md.jsx';
 import { Head, Group } from './kit.jsx';
 
 // The languages a project is written in, on a phone.

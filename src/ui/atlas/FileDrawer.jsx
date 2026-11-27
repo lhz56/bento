@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { displayName, LAYER, langColor } from '../../atlas/analyze.js';
 import Brand from '../Brand.jsx';
 import Editor from '../Editor.jsx';
+import Md from '../Md.jsx';
 
 // A file opened from the Atlas: its code, what it does, and the ripple (what uses it, and what that touches).
 
@@ -244,7 +245,9 @@ export function Drawer({
               <div className="mini-h" style={{ margin: 0 }}>
                 reading tour · {tour.i + 1} of {tour.steps.length}
               </div>
-              <div className="dr-tour-w">{tour.steps[tour.i]?.why}</div>
+              <div className="dr-tour-w">
+                <Md text={tour.steps[tour.i]?.why} />
+              </div>
             </div>
             <button className="ib" disabled={tour.i === 0} onClick={() => tour.go(tour.i - 1)}>
               ◀

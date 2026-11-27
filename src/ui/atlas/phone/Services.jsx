@@ -1,6 +1,6 @@
 import { CATS } from '../../../atlas/catalog.js';
 import Brand from '../../Brand.jsx';
-import { Md } from '../../Story.jsx';
+import Md from '../../Md.jsx';
 import { Head, I, SubHead, Sheet, Group } from './kit.jsx';
 
 // The outside services and tools a project relies on, and a sheet for each.

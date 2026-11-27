@@ -14,6 +14,10 @@ export const LAYER = Object.fromEntries(LAYERS.map((l) => [l[0], l]));
 const WORKSHOP = new Set(['build', 'tidy', 'test', 'ci']);
 const CAT_ORDER = Object.keys(CATS);
 
+// the version of what electron/atlas.cjs finds in a project (its facts.v); a saved project from an older version is
+// read again when it's opened. Keep the two equal.
+export const ANALYSIS_VERSION = 6;
+
 const norm = (s) => String(s).toLowerCase().replace(/_/g, '-');
 
 export function detectStack(facts) {
@@ -21,10 +25,12 @@ export function detectStack(facts) {
   const npm = sig.npm || {};
   const pip = new Set((sig.pip || []).map(norm));
   const env = sig.env || [];
-  const extUse = new Map(); // package → file indices
+  // package → the files that import it; docs and tests don't count, since a test's sample code isn't the project's
+  const extUse = new Map();
   facts.files.forEach(
     (f, i) =>
       f.sub !== 'docs' &&
+      f.sub !== 'tests' &&
       (f.ext || []).forEach((e) => {
         const k = norm(e);
         if (!extUse.has(k)) extUse.set(k, []);

@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { ndjsonParser } from '../lesson.js';
-import { detectStack, buildAtlasPrompt, emptyNarr, applyNarr } from '../atlas/analyze.js';
+import {
+  ANALYSIS_VERSION,
+  applyNarr,
+  buildAtlasPrompt,
+  detectStack,
+  emptyNarr,
+} from '../atlas/analyze.js';
 import { addWord } from '../progress.js';
 import { detectSite, buildSitePrompt } from '../atlas/site.js';
 import { load, save, cleanErr } from '../store.js';
@@ -161,7 +167,7 @@ export default function useLibrary({
     try {
       const cached = await api.cacheGet(key);
       if (cached?.facts && (await api.atlasReopen(cached.src.root))) {
-        if (cached.facts.v !== 5) {
+        if (cached.facts.v !== ANALYSIS_VERSION) {
           try {
             cached.facts = await api.atlasAnalyze(cached.src.root, name);
             api.cachePut(key, { ...cached });

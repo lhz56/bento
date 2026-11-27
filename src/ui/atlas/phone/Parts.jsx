@@ -1,6 +1,6 @@
 import { LAYERS, fmtN, LAYER } from '../../../atlas/analyze.js';
 import Brand from '../../Brand.jsx';
-import { Md } from '../../Story.jsx';
+import Md from '../../Md.jsx';
 import { layerOfTool, sayOf } from './Services.jsx';
 import { tint, PART_IC, Head, I, Chev, Sheet, Group, FileRow } from './kit.jsx';
 

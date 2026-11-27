@@ -1,0 +1,41 @@
+// Bento's small Markdown: **bold**, *italic*, `a term` (click for its meaning) and [[3-5|a link]] to lines of the
+// lesson's code (hover lights them, click jumps there). Used for every short piece of AI-written text.
+const RX = /(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|`[^`]+`|\[\[\d+(?:-\d+)?\|[^\]]+\]\])/g;
+
+export default function Md({ text, onLink, onLinkClick, onTerm }) {
+  const parts = String(text || '').split(RX);
+  return parts.map((part, i) => {
+    if (!part) return null;
+    if (part.startsWith('**')) return <b key={i}>{part.slice(2, -2)}</b>;
+    if (part.startsWith('[[')) {
+      const match = /^\[\[(\d+)(?:-(\d+))?\|([^\]]+)\]\]$/.exec(part);
+      const r = [+match[1], +(match[2] || match[1])];
+      const label = match[3].replace(/`/g, '');
+      const named = (label.match(/\d+/g) || []).map(Number);
+      const says = named.includes(r[0]) && named.includes(r[1]);
+      return (
+        <span
+          key={i}
+          className="lnk"
+          onMouseEnter={() => onLink?.(r)}
+          onMouseLeave={() => onLink?.(null)}
+          onClick={() => onLinkClick?.(r)}
+        >
+          {label}
+          {!says && <sup>{r[0] === r[1] ? r[0] : `${r[0]}–${r[1]}`}</sup>}
+        </span>
+      );
+    }
+    if (part.startsWith('`')) {
+      const w = part.slice(1, -1);
+      return (
+        <code key={i} className="term" onClick={(e) => onTerm?.(w, e.currentTarget)}>
+          {w}
+        </code>
+      );
+    }
+    if (part.startsWith('*') && part.endsWith('*') && part.length > 2)
+      return <i key={i}>{part.slice(1, -1)}</i>;
+    return <span key={i}>{part}</span>;
+  });
+}

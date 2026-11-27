@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { BY_ID } from '../atlas/catalog.js';
 import { ICONS } from '../atlas/icons.js';
 import { LAYERS, LAYER, displayName, heat, langColor } from '../atlas/analyze.js';
-import { Md } from './Story.jsx';
+import Md from './Md.jsx';
 import { pressable } from './a11y.js';
 
 // The repo as a little isometric city.

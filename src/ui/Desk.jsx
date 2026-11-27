@@ -16,7 +16,7 @@ import { typeCheck } from '../runtime/runner.js';
 import { localChecks, checkPrompt, applyCheck } from '../verify.js';
 import Editor from './Editor.jsx';
 import Stage from './Stage.jsx';
-import { Md } from './Story.jsx';
+import Md from './Md.jsx';
 import { Interlinear } from './desk/Interlinear.jsx';
 import { haptic } from './touch.js';
 import useDividers from './desk/useDividers.js';

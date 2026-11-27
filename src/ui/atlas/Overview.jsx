@@ -1,7 +1,7 @@
 import { langColor, fmtN } from '../../atlas/analyze.js';
 import { LANGS } from '../../atlas/catalog.js';
 import Brand from '../Brand.jsx';
-import { Md } from '../Story.jsx';
+import Md from '../Md.jsx';
 
 // Overview cards: the languages a project is written in, and its hot spots (where it could hurt).
 

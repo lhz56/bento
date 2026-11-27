@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { LAYER, langColor } from '../../../atlas/analyze.js';
+import Md from '../../Md.jsx';
 
 // Building blocks the phone Atlas is made of: its icons, headings, grouped lists, bottom sheets and file rows,
 // and small text helpers.
@@ -329,7 +330,11 @@ export function FileRow({ f, sub, onOpen, n }) {
       {n != null ? <span className="ph-num">{n}</span> : <FileIcon f={f} />}
       <span className="ph-ct">
         <b className="ph-mono">{base(f.p)}</b>
-        {sub && <span>{sub}</span>}
+        {sub && (
+          <span>
+            <Md text={sub} />
+          </span>
+        )}
       </span>
       <Chev />
     </button>

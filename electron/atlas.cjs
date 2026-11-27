@@ -6,6 +6,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 
+// the version of what analyze() finds; saved projects from an older one are read again (keep it equal to
+// ANALYSIS_VERSION in src/atlas/analyze.js)
+const ANALYSIS_VERSION = 6;
+
 const SKIP = new Set([
   'node_modules',
   '.git',
@@ -837,10 +841,10 @@ function analyze(root, meta = {}) {
       for (const m of (readText(root, file.p) || '').matchAll(/provider\s*=\s*"(\w+)"/g))
         sig.prisma.push(m[1]);
   }
-  // env keys used in code even without an .env.example
+  // env keys used in code even without an .env.example (not in tests, whose sample code would count as the project's)
   const envSeen = new Set(sig.env);
   for (const f of files)
-    if (f._t)
+    if (f._t && f.sub !== 'tests')
       for (const m of f._t.matchAll(
         /(?:process\.env\.|import\.meta\.env\.|os\.environ(?:\.get)?\(\s*["']|os\.getenv\(\s*["']|getenv\(\s*["'])([A-Z][A-Z0-9_]{2,})/g,
       ))
@@ -918,7 +922,7 @@ function analyze(root, meta = {}) {
       code: files.filter((f) => f.lang).length,
     },
     analyzedAt: Date.now(),
-    v: 5,
+    v: ANALYSIS_VERSION,
     readOf: of,
   };
 }

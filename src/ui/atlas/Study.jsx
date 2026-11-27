@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Detective } from './Detective.jsx';
+import Md from '../Md.jsx';
 
 // Studying a project: ways to learn from it, from a guided read to building a mini version.
 
@@ -48,7 +49,9 @@ export function Study({
                 <button onClick={() => onTour(i)}>
                   <span className="tour-n">{i + 1}</span>
                   <span className="tour-p">{t.p}</span>
-                  <span className="tour-w">{t.why}</span>
+                  <span className="tour-w">
+                    <Md text={t.why} />
+                  </span>
                 </button>
               </li>
             ))}

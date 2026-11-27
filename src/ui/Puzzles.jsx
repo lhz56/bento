@@ -21,7 +21,7 @@ import {
 } from '../puzzles.js';
 import { ideaById } from '../ideas.js';
 import { run as runCode } from '../runtime/runner.js';
-import { Md } from './Story.jsx';
+import Md from './Md.jsx';
 
 const starsOf = (rec) => (rec?.s || []).filter(Boolean).length;
 

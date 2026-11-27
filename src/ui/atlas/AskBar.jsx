@@ -3,7 +3,7 @@ import { fmtN } from '../../atlas/analyze.js';
 import { t } from '../../i18n.js';
 import { keys, mod } from '../../platform.js';
 import { save } from '../../store.js';
-import { Md } from '../Story.jsx';
+import Md from '../Md.jsx';
 
 // Asking about a project: the conversation box (kept per project between visits) and the banner for a question
 // that brought you here from elsewhere.

@@ -3,7 +3,7 @@ import { detectSite } from '../atlas/site.js';
 import { Toolbelt } from './atlas/Toolbelt.jsx';
 import { mergeTools } from './atlas/toolModel.js';
 import BigPicture from './BigPicture.jsx';
-import { Md } from './Story.jsx';
+import Md from './Md.jsx';
 
 // Take apart a website: what it is, how it reached your screen, and what it's built with.
 const fallback = (facts, tools) => {

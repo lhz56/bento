@@ -54,6 +54,11 @@ put(
   'website/src/pages/index.js',
   "import styled from 'styled-components';\nexport default () => null;\n",
 );
+// a test whose sample code mentions a tool the project doesn't use (as Bento's own analyzer test does)
+put(
+  'test/samples.test.mjs',
+  'const sample = "import { createClient } from \'@supabase/supabase-js\';\\nconst url = process.env.SUPABASE_URL;";\n',
+);
 put('LICENSE', 'MIT');
 put('README.md', '# demo');
 
@@ -107,6 +112,12 @@ check('env key found', F.sig.env.includes('STRIPE_SECRET_KEY'), F.sig.env);
 const stack = detectStack(F).map((s) => s.id);
 for (const id of ['next', 'react', 'stripe', 'prisma', 'postgres', 'vitest'])
   check(`detects ${id}`, stack.includes(id), stack);
+check(
+  'a tool only in a test’s sample code is not the project’s',
+  !stack.includes('supabase'),
+  stack,
+);
+check('env keys in tests are not the project’s', !F.sig.env.includes('SUPABASE_URL'), F.sig.env);
 const stripe = detectStack(F).find((s) => s.id === 'stripe');
 check(
   'stripe linked to the file that uses it',

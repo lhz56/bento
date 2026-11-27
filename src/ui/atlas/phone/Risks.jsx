@@ -1,4 +1,4 @@
-import { Md } from '../../Story.jsx';
+import Md from '../../Md.jsx';
 import { Head, I, Chev, Sheet, Group, FileRow } from './kit.jsx';
 
 // Where a project could hurt, on a phone: its hot spots and a sheet for each.

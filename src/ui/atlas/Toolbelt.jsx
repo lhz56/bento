@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CATS, BY_ID } from '../../atlas/catalog.js';
 import Brand from '../Brand.jsx';
-import { Md } from '../Story.jsx';
+import Md from '../Md.jsx';
 import { lc, findTool } from './toolModel.js';
 
 // The tools a project is built with, grouped by what they're for, with a card for each (what it does, when to
