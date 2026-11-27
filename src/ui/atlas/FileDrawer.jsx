@@ -25,6 +25,7 @@ function Ripple({ facts, idx, onOpen }) {
   const rings = useMemo(() => {
     const rev = reverseOf(facts);
     const seen = new Set([idx]);
+    /** @type {number[][] & { more?: number }} */
     const out = [];
     let front = [idx];
     for (let d = 0; d < 3 && front.length; d++) {

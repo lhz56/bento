@@ -208,7 +208,8 @@ export default function Words({ words, onOpen, onAsk, onGrade, onAdd }) {
                   key={w.term}
                   className={`word ${w.like ? 'has-like' : ''} ${openW === w.term ? 'open' : ''}`}
                   onClick={(e) => {
-                    if (!e.target.closest('button')) setOpenW(openW === w.term ? null : w.term);
+                    if (!(/** @type {HTMLElement} */ (e.target).closest('button')))
+                      setOpenW(openW === w.term ? null : w.term);
                   }}
                 >
                   <div className="w-term">

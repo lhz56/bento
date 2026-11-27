@@ -497,6 +497,7 @@ function setTree(sim, tree) {
 }
 
 // A short guided tour; each mission is done when its check is true
+/** @type {Array<[title: string, goal: string, hint: string, done: (sim: any) => boolean]>} */
 export const MISSIONS = [
   [
     'Make a project folder',

@@ -28,6 +28,7 @@ import useDeskFiles from './desk/useDeskFiles.js';
 import useDeskExecution from './desk/useDeskExecution.js';
 import useTwin, { LNAME, other } from './desk/useTwin.js';
 
+/** @type {Array<['code' | 'both' | 'english' | 'twin', string, string]>} */
 const LENSES = [
   ['code', 'Code', 'Code'],
   ['both', 'Side by side', 'Both'],
@@ -47,7 +48,21 @@ function addedLines(prev, cur) {
   return out;
 }
 
-const Desk = forwardRef(function Desk(props, ref) {
+/**
+ * @typedef {{
+ *   lesson: any, onPatch: (change: object) => void, quick: (model: string, prompt: string) => Promise<string>,
+ *   model: string, linkRange?: [number, number] | null, stepSel?: number | null, onMastery?: (kind: string) => void,
+ *   pyReady?: boolean, streaming?: boolean, onRemix?: (code: string, lang: string) => void,
+ *   knownWords?: Set<string>, onWord?: (word: { term: string, plain: string, like?: string }) => void,
+ *   phone?: boolean,
+ *   noteFlash?: { from: number, at: number } | null,
+ *   onResult?: (lessonId: string, result: any, src: string) => void,
+ * }} DeskProps
+ * @typedef {{ run: () => void, step: () => void, tests: () => void, setCode: (code: string) => void,
+ *   getCode: () => string }} DeskHandle
+ */
+/** @type {import('react').ForwardRefExoticComponent<DeskProps & import('react').RefAttributes<DeskHandle>>} */
+const Desk = forwardRef(function Desk(/** @type {DeskProps} */ props, ref) {
   const {
     lesson,
     onPatch,
@@ -71,7 +86,7 @@ const Desk = forwardRef(function Desk(props, ref) {
   }, [lesson.id]);
   const ed = useRef(null);
   const [code, setCode] = useState(lesson.work ?? lesson.code);
-  const [lens, setLens] = useState('code');
+  const [lens, setLens] = useState(/** @type {'code' | 'english' | 'both' | 'twin'} */ ('code'));
   useEffect(() => {
     if (phone && lens === 'both') setLens('english');
   }, [phone, lens]);
@@ -255,6 +270,7 @@ const Desk = forwardRef(function Desk(props, ref) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- a lesson runs itself once when it opens, finishes streaming, or Python becomes ready
   }, [lesson.id, streaming, pyReady]);
 
+  const saveTimer = useRef(null);
   const onChange = (v, scrub) => {
     edited.current = true;
     setCode(v);
@@ -276,14 +292,12 @@ const Desk = forwardRef(function Desk(props, ref) {
         () => doRun(v, { quiet: true, fromTyping: true }),
         lang === 'python' ? 520 : 380,
       );
+    // your edit is saved once typing pauses (the timer lives in a ref: this function is new on every render)
+    clearTimeout(saveTimer.current);
     if (filesRef.current) {
       filesRef.current = filesRef.current.map((f, i) => (i === fi ? { ...f, code: v } : f));
-      clearTimeout(onChange.save);
-      onChange.save = setTimeout(() => onPatch({ files: filesRef.current }), 600);
-    } else {
-      clearTimeout(onChange.save);
-      onChange.save = setTimeout(() => onPatch({ work: v }), 600);
-    }
+      saveTimer.current = setTimeout(() => onPatch({ files: filesRef.current }), 600);
+    } else saveTimer.current = setTimeout(() => onPatch({ work: v }), 600);
   };
   useEffect(() => {
     if (result?.error?.line) {
@@ -549,7 +563,8 @@ const Desk = forwardRef(function Desk(props, ref) {
     const before = stepSel != null ? lesson.steps[stepSel]?.code : lesson.code;
     setCoach({ loading: true });
     try {
-      const out = document.querySelector('.console')?.innerText || '';
+      const out =
+        /** @type {HTMLElement | null} */ (document.querySelector('.console'))?.innerText || '';
       const j = parseJSONLoose(
         await quick(
           model,

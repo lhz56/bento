@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { noAI } from './ai.js';
 import { api } from './bridge.js';
 import { useT, t } from './i18n.js';
-import { SAMPLES, CHALLENGE, parseJSONLoose } from './lesson.js';
+import { SAMPLES, parseJSONLoose } from './lesson.js';
 import { loadPacks, savePacks, validatePack, applyPacks } from './packs.js';
 import { keys, TOUCH } from './platform.js';
 import { addWord } from './progress.js';
@@ -55,7 +55,7 @@ import { useNarrow, TopBar, TabBar, isRoot, noteScroll } from './ui/Phone.jsx';
 import Playgrounds from './ui/Playgrounds.jsx';
 import Puzzles from './ui/Puzzles.jsx';
 import Settings from './ui/Settings.jsx';
-import { Sidebar, modelLabel, groupOf, rememberTab } from './ui/Side.jsx';
+import { Sidebar, groupOf, rememberTab } from './ui/Side.jsx';
 import Site from './ui/Site.jsx';
 import SkillMap from './ui/SkillMap.jsx';
 import Words from './ui/Words.jsx';
@@ -261,17 +261,15 @@ export default function App() {
   useEffect(() => {
     rememberTab(view);
   }, [view]);
-  const { builtins, mastery, readIds, skyDots, threads, today } = useProgressSummary({
+  const { builtins, mastery, readIds, skyDots, today } = useProgressSummary({
     goStop,
     lessons,
     openDaily,
     openLesson,
-    openProject,
     openPuzzle,
     openSim,
     packStuff,
     progress,
-    projects,
     readIdea,
     setViewRaw,
     startStop,
@@ -598,7 +596,7 @@ export default function App() {
             .filter(
               (a) =>
                 !(TOUCH && a.label === 'Keyboard shortcuts') &&
-                !(api.remote && /^(Connections|Open a folder)/.test(a.label)),
+                !(api.remote && /^(Connections|Open a folder)/.test(String(a.label))),
             )}
           onAsk={(q) => onAsk(q, {})}
           onOpenRepo={openRepo}
@@ -635,7 +633,7 @@ export default function App() {
         onScrollCapture={
           phone
             ? (e) => {
-                const y = e.target?.scrollTop || 0;
+                const y = /** @type {HTMLElement} */ (e.target)?.scrollTop || 0;
                 if (y > 8 !== scrolled) setScrolled(y > 8);
                 noteScroll(page, e.currentTarget, e.target);
               }
@@ -690,7 +688,6 @@ export default function App() {
         {view === 'home' && (
           <Home
             builtins={builtins}
-            threads={threads}
             skyDots={skyDots}
             about={recentProject}
             onDropAbout={() => setRecent(null)}
@@ -721,16 +718,11 @@ export default function App() {
             repos={repos}
             loadRepos={loadRepos}
             samples={SAMPLES}
-            challenge={CHALLENGE}
             onOpen={openLesson}
             user={user}
-            recent={lessons.filter((l) => !l.builtin)}
             providers={providers}
             onOpenRepo={openRepo}
-            onExplore={() => setViewRaw('explore')}
-            onIdea={readIdea}
             onScratch={() => newScratch()}
-            onDaily={openDaily}
             onSim={openSim}
             onSetup={() => setOnb(1)}
             onSuggest={async (rs) => {
@@ -749,8 +741,6 @@ export default function App() {
               );
               return (j?.items || []).slice(0, 3);
             }}
-            onWords={() => setViewRaw('words')}
-            words={progress.words || {}}
             stats={{
               days: activityByDay(lessons, progress.words),
               streak: streakOf(lessons),
@@ -795,7 +785,6 @@ export default function App() {
             key={siteKey}
             site={sites[siteKey]}
             onOpenRepo={openRepo}
-            modelLabel={modelLabel(settings.model)}
             onOpenUrl={(u) => api.openExternal(u)}
             onRetry={() => {
               const x = sites[siteKey];
@@ -819,11 +808,9 @@ export default function App() {
             instant={!settings.voice || settings.voice === 'English' ? PRE.ideas : {}}
             races={[]}
             onRace={openLesson}
-            onPuzzles={() => setViewRaw('puzzles')}
             extra={packStuff.ideas}
             onRead={readIdea}
             readIds={readIds}
-            interests={settings.interests}
           />
         )}
         {view === 'play' && (

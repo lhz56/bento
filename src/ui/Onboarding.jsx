@@ -11,6 +11,8 @@ const SHELL = WIN ? 'PowerShell' : 'Terminal';
 // Every AI Bento can teach with (electron/ai-catalog.json), then GitHub. Install commands that work on this Mac:
 // Homebrew or npm when you have them (scan.tools says which); Claude Code's own installer needs nothing else.
 // (on Windows, the catalog's "win" commands: PowerShell, winget and npm)
+// (one shape for all of them: GitHub's catalog entry has no plan, color or models)
+/** @type {Array<Record<string, any> & { id: string, name: string, ai: boolean }>} */
 const CONNS = [...PROVIDERS.map((p) => ({ ...p, ai: true })), { ...GITHUB, ai: false }].map((c) =>
   WIN && c.win ? { ...c, ...c.win } : c,
 );
@@ -309,7 +311,10 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
             )}
             {!scanFailed &&
               [...CONNS]
-                .sort((a, b) => (scan && b.ai && ready(b.id)) - (scan && a.ai && ready(a.id)))
+                .sort(
+                  (a, b) =>
+                    Number(scan && b.ai && ready(b.id)) - Number(scan && a.ai && ready(a.id)),
+                )
                 .filter((c) => !(scan && anyModel) || (c.ai && ready(c.id)) || more)
                 .map((c, i) => {
                   const r = scan?.[c.id];
@@ -694,6 +699,7 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
 
 // Three tiny living scenes for the welcome screen: a city that builds itself, code that runs, your AI plugging in.
 function SeeIt() {
+  /** @type {Array<[number, number, string]>} */
   const blocks = [
     [18, 30, '#ff8a5b'],
     [40, 52, '#5aa9ff'],
@@ -778,21 +784,23 @@ export function Art({ kind }) {
   if (kind === 'city')
     return (
       <svg viewBox="0 0 120 70" className="s3-art" aria-hidden="true">
-        {[
-          [20, 40, 18, '#ff8a5b'],
-          [34, 34, 28, '#5aa9ff'],
-          [48, 42, 14, '#a78bfa'],
-          [62, 36, 24, '#4cc9a0'],
-          [76, 44, 10, '#ff8a5b'],
-          [90, 38, 20, '#5aa9ff'],
-        ].map(([x, y, h, c], i) => (
-          <g key={i}>
-            <path d={`M${x} ${y} l7 -4 l7 4 v${-h + 10} l-7 -4 l-7 4 Z`} fill={c} opacity=".25" />
-            <path d={`M${x} ${y - h + 10} l7 -4 l7 4 l-7 4 Z`} fill={c} />
-            <path d={`M${x} ${y - h + 10} l7 4 v${h - 6} l-7 -4 Z`} fill={c} opacity=".55" />
-            <path d={`M${x + 7} ${y - h + 14} l7 -4 v${h - 6} l-7 4 Z`} fill={c} opacity=".8" />
-          </g>
-        ))}
+        {
+          /** @type {Array<[number, number, number, string]>} */ ([
+            [20, 40, 18, '#ff8a5b'],
+            [34, 34, 28, '#5aa9ff'],
+            [48, 42, 14, '#a78bfa'],
+            [62, 36, 24, '#4cc9a0'],
+            [76, 44, 10, '#ff8a5b'],
+            [90, 38, 20, '#5aa9ff'],
+          ]).map(([x, y, h, c], i) => (
+            <g key={i}>
+              <path d={`M${x} ${y} l7 -4 l7 4 v${-h + 10} l-7 -4 l-7 4 Z`} fill={c} opacity=".25" />
+              <path d={`M${x} ${y - h + 10} l7 -4 l7 4 l-7 4 Z`} fill={c} />
+              <path d={`M${x} ${y - h + 10} l7 4 v${h - 6} l-7 -4 Z`} fill={c} opacity=".55" />
+              <path d={`M${x + 7} ${y - h + 14} l7 -4 v${h - 6} l-7 4 Z`} fill={c} opacity=".8" />
+            </g>
+          ))
+        }
       </svg>
     );
   if (kind === 'puzzle')

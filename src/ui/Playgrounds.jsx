@@ -9,6 +9,7 @@ import { t, tx } from '../i18n.js';
 import Sandbox from './Sandbox.jsx';
 import { K, mod } from '../platform.js';
 
+/** @param {{ progress?: Record<string, Record<string, any>>, [prop: string]: any }} props */
 export default function Playgrounds({
   top,
   tab = 'sql',

@@ -229,6 +229,7 @@ export const lc = (s) => (/^[A-Z][a-z]/.test(s) ? s[0].toLowerCase() + s.slice(1
 export const base = (p) => String(p).split('/').pop();
 
 // ---------------------------------------------------------------- pieces every section uses
+/** @param {{ title: string, sub?: import('react').ReactNode }} props */
 export function Head({ title, sub }) {
   return (
     <header className="ph-h">
@@ -238,6 +239,7 @@ export function Head({ title, sub }) {
   );
 }
 
+/** @param {{ title: string, note?: import('react').ReactNode }} props */
 export function SubHead({ title, note }) {
   return (
     <div className="ph-sh">
@@ -248,6 +250,10 @@ export function SubHead({ title, note }) {
 }
 
 // an inset list, as in Settings: a small heading, white rows, a note under it
+/**
+ * @param {{ title?: import('react').ReactNode, foot?: import('react').ReactNode, action?: import('react').ReactNode,
+ *   children: import('react').ReactNode }} props
+ */
 export function Group({ title, foot, children, action }) {
   return (
     <div className="ph-group">
@@ -323,6 +329,9 @@ export function FileIcon({ f }) {
   );
 }
 
+/**
+ * @param {{ f: { p: string, lang?: string | null }, sub?: string, onOpen?: (path: string) => void, n?: number }} props
+ */
 export function FileRow({ f, sub, onOpen, n }) {
   return (
     <button className="ph-cell" data-p={f.p} onClick={() => onOpen(f.p)}>

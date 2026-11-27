@@ -86,6 +86,10 @@ function plan(bands) {
 }
 
 // bare: just the city, no heading of its own (a phone shows it as a picture in its page, and full screen)
+/**
+ * @param {{ facts: any, narration: any, tools: any[], pathIdx: Map<string, number>, role: (path: string) => string,
+ *   onOpen: (path: string) => void, narrating?: boolean, hot?: any[], bare?: boolean }} props
+ */
 export default function City({
   facts,
   narration,

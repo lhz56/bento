@@ -164,6 +164,7 @@ const orange = '#ff8a5b',
   mint = '#4cc9a0',
   sky = '#5aa9ff',
   yellow = '#f5b82e';
+/** @param {{ kind: string, big?: boolean }} props */
 export function IdeaArt({ kind, big }) {
   const vb = '0 0 200 110';
   const wrap = (children) => (
@@ -321,12 +322,12 @@ export function IdeaArt({ kind, big }) {
       return wrap(
         <>
           {
-            [
+            /** @type {Array<[number, string]>} */ ([
               [1, 'var(--bg-3)'],
               [41, sky],
               [10, orange],
               [12, mint],
-            ].reduce(
+            ]).reduce(
               (acc, [w, c], i) => {
                 const x = acc.x;
                 acc.el.push(
@@ -513,25 +514,27 @@ export function IdeaArt({ kind, big }) {
             stroke={orange}
             strokeWidth="1.5"
           />
-          {[
-            [56, 26, violet, 'Ana'],
-            [138, 80, mint, 'Ben'],
-          ].map(([x, y, c, n], i) => (
-            <g key={i}>
-              <path d={`M${x} ${y} l9 22 l3 -9 l9 -3 Z`} fill={c} />
-              <rect x={x + 10} y={y + 20} width="26" height="12" rx="6" fill={c} />
-              <text
-                x={x + 23}
-                y={y + 29}
-                fontSize="7.5"
-                fill="#fff"
-                textAnchor="middle"
-                fontFamily="ui-rounded"
-              >
-                {n}
-              </text>
-            </g>
-          ))}
+          {
+            /** @type {Array<[number, number, string, string]>} */ ([
+              [56, 26, violet, 'Ana'],
+              [138, 80, mint, 'Ben'],
+            ]).map(([x, y, c, n], i) => (
+              <g key={i}>
+                <path d={`M${x} ${y} l9 22 l3 -9 l9 -3 Z`} fill={c} />
+                <rect x={x + 10} y={y + 20} width="26" height="12" rx="6" fill={c} />
+                <text
+                  x={x + 23}
+                  y={y + 29}
+                  fontSize="7.5"
+                  fill="#fff"
+                  textAnchor="middle"
+                  fontFamily="ui-rounded"
+                >
+                  {n}
+                </text>
+              </g>
+            ))
+          }
         </>,
       );
     case 'matrix':
@@ -1021,27 +1024,29 @@ export function IdeaArt({ kind, big }) {
     case 'vclock':
       return wrap(
         <>
-          {[
-            ['A', 40, sky, '[2,1]'],
-            ['B', 160, violet, '[1,2]'],
-          ].map(([n, x, c, v]) => (
-            <g key={n}>
-              <circle cx={x} cy="40" r="14" fill={c} />
-              <text x={x} y="44" fontSize="11" textAnchor="middle" fill="#fff" fontWeight="700">
-                {n}
-              </text>
-              <text
-                x={x}
-                y="70"
-                fontSize="10"
-                textAnchor="middle"
-                fill="var(--ink-3)"
-                fontFamily="monospace"
-              >
-                {v}
-              </text>
-            </g>
-          ))}
+          {
+            /** @type {Array<[string, number, string, string]>} */ ([
+              ['A', 40, sky, '[2,1]'],
+              ['B', 160, violet, '[1,2]'],
+            ]).map(([n, x, c, v]) => (
+              <g key={n}>
+                <circle cx={x} cy="40" r="14" fill={c} />
+                <text x={x} y="44" fontSize="11" textAnchor="middle" fill="#fff" fontWeight="700">
+                  {n}
+                </text>
+                <text
+                  x={x}
+                  y="70"
+                  fontSize="10"
+                  textAnchor="middle"
+                  fill="var(--ink-3)"
+                  fontFamily="monospace"
+                >
+                  {v}
+                </text>
+              </g>
+            ))
+          }
           <path d="M56 40 H144" stroke="var(--line-2)" strokeWidth="2" strokeDasharray="4 4" />
           <path d="M58 76 Q100 104 142 76" fill="none" stroke={mint} strokeWidth="2" />
           <text x="100" y="96" fontSize="9" textAnchor="middle" fill={mint} fontWeight="700">
@@ -1063,23 +1068,25 @@ export function IdeaArt({ kind, big }) {
               fill={i === 10 ? orange : 'var(--bg-3)'}
             />
           ))}
-          {[
-            [36, sky, 'email'],
-            [98, violet, 'stats'],
-            [20, mint, 'new'],
-          ].map(([x, c, t], i) => (
-            <g key={i}>
-              <path
-                d={`M${x + 6} ${i === 1 ? 30 : i === 2 ? 86 : 30} V${i === 2 ? 68 : 40}`}
-                stroke={c}
-                strokeWidth="2"
-              />
-              <circle cx={x + 6} cy={i === 2 ? 88 : 26} r="4" fill={c} />
-              <text x={x + 14} y={i === 2 ? 92 : 29} fontSize="8.5" fill="var(--ink-3)">
-                {t}
-              </text>
-            </g>
-          ))}
+          {
+            /** @type {Array<[number, string, string]>} */ ([
+              [36, sky, 'email'],
+              [98, violet, 'stats'],
+              [20, mint, 'new'],
+            ]).map(([x, c, t], i) => (
+              <g key={i}>
+                <path
+                  d={`M${x + 6} ${i === 1 ? 30 : i === 2 ? 86 : 30} V${i === 2 ? 68 : 40}`}
+                  stroke={c}
+                  strokeWidth="2"
+                />
+                <circle cx={x + 6} cy={i === 2 ? 88 : 26} r="4" fill={c} />
+                <text x={x + 14} y={i === 2 ? 92 : 29} fontSize="8.5" fill="var(--ink-3)">
+                  {t}
+                </text>
+              </g>
+            ))
+          }
           <text x="178" y="58" fontSize="12" fill={orange}>
             +
           </text>

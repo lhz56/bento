@@ -18,6 +18,7 @@ INSERT INTO orders VALUES
  (16,9,1,3,'2026-11-07'),(17,6,7,1,'2026-11-08'),(18,2,3,2,'2026-11-08'),(19,5,5,1,'2026-11-08'),(20,8,8,2,'2026-11-08');
 `;
 
+/** @type {Array<[name: string, columns: string[], rows: number, what: string]>} */
 export const TABLES = [
   ['customers', ['id', 'name', 'city', 'joined'], 10, 'people who come to the café'],
   ['products', ['id', 'name', 'category', 'price'], 8, 'what the café sells'],

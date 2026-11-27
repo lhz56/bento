@@ -49,24 +49,26 @@ const Tree = () => (
         />
       ))}
     </g>
-    {[
-      [60, 12, '#ff8a5b'],
-      [34, 34, '#a58bff'],
-      [86, 34, '#a58bff'],
-      [20, 56, '#3fd1a3'],
-      [48, 56, '#3fd1a3'],
-      [100, 56, '#3fd1a3'],
-    ].map(([x, y, c], i) => (
-      <circle
-        key={i}
-        cx={x}
-        cy={y}
-        r="7"
-        fill={c}
-        className="ia-pop"
-        style={{ animationDelay: `${i * 0.35}s` }}
-      />
-    ))}
+    {
+      /** @type {Array<[number, number, string]>} */ ([
+        [60, 12, '#ff8a5b'],
+        [34, 34, '#a58bff'],
+        [86, 34, '#a58bff'],
+        [20, 56, '#3fd1a3'],
+        [48, 56, '#3fd1a3'],
+        [100, 56, '#3fd1a3'],
+      ]).map(([x, y, c], i) => (
+        <circle
+          key={i}
+          cx={x}
+          cy={y}
+          r="7"
+          fill={c}
+          className="ia-pop"
+          style={{ animationDelay: `${i * 0.35}s` }}
+        />
+      ))
+    }
   </Box>
 );
 // two growth curves drawing themselves: n and n²
@@ -362,7 +364,7 @@ export default function IdeaFlow({ samples = [], onOpen, onSim, onScratch, onAsk
               <button
                 key={`${key}-${i}`}
                 className="if-card"
-                onClick={() => go(key, label)}
+                onClick={() => go(key)}
                 tabIndex={i >= row.length ? -1 : 0}
                 aria-hidden={i >= row.length || undefined}
               >

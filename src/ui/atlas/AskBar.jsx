@@ -15,6 +15,10 @@ const asIcon = (asked, atlas) =>
     ? `https://avatars.githubusercontent.com/${asked.d.pick.full.split('/')[0]}?size=96`
     : null);
 
+/**
+ * @param {{ asked: { q: string, key?: string, why?: string, at?: number, d?: any }, atlas: any,
+ *   onIdeaInstead?: (question: string) => void, onClose?: () => void, waiting?: boolean }} props
+ */
 export function AskedBanner({ asked, atlas, onIdeaInstead, onClose, waiting }) {
   const pick = asked.d?.pick || {};
   const icon = asIcon(asked, atlas);

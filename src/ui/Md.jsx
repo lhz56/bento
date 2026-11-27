@@ -2,6 +2,10 @@
 // lesson's code (hover lights them, click jumps there). Used for every short piece of AI-written text.
 const RX = /(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|`[^`]+`|\[\[\d+(?:-\d+)?\|[^\]]+\]\])/g;
 
+/**
+ * @param {{ text: string, onLink?: (range: [number, number] | null) => void,
+ *   onLinkClick?: (range: [number, number]) => void, onTerm?: (word: string, el: HTMLElement) => void }} props
+ */
 export default function Md({ text, onLink, onLinkClick, onTerm }) {
   const parts = String(text || '').split(RX);
   return parts.map((part, i) => {
@@ -9,6 +13,7 @@ export default function Md({ text, onLink, onLinkClick, onTerm }) {
     if (part.startsWith('**')) return <b key={i}>{part.slice(2, -2)}</b>;
     if (part.startsWith('[[')) {
       const match = /^\[\[(\d+)(?:-(\d+))?\|([^\]]+)\]\]$/.exec(part);
+      /** @type {[number, number]} */
       const r = [+match[1], +(match[2] || match[1])];
       const label = match[3].replace(/`/g, '');
       const named = (label.match(/\d+/g) || []).map(Number);

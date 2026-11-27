@@ -504,7 +504,7 @@ function moviePlan(code) {
 function Movie({ s, prev, plan }) {
   const vars = s.vars || {};
   const lists = Object.entries(vars)
-    .map(([k, v]) => [k, asBoxes(v)])
+    .map(([k, v]) => /** @type {[string, any]} */ ([k, asBoxes(v)]))
     .filter(([, b]) => b?.kind === 'list');
   const scalars = Object.entries(vars).filter(([, v]) => !asBoxes(v) && String(v).length <= 24);
   if (!lists.length) return null;
@@ -787,15 +787,17 @@ function Steps({
                     </div>
                   ) : (
                     <div className="kvs">
-                      {box.items.map(([kk, x]) => (
-                        <span
-                          key={kk}
-                          className={`kv ${pb?.kind === 'map' && pb.items.find((q) => q[0] === kk)?.[1] !== x ? 'chg' : ''}`}
-                        >
-                          <b>{kk}</b>
-                          {x}
-                        </span>
-                      ))}
+                      {
+                        /** @type {Array<[string, string]>} */ (box.items).map(([kk, x]) => (
+                          <span
+                            key={kk}
+                            className={`kv ${pb?.kind === 'map' && pb.items.find((q) => q[0] === kk)?.[1] !== x ? 'chg' : ''}`}
+                          >
+                            <b>{kk}</b>
+                            {x}
+                          </span>
+                        ))
+                      }
                       {box.more && <span className="kv">…</span>}
                     </div>
                   )}

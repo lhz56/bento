@@ -16,8 +16,8 @@ Thanks for helping people learn how software works.
   it's the one they want.
 - **No lint warnings** (`npm run lint` fails on one). When an effect should run only on some changes, say why
   where the rule is switched off: `// eslint-disable-next-line react-hooks/exhaustive-deps -- runs once per lesson`.
-- **Types live in JSDoc** (`/** @param {string} q */`), checked by `npm run typecheck`. New non-component modules
-  must pass it.
+- **Types live in JSDoc** (`/** @param {string} q */`), checked by `npm run typecheck`, components included: a
+  component's props are typed in a comment above it (`/** @param {{ text: string, onLink?: () => void }} props */`).
 - See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#code-layout) for where things live.
 
 ## Add a clever idea

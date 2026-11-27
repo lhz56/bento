@@ -2999,6 +2999,7 @@ export function fitScale(pts, target = 'O(n)') {
   return { label, tier, k, at: (N) => (t0 * GROWTH[label](N)) / GROWTH[label](n0) };
 }
 
+/** @type {Array<[size: number, icon: string, say: string]>} */
 export const DEFAULT_RUNGS = [
   [10, '✋', 'a handful'],
   [1000, '🏫', 'a school'],

@@ -1,9 +1,8 @@
 {
   // Type-checks the JavaScript (no build step: Vite and Electron run the .js/.jsx/.cjs files as they are).
   // `npm run typecheck`. Types come from JSDoc comments and from what TypeScript can infer.
-  // Covered: the main process (electron/) and every non-component module in src/. The React components (*.jsx)
-  // are next: they need their optional props marked in JSDoc first (`npx tsc -p . --noEmit` with *.jsx added
-  // to "include" lists what's left).
+  // Covered: everything, the main process (electron/), every module in src/ and every React component (*.jsx).
+  // A component's props are typed in a JSDoc comment above it; optional ones end in "?".
   "compilerOptions": {
     "allowJs": true,
     "checkJs": true,
@@ -20,6 +19,6 @@
     "noImplicitThis": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.d.ts", "src/**/*.js", "electron/**/*.cjs", "vite.config.js"],
+  "include": ["src/**/*.d.ts", "src/**/*.js", "src/**/*.jsx", "electron/**/*.cjs", "vite.config.js"],
   "exclude": ["node_modules", "dist", "dist-web", "release"]
 }

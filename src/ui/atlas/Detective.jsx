@@ -22,7 +22,10 @@ export function Detective({ facts, narration, readFile, onOpen }) {
     const rounds = pick.map((x) => {
       const others = pool
         .filter((y) => y.p !== x.p && y.r !== x.r)
-        .sort((a, b) => (a.layer === x.layer) - (b.layer === x.layer) || Math.random() - 0.5)
+        .sort(
+          (a, b) =>
+            Number(a.layer === x.layer) - Number(b.layer === x.layer) || Math.random() - 0.5,
+        )
         .slice(0, 2);
       return { ...x, opts: [x.r, ...others.map((o) => o.r)].sort(() => Math.random() - 0.5) };
     });

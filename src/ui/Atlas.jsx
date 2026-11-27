@@ -37,14 +37,16 @@ const SECTIONS = [
 
 const ago = (d) => {
   if (!d) return '';
-  const s = (Date.now() - new Date(d)) / 1000;
-  const u = [
+  const s = (Date.now() - new Date(d).getTime()) / 1000;
+  /** @type {Array<[number, string]>} */
+  const units = [
     [31536000, 'year'],
     [2592000, 'month'],
     [86400, 'day'],
     [3600, 'hour'],
     [60, 'minute'],
-  ].find((x) => s >= x[0]);
+  ];
+  const u = units.find((x) => s >= x[0]);
   if (!u) return 'just now';
   const count = Math.floor(s / u[0]);
   return `${count} ${u[1]}${count > 1 ? 's' : ''} ago`;
@@ -84,7 +86,7 @@ export default function Atlas({
   const [section, setSection] = useState('overview');
   const [forkState, setForkState] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [acts, setActs] = useState(false); // on a phone, the project's actions open from ⋯ (where that ⋯ is, to open beside it)
+  const [acts, setActs] = useState(/** @type {false | true | DOMRect} */ (false)); // on a phone, the project's actions open from ⋯ (where that ⋯ is, to open beside it)
   const openActs = (e) =>
     setActs((o) => (o ? false : e?.currentTarget?.getBoundingClientRect?.() || true));
   const phone = useNarrow(); // a phone (or a narrow window): the Atlas as a phone page (AtlasPhone.jsx)
@@ -365,7 +367,7 @@ export default function Atlas({
               <div
                 className={`ab-act ${acts ? 'open' : ''}`}
                 style={
-                  phone && acts?.bottom
+                  phone && typeof acts === 'object'
                     ? {
                         '--at': `${Math.round(acts.bottom + 8)}px`,
                         '--ar': `${Math.round(innerWidth - acts.right)}px`,
@@ -677,7 +679,6 @@ export default function Atlas({
             onFeature={onFeature}
             narrating={narrating}
             tour={(narration?.tour || []).filter((t) => pathIdx.has(t.p))}
-            role={role}
             onTour={(i) => {
               const st = (narration?.tour || []).filter((t) => pathIdx.has(t.p));
               setTourAt(i);
@@ -702,7 +703,6 @@ export default function Atlas({
         onAsk={onAsk}
         onQuick={onQuick}
         onOpen={openFile}
-        pathIdx={pathIdx}
         initial={asked && atlas.src?.root ? asked : null}
         onFeature={onFeature}
       />

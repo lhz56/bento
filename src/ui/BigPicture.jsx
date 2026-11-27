@@ -123,6 +123,11 @@ function MakePathBtn({ go }) {
   );
 }
 
+/**
+ * @param {{ appName?: string, onMakePath?: (goal: string) => void, build?: any, onBuild?: (mini: string) => void,
+ *   flow: any, terms?: any[], tools: any[], pathIdx: Map<string, number>, onOpen: (path: string) => void,
+ *   onAsk?: (question: string, focus?: string) => void, narrating?: boolean, role: (path: string) => string }} props
+ */
 export default function BigPicture({
   appName,
   onMakePath,

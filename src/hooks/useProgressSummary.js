@@ -1,6 +1,6 @@
 // What you've learned, summed up for the screens that show it: how well you know each skill (mastery, and the
-// dots on the sky), Home's "Today" (one next step from each part of Bento), your threads (lessons and projects to
-// go back to), the ideas you've read, and builtins: everything Bento can open by name, for search and for routing.
+// dots on the sky), Home's "Today" (one next step from each part of Bento), the ideas you've read, and builtins:
+// everything Bento can open by name, for search and for routing.
 import { useMemo } from 'react';
 import { t } from '../i18n.js';
 import { IDEAS } from '../ideas.js';
@@ -16,12 +16,10 @@ export default function useProgressSummary({
   lessons,
   openDaily,
   openLesson,
-  openProject,
   openPuzzle,
   openSim,
   packStuff,
   progress,
-  projects,
   readIdea,
   setViewRaw,
   startStop,
@@ -122,58 +120,6 @@ export default function useProgressSummary({
     return out.slice(0, 5).map((x) => ({ ...x, mins: mins[x.k], done: !!doneToday[x.k] }));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Today changes with what you learned; its actions are read as they are then
   }, [progress, mastery, lessons, packStuff, readIds]);
-  // your threads: lessons and project conversations, newest first, with what's in each
-  const threads = useMemo(() => {
-    let convo = {};
-    try {
-      convo = JSON.parse(localStorage.getItem('bento.atlasThreads') || '{}');
-    } catch {}
-    // which stop on its path a lesson is (any path, built-in or your own)
-    const stopNo = Object.fromEntries(
-      tracksWith(progress.tracks || [])
-        .flatMap((track) => track.stops.map((x, i) => [progress.path?.[x.id], i + 1]))
-        .filter(([id]) => id && id !== 'x'),
-    );
-    const ls = lessons
-      .filter((l) => (!l.builtin || l.touched) && l.status !== 'error')
-      .map((lesson) => ({
-        k: `l:${lesson.id}`,
-        kind: 'lesson',
-        at: Math.max(lesson.createdAt || 0, ...(lesson.chat || []).map((c) => c.at || 0)),
-        title: lesson.title || lesson.q || 'Untitled',
-        lang: lesson.lang,
-        glyph: lesson.scratch
-          ? '✎'
-          : lesson.mode === 'challenge'
-            ? '⚑'
-            : lesson.mode === 'compare'
-              ? '⇄'
-              : lesson.mode === 'build'
-                ? '⚒'
-                : Object.values(progress.path || {}).includes(lesson.id)
-                  ? '⤳'
-                  : null,
-        stop: stopNo[lesson.id] || null,
-        idea: lesson.mode === 'idea' ? lesson.context?.ideaId : null,
-        asked: (lesson.chat || []).filter((c) => c.q).length,
-        right: (lesson.checks || []).filter((c) => c.ok).length,
-        live: lesson.status === 'streaming',
-        open: () => openLesson(lesson),
-      }));
-    const ps = projects
-      .filter((p) => p.kind === 'github' || p.kind === 'local')
-      .map((project) => ({
-        k: `p:${project.key}`,
-        kind: 'project',
-        at: project.at || 0,
-        title: (project.full || project.name || '').split('/').pop(),
-        owner: project.kind === 'github' ? (project.full || project.key).split('/')[0] : null,
-        asked: (convo[project.key] || []).length,
-        open: () => openProject(project),
-      }));
-    return [...ls, ...ps].sort((a, b) => b.at - a.at).slice(0, 7);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- your threads change with your lessons and projects; their actions are read as they are then
-  }, [lessons, projects, progress.path]);
   // lessons that ship with Bento, findable from ⌘K and the Home ask box (they open instantly, without your AI)
   const builtins = [
     ...SAMPLES.map((l) => ({
@@ -219,5 +165,5 @@ export default function useProgressSummary({
       })),
     [mastery],
   );
-  return { builtins, mastery, readIds, skyDots, threads, today };
+  return { builtins, mastery, readIds, skyDots, today };
 }

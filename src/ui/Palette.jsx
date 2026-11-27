@@ -55,6 +55,7 @@ export default function Palette({
   const items = useMemo(() => {
     const t = q.trim().toLowerCase();
     const m = (s) => !t || String(s).toLowerCase().includes(t);
+    /** @type {Array<{ g: string, icon?: string, brand?: string, label: string, hint?: string, find?: string, run: () => void }>} */
     const out = [];
     const repo = parseRepo(q);
     const blob = parseBlob(q);

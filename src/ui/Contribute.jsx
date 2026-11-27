@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { t } from '../i18n.js';
 
 const ago = (iso) => {
-  const days = Math.floor((Date.now() - new Date(iso)) / 864e5);
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 864e5);
   return days < 1
     ? 'today'
     : days < 30

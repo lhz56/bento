@@ -700,6 +700,9 @@ function ProjectChoice({ choice, onChoose }) {
   );
 }
 
+/**
+ * @param {{ value: string, options: string[][], onChange: (value: string) => void, small?: boolean }} props
+ */
 export function Seg({ value, options, onChange, small }) {
   return (
     <div className={`seg ${small ? 'small' : ''}`}>

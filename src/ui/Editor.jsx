@@ -101,7 +101,9 @@ const theme = EditorView.theme({
 });
 
 // ---------------------------------------------------------------- marks (highlights / step / error / diff)
-const setMarks = StateEffect.define();
+const setMarks = /** @type {import('@codemirror/state').StateEffectType<any>} */ (
+  StateEffect.define()
+);
 const marksField = StateField.define({
   create: () => ({ link: null, step: null, err: null, diff: null, note: null, hover: null }),
   update(v, tr) {
@@ -144,7 +146,7 @@ const marksDeco = EditorView.decorations.compute([marksField, 'doc'], (state) =>
   if (marks.note) for (let l = marks.note[0]; l <= marks.note[1]; l++) add(l, 'cm-hl-note');
   if (marks.step) add(marks.step, 'cm-hl-step');
   if (marks.err?.line) add(marks.err.line, 'cm-hl-err');
-  const builder = new RangeSetBuilder();
+  const builder = /** @type {RangeSetBuilder<Decoration>} */ (new RangeSetBuilder());
   [...cls.keys()]
     .sort((a, c) => a - c)
     .forEach((l) => {
@@ -172,7 +174,7 @@ const numberPlugin = ViewPlugin.fromClass(
         this.decorations = this.build(u.view);
     }
     build(v) {
-      const b = new RangeSetBuilder();
+      const b = /** @type {RangeSetBuilder<Decoration>} */ (new RangeSetBuilder());
       for (const { from, to } of v.visibleRanges)
         syntaxTree(v.state).iterate({
           from,
@@ -296,7 +298,10 @@ function tokenTooltip(getExplain) {
               el('div', 'shimmer', ''),
               el('div', 'shimmer short', ''),
             );
-            dom.firstChild.append(el('span', 'tok-word', word), el('span', 'tok-kind', 'asking…'));
+            /** @type {HTMLElement} */ (dom.firstChild).append(
+              el('span', 'tok-word', word),
+              el('span', 'tok-kind', 'asking…'),
+            );
             explained
               .then((info) => {
                 dom.classList.remove('loading');
@@ -329,7 +334,7 @@ const hangIndent = ViewPlugin.fromClass(
       if (u.docChanged || u.viewportChanged) this.decorations = this.build(u.view);
     }
     build(v) {
-      const builder = new RangeSetBuilder();
+      const builder = /** @type {RangeSetBuilder<Decoration>} */ (new RangeSetBuilder());
       for (const { from, to } of v.visibleRanges) {
         for (let pos = from; pos <= to;) {
           const line = v.state.doc.lineAt(pos);
@@ -354,7 +359,9 @@ const hangIndent = ViewPlugin.fromClass(
 
 // The notes ("base case", "the one rule") sit at the end of their line instead of floating over the code; a tap opens
 // what they say right under the line.
-const setNoteState = StateEffect.define();
+const setNoteState = /** @type {import('@codemirror/state').StateEffectType<any>} */ (
+  StateEffect.define()
+);
 const noteField = StateField.define({
   create: () => ({ list: [], open: null, toggle: null }),
   update(v, tr) {
@@ -365,7 +372,10 @@ const noteField = StateField.define({
 class NoteChip extends WidgetType {
   constructor(n, i, open, toggle) {
     super();
-    Object.assign(this, { n, i, open, toggle });
+    this.n = n;
+    this.i = i;
+    this.open = open;
+    this.toggle = toggle;
   }
   eq(o) {
     return o.i === this.i && o.open === this.open && o.n.label === this.n.label;
@@ -392,7 +402,8 @@ class NoteChip extends WidgetType {
 class NoteText extends WidgetType {
   constructor(n, i) {
     super();
-    Object.assign(this, { n, i });
+    this.n = n;
+    this.i = i;
   }
   eq(o) {
     return o.i === this.i && o.n.text === this.n.text;
@@ -422,7 +433,9 @@ const noteDeco = EditorView.decorations.compute([noteField, 'doc'], (state) => {
   return Decoration.set(out, true);
 });
 // the word you tapped stays lit while its card is open
-const setTapped = StateEffect.define();
+const setTapped = /** @type {import('@codemirror/state').StateEffectType<any>} */ (
+  StateEffect.define()
+);
 const tappedField = StateField.define({
   create: () => null,
   update(v, tr) {
@@ -685,7 +698,22 @@ function TapCard({ card, onClose, onJump }) {
 
 // ---------------------------------------------------------------- component
 const NONE = [];
-const Editor = forwardRef(function Editor(props, ref) {
+/**
+ * @typedef {{ from: number, to?: number, label: string, text?: string }} Note
+ * @typedef {{
+ *   value: string, lang: string, readOnly?: boolean, marks?: any, lens?: 'code' | 'english' | 'both' | 'twin',
+ *   english?: string[], notes?: Note[], hoverLine?: number | null, label?: string,
+ *   touch?: boolean, reading?: boolean, openNoteAt?: { from: number } | null,
+ *   onChange?: (value: string, byScrub?: boolean) => void, onRun?: () => void, onStep?: () => void, onScrub?: () => void,
+ *   onLineHover?: (line: number | null) => void, onNoteHover?: (range: [number, number] | null) => void,
+ *   onEnglishHover?: (line: number | null) => void, onEnglishClick?: (line: number) => void,
+ *   explain?: (word: string, lineText: string, at: { isMember: boolean, lineNo: number, doc: string }) => any,
+ * }} EditorProps
+ * @typedef {{ view: () => EditorView | null, scrollToLine: (line: number) => void, focus: () => void,
+ *   setCursorLine: (line: number) => void }} EditorHandle
+ */
+/** @type {import('react').ForwardRefExoticComponent<EditorProps & import('react').RefAttributes<EditorHandle>>} */
+const Editor = forwardRef(function Editor(/** @type {EditorProps} */ props, ref) {
   // touch: a finger (wrapped lines, notes at line ends, tap a word for its card, drag a number to change it).
   // reading: nothing to type into, so a tap never brings up the keyboard (the phone's Edit button turns it off)
   const {

@@ -26,6 +26,10 @@ import Md from './Md.jsx';
 const starsOf = (rec) => (rec?.s || []).filter(Boolean).length;
 
 // ─────────────────────────────────────────────── the page
+/**
+ * @param {{ progress?: Record<string, any>, onOpen: (puzzle: any) => void, onIdeas?: () => void,
+ *   onIdea?: (idea: any) => void, races?: any[], onRace?: (race: any) => void }} props
+ */
 export default function Puzzles({ progress = {}, onOpen, onIdeas, onIdea, races = [], onRace }) {
   const PUZZLES = allPuzzles();
   const STATIONS = allStations();
@@ -210,6 +214,7 @@ export default function Puzzles({ progress = {}, onOpen, onIdeas, onIdea, races 
 
 // The one chart behind every puzzle: how long each kind of algorithm takes as n grows.
 // Assumes Python doing about 10 million simple steps a second.
+/** @type {Array<[growth: string, say: string, steps: (n: number) => number, puzzle: string, example: string]>} */
 const CLASSES = [
   ['O(1)', 'look it up', () => 1, 'dupes', 'a dictionary lookup'],
   ['O(log n)', 'halve it', (n) => Math.log2(n), 'search', 'binary search'],
@@ -898,6 +903,7 @@ export function PuzzleEnd({ lesson, rec, setPuzzleCode, onIdea, onOpenAt, onOpen
 }
 
 // ─────────────────────────────────────────────── pictures of each way of thinking
+/** @param {{ kind: string, big?: boolean }} props */
 export function PatternArt({ kind, big }) {
   const accent = 'var(--accent)',
     violet = 'var(--violet)',
