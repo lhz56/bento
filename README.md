@@ -8,14 +8,17 @@
 <p align="center">
   <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-arm64.dmg"><img src="https://img.shields.io/badge/Download-for%20Mac-121212?style=for-the-badge&logo=apple&logoColor=white" alt="Download for Mac"></a>
   <a href="https://github.com/lhz56/bento-releases/releases/latest/download/Bento-x64.dmg"><img src="https://img.shields.io/badge/Intel-Mac-ffffff?style=for-the-badge&logo=intel&logoColor=121212&labelColor=ffffff" alt="Intel Mac"></a>
+  <a href="https://takeitapart.app/try/"><img src="https://img.shields.io/badge/Try%20it-in%20your%20browser-ffffff?style=for-the-badge&labelColor=ffffff&color=ff8a5b" alt="Try it in your browser"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-121212?style=for-the-badge" alt="MIT license"></a>
 </p>
+
+<p align="center"><sub>No Mac? <a href="https://takeitapart.app/try/"><b>takeitapart.app/try</b></a> runs the lessons, ideas, puzzles and featured projects that ship already written, with their code running in the page. Anything that needs an AI is the Mac app's.</sub></p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-13%2B-121212?style=flat-square" alt="macOS 13+">
   <img src="https://img.shields.io/badge/API%20keys-0-121212?style=flat-square" alt="No API keys">
   <img src="https://img.shields.io/badge/accounts-0-121212?style=flat-square" alt="No accounts">
-  <img src="https://img.shields.io/badge/telemetry-none-121212?style=flat-square" alt="No telemetry">
+  <img src="https://img.shields.io/badge/app%20telemetry-none-121212?style=flat-square" alt="No telemetry in the app">
   <img src="https://img.shields.io/badge/signed%20%26%20notarized-Apple-121212?style=flat-square" alt="Signed and notarized by Apple">
 </p>
 
@@ -23,6 +26,7 @@
 
 <p align="center">
   <a href="https://takeitapart.app"><b>takeitapart.app</b></a> ·
+  <a href="https://takeitapart.app/try/">Try it</a> ·
   <a href="#learn">Learn</a> ·
   <a href="#take-apart">Take apart</a> ·
   <a href="#in-the-box">In the box</a> ·
@@ -96,7 +100,7 @@ Missing one? Bento installs it in Terminal, where you can watch every step.
 | **Your code** | Runs on your Mac. Python is real CPython in WebAssembly, in a sandbox. |
 | **Apps you take apart** | Only read, never run. |
 | **What leaves your Mac** | Your questions, to your own AI. The pages you ask for. Nothing else. |
-| **Telemetry** | None. No analytics, no account. |
+| **Telemetry** | None in the app: no analytics, no account. The website and `/try` count visits anonymously (one row per event, no cookies, no IP, no ID; [`src/web.js`](src/web.js)). |
 
 **On your iPhone and iPad:** coming soon.
 
