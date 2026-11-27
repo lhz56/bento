@@ -166,7 +166,11 @@ electron/                 the main process (Node)
 src/                      the renderer (React)
   App.jsx                 wires the hooks together and lays out the screens
   screens/                the larger screens App.jsx shows (a lesson, a project's Atlas)
-  ui/                     components
+  ui/                     components; the big ones keep their parts in a folder of the same name:
+    Story.jsx  story/     a lesson's story: checks, what's next, its own buttons, the AI thinking
+    Desk.jsx   desk/      the code panel: running it, its files, plain English, the twin, repairs and fact checks
+    Stage.jsx  stage/     what the code does: output, stepping through, growth, tests
+    Atlas.jsx  atlas/     a project taken apart (and atlas/phone/ for the phone's version)
   hooks/                  the app's state and behaviour, one hook per job: useLessons (opening and asking),
                           usePersistence (saving), useQuestionRouting, useNavigation, useLibrary (repos,
                           folders, sites)... index.js lists them all
@@ -178,15 +182,16 @@ src/                      the renderer (React)
 `main.cjs` builds one `ctx` object of getters, so a module always sees the current window and settings, and each
 module's exports join it for the modules after it. Nothing else is shared between modules.
 
-Checks: `npm run lint` (ESLint), `npm run format:check` (Prettier), `npm run typecheck` (TypeScript over the
-JavaScript, with `checkJs`), `npm test` and `npm run smoke`.
+Checks: `npm run lint` (ESLint, no warnings allowed), `npm run format:check` (Prettier), `npm run typecheck`
+(TypeScript over all the JavaScript and every component, with `checkJs`), `npm test`, `npm run smoke` (the app),
+`npm run smoke:phone` and `npm run smoke:web` (the site and /try).
 
 ## Where to add things
 
-- A clever idea: `src/ideas.js` plus a small SVG in `IdeaArt` (`src/ui/Ideas.jsx`).
+- A clever idea: `src/ideas.js` plus a small SVG in `src/ui/IdeaArt.jsx`.
 - A tool: `src/atlas/catalog.js`, then run `node scripts/gen-icons.mjs`.
 - A website signature: `SITE_SIGNS` in `src/atlas/site.js`.
-- A path stop: `src/ui/Path.jsx`.
+- A path stop: `src/paths.js` (see Paths above).
 - A puzzle: add it to `PUZZLES` in `src/puzzles.js` (statement in your own words, starter, clever solution, tests, gremlins, a worst-case `make_input`), then run `node scripts/check-puzzles.mjs`.
 - An algorithm race: add it to `scripts/gen-races.py` and run it. Code and pseudocode are paired line by line, and the script checks they match.
 

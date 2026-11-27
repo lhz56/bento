@@ -16,17 +16,22 @@ import { t } from '../i18n.js';
 import { parseJSONLoose, quickPrompts } from '../lesson.js';
 import { keys } from '../platform.js';
 import { typeCheck } from '../runtime/runner.js';
-import { localChecks, checkPrompt, applyCheck } from '../verify.js';
 import Editor from './Editor.jsx';
 import Stage from './Stage.jsx';
-import Md from './Md.jsx';
 import { Interlinear } from './desk/Interlinear.jsx';
+import CoachCard from './desk/CoachCard.jsx';
+import FileTabs from './desk/FileTabs.jsx';
+import PublishPanel from './desk/PublishPanel.jsx';
+import SpottedIdeas from './desk/SpottedIdeas.jsx';
+import TypeErrors from './desk/TypeErrors.jsx';
 import { haptic } from './touch.js';
 import useDividers from './desk/useDividers.js';
 import usePlainEnglish from './desk/usePlainEnglish.js';
 import useDeskFiles from './desk/useDeskFiles.js';
 import useDeskExecution from './desk/useDeskExecution.js';
 import useTwin, { LNAME, other } from './desk/useTwin.js';
+import useFactCheck from './desk/useFactCheck.js';
+import useAutoRepair from './desk/useAutoRepair.js';
 
 /** @type {Array<['code' | 'both' | 'english' | 'twin', string, string]>} */
 const LENSES = [
@@ -436,107 +441,9 @@ const Desk = forwardRef(function Desk(/** @type {DeskProps} */ props, ref) {
     [lang, english, model, quick],
   );
 
-  // A freshly written example that crashes gets one quiet repair (never for challenges, where the bug is the point).
-  const repairTried = useRef(new Set());
-  useEffect(() => {
-    if (
-      streaming ||
-      lesson.status !== 'done' ||
-      !result?.error ||
-      edited.current ||
-      lesson.builtin ||
-      lesson.repaired ||
-      lesson.agent
-    )
-      return; // (your agent is told the error and fixes its own)
-    if (
-      !['explain', 'idea'].includes(lesson.mode) ||
-      repairTried.current.has(lesson.id) ||
-      !lesson.code
-    )
-      return;
-    if (/^Stopped/.test(result.error.msg || '')) return;
-    repairTried.current.add(lesson.id);
-    (async () => {
-      try {
-        const j = parseJSONLoose(
-          await quick(
-            model,
-            quickPrompts.repair({
-              code: lesson.code,
-              err: result.error.msg + (result.error.line ? ` (line ${result.error.line})` : ''),
-              lang: LNAME[lang],
-            }),
-          ),
-        );
-        if (!j?.code || j.code === lesson.code || edited.current) return;
-        const same = j.code.split('\n').length === lesson.code.split('\n').length;
-        onPatch({
-          code: j.code,
-          pseudo: same ? lesson.pseudo : [],
-          repaired: j.note || 'Fixed a small mistake in the example.',
-        });
-        setCode(j.code);
-        setTimeout(() => doRun(j.code, { quiet: true }), 30);
-      } catch {}
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- repairs a broken example once, when a lesson finishes and its first run fails; not on every edit
-  }, [streaming, lesson.status, result, lesson.id]);
-
-  // After a new lesson's code runs cleanly: check the lesson against what the code really did (free checks first,
-  // then one small call to the fast model for the quizzes and claims). Fixes only what it can prove, and says so.
-  const checkTried = useRef(new Set());
-  useEffect(() => {
-    if (
-      streaming ||
-      lesson.status !== 'done' ||
-      !result ||
-      result.error ||
-      result.need ||
-      lesson.builtin ||
-      lesson.check ||
-      lesson.scratch ||
-      lesson.agent ||
-      edited.current
-    )
-      return;
-    if (
-      !['explain', 'idea', 'build', 'feature'].includes(lesson.mode) ||
-      lang === 'html' ||
-      checkTried.current.has(lesson.id) ||
-      !lesson.code
-    )
-      return;
-    if (localStorage.getItem('bento.check') === 'off') return;
-    checkTried.current.add(lesson.id);
-    const run = result;
-    (async () => {
-      const loc = localChecks(lesson);
-      let cur = { ...lesson, ...loc.patch };
-      let corrections = [];
-      let by = null;
-      if (quick) {
-        try {
-          const j = parseJSONLoose(await quick(model, checkPrompt(cur, run)));
-          if (j && (j.quizzes || j.fixes)) {
-            const a = applyCheck(cur, j);
-            cur = { ...cur, ...a.patch };
-            corrections = a.corrections;
-            by = model;
-          }
-        } catch {
-          /* the free checks still count */
-        }
-      }
-      if (lidRef.current !== lesson.id && !lesson.id) return;
-      onPatch({
-        ...loc.patch,
-        ...(corrections.length ? { story: cur.story } : {}),
-        check: { at: Date.now(), local: loc.notes, corrections, by },
-      });
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- a finished lesson is checked once, after its first run
-  }, [streaming, lesson.status, result, lesson.id]);
+  // a crashing example gets one quiet repair; a clean first run gets the lesson checked against what the code did
+  useAutoRepair({ doRun, edited, lang, lesson, model, onPatch, quick, result, setCode, streaming });
+  useFactCheck({ edited, lang, lesson, lidRef, model, onPatch, quick, result, streaming });
 
   const modified =
     lesson.code && code !== (stepSel != null ? lesson.steps[stepSel]?.code : lesson.code);
@@ -740,104 +647,24 @@ const Desk = forwardRef(function Desk(/** @type {DeskProps} */ props, ref) {
       </div>
 
       {(multi || (lesson.scratch && (lang === 'python' || lang === 'html'))) && (
-        <div className="desk-files">
-          {(
-            filesRef.current || [
-              { name: lesson.file || (lang === 'python' ? 'main.py' : 'index.html') },
-            ]
-          ).map((file, i) => (
-            <button
-              key={file.name + i}
-              className={`df-tab ${i === fi ? 'on' : ''}`}
-              onClick={() => openFile(i)}
-              title={i === 0 ? 'This file runs; the others are used by it' : file.name}
-            >
-              {i === 0 && <span className="df-main">▶</span>}
-              {file.name}
-              {i > 0 && (
-                <span
-                  className="df-x"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeFile(i);
-                  }}
-                  aria-label="Remove file"
-                >
-                  ×
-                </span>
-              )}
-            </button>
-          ))}
-          <button className="df-add" onClick={addFile} title="Add a file to this project">
-            + file
-          </button>
-        </div>
+        <FileTabs
+          addFile={addFile}
+          fi={fi}
+          filesRef={filesRef}
+          lang={lang}
+          lesson={lesson}
+          openFile={openFile}
+          removeFile={removeFile}
+        />
       )}
       {publish && (
-        <div className="publish fade-in">
-          {publish.ask && (
-            <>
-              <span>
-                🌐{' '}
-                {t(
-                  'This puts your page on the public web, in a repository called bento-pages on your GitHub account. Anyone with the link can see it.',
-                )}
-              </span>
-              <button
-                className="btn tiny"
-                onClick={async () => {
-                  setPublish({ busy: true });
-                  try {
-                    setPublish(
-                      await window.bento.publishWeb(
-                        projectBundle(codeRef.current).main,
-                        lesson.title || 'my page',
-                      ),
-                    );
-                  } catch (e) {
-                    setPublish({
-                      err: String(e.message).replace(
-                        /^Error invoking remote method '[^']+': (Error: )?/,
-                        '',
-                      ),
-                    });
-                  }
-                }}
-              >
-                {t('Publish it')}
-              </button>
-              <button className="link" onClick={() => setPublish(null)}>
-                {t('Cancel')}
-              </button>
-            </>
-          )}
-          {publish.busy && (
-            <span>
-              <span className="lens-spin" /> {t('Publishing with your GitHub account…')}
-            </span>
-          )}
-          {publish.url && (
-            <>
-              <span>
-                ✓ {t('Published! It can take a minute to appear at')}{' '}
-                <button className="link" onClick={() => window.bento?.openExternal?.(publish.url)}>
-                  {publish.url}
-                </button>
-              </span>
-              <button className="link" onClick={() => setPublish(null)}>
-                ✕
-              </button>
-            </>
-          )}
-          {publish.err && (
-            <>
-              <span className="err-msg">{publish.err}</span>
-              <button className="link" onClick={() => setPublish(null)}>
-                ✕
-              </button>
-            </>
-          )}
-        </div>
+        <PublishPanel
+          codeRef={codeRef}
+          lesson={lesson}
+          projectBundle={projectBundle}
+          publish={publish}
+          setPublish={setPublish}
+        />
       )}
       {lesson.repaired && !result?.error && (
         <div className="repaired">
@@ -848,134 +675,27 @@ const Desk = forwardRef(function Desk(/** @type {DeskProps} */ props, ref) {
         </div>
       )}
       {typeErrs.length > 0 && !(errShown && result?.error) && (
-        <div className="typebar">
-          <span className="tb-k">
-            TypeScript found {typeErrs.length === 1 ? 'a problem' : `${typeErrs.length} problems`}
-          </span>
-          {typeErrs.map((typeError, i) => (
-            <div key={i} className="tb-row">
-              <button onClick={() => ed.current?.setCursorLine(typeError.line)}>
-                <b>line {typeError.line}</b> {typeError.msg}
-              </button>
-              <button
-                className="tb-ex"
-                onClick={async () => {
-                  setTypeEx((m) => ({ ...m, [typeError.msg]: '…' }));
-                  try {
-                    const j = parseJSONLoose(
-                      await quick(
-                        model,
-                        quickPrompts.error({
-                          code,
-                          err: `TypeScript type error: ${typeError.msg} (line ${typeError.line})`,
-                          lang: 'TypeScript',
-                        }),
-                      ),
-                    );
-                    setTypeEx((m) => ({
-                      ...m,
-                      [typeError.msg]: j
-                        ? `${j.plain}${j.fix ? ` Fix: ${j.fix}` : ''}`
-                        : 'Couldn’t explain this one.',
-                    }));
-                  } catch {
-                    setTypeEx((m) => ({ ...m, [typeError.msg]: 'The model didn’t answer.' }));
-                  }
-                }}
-              >
-                explain
-              </button>
-              {typeEx[typeError.msg] && <div className="tb-plain">{typeEx[typeError.msg]}</div>}
-            </div>
-          ))}
-          <span className="tb-note">
-            The code still runs (types vanish when it runs), but TypeScript is warning you before it
-            breaks.
-          </span>
-        </div>
+        <TypeErrors
+          code={code}
+          ed={ed}
+          model={model}
+          quick={quick}
+          setTypeEx={setTypeEx}
+          typeErrs={typeErrs}
+          typeEx={typeEx}
+        />
       )}
       {spotted.length > 0 && !streaming && (
-        <div className="spot">
-          <span className="spot-h">✨ new in your code</span>
-          {spotted.map((x) => (
-            <button
-              key={x.id}
-              className={`spot-chip ${spotOpen === x.id ? 'on' : ''}`}
-              onClick={() => setSpotOpen(spotOpen === x.id ? null : x.id)}
-            >
-              {x.name}
-            </button>
-          ))}
-          {spotted
-            .filter((x) => x.id === spotOpen)
-            .map((x) => (
-              <div key={x.id} className="spot-card">
-                <b>{x.name}</b>{' '}
-                <span
-                  className="spot-line"
-                  onMouseEnter={() => setHoverLine?.(x.line)}
-                  onMouseLeave={() => setHoverLine?.(null)}
-                >
-                  line {x.line}
-                </span>
-                <p>{x.plain}</p>
-                <p className="spot-like">≈ {x.like}</p>
-                <div className="spot-act">
-                  {onWord && (
-                    <button
-                      className="btn tiny"
-                      onClick={() => {
-                        onWord({ term: x.name, plain: x.plain, like: x.like });
-                        setSpotSeen((s0) => new Set([...s0, x.id]));
-                        setSpotOpen(null);
-                      }}
-                    >
-                      + Add to my words
-                    </button>
-                  )}
-                  <button
-                    className="link"
-                    onClick={() => {
-                      setSpotSeen((s0) => new Set([...s0, x.id]));
-                      setSpotOpen(null);
-                    }}
-                  >
-                    Got it
-                  </button>
-                </div>
-              </div>
-            ))}
-        </div>
+        <SpottedIdeas
+          onWord={onWord}
+          setHoverLine={setHoverLine}
+          setSpotOpen={setSpotOpen}
+          setSpotSeen={setSpotSeen}
+          spotOpen={spotOpen}
+          spotted={spotted}
+        />
       )}
-      {coach && (
-        <div className="coach">
-          {coach.loading ? (
-            <>
-              <span className="dots">
-                <i />
-                <i />
-                <i />
-              </span>
-              reading your change…
-            </>
-          ) : (
-            <>
-              <span className="coach-ic">✦</span>
-              <span className="coach-t">
-                <Md text={coach.said} />
-                {coach.term && coach.plain && (
-                  <span className="coach-term">
-                    <b>{coach.term}</b>: {coach.plain}
-                  </span>
-                )}
-              </span>
-              <button className="ib" aria-label="Dismiss" onClick={() => setCoach(null)}>
-                ✕
-              </button>
-            </>
-          )}
-        </div>
-      )}
+      {coach && <CoachCard coach={coach} setCoach={setCoach} />}
       {streaming && !code && !lesson.steps.length && (
         <div className="desk-wait">
           <div className="dw-lines">
