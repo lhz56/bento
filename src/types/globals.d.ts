@@ -14,7 +14,8 @@ interface Window {
   /** hooks for scripts/pregen-*.mjs, which drive the real app to pre-write shipped lessons */
   __openIdea?: (id: string) => void;
   __ask?: (q: string, o?: object) => void;
-  __openLesson?: (id: string) => void;
+  /** opens a lesson object (the smoke tests use it to open one written in the test) */
+  __openLesson?: (lesson: object) => void;
   __missingStops?: () => any[];
   __genStop?: (id: string) => Promise<any>;
   /** iOS: the native app's message handlers */

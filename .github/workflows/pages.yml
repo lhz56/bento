@@ -42,6 +42,8 @@ jobs:
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1' # only the web page is built here
       - run: npm run build:web
+      - name: Open the site and /try in Chromium and WebKit, and run a Python lesson (nothing is counted)
+        run: npx playwright-core install --with-deps chromium webkit && node scripts/smoke-web.mjs
       - name: Put the site and /try together
         run: |
           mkdir -p _site

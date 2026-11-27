@@ -394,7 +394,11 @@ async function boot() {
   if (py) return py;
   if (booting) return booting;
   booting = (async () => {
-    const base = `${self.location.origin}/pyodide/`;
+    // Pyodide sits next to the built page (dist/pyodide/, beside assets/ where this worker is), so it is found
+    // relative to the worker. On takeitapart.app/try that's /try/pyodide/, not the site's root.
+    const base = import.meta.env.DEV
+      ? `${self.location.origin}/pyodide/`
+      : new URL('../pyodide/', self.location.href).href;
     const mod = await import(/* @vite-ignore */ `${base}pyodide.mjs`);
     // the core ships with the app; extra packages (numpy, pandas, …) download from Pyodide's CDN the first time a lesson imports them
     py = await mod.loadPyodide({

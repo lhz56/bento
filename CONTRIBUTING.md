@@ -44,6 +44,8 @@ node scripts/smoke-ais.mjs      # a lesson from each AI in turn, every plan mete
 node scripts/smoke-guards.mjs   # what pages can and can't reach, the menu, crash recovery, idle motion (~1 min)
 node scripts/audit-a11y.mjs     # every screen, light and dark, checked with axe-core (WCAG AA)
 node scripts/audit-keyboard.mjs # the skip link, dialogs, ⌘K, the map, the code city and the editor with only a keyboard
+npm run smoke:phone             # the app served to an iPhone and an iPad (WebKit), paired, used, then removed
+npm run smoke:web               # takeitapart.app and /try as published, in Chromium and WebKit, Python included
 # or all of the app checks at once: npm run smoke && npm run audit
 ```
 
