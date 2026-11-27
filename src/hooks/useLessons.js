@@ -30,6 +30,9 @@ export const RACE_LESSONS = RACES.map((r) => ({
   race: true,
 }));
 
+/**
+ * @param {{ lessons: import('../types/lesson').Lesson[], setLessons: import('react').Dispatch<import('react').SetStateAction<import('../types/lesson').Lesson[]>>, lessonsRef: { current: import('../types/lesson').Lesson[] }, [input: string]: any }} args
+ */
 export default function useLessons({
   cancels,
   desk,

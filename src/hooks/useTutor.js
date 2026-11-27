@@ -7,6 +7,11 @@ import { puzzleById } from '../puzzles.js';
 import { askQuickQuestion, askSecondOpinion, assessTeachBack, NO_AI_ANSWER } from '../tutoring.js';
 import { modelLabel } from '../ui/Side.jsx';
 
+/**
+ * @param {{ api: BentoBridge, lesson: import('../types/lesson').Lesson, settings: { model: string, level: string }, providers: any,
+ *   altFor: (model: string) => string | null, desk: import('react').RefObject<{ getCode?: () => string } | null>,
+ *   setLessons: import('react').Dispatch<import('react').SetStateAction<import('../types/lesson').Lesson[]>>, setProgress: (update: (prev: any) => any) => void }} args
+ */
 export default function useTutor({
   api,
   lesson,

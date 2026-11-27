@@ -55,7 +55,7 @@ function addedLines(prev, cur) {
 
 /**
  * @typedef {{
- *   lesson: any, onPatch: (change: object) => void, quick: (model: string, prompt: string) => Promise<string>,
+ *   lesson: import('../types/lesson').Lesson, onPatch: (change: Partial<import('../types/lesson').Lesson>) => void, quick: (model: string, prompt: string) => Promise<string>,
  *   model: string, linkRange?: [number, number] | null, stepSel?: number | null, onMastery?: (kind: string) => void,
  *   pyReady?: boolean, streaming?: boolean, onRemix?: (code: string, lang: string) => void,
  *   knownWords?: Set<string>, onWord?: (word: { term: string, plain: string, like?: string }) => void,

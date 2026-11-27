@@ -605,7 +605,7 @@ function UpdatePill() {
   );
 }
 
-/** @param {{ lesson: any, path?: boolean }} props */
+/** @param {{ lesson: import('../types/lesson').Lesson, path?: boolean }} props */
 function LessonIcon({ lesson, path }) {
   const idea = lesson.mode === 'idea' && ideaById[lesson.context?.ideaId];
   if (idea)

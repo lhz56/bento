@@ -90,7 +90,9 @@ const streakOf = (ls) => {
 };
 
 export default function App() {
-  const [lessons, setLessons] = useState(() => settle(load('bento.lessons', [])));
+  const [lessons, setLessons] = useState(
+    () => /** @type {import('./types/lesson').Lesson[]} */ (settle(load('bento.lessons', []))),
+  );
   const [view, setViewRaw] = useState('home');
   const { setSettings, setSettingsRaw, settings } = useSettings();
   const [progress, setProgress] = useState(() =>

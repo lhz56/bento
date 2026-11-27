@@ -17,6 +17,7 @@ import { HeroPicture, ArticleCode, Term, FollowUp } from './story/Pieces.jsx';
 import { Thought } from './story/Thinking.jsx';
 const EMPTY = new Map();
 
+/** @param {{ lesson: import('../types/lesson').Lesson, streaming?: boolean, [prop: string]: any }} props */
 export default function Story(props) {
   const { lesson, streaming } = props;
   const scroller = useRef(null);

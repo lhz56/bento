@@ -7,11 +7,9 @@ import { cleanErr } from './bridgeError.js';
 
 /**
  * @typedef {(model: string, prompt: string) => Promise<string>} Quick  one short call to an AI (api.quick)
- * @typedef {{ id: string, title?: string, lang?: string, code?: string, work?: string,
- *   story?: Array<{ md?: string, text?: string }>, concepts?: string[], chat?: ChatEntry[] }} Lesson
+ * @typedef {import('./types/lesson').Lesson} Lesson
  * @typedef {{ q: string, choices: string[], answer: number, why?: string }} Check
- * @typedef {{ id?: string, q: string, a?: string, loading?: boolean, term?: string, plain?: string, by?: string,
- *   next?: string[], check?: Check | null, second?: { who: string, a?: string, loading?: boolean } }} ChatEntry
+ * @typedef {import('./types/lesson').ChatEntry} ChatEntry
  * @typedef {{ term: string, plain: string }} Word
  * @typedef {{ said: string, score: number, got: string[], missing: string[], next: string }} TeachBack
  */

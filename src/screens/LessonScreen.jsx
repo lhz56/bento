@@ -7,6 +7,7 @@ import { PuzzleEnd, PuzzlePanel } from '../ui/Puzzles.jsx';
 import { modelLabel } from '../ui/Side.jsx';
 import Story from '../ui/Story.jsx';
 
+/** @param {{ current: import('../types/lesson').Lesson, setLessons: import('react').Dispatch<import('react').SetStateAction<import('../types/lesson').Lesson[]>>, [prop: string]: any }} props */
 export default function LessonScreen({
   altFor,
   altModel,

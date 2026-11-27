@@ -31,6 +31,7 @@ export const putChatEntry = (chat = [], entry) =>
     ? chat.map((x) => (x.id === entry.id ? entry : x))
     : [...chat, entry];
 
+/** @returns {import('./types/lesson').Lesson} */
 export function emptyLesson(question, opts = {}) {
   return {
     id: uid(),
@@ -61,6 +62,11 @@ export function emptyLesson(question, opts = {}) {
 }
 
 // Apply one parsed block to a lesson (returns a new lesson object)
+/**
+ * @param {import('./types/lesson').Lesson} lesson
+ * @param {any} block  one line of your AI's reply, as it came (not checked yet)
+ * @returns {import('./types/lesson').Lesson}
+ */
 export function applyBlock(lesson, block) {
   if (!block || typeof block !== 'object' || !block.t) return lesson;
   const next = { ...lesson };
