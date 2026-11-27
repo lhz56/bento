@@ -68,9 +68,9 @@ function Movie({ step, prev, plan }) {
                   {x}
                 </span>
               ))}
-              {arrows.map(([e, v], k) => {
-                const at = Math.max(-0.6, Math.min(box.items.length - 0.4, v));
-                const off = v < 0 || v >= box.items.length;
+              {arrows.map(([e, value], k) => {
+                const at = Math.max(-0.6, Math.min(box.items.length - 0.4, value));
+                const off = value < 0 || value >= box.items.length;
                 return (
                   <span
                     key={e}
@@ -119,12 +119,12 @@ export function Steps({
   const [speed, setSpeed] = useState(() => localStorage.getItem('bento.stepSpeed') || 'normal');
   const BASE = { slow: 1700, normal: 950, fast: 380 }[speed] || 950;
   const changesAt = (k) => {
-    const a = steps[k],
-      b = steps[k - 1];
-    if (!a || !b) return [];
-    return Object.keys(a.vars || {})
-      .filter((v) => b.vars?.[v] !== a.vars[v])
-      .map((v) => [v, b.vars?.[v], a.vars[v]]);
+    const now = steps[k],
+      before = steps[k - 1];
+    if (!now || !before) return [];
+    return Object.keys(now.vars || {})
+      .filter((v) => before.vars?.[v] !== now.vars[v])
+      .map((v) => [v, before.vars?.[v], now.vars[v]]);
   };
   useEffect(() => {
     if (!playing) return;

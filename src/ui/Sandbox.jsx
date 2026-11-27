@@ -232,9 +232,9 @@ export default function Sandbox({ done = {}, onDone, onAsk }) {
       </g>
     );
   };
-  const flow = (d, amount, k) => (
+  const flow = (dir, amount, k) => (
     <path
-      d={d}
+      d={dir}
       className={`sb-flow ${amount > 0 ? '' : 'none'}`}
       style={{ '--dur': `${Math.max(0.35, 2.2 - Math.log10(amount + 1) * 0.35)}s` }}
       key={k}

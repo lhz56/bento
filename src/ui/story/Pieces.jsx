@@ -49,15 +49,15 @@ export function ArticleCode({ lesson, run }) {
   );
 }
 
-export function Term({ b, known, lessonId }) {
+export function Term({ block, known, lessonId }) {
   const [open, setOpen] = useState(false);
   const seenElsewhere = known && known.from !== lessonId;
   return (
     <div className={`term-card fade-in ${open ? 'open' : ''}`} onClick={() => setOpen(!open)}>
       <span className="tc-k">{seenElsewhere ? 'word you know' : 'new word'}</span>
-      <span className="tc-term">{b.term}</span>
-      <span className="tc-plain">{b.plain}</span>
-      {b.like && <span className="tc-like">≈ {b.like}</span>}
+      <span className="tc-term">{block.term}</span>
+      <span className="tc-plain">{block.plain}</span>
+      {block.like && <span className="tc-like">≈ {block.like}</span>}
     </div>
   );
 }

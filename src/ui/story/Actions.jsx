@@ -23,15 +23,15 @@ export function Listen({ lesson }) {
     const parts = [
       lesson.title,
       ...lesson.story
-        .map((b) =>
-          b.t === 'p'
-            ? plainText(b.md)
-            : b.t === 'h'
-              ? b.text
-              : b.t === 'term'
-                ? `New word: ${b.term}. ${b.plain}`
-                : b.t === 'step'
-                  ? `${lesson.steps[b.i]?.title}. ${plainText(lesson.steps[b.i]?.md)}`
+        .map((block) =>
+          block.t === 'p'
+            ? plainText(block.md)
+            : block.t === 'h'
+              ? block.text
+              : block.t === 'term'
+                ? `New word: ${block.term}. ${block.plain}`
+                : block.t === 'step'
+                  ? `${lesson.steps[block.i]?.title}. ${plainText(lesson.steps[block.i]?.md)}`
                   : '',
         )
         .filter(Boolean),
@@ -41,12 +41,12 @@ export function Listen({ lesson }) {
     const voice =
       vs.find((v) => /Samantha|Daniel|Karen|Ava|Serena|Premium|Enhanced/i.test(v.name)) || vs[0];
     parts.forEach((part, i) => {
-      const u = new SpeechSynthesisUtterance(part);
-      u.lang = lg;
-      if (voice) u.voice = voice;
-      u.rate = 1.02;
-      if (i === parts.length - 1) u.onend = () => setOn(false);
-      sy.speak(u);
+      const utterance = new SpeechSynthesisUtterance(part);
+      utterance.lang = lg;
+      if (voice) utterance.voice = voice;
+      utterance.rate = 1.02;
+      if (i === parts.length - 1) utterance.onend = () => setOn(false);
+      sy.speak(utterance);
     });
     setOn(true);
   };

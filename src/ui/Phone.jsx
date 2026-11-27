@@ -8,15 +8,15 @@ import { spring } from './touch.js';
 
 /** true on a phone-sized screen (and in a phone held sideways) */
 export function useNarrow() {
-  const q = '(max-width: 700px), (max-height: 500px) and (max-width: 950px)';
-  const [m, setM] = useState(() => matchMedia(q).matches);
+  const query = '(max-width: 700px), (max-height: 500px) and (max-width: 950px)';
+  const [matches, setMatches] = useState(() => matchMedia(query).matches);
   useEffect(() => {
-    const mq = matchMedia(q);
-    const f = () => setM(mq.matches);
+    const mq = matchMedia(query);
+    const f = () => setMatches(mq.matches);
     mq.addEventListener('change', f);
     return () => mq.removeEventListener('change', f);
   }, []);
-  return m;
+  return matches;
 }
 // a section's own page (Learn, Explore → Code…): it shows the tabs; anything opened from one (a lesson, a project) shows Back
 export const isRoot = (view) => !!groupOf(view)?.views.some(([v]) => v === view);
@@ -157,12 +157,12 @@ export function enter(main, dir) {
 // where you were on each page: Back and the tabs bring you to the same spot, a page opened afresh starts at its top
 const spots = new Map(); // page → Map(path to the scrolling element → scrollTop)
 const pathOf = (el, root) => {
-  const p = [];
+  const parts = [];
   for (let n = el; n !== root; n = n.parentElement) {
     if (!n?.parentElement) return null;
-    p.push([...n.parentElement.children].indexOf(n));
+    parts.push([...n.parentElement.children].indexOf(n));
   }
-  return p.reverse().join('.');
+  return parts.reverse().join('.');
 };
 const atPath = (root, p) =>
   p === '' ? root : p.split('.').reduce((n, i) => n?.children[+i], root);
@@ -180,8 +180,8 @@ export function restoreScroll(page, root) {
   // a page can still be filling in: keep trying for half a second, until the spot exists
   const go = () => {
     let left = 0;
-    spot.forEach((top, p) => {
-      const el = atPath(root, p);
+    spot.forEach((top, page) => {
+      const el = atPath(root, page);
       if (!el) {
         left++;
         return;

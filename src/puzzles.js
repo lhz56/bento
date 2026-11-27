@@ -2869,9 +2869,9 @@ export function codeParts(p, which = 'start') {
   return join(body, parse(p.helpers), parse(p.demo));
 }
 // LeetCode mode: just the signatures
-export function blankOf(p) {
+export function blankOf(puzzle) {
   const out = [];
-  parse(p.start).forEach(([c, e]) => {
+  parse(puzzle.start).forEach(([c, e]) => {
     if (/^\s*(from|import)\s/.test(c)) return;
     const m = /^(\s*)(def|class)\s/.exec(c);
     if (!m) return;
@@ -2963,9 +2963,9 @@ export function fitScale(pts, target = 'O(n)') {
   use = use.slice(-4); // the biggest sizes show the true shape; small ones are mostly fixed costs
   const [n0, t0] = pts[pts.length - 1];
   if (linear && use.length >= 2) {
-    const a = use[0],
-      b = use[use.length - 1];
-    const base = Math.pow(b[1] / Math.max(a[1], 1e-9), 1 / Math.max(1, b[0] - a[0]));
+    const first = use[0],
+      last = use[use.length - 1];
+    const base = Math.pow(last[1] / Math.max(first[1], 1e-9), 1 / Math.max(1, last[0] - first[0]));
     if (base > 1.22) {
       const label = tierOf(target) === 4 ? target : 'O(2ⁿ)';
       return { label, tier: 4, base, at: (N) => t0 * Math.pow(base, N - n0) };

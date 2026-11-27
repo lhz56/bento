@@ -210,7 +210,7 @@ export default function Story(props) {
           <nav className="toc" aria-label={t('In this lesson')}>
             {lesson.story
               .filter((b) => b.t === 'h')
-              .map((b, i) => (
+              .map((block, i) => (
                 <button
                   key={i}
                   onClick={() => {
@@ -219,7 +219,7 @@ export default function Story(props) {
                   }}
                 >
                   <i>{i + 1}</i>
-                  {b.text}
+                  {block.text}
                 </button>
               ))}
           </nav>
@@ -259,7 +259,7 @@ export default function Story(props) {
             return (
               <Term
                 key={i}
-                b={block}
+                block={block}
                 known={props.knownWords?.[String(block.term).toLowerCase()]}
                 lessonId={lesson.id}
               />

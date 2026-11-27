@@ -16,9 +16,9 @@ let liveId = null,
   liveT0 = 0,
   liveLast = 0,
   liveBuf = [];
-function live(k, s) {
+function live(k, value) {
   if (liveMode !== 'run') return;
-  liveBuf.push({ k, s });
+  liveBuf.push({ k, s: value });
   const now = performance.now();
   if (now - liveT0 > 250 && now - liveLast > 50) {
     self.postMessage?.({ id: liveId, live: liveBuf });

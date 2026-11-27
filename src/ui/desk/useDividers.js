@@ -36,8 +36,10 @@ export default function useDividers() {
       el.removeEventListener('touchmove', mv);
       el.removeEventListener('touchend', up);
       el.removeEventListener('touchcancel', up);
-      const f = (y - rect.top) / rect.height;
-      const snap = [0.3, 0.56, 0.78].reduce((a, c) => (Math.abs(c - f) < Math.abs(a - f) ? c : a));
+      const fraction = (y - rect.top) / rect.height;
+      const snap = [0.3, 0.56, 0.78].reduce((a, c) =>
+        Math.abs(c - fraction) < Math.abs(a - fraction) ? c : a,
+      );
       deskRef.current.classList.add('settling');
       setSplit(snap);
       haptic('select');

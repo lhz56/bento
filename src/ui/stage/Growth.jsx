@@ -63,15 +63,15 @@ export function Growth({ lesson, growth, onMeasure, measuring, code, lang }) {
       {series.length > 0 && (
         <div className="growth-verdicts">
           {series.map(
-            (s, i) =>
-              s.fit && (
+            (series, i) =>
+              series.fit && (
                 <div key={i} className="verdict">
                   <span className={`swatch s${i}`} />
-                  <b className="mono">{s.label}</b>
-                  <span className="bigo">≈ {s.fit.label}</span>
+                  <b className="mono">{series.label}</b>
+                  <span className="bigo">≈ {series.fit.label}</span>
                   <span className="muted">
-                    {s.pts.length > 1
-                      ? `n ×${s.fit.nRatio.toFixed(0)} → steps ×${s.fit.ratio.toFixed(1)}`
+                    {series.pts.length > 1
+                      ? `n ×${series.fit.nRatio.toFixed(0)} → steps ×${series.fit.ratio.toFixed(1)}`
                       : ''}
                   </span>
                 </div>
@@ -191,11 +191,11 @@ function GrowthSvg({ series, log }) {
         )
         .join('. ')}
     >
-      {(log ? [minC, Math.sqrt(minC * maxC), maxC] : [0, maxC / 2, maxC]).map((v, k) => (
+      {(log ? [minC, Math.sqrt(minC * maxC), maxC] : [0, maxC / 2, maxC]).map((value, k) => (
         <g key={k}>
-          <line x1={pad.l} x2={width - pad.r} y1={y(v)} y2={y(v)} className="grid-l" />
-          <text x={pad.l - 8} y={y(v) + 4} textAnchor="end">
-            {fmt(Math.round(v))}
+          <line x1={pad.l} x2={width - pad.r} y1={y(value)} y2={y(value)} className="grid-l" />
+          <text x={pad.l - 8} y={y(value) + 4} textAnchor="end">
+            {fmt(Math.round(value))}
           </text>
         </g>
       ))}
@@ -207,10 +207,10 @@ function GrowthSvg({ series, log }) {
       <text x={width - pad.r} y={height - 8} textAnchor="end" className="axis-l">
         n →
       </text>
-      {series.map((s, i) => (
+      {series.map((line, i) => (
         <g key={i} className={`ser s${i}`}>
-          <polyline points={s.pts.map(([n, c]) => `${x(n)},${y(c)}`).join(' ')} />
-          {s.pts.map(([n, c]) => (
+          <polyline points={line.pts.map(([n, c]) => `${x(n)},${y(c)}`).join(' ')} />
+          {line.pts.map(([n, c]) => (
             <circle key={n} cx={x(n)} cy={y(c)} r="3.5">
               <title>{`n=${n}: ${c.toLocaleString()} steps`}</title>
             </circle>

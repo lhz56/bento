@@ -92,12 +92,12 @@ export function Learn({
             </button>
           }
         >
-          {tour.map((t, i) => (
+          {tour.map((stop, i) => (
             <FileRow
-              key={t.p}
-              file={{ p: t.p }}
+              key={stop.p}
+              file={{ p: stop.p }}
               number={i + 1}
-              sub={t.why}
+              sub={stop.why}
               onOpen={() => onTour(i)}
             />
           ))}
@@ -111,13 +111,13 @@ export function Learn({
             : 'Each one opens a lesson built on the real files.'
         }
       >
-        {qs.map((q, i) => (
-          <button key={i} className="ph-cell" onClick={() => onAsk(q)}>
+        {qs.map((question, i) => (
+          <button key={i} className="ph-cell" onClick={() => onAsk(question)}>
             <span className="ph-ic round sm" style={{ '--c': 'var(--violet)' }}>
               <I n="spark" s={14} w={2.2} />
             </span>
             <span className="ph-ct">
-              <b className="reg">{q}</b>
+              <b className="reg">{question}</b>
             </span>
             <Chev />
           </button>

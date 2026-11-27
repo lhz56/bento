@@ -86,9 +86,9 @@ module.exports = function registerGithub(ctx) {
   async function gh(args) {
     if (HIDDEN.has('gh') || process.env.BENTO_NO_GH) throw new Error('GitHub CLI isn’t available.');
     await envReady;
-    const [c, a, o] = await launch('gh', args);
+    const [code, stdout, stderr] = await launch('gh', args);
     return new Promise((res, rej) =>
-      execFile(c, a, { env: ENV, maxBuffer: 20 * 1024 * 1024, ...o }, (e, out, se) =>
+      execFile(code, stdout, { env: ENV, maxBuffer: 20 * 1024 * 1024, ...stderr }, (e, out, se) =>
         e ? rej(new Error(String(se || e.message).trim())) : res(out),
       ),
     );

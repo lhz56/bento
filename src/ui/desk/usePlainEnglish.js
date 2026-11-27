@@ -6,23 +6,23 @@ export default function usePlainEnglish({ code, lesson }) {
   const [pmapV, setPmapV] = useState(0);
   // ---- plain-English map: line text → English, survives edits that keep a line intact
   const pmap = useMemo(() => {
-    const m = new Map();
+    const map = new Map();
     const src = (lesson.code || '').split('\n');
     src.forEach((l, i) => {
-      if (lesson.pseudo[i] != null) m.set(l.trim(), lesson.pseudo[i]);
+      if (lesson.pseudo[i] != null) map.set(l.trim(), lesson.pseudo[i]);
     });
-    Object.entries(lesson.pmap || {}).forEach(([k, v]) => m.set(k, v));
-    return m;
+    Object.entries(lesson.pmap || {}).forEach(([k, v]) => map.set(k, v));
+    return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pmapV forces a rebuild after new plain English is saved
   }, [lesson.code, lesson.pseudo, lesson.pmap, pmapV]);
   // a line still where the lesson wrote it keeps the lesson's own English for that spot (the same line can appear twice
   // with different jobs: `show(steps)` mid-search and at the end); edited or moved lines are matched by their text
   const english = useMemo(() => {
     const src = (lesson.code || '').split('\n');
-    return code.split('\n').map((l, i) => {
-      const k = l.trim();
+    return code.split('\n').map((line, i) => {
+      const k = line.trim();
       if (!k || /^[}\])]+[;,)]*$/.test(k)) return '';
-      if (src[i] === l && lesson.pseudo[i] != null && String(lesson.pseudo[i]).trim())
+      if (src[i] === line && lesson.pseudo[i] != null && String(lesson.pseudo[i]).trim())
         return lesson.pseudo[i];
       // a lesson from your own agent never has Bento ask your AI for the missing lines: they stay blank
       return pmap.has(k) ? pmap.get(k) : lesson.agent ? '' : null;

@@ -98,11 +98,11 @@ export const webBridge = {
   async readFile(root, filePath) {
     const full = gh(root);
     if (!full) throw new Error(MAC_ONLY);
-    const r = await fetch(
+    const res = await fetch(
       `${RAW}/${full}/HEAD/${String(filePath).split('/').map(encodeURIComponent).join('/')}`,
     );
-    if (!r.ok) throw new Error(`GitHub didn’t send this file (${r.status}).`);
-    return r.text();
+    if (!res.ok) throw new Error(`GitHub didn’t send this file (${res.status}).`);
+    return res.text();
   },
   atlasMeta: () => refuse('repo'),
   atlasAnalyze: () => refuse('repo'),

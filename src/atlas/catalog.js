@@ -30,12 +30,12 @@ export const CATS = {
   content: ['Content', 'Where words and pages are written'],
 };
 
-const E = (id, name, slug, cat, m, what, when, alt = [], color) => ({
+const E = (id, name, slug, cat, matchers, what, when, alt = [], color) => ({
   id,
   name,
   slug,
   cat,
-  m: m.split(' ').filter(Boolean),
+  m: matchers.split(' ').filter(Boolean),
   what,
   when,
   alt,

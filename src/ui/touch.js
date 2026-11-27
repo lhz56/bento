@@ -37,14 +37,14 @@ if (IN_APP) {
   addEventListener(
     'click',
     (e) => {
-      const b = /** @type {HTMLButtonElement | null} */ (
+      const button = /** @type {HTMLButtonElement | null} */ (
         /** @type {Element} */ (e.target).closest?.(TICK)
       );
-      if (!b || b.disabled) return;
+      if (!button || button.disabled) return;
       // (a switch ticks both ways; a tab or segment only when it changes)
       if (
-        b.matches('[role=switch], .switch') ||
-        (b.getAttribute('aria-selected') !== 'true' && !b.classList.contains('on'))
+        button.matches('[role=switch], .switch') ||
+        (button.getAttribute('aria-selected') !== 'true' && !button.classList.contains('on'))
       )
         haptic('select');
     },

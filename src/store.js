@@ -4,14 +4,14 @@ import { mockBridge } from './mock.js';
 // a stored value of the wrong shape (a damaged file) falls back to the default instead of crashing the app
 export const load = (key, fallback) => {
   try {
-    const v = JSON.parse(localStorage.getItem(key));
-    if (v == null) return fallback;
+    const parsed = JSON.parse(localStorage.getItem(key));
+    if (parsed == null) return fallback;
     if (
       fallback != null &&
-      (Array.isArray(fallback) !== Array.isArray(v) || typeof fallback !== typeof v)
+      (Array.isArray(fallback) !== Array.isArray(parsed) || typeof fallback !== typeof parsed)
     )
       return fallback;
-    return v;
+    return parsed;
   } catch {
     return fallback;
   }

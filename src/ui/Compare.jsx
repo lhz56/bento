@@ -222,10 +222,10 @@ export default function Compare({
 }
 
 // "One uses Postgres where the other uses MongoDB": pair up tools that do the same job.
-function pairs(a, b) {
+function pairs(left, right) {
   const out = [];
-  for (const x of a) {
-    const y = b.find((t) => t.cat === x.cat);
+  for (const x of left) {
+    const y = right.find((t) => t.cat === x.cat);
     if (y)
       out.push(
         `${x.name} where the other uses ${y.name} (${(CATS[x.cat]?.[0] || x.cat).toLowerCase()})`,

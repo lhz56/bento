@@ -13,13 +13,13 @@ function findRanges(query) {
         ? NodeFilter.FILTER_REJECT
         : NodeFilter.FILTER_ACCEPT,
   });
-  for (let n = w.nextNode(); n && out.length < 2000; n = w.nextNode()) {
-    const text = n.nodeValue.toLowerCase();
+  for (let node = w.nextNode(); node && out.length < 2000; node = w.nextNode()) {
+    const text = node.nodeValue.toLowerCase();
     let i = text.indexOf(needle);
     while (i >= 0 && out.length < 2000) {
       const r = document.createRange();
-      r.setStart(n, i);
-      r.setEnd(n, i + needle.length);
+      r.setStart(node, i);
+      r.setEnd(node, i + needle.length);
       out.push(r);
       i = text.indexOf(needle, i + needle.length);
     }
@@ -45,11 +45,11 @@ export default function FindBar({ onClose }) {
   }, []);
   useEffect(() => {
     const timer = setTimeout(() => {
-      const r =
+      const range =
         query.trim().length >= 2 || (query.trim() && /\S/.test(query))
           ? findRanges(query.trim())
           : [];
-      setHits(r);
+      setHits(range);
       setAt(0);
     }, 120);
     return () => clearTimeout(timer);

@@ -20,9 +20,9 @@ export function Code({ facts, role, onOpen, name }) {
     addEventListener('atlas-layer', h);
     return () => removeEventListener('atlas-layer', h);
   }, []);
-  const go = (d, w) => {
+  const go = (dir, w) => {
     setWay(w);
-    setDir(d);
+    setDir(dir);
     setMore(false);
     // a long folder you were deep in: the new one starts at its top
     requestAnimationFrame(() => {
@@ -85,7 +85,7 @@ export function Code({ facts, role, onOpen, name }) {
         )}
       </label>
       <div className="ph-scope" role="tablist" aria-label="Kind of part">
-        {[['all', 'All'], ...LAYERS.map((l) => [l[0], l[1]])].map(([k, l]) => (
+        {[['all', 'All'], ...LAYERS.map((label) => [label[0], label[1]])].map(([k, l]) => (
           <button
             key={k}
             role="tab"

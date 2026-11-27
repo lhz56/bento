@@ -15,7 +15,7 @@ export function Quiz({ block, onAnswer }) {
         {block.q}
       </div>
       <div className="quiz-choices">
-        {(block.choices || []).map((c, i) => (
+        {(block.choices || []).map((choice, i) => (
           <button
             key={i}
             disabled={pick != null}
@@ -26,7 +26,7 @@ export function Quiz({ block, onAnswer }) {
               onAnswer?.(i === block.answer);
             }}
           >
-            {c}
+            {choice}
           </button>
         ))}
       </div>

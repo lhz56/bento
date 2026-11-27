@@ -50,16 +50,19 @@ export function fallbackFlow(facts, tools) {
       ['db', 'auth', 'pay', 'ai', 'mail', 'bot', 'files', 'host', 'api'].includes(t.cat),
     )
     .slice(0, 3)
-    .forEach((t) => {
+    .forEach((term) => {
       nodes.push({
-        id: `t-${t.id}`,
-        label: t.name,
+        id: `t-${term.id}`,
+        label: term.name,
         kind: 'outside',
-        stack: t.id,
-        does: t.what.split(/[.,:]/)[0].slice(0, 44),
-        term: t.cat,
+        stack: term.id,
+        does: term.what.split(/[.,:]/)[0].slice(0, 44),
+        term: term.cat,
       });
-      edges.push({ from: nodes.find((n) => n.id === 'server') ? 'server' : last, to: `t-${t.id}` });
+      edges.push({
+        from: nodes.find((n) => n.id === 'server') ? 'server' : last,
+        to: `t-${term.id}`,
+      });
     });
   return { nodes, edges, fallback: true };
 }
@@ -221,8 +224,8 @@ export default function BigPicture({
   }, [sel]); // eslint-disable-line react-hooks/exhaustive-deps -- scrolls to a part when you pick one; walk and narrow are read as they are then
   const toolFor = (n) =>
     (n.stack && (tools.find((t) => t.id === n.stack) || BY_ID[n.stack])) || null;
-  const termDef = (t) => {
-    const key = String(t || '').toLowerCase();
+  const termDef = (term) => {
+    const key = String(term || '').toLowerCase();
     if (!key) return null;
     return (
       terms.find((x) => String(x.term).toLowerCase() === key) ||
@@ -234,12 +237,12 @@ export default function BigPicture({
   };
 
   const path = (e) => {
-    const a = flowLayout.pos[e.from],
-      b = flowLayout.pos[e.to];
-    const x1 = a.x + a.w,
-      y1 = a.y + a.h / 2,
-      x2 = b.x,
-      y2 = b.y + b.h / 2;
+    const from = flowLayout.pos[e.from],
+      to = flowLayout.pos[e.to];
+    const x1 = from.x + from.w,
+      y1 = from.y + from.h / 2,
+      x2 = to.x,
+      y2 = to.y + to.h / 2;
     const dx = Math.max(30, (x2 - x1) * 0.5);
     return `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}`;
   };
@@ -402,13 +405,16 @@ export default function BigPicture({
                   (sel && (e.from === sel || e.to === sel))),
             )
             .map((e, i) => {
-              const a = flowLayout.pos[e.from],
-                b = flowLayout.pos[e.to];
+              const from = flowLayout.pos[e.from],
+                to = flowLayout.pos[e.to];
               return (
                 <span
                   key={`l${i}`}
                   className={`fe-label ${sel && e.from !== sel && e.to !== sel ? 'dim' : ''}`}
-                  style={{ left: (a.x + a.w + b.x) / 2, top: (a.y + a.h / 2 + b.y + b.h / 2) / 2 }}
+                  style={{
+                    left: (from.x + from.w + to.x) / 2,
+                    top: (from.y + from.h / 2 + to.y + to.h / 2) / 2,
+                  }}
                 >
                   {e.label}
                 </span>

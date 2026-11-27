@@ -28,10 +28,10 @@ export function detectStack(facts) {
   // package → the files that import it; docs and tests don't count, since a test's sample code isn't the project's
   const extUse = new Map();
   facts.files.forEach(
-    (f, i) =>
-      f.sub !== 'docs' &&
-      f.sub !== 'tests' &&
-      (f.ext || []).forEach((e) => {
+    (file, i) =>
+      file.sub !== 'docs' &&
+      file.sub !== 'tests' &&
+      (file.ext || []).forEach((e) => {
         const k = norm(e);
         if (!extUse.has(k)) extUse.set(k, []);
         extUse.get(k).push(i);

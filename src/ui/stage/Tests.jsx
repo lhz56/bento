@@ -20,15 +20,15 @@ export function Tests({ lesson, tests, onRunTests, testing }) {
         </button>
       </div>
       {cases.map((testCase, i) => {
-        const r = tests?.[i];
+        const result = tests?.[i];
         return (
-          <div key={i} className={`test ${r ? (r.ok ? 'ok' : 'bad') : ''}`}>
+          <div key={i} className={`test ${result ? (result.ok ? 'ok' : 'bad') : ''}`}>
             <span className="lamp" aria-hidden="true" />
             <span className="mono">
               {lesson.tests.fn}({fmtArgs(testCase.args)})
             </span>
             <span className="muted">→ {JSON.stringify(testCase.expect)}</span>
-            {r && !r.ok && <span className="got">got {r.got}</span>}
+            {result && !result.ok && <span className="got">got {result.got}</span>}
           </div>
         );
       })}

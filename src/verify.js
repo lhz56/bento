@@ -283,10 +283,10 @@ export function applyCheck(lesson, j) {
     };
   });
   const paras = story.map((b, i) => (b.t === 'p' ? i : -1)).filter((i) => i >= 0);
-  for (const f of (j?.fixes || []).slice(0, 3)) {
-    const at = paras[f.p];
-    const quote = String(f.quote || '').trim();
-    const fix = String(f.fix || '').trim();
+  for (const change of (j?.fixes || []).slice(0, 3)) {
+    const at = paras[change.p];
+    const quote = String(change.quote || '').trim();
+    const fix = String(change.fix || '').trim();
     if (at == null || quote.length < 12 || !fix || fix === quote) continue;
     const md = story[at].md;
     const k = md.indexOf(quote);

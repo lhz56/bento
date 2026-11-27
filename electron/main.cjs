@@ -62,16 +62,19 @@ for (const kind of ['handle', 'on']) {
 // Links leave Bento only for the web (https; an http link opens as https) or email, never file:, smb:, javascript: or
 // app-launching schemes. Anything else is dropped.
 function openOutside(url) {
-  let u;
+  let parsed;
   try {
-    u = new URL(String(url).slice(0, 4000));
+    parsed = new URL(String(url).slice(0, 4000));
   } catch {
     return false;
   }
-  if (u.protocol === 'http:') u.protocol = 'https:';
-  if (!['https:', 'mailto:'].includes(u.protocol) || (u.protocol === 'https:' && !u.hostname))
+  if (parsed.protocol === 'http:') parsed.protocol = 'https:';
+  if (
+    !['https:', 'mailto:'].includes(parsed.protocol) ||
+    (parsed.protocol === 'https:' && !parsed.hostname)
+  )
     return false;
-  shell.openExternal(u.href).catch(() => {});
+  shell.openExternal(parsed.href).catch(() => {});
   return true;
 }
 // Every call from the page is checked: the right types, sensible sizes. Anything else is refused in plain words.

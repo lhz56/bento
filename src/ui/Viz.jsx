@@ -6,12 +6,12 @@ import { WEB, playDoc } from '../web.js';
 const PAL = ['#ff8a5b', '#a78bfa', '#4cc9a0', '#5aa9ff', '#ffc94d', '#ff6f91'];
 
 // Several same-shaped pictures in a row (a simulation's ticks) become one flipbook you can play.
-const shapeOf = (v) =>
-  v.type === 'grid'
-    ? `g${v.data.length}x${v.data[0]?.length}`
-    : v.type === 'bars'
-      ? `b${v.data.length}`
-      : v.type === 'tree'
+const shapeOf = (value) =>
+  value.type === 'grid'
+    ? `g${value.data.length}x${value.data[0]?.length}`
+    : value.type === 'bars'
+      ? `b${value.data.length}`
+      : value.type === 'tree'
         ? 't'
         : null;
 export function groupVisuals(vs) {
@@ -236,13 +236,13 @@ function layoutTree(root) {
     let xs = [];
     if (node.binary) {
       // in-order layout: every node gets its own column, so left/right is always visible
-      const [l, r] = kids;
-      if (l) walk(l, depth + 1, path + 'L');
+      const [left, right] = kids;
+      if (left) walk(left, depth + 1, path + 'L');
       const me = { v: node.v, d: depth, path, x: leaf++ };
-      if (r) walk(r, depth + 1, path + 'R');
+      if (right) walk(right, depth + 1, path + 'R');
       nodes.push(me);
-      if (l) edges.push([path, path + 'L']);
-      if (r) edges.push([path, path + 'R']);
+      if (left) edges.push([path, path + 'L']);
+      if (right) edges.push([path, path + 'R']);
       return me.x;
     }
     kids.forEach((k, i) => {
@@ -292,15 +292,15 @@ function TreeViz({ root }) {
       style={{ width: '100%', maxWidth: width * 1.2, maxHeight: 340 }}
     >
       {layout.edges.map(
-        ([a, b]) =>
-          pos[a] &&
-          pos[b] && (
+        ([from, to]) =>
+          pos[from] &&
+          pos[to] && (
             <line
-              key={a + b}
-              x1={pos[a][0]}
-              y1={pos[a][1]}
-              x2={pos[b][0]}
-              y2={pos[b][1]}
+              key={from + to}
+              x1={pos[from][0]}
+              y1={pos[from][1]}
+              x2={pos[to][0]}
+              y2={pos[to][1]}
               className="tree-edge"
             />
           ),
@@ -322,8 +322,8 @@ function TreeViz({ root }) {
 }
 
 // "median ms: plain vs hedged" with 2 bars → name the bars "plain" and "hedged".
-export const namesFrom = (label, n) => {
-  if (!label || n < 2 || n > 6) return null;
+export const namesFrom = (label, count) => {
+  if (!label || count < 2 || count > 6) return null;
   const tail = String(label)
     .split(/[:—–(]/)
     .pop()
@@ -332,21 +332,23 @@ export const namesFrom = (label, n) => {
     .split(/\s+(?:vs\.?|versus)\s+/i)
     .map((x) => x.trim())
     .filter(Boolean);
-  return parts.length === n && parts.every((x) => x.length <= 22) ? parts : null;
+  return parts.length === count && parts.every((x) => x.length <= 22) ? parts : null;
 };
 function BarsViz({ data, names }) {
   const max = Math.max(...data.map(Math.abs), 1);
   const showNums = data.length <= 24;
   return (
     <div className="bars" style={{ gap: names ? 26 : data.length > 60 ? 1 : 4 }}>
-      {data.map((d, i) => (
+      {data.map((value, i) => (
         <div key={i} className="bar-col">
-          {showNums && <span className="bar-n">{Number.isInteger(d) ? d : d.toFixed(2)}</span>}
+          {showNums && (
+            <span className="bar-n">{Number.isInteger(value) ? value : value.toFixed(2)}</span>
+          )}
           <div
             className="bar"
             style={{
-              height: `${Math.max(3, (Math.abs(d) / max) * 100)}%`,
-              background: d < 0 ? 'var(--rose)' : PAL[i % PAL.length],
+              height: `${Math.max(3, (Math.abs(value) / max) * 100)}%`,
+              background: value < 0 ? 'var(--rose)' : PAL[i % PAL.length],
             }}
           />
           {names && <span className="bar-name">{names[i]}</span>}
@@ -422,8 +424,8 @@ function GridViz({ data, palette }) {
           className="cgrid"
           style={{ gridTemplateColumns: `repeat(${cols}, ${size}px)`, gridAutoRows: `${size}px` }}
         >
-          {data.flatMap((r, i) =>
-            r.map((c, j) => (
+          {data.flatMap((row, i) =>
+            row.map((c, j) => (
               <i
                 key={i + '-' + j}
                 title={`row ${i}, col ${j}: ${c}`}

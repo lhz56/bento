@@ -296,15 +296,17 @@ export function AskBar({ name, threadKey, onAsk, onQuick, onOpen, initial, onFea
                     </div>
                     {x.files?.filter(okPath).length > 0 && (
                       <div className="aq-files">
-                        {x.files.filter(okPath).map((f) => (
+                        {x.files.filter(okPath).map((file) => (
                           <button
-                            key={f}
+                            key={file}
                             className="file-chip"
-                            title={f}
-                            aria-label={`Open ${f}`}
-                            onClick={() => onOpen(f)}
+                            title={file}
+                            aria-label={`Open ${file}`}
+                            onClick={() => onOpen(file)}
                           >
-                            {f.split('/').length > 2 ? `…/${f.split('/').slice(-2).join('/')}` : f}
+                            {file.split('/').length > 2
+                              ? `…/${file.split('/').slice(-2).join('/')}`
+                              : file}
                           </button>
                         ))}
                       </div>

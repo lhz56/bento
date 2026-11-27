@@ -142,15 +142,15 @@ export default function Settings({
             </span>
           </div>
           <div className="set-models">
-            {avail.map(([k, l, p]) => (
+            {avail.map(([k, label, plan]) => (
               <button
                 key={k}
                 className={settings.model === k ? 'on' : ''}
                 aria-pressed={settings.model === k}
                 onClick={() => setSettings({ model: k })}
               >
-                <AIMark id={p} size={15} />
-                {l}
+                <AIMark id={plan} size={15} />
+                {label}
               </button>
             ))}
             {avail.length === 0 && (
@@ -353,12 +353,12 @@ function PackRow({ packs, onAddPack, onRemovePack }) {
   const [url, setUrl] = useState('');
   const [msg, setMsg] = useState(null);
   const add = (json) => {
-    const r = onAddPack(json);
+    const added = onAddPack(json);
     setMsg(
-      r.errors
-        ? { bad: r.errors.slice(0, 3).join(' ') }
+      added.errors
+        ? { bad: added.errors.slice(0, 3).join(' ') }
         : {
-            ok: `${t('Added')} “${r.pack.name}”: ${r.pack.puzzles.length} ${t('puzzles')}, ${r.pack.paths.length} ${t('paths')}, ${r.pack.ideas.length} ${t('ideas')}.`,
+            ok: `${t('Added')} “${added.pack.name}”: ${added.pack.puzzles.length} ${t('puzzles')}, ${added.pack.paths.length} ${t('paths')}, ${added.pack.ideas.length} ${t('ideas')}.`,
           },
     );
   };
@@ -394,10 +394,10 @@ function PackRow({ packs, onAddPack, onRemovePack }) {
             accept=".json,application/json"
             hidden
             onChange={async (e) => {
-              const f = e.target.files?.[0];
-              if (!f) return;
+              const file = e.target.files?.[0];
+              if (!file) return;
               try {
-                add(JSON.parse(await f.text()));
+                add(JSON.parse(await file.text()));
               } catch {
                 setMsg({ bad: t('That file isn’t valid JSON.') });
               }

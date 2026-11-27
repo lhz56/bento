@@ -12,12 +12,12 @@ const edLang = (l) =>
 const revCache = new WeakMap();
 
 function reverseOf(facts) {
-  let r = revCache.get(facts);
-  if (r) return r;
-  r = facts.files.map(() => []);
-  facts.files.forEach((g, j) => g.imp.forEach((i) => r[i]?.push(j)));
-  revCache.set(facts, r);
-  return r;
+  let rev = revCache.get(facts);
+  if (rev) return rev;
+  rev = facts.files.map(() => []);
+  facts.files.forEach((g, j) => g.imp.forEach((i) => rev[i]?.push(j)));
+  revCache.set(facts, rev);
+  return rev;
 }
 
 function Ripple({ facts, idx, onOpen }) {
@@ -28,7 +28,7 @@ function Ripple({ facts, idx, onOpen }) {
     /** @type {number[][] & { more?: number }} */
     const out = [];
     let front = [idx];
-    for (let d = 0; d < 3 && front.length; d++) {
+    for (let depth = 0; depth < 3 && front.length; depth++) {
       const next = [];
       for (const i of front)
         for (const j of rev[i])
@@ -41,14 +41,14 @@ function Ripple({ facts, idx, onOpen }) {
     }
     if (front.length) {
       let more = 0;
-      const q = [...front];
-      while (q.length) {
-        const i = q.pop();
+      const queue = [...front];
+      while (queue.length) {
+        const i = queue.pop();
         for (const j of rev[i])
           if (!seen.has(j)) {
             seen.add(j);
             more++;
-            q.push(j);
+            queue.push(j);
           }
       }
       if (more) out.more = more;
@@ -64,14 +64,14 @@ function Ripple({ facts, idx, onOpen }) {
   return (
     <div className="ripple">
       <svg viewBox={`0 0 ${width} ${width}`} width={width} height={width} aria-hidden="true">
-        {rings.map((_, d) => (
+        {rings.map((_, depth) => (
           <circle
-            key={d}
+            key={depth}
             cx={center}
             cy={center}
-            r={radius[d]}
+            r={radius[depth]}
             className="rp-ring"
-            style={{ animationDelay: `${d * 0.25}s` }}
+            style={{ animationDelay: `${depth * 0.25}s` }}
           />
         ))}
         {rings.map((ring, depth) =>
@@ -80,13 +80,13 @@ function Ripple({ facts, idx, onOpen }) {
               2.2,
               Math.min(5.5, ((Math.PI * radius[depth]) / arr.length) * 0.55),
             );
-            const a = (k / arr.length) * Math.PI * 2 - Math.PI / 2 + depth * 0.4;
+            const angle = (k / arr.length) * Math.PI * 2 - Math.PI / 2 + depth * 0.4;
             const file = facts.files[j];
             return (
               <circle
                 key={j}
-                cx={center + Math.cos(a) * radius[depth]}
-                cy={center + Math.sin(a) * radius[depth]}
+                cx={center + Math.cos(angle) * radius[depth]}
+                cy={center + Math.sin(angle) * radius[depth]}
                 r={hov === j ? dr + 2.5 : dr}
                 fill={LAYER[file.layer]?.[3] || 'var(--ink-3)'}
                 className="rp-dot"
@@ -113,12 +113,12 @@ function Ripple({ facts, idx, onOpen }) {
           ) : (
             <>
               That’s {pct}% of the project.{' '}
-              {rings.map((ring, d) => (
-                <span key={d} className="rp-hop">
-                  {d === 0 ? 'use it directly' : `${d + 1} steps away`}:{' '}
+              {rings.map((ring, depth) => (
+                <span key={depth} className="rp-hop">
+                  {depth === 0 ? 'use it directly' : `${depth + 1} steps away`}:{' '}
                   <b>
                     {ring.length}
-                    {d === rings.length - 1 && rings.more ? `+${rings.more}` : ''}
+                    {depth === rings.length - 1 && rings.more ? `+${rings.more}` : ''}
                   </b>
                 </span>
               ))}

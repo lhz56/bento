@@ -5,8 +5,8 @@ import { explainLocal } from '../../errors.js';
 import { K } from '../../platform.js';
 import { Visuals } from '../Viz.jsx';
 
-const Tick = ({ s }) =>
-  String(s || '')
+const Tick = ({ text }) =>
+  String(text || '')
     .split(/(`[^`]+`)/)
     .map((x, i) =>
       x.startsWith('`') && x.endsWith('`') && x.length > 2 ? (
@@ -129,7 +129,7 @@ export function Predict({ pred, setPred, run, onWhyDiff }) {
         onWhyDiff &&
         (why ? (
           <div className="err-ex">
-            <Tick s={why} />
+            <Tick text={why} />
           </div>
         ) : (
           <button
@@ -226,11 +226,11 @@ export function Output({
               (document.documentElement.lang.startsWith('en') ? explainLocal(error.msg) : null);
             return explained ? (
               <div className="err-ex">
-                <b>What happened:</b> <Tick s={explained.plain} />
+                <b>What happened:</b> <Tick text={explained.plain} />
                 {explained.fix && (
                   <>
                     <br />
-                    <b>Try:</b> <Tick s={explained.fix} />
+                    <b>Try:</b> <Tick text={explained.fix} />
                   </>
                 )}
                 {explained.local && onExplainError && (
@@ -338,7 +338,7 @@ function Stuck({ stuck, onUnstick, onStepThrough, onStuckHint }) {
       </div>
       {hint && (
         <div className="stuck-hint">
-          {hint === '…' ? 'Thinking of a nudge…' : <Tick s={hint} />}
+          {hint === '…' ? 'Thinking of a nudge…' : <Tick text={hint} />}
         </div>
       )}
     </div>

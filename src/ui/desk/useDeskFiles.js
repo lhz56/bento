@@ -82,10 +82,12 @@ export default function useDeskFiles({ codeRef, edited, lang, lesson, onPatch, s
       const tag = name.endsWith('.css')
         ? `<link rel="stylesheet" href="${name}">`
         : `<script src="${name}"></script>`;
-      const m = files[0].code;
+      const main = files[0].code;
       files[0] = {
         ...files[0],
-        code: /<\/body>/i.test(m) ? m.replace(/<\/body>/i, `  ${tag}\n</body>`) : `${m}\n${tag}`,
+        code: /<\/body>/i.test(main)
+          ? main.replace(/<\/body>/i, `  ${tag}\n</body>`)
+          : `${main}\n${tag}`,
       };
     }
     filesRef.current = files;

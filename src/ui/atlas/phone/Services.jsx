@@ -46,13 +46,15 @@ const CAT_LAYER = {
   watch: 'support',
 };
 
-export const layerOfTool = (t, facts) => {
-  const n = {};
-  (t.used || []).forEach((i) => {
+export const layerOfTool = (tool, facts) => {
+  const count = {};
+  (tool.used || []).forEach((i) => {
     const l = facts.files[i]?.layer;
-    if (l) n[l] = (n[l] || 0) + 1;
+    if (l) count[l] = (count[l] || 0) + 1;
   });
-  return Object.entries(n).sort((a, b) => b[1] - a[1])[0]?.[0] || CAT_LAYER[t.cat] || 'support';
+  return (
+    Object.entries(count).sort((a, b) => b[1] - a[1])[0]?.[0] || CAT_LAYER[tool.cat] || 'support'
+  );
 };
 
 export const sayOf = (narration, t) =>
@@ -71,12 +73,12 @@ export function Services({ tools, narration, onPick }) {
       />
       {svc.length > 0 ? (
         <div className="sv-grid">
-          {svc.map((t) => (
-            <button key={t.id} className="sv" onClick={() => onPick(t.id)}>
-              <Brand slug={t.slug} name={t.name} color={t.color} size={44} />
-              <span className="sv-cat">{CATS[t.cat]?.[0] || t.cat}</span>
-              <b>{t.name}</b>
-              <span className="sv-what">{sayOf(narration, t)?.role || t.what}</span>
+          {svc.map((tool) => (
+            <button key={tool.id} className="sv" onClick={() => onPick(tool.id)}>
+              <Brand slug={tool.slug} name={tool.name} color={tool.color} size={44} />
+              <span className="sv-cat">{CATS[tool.cat]?.[0] || tool.cat}</span>
+              <b>{tool.name}</b>
+              <span className="sv-what">{sayOf(narration, tool)?.role || tool.what}</span>
             </button>
           ))}
         </div>

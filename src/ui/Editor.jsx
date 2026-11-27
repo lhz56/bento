@@ -149,10 +149,10 @@ const marksDeco = EditorView.decorations.compute([marksField, 'doc'], (state) =>
   const builder = /** @type {RangeSetBuilder<Decoration>} */ (new RangeSetBuilder());
   [...cls.keys()]
     .sort((a, c) => a - c)
-    .forEach((l) => {
-      const line = doc.line(l);
-      builder.add(line.from, line.from, Decoration.line({ class: cls.get(l).trim() }));
-      if (marks.err?.line === l && marks.err.msg)
+    .forEach((docLine) => {
+      const line = doc.line(docLine);
+      builder.add(line.from, line.from, Decoration.line({ class: cls.get(docLine).trim() }));
+      if (marks.err?.line === docLine && marks.err.msg)
         builder.add(
           line.to,
           line.to,
@@ -173,17 +173,17 @@ const numberPlugin = ViewPlugin.fromClass(
       if (u.docChanged || u.viewportChanged || syntaxTree(u.startState) !== syntaxTree(u.state))
         this.decorations = this.build(u.view);
     }
-    build(v) {
-      const b = /** @type {RangeSetBuilder<Decoration>} */ (new RangeSetBuilder());
-      for (const { from, to } of v.visibleRanges)
-        syntaxTree(v.state).iterate({
+    build(view) {
+      const builder = /** @type {RangeSetBuilder<Decoration>} */ (new RangeSetBuilder());
+      for (const { from, to } of view.visibleRanges)
+        syntaxTree(view.state).iterate({
           from,
           to,
           enter: (n) => {
-            if (n.name === 'Number') b.add(n.from, n.to, numMark);
+            if (n.name === 'Number') builder.add(n.from, n.to, numMark);
           },
         });
-      return b.finish();
+      return builder.finish();
     }
   },
   { decorations: (p) => p.decorations },
@@ -214,12 +214,15 @@ function scrubHandler(getOnScrub) {
       const move = (ev) => {
         const px = ev.clientX - x0;
         const mult = ev.shiftKey ? 10 : 1;
-        let v = v0 + Math.round(px / (dec ? 3 : 4)) * step * mult;
-        if (v0 >= 0 && !dec && v < 0) v = 0;
-        const s = dec ? v.toFixed(dec) : String(Math.round(v));
-        view.dispatch({ changes: { from, to: from + len, insert: s }, userEvent: 'input.scrub' });
-        len = s.length;
-        badge.textContent = `${s}`;
+        let value = v0 + Math.round(px / (dec ? 3 : 4)) * step * mult;
+        if (v0 >= 0 && !dec && value < 0) value = 0;
+        const text = dec ? value.toFixed(dec) : String(Math.round(value));
+        view.dispatch({
+          changes: { from, to: from + len, insert: text },
+          userEvent: 'input.scrub',
+        });
+        len = text.length;
+        badge.textContent = `${text}`;
         badge.style.left = `${ev.clientX + 12}px`;
         badge.style.top = `${ev.clientY - 30}px`;
         getOnScrub()?.();
@@ -816,13 +819,14 @@ const Editor = forwardRef(function Editor(/** @type {EditorProps} */ props, ref)
             ...historyKeymap,
             indentWithTab,
           ]),
-          EditorView.updateListener.of((u) => {
-            if (u.docChanged && !u.transactions.some((tr) => tr.annotation?.(extAnno)))
+          EditorView.updateListener.of((update) => {
+            if (update.docChanged && !update.transactions.some((tr) => tr.annotation?.(extAnno)))
               cb.current.onChange?.(
-                u.state.doc.toString(),
-                u.transactions.some((tr) => tr.isUserEvent('input.scrub')),
+                update.state.doc.toString(),
+                update.transactions.some((tr) => tr.isUserEvent('input.scrub')),
               );
-            if (u.docChanged || u.geometryChanged || u.viewportChanged) measureSoon();
+            if (update.docChanged || update.geometryChanged || update.viewportChanged)
+              measureSoon();
           }),
         ],
       }),
@@ -944,16 +948,16 @@ const Editor = forwardRef(function Editor(/** @type {EditorProps} */ props, ref)
             setCard(null);
             view.current?.dispatch({ effects: setTapped.of(null) });
           }}
-          onJump={(n) => {
+          onJump={(line) => {
             const editor = view.current;
             if (!editor) return;
             setCard(null);
             editor.dispatch({
               effects: [
                 setTapped.of(null),
-                EditorView.scrollIntoView(editor.state.doc.line(n).from, { y: 'center' }),
+                EditorView.scrollIntoView(editor.state.doc.line(line).from, { y: 'center' }),
               ],
-              selection: { anchor: editor.state.doc.line(n).from },
+              selection: { anchor: editor.state.doc.line(line).from },
             });
           }}
         />
@@ -983,16 +987,16 @@ const Editor = forwardRef(function Editor(/** @type {EditorProps} */ props, ref)
       )}
       {showEnglish && (
         <div className="ed-english">
-          {(english || []).map((s, i) => (
+          {(english || []).map((words, i) => (
             <div
               key={i}
-              className={`en-line ${s === null ? 'pending' : ''} ${hoverLine === i + 1 ? 'hot' : ''} ${marks?.step === i + 1 ? 'step' : ''} ${marks?.link && i + 1 >= marks.link[0] && i + 1 <= marks.link[1] ? 'linked' : ''}`}
+              className={`en-line ${words === null ? 'pending' : ''} ${hoverLine === i + 1 ? 'hot' : ''} ${marks?.step === i + 1 ? 'step' : ''} ${marks?.link && i + 1 >= marks.link[0] && i + 1 <= marks.link[1] ? 'linked' : ''}`}
               style={{ top: lineY(i + 1), height: geo.lh }}
               onMouseEnter={() => onEnglishHover?.(i + 1)}
               onMouseLeave={() => onEnglishHover?.(null)}
               onClick={() => cb.current.onEnglishClick?.(i + 1)}
             >
-              {s === null ? <span className="en-shimmer" /> : s}
+              {words === null ? <span className="en-shimmer" /> : words}
             </div>
           ))}
         </div>

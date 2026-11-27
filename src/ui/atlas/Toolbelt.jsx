@@ -170,14 +170,14 @@ export function Toolbelt({ tools, stack, narration, narrating, onShowFiles }) {
       {side.length > 0 && (
         <div className="workshop">
           <span className="mini-h">only for its docs site and examples</span>
-          {side.map((t) => (
+          {side.map((tool) => (
             <span
-              key={t.id}
+              key={tool.id}
               className="ws"
-              title={`${t.name}: ${t.what}\nFound in ${t.evidence.join(', ')}`}
+              title={`${tool.name}: ${tool.what}\nFound in ${tool.evidence.join(', ')}`}
             >
-              <Brand slug={t.slug} name={t.name} color={t.color} size={20} plain />
-              {t.name}
+              <Brand slug={tool.slug} name={tool.name} color={tool.color} size={20} plain />
+              {tool.name}
             </span>
           ))}
         </div>

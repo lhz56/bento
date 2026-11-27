@@ -253,8 +253,8 @@ export function NodeSheet({
   onOpenFile,
   onAsk,
 }) {
-  const termOf = (t) => {
-    const key = String(t || '').toLowerCase();
+  const termOf = (term) => {
+    const key = String(term || '').toLowerCase();
     if (!key) return null;
     return (
       terms.find((x) => String(x.term).toLowerCase() === key) ||
@@ -299,11 +299,15 @@ export function NodeSheet({
         )}
         {talks.length > 0 && (
           <Group title="Talks to">
-            {talks.map(([dir, e, m]) => (
-              <button key={`${dir}${m.id}`} className="ph-cell" onClick={() => onPick(m.id)}>
-                <NodeIcon node={m} tool={toolOf(m)} size={32} />
+            {talks.map(([dir, e, label]) => (
+              <button
+                key={`${dir}${label.id}`}
+                className="ph-cell"
+                onClick={() => onPick(label.id)}
+              >
+                <NodeIcon node={label} tool={toolOf(label)} size={32} />
                 <span className="ph-ct">
-                  <b>{m.label}</b>
+                  <b>{label.label}</b>
                   <span className="ps-dir">
                     <I n={dir} s={13} w={2.4} />
                     {e.label || (dir === 'to' ? 'it sends to it' : 'sends to it')}

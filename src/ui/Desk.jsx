@@ -221,13 +221,13 @@ const Desk = forwardRef(function Desk(/** @type {DeskProps} */ props, ref) {
           ),
         )?.lines;
         // keyed by line number; a plain list only counts if it has exactly one entry per line
-        const at = (n) =>
+        const at = (line) =>
           Array.isArray(got)
             ? got.length === lines.length
-              ? got[n - 1]
+              ? got[line - 1]
               : undefined
             : got && typeof got === 'object'
-              ? got[n]
+              ? got[line]
               : undefined;
         const add = {};
         for (const n of only) {
@@ -426,17 +426,17 @@ const Desk = forwardRef(function Desk(/** @type {DeskProps} */ props, ref) {
   );
 
   const explain = useCallback(
-    (word, lineText, o) =>
+    (word, lineText, at) =>
       explainToken({
         word,
         lineText,
-        lineNo: o.lineNo,
+        lineNo: at.lineNo,
         lang,
-        doc: o.doc,
+        doc: at.doc,
         english,
         model,
         quick,
-        isMember: o.isMember,
+        isMember: at.isMember,
       }),
     [lang, english, model, quick],
   );
@@ -483,14 +483,14 @@ const Desk = forwardRef(function Desk(/** @type {DeskProps} */ props, ref) {
       setCoach({ said: 'The model didn’t answer. Try again in a moment.' });
     }
   };
-  const fileLang = (n) =>
-    /\.css$/.test(n)
+  const fileLang = (name) =>
+    /\.css$/.test(name)
       ? 'css'
-      : /\.m?js$/.test(n)
+      : /\.m?js$/.test(name)
         ? 'javascript'
-        : /\.html?$/.test(n)
+        : /\.html?$/.test(name)
           ? 'html'
-          : /\.py$/.test(n)
+          : /\.py$/.test(name)
             ? 'python'
             : null;
   const edLang =
@@ -600,11 +600,11 @@ const Desk = forwardRef(function Desk(/** @type {DeskProps} */ props, ref) {
               className="act"
               title="Save as a real .html file on your Desktop"
               onClick={async () => {
-                const f = await window.bento.saveWeb(
+                const saved = await window.bento.saveWeb(
                   projectBundle(codeRef.current).main,
                   lesson.title,
                 );
-                setSavedTo(f?.split('/').pop());
+                setSavedTo(saved?.split('/').pop());
                 setTimeout(() => setSavedTo(null), 3000);
               }}
             >
@@ -792,16 +792,16 @@ const Desk = forwardRef(function Desk(/** @type {DeskProps} */ props, ref) {
                   onLineHover={(n) =>
                     setTwinHover(n ? { twin: [n, n], main: mapTo(n, false) } : null)
                   }
-                  explain={(word, lineText, o) =>
+                  explain={(word, lineText, at) =>
                     explainToken({
                       word,
                       lineText,
-                      lineNo: o.lineNo,
+                      lineNo: at.lineNo,
                       lang: twin.lang,
-                      doc: o.doc,
+                      doc: at.doc,
                       model,
                       quick,
-                      isMember: o.isMember,
+                      isMember: at.isMember,
                     })
                   }
                 />

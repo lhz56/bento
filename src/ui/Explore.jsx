@@ -47,13 +47,13 @@ export const parseBlob = (s) => {
   );
   return m ? { full: m[1], path: decodeURIComponent(m[2]) } : null;
 };
-export const parseRepo = (s) => {
-  const t = String(s || '')
+export const parseRepo = (input) => {
+  const text = String(input || '')
     .trim()
     .replace(/\.git$/, '')
     .replace(/\/$/, '');
   const match =
-    /(?:github\.com[/:])([\w.-]+)\/([\w.-]+)/.exec(t) || /^([\w-]+)\/([\w.-]+)$/.exec(t);
+    /(?:github\.com[/:])([\w.-]+)\/([\w.-]+)/.exec(text) || /^([\w-]+)\/([\w.-]+)$/.exec(text);
   return match ? `${match[1]}/${match[2]}` : null;
 };
 
@@ -102,8 +102,8 @@ export default function Explore({
   };
   useEffect(() => {
     if (shelf == null) return;
-    const [, q, , language, extra] = SHELVES[shelf];
-    search(typeof q === 'function' ? q() : q, {
+    const [, query, , language, extra] = SHELVES[shelf];
+    search(typeof query === 'function' ? query() : query, {
       stars: '>20',
       size: '<40000',
       language,
@@ -265,12 +265,12 @@ export default function Explore({
             {Object.keys(FEATURED).length > 0 && (
               <div className="ex-box feat">
                 <div className="mini-h">ready instantly</div>
-                {Object.entries(FEATURED).map(([k, f]) => (
+                {Object.entries(FEATURED).map(([k, featured]) => (
                   <button key={k} className="feat-i" onClick={() => onOpenRepo(k)}>
-                    <img src={f.meta?.avatar} alt="" />
+                    <img src={featured.meta?.avatar} alt="" />
                     <span>
                       <b>{k.split('/')[1]}</b>
-                      <i>{f.narr?.gist?.kind || ''}</i>
+                      <i>{featured.narr?.gist?.kind || ''}</i>
                     </span>
                     <em>→</em>
                   </button>
@@ -316,18 +316,18 @@ export default function Explore({
                   )}
                 </div>
               )}
-              {(repos || []).slice(0, 12).map((r) => (
+              {(repos || []).slice(0, 12).map((repo) => (
                 <button
-                  key={r.nameWithOwner}
+                  key={repo.nameWithOwner}
                   className="ex-proj"
-                  onClick={() => onOpenRepo(r.nameWithOwner)}
+                  onClick={() => onOpenRepo(repo.nameWithOwner)}
                 >
                   <span
                     className="ldot"
-                    style={{ background: langColor(r.primaryLanguage?.name) }}
+                    style={{ background: langColor(repo.primaryLanguage?.name) }}
                   />
-                  {r.name}
-                  {r.isPrivate && <span className="priv">private</span>}
+                  {repo.name}
+                  {repo.isPrivate && <span className="priv">private</span>}
                 </button>
               ))}
             </div>

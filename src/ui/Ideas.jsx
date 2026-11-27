@@ -37,13 +37,13 @@ export default function Ideas({
           {t(`${IDEAS.length} real tricks from Uber, Google, Discord and more, with code you run.`)}
         </p>
         <div className="shelves">
-          {THEMES.map(([themeId, l]) => (
+          {THEMES.map(([themeId, label]) => (
             <button
               key={themeId}
               className={`shelf ${theme === themeId ? 'on' : ''}`}
               onClick={() => setTheme(themeId)}
             >
-              {l}
+              {label}
             </button>
           ))}
         </div>

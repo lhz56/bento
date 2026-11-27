@@ -66,15 +66,15 @@ function FileMap({ files, role, onOpen }) {
   const height = Math.round(Math.min(560, Math.max(320, width * 0.48)));
   const code = files.filter((f) => f.lines > 0);
   const groups = new Map();
-  for (const f of code) {
-    const d = f.p.includes('/')
-      ? f.p
+  for (const file of code) {
+    const dir = file.p.includes('/')
+      ? file.p
           .split('/')
-          .slice(0, f.p.split('/').length > 2 ? 2 : 1)
+          .slice(0, file.p.split('/').length > 2 ? 2 : 1)
           .join('/')
       : '·';
-    if (!groups.has(d)) groups.set(d, []);
-    groups.get(d).push(f);
+    if (!groups.has(dir)) groups.set(dir, []);
+    groups.get(dir).push(file);
   }
   const blocks = squarify(
     [...groups].map(([d, fs]) => ({ d, fs, v: fs.reduce((s, f) => s + f.lines, 0) })),
@@ -221,12 +221,12 @@ export function FileList({ facts, role, onOpen }) {
                   <span className="muted"> {fs.length}</span>
                 </button>
                 {isOpen &&
-                  fs.map((f) => (
-                    <button key={f.p} className="fl-f" onClick={() => onOpen(f.p)}>
-                      <span className="ldot" style={{ background: LAYER[f.layer][3] }} />
-                      <span className="fl-n">{f.p.split('/').pop()}</span>
-                      <span className="fl-r">{role(f.p)}</span>
-                      <span className="fl-l">{f.lines ? f.lines.toLocaleString() : ''}</span>
+                  fs.map((file) => (
+                    <button key={file.p} className="fl-f" onClick={() => onOpen(file.p)}>
+                      <span className="ldot" style={{ background: LAYER[file.layer][3] }} />
+                      <span className="fl-n">{file.p.split('/').pop()}</span>
+                      <span className="fl-r">{role(file.p)}</span>
+                      <span className="fl-l">{file.lines ? file.lines.toLocaleString() : ''}</span>
                     </button>
                   ))}
               </div>

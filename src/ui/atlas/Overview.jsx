@@ -162,12 +162,12 @@ export function Hotspots({ hot, role, onOpen, narrating, facts, pathIdx }) {
       </div>
       {kinds.length > 0 && (
         <div className="hot-sum">
-          {kinds.map(([kind, n]) => {
+          {kinds.map(([kind, count]) => {
             const [ic, label] = HOT_ICON[kind] || HOT_ICON.fragile;
             return (
               <span key={kind} className={`hs k-${kind}`}>
                 <i>{ic}</i>
-                <b>{n}</b>
+                <b>{count}</b>
                 {label.toLowerCase()}
               </span>
             );

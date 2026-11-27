@@ -32,11 +32,11 @@ import { IN_APP, native } from './touch.js';
 
 // What each model is good at, in plain words, with two small meters. Grouped by AI; the ones this Mac doesn't have
 // yet say so, with a way to connect them.
-const Meter = ({ n, max = 4, label }) => (
-  <span className="mm" aria-label={`${label}: ${n} of ${max}`}>
+const Meter = ({ level, max = 4, label }) => (
+  <span className="mm" aria-label={`${label}: ${level} of ${max}`}>
     <em>{label}</em>
     {Array.from({ length: max }, (_, i) => (
-      <i key={i} className={i < n ? 'on' : ''} />
+      <i key={i} className={i < level ? 'on' : ''} />
     ))}
   </span>
 );
@@ -124,8 +124,8 @@ function ModelPicker({ settings, setSettings, providers, onClose, onSettings, on
                       </b>
                     </span>
                     <span className="mc-m">
-                      <Meter n={model.speed || 2} max={3} label={t('speed')} />
-                      <Meter n={model.depth || 2} max={4} label={t('depth')} />
+                      <Meter level={model.speed || 2} max={3} label={t('speed')} />
+                      <Meter level={model.depth || 2} max={4} label={t('depth')} />
                     </span>
                     <span className="mc-tick" aria-hidden="true">
                       {on ? '✓' : ''}
@@ -218,12 +218,12 @@ export const GROUPS = [
 export const groupOf = (view) =>
   GROUPS.find((g) => g.views.some(([v]) => v === view)) ||
   (['atlas', 'site', 'compare'].includes(view) ? GROUPS[1] : null);
-export const lastTab = (g) => {
+export const lastTab = (group) => {
   try {
-    const v = JSON.parse(localStorage.getItem('bento.lastTab') || '{}')[g.id];
-    return g.views.some(([x]) => x === v) ? v : g.views[0][0];
+    const v = JSON.parse(localStorage.getItem('bento.lastTab') || '{}')[group.id];
+    return group.views.some(([x]) => x === v) ? v : group.views[0][0];
   } catch {
-    return g.views[0][0];
+    return group.views[0][0];
   }
 };
 export const rememberTab = (view) => {

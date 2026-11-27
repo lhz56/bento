@@ -29,12 +29,12 @@ export function Risks({ hot, narrating, onPick }) {
       />
       {kinds.length > 0 && (
         <div className="hs-tiles" role="group" tabIndex={0} aria-label="How many of each kind">
-          {kinds.map(([kind, n]) => (
+          {kinds.map(([kind, count]) => (
             <div key={kind} className="hs-t" style={{ '--c': HOT[kind][2] }}>
               <span className="ph-ic round sm">
                 <I n={HOT[kind][0]} s={14} w={2.2} />
               </span>
-              <b>{n}</b>
+              <b>{count}</b>
               <span>{HOT[kind][1]}</span>
             </div>
           ))}

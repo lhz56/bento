@@ -127,12 +127,12 @@ export function PartSheet({
         )}
         {made.length > 0 && (
           <Group title="Made with">
-            {made.map((t) => (
-              <button key={t.id} className="ph-cell" onClick={() => onTool(t.id)}>
-                <Brand slug={t.slug} name={t.name} color={t.color} size={32} />
+            {made.map((tool) => (
+              <button key={tool.id} className="ph-cell" onClick={() => onTool(tool.id)}>
+                <Brand slug={tool.slug} name={tool.name} color={tool.color} size={32} />
                 <span className="ph-ct">
-                  <b>{t.name}</b>
-                  <span>{sayOf(narration, t)?.role || t.what}</span>
+                  <b>{tool.name}</b>
+                  <span>{sayOf(narration, tool)?.role || tool.what}</span>
                 </span>
                 <Chev />
               </button>

@@ -30,14 +30,14 @@ export function QR({ text, size = 176 }) {
 }
 
 const ago = (t0) => {
-  const s = (Date.now() - t0) / 1000;
-  return s < 90
+  const seconds = (Date.now() - t0) / 1000;
+  return seconds < 90
     ? 'just now'
-    : s < 3600
-      ? `${Math.round(s / 60)} min ago`
-      : s < 86400
-        ? `${Math.round(s / 3600)} h ago`
-        : `${Math.round(s / 86400)} days ago`;
+    : seconds < 3600
+      ? `${Math.round(seconds / 60)} min ago`
+      : seconds < 86400
+        ? `${Math.round(seconds / 3600)} h ago`
+        : `${Math.round(seconds / 86400)} days ago`;
 };
 const kindOf = (name) =>
   /iPad/.test(name) ? 'tablet' : /iPhone|Android/.test(name) ? 'phone' : 'computer';

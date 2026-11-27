@@ -43,13 +43,13 @@ export function Study({
             </button>
           </div>
           <ol>
-            {tour.map((t, i) => (
-              <li key={t.p}>
+            {tour.map((stop, i) => (
+              <li key={stop.p}>
                 <button onClick={() => onTour(i)}>
                   <span className="tour-n">{i + 1}</span>
-                  <span className="tour-p">{t.p}</span>
+                  <span className="tour-p">{stop.p}</span>
                   <span className="tour-w">
-                    <Md text={t.why} />
+                    <Md text={stop.why} />
                   </span>
                 </button>
               </li>

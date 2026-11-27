@@ -25,15 +25,15 @@ export function CityCard({ facts, narration, tools, pathIdx, role, hot, onExplor
   const [fit, setFit] = useState({ s: 0.45, h: 260 });
   useLayoutEffect(() => {
     const el = box.current,
-      c = inner.current;
-    if (!el || !c) return undefined;
+      scroller = inner.current;
+    if (!el || !scroller) return undefined;
     const up = () => {
       const s = el.clientWidth / CITY_W;
-      setFit({ s, h: Math.round(Math.min(340, Math.max(180, c.offsetHeight * s))) });
+      setFit({ s, h: Math.round(Math.min(340, Math.max(180, scroller.offsetHeight * s))) });
     };
     const ro = new ResizeObserver(up);
     ro.observe(el);
-    ro.observe(c);
+    ro.observe(scroller);
     up();
     return () => ro.disconnect();
   }, []);

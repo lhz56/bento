@@ -10,17 +10,17 @@ import { coverScore, projectNames, namesALesson } from '../findProject.js';
 
 // A lesson's own words, plain and lowercased once (searching them on every keystroke stays fast)
 const textCache = new WeakMap();
-const plainText = (l) => {
-  let x = textCache.get(l);
+const plainText = (lesson) => {
+  let x = textCache.get(lesson);
   if (x == null) {
-    x = (l.story || [])
+    x = (lesson.story || [])
       .map((b) => [b.md, b.text, b.term, b.plain, b.q, b.why].filter(Boolean).join(' '))
       .join(' ')
       .replace(/\[\[[^|\]]*\|([^\]]+)\]\]/g, '$1')
       .replace(/\[\[([^\]]+)\]\]/g, '$1')
       .replace(/[`*_#>]/g, '')
       .replace(/\s+/g, ' ');
-    textCache.set(l, x);
+    textCache.set(lesson, x);
   }
   return x;
 };
@@ -88,13 +88,13 @@ export default function Palette({
     projects
       .filter((p) => matches(p.name))
       .slice(0, 5)
-      .forEach((p) =>
+      .forEach((project) =>
         out.push({
           g: 'Projects',
           icon: '◈',
-          label: p.name,
-          hint: p.kind === 'github' ? 'GitHub' : 'folder',
-          run: () => onProject(p),
+          label: project.name,
+          hint: project.kind === 'github' ? 'GitHub' : 'folder',
+          run: () => onProject(project),
         }),
       );
     // lessons that come with Bento open instantly, without asking your AI to write them again
@@ -103,25 +103,25 @@ export default function Palette({
         lessons.filter((l) => !l.builtin).map((l) => String(l.title || '').toLowerCase()),
       );
       builtins
-        .map((b) => ({
-          b,
-          sc: matches(b.find)
+        .map((builtin) => ({
+          b: builtin,
+          sc: matches(builtin.find)
             ? 9
             : projectNames(query).some((n) => !namesALesson(n, builtins))
               ? 0
-              : coverScore(needle, b.find, `${b.label} ${b.alt || ''}`),
+              : coverScore(needle, builtin.find, `${builtin.label} ${builtin.alt || ''}`),
         }))
         .filter((x) => x.sc > 0 && !mine.has(x.b.label.toLowerCase()))
         .sort((x, y) => y.sc - x.sc)
         .map((x) => x.b)
         .slice(0, 4)
-        .forEach((b) =>
+        .forEach((builtin) =>
           out.push({
             g: 'Ready now',
             icon: '▶',
-            label: b.label,
-            hint: b.hint ? `${b.hint} · instant` : 'instant',
-            run: b.run,
+            label: builtin.label,
+            hint: builtin.hint ? `${builtin.hint} · instant` : 'instant',
+            run: builtin.run,
           }),
         );
     }
@@ -145,13 +145,13 @@ export default function Palette({
       .filter((l) => !l.builtin && matches(`${l.title} ${l.q}`))
       .sort((a, b) => closeness(b) - closeness(a))
       .slice(0, needle ? 6 : 4)
-      .forEach((l) =>
+      .forEach((lesson) =>
         out.push({
           g: 'Lessons',
           icon: '·',
-          label: l.title || l.q,
-          hint: l.lang,
-          run: () => onLesson(l),
+          label: lesson.title || lesson.q,
+          hint: lesson.lang,
+          run: () => onLesson(lesson),
         }),
       );
     // "where did I read about memoization?": inside your lessons, not just their titles

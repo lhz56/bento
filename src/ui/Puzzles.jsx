@@ -407,18 +407,18 @@ function Compass({ onClose, onOpen }) {
 // ─────────────────────────────────────────────── inside a puzzle lesson
 // Measurements of the obvious and clever ways, kept for the session (they don't change)
 const baseline = new Map();
-async function measure(p, code) {
+async function measure(puzzle, code) {
   const result = await runCode('python', 'scale', code, {
-    setup: p.setup,
-    call: p.call,
-    ns: p.ns || null,
-    fresh: !!p.fresh,
+    setup: puzzle.setup,
+    call: puzzle.call,
+    ns: puzzle.ns || null,
+    fresh: !!puzzle.fresh,
   });
   if (result.error && !result.scale) return { error: result.error.msg };
   return {
     pts: result.scale.pts,
     crash: result.scale.crash,
-    fit: fitScale(result.scale.pts, p.target),
+    fit: fitScale(result.scale.pts, puzzle.target),
   };
 }
 async function measureBase(p, which) {
@@ -569,11 +569,11 @@ function Race({ puzzle, lane }) {
           ? 'running the tests and the gremlins…'
           : `racing on bigger and bigger inputs: ${fmtN((puzzle.ns || [16])[0])} → ${fmtN((puzzle.ns || [131072]).slice(-1)[0])}`}
       </div>
-      {LANES.filter(([lane]) => order.includes(lane)).map(([k, l]) => {
+      {LANES.filter(([lane]) => order.includes(lane)).map(([k, label]) => {
         const i = order.indexOf(k);
         return (
           <div key={k} className={`pr-lane ${i < at ? 'done' : i === at ? 'now' : ''}`}>
-            <span>{l}</span>
+            <span>{label}</span>
             <i>
               <b />
             </i>

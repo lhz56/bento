@@ -136,14 +136,14 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
     ? settings.model
     : readyAIs[0]?.default || settings.model;
   const [running, setRunning] = useState(null); // an install or sign-in started in Terminal
-  const act = async (c, how) => {
+  const act = async (conn, how) => {
     if (
-      await api.aiTerminal?.(c.id, how.action, {
+      await api.aiTerminal?.(conn.id, how.action, {
         ...scan?.tools,
-        brewInstalled: !!scan?.[c.id]?.brew,
+        brewInstalled: !!scan?.[conn.id]?.brew,
       })
     )
-      setRunning(c.id);
+      setRunning(conn.id);
     else copy(how.cmd);
   };
   const copy = (t) => {
@@ -201,15 +201,15 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
     <div className="onb" role="dialog" aria-modal="true" aria-label="Welcome to Bento">
       <div className="onb-drag" />
       <nav className="onb-dots" aria-label="Setup steps">
-        {['Welcome', 'Your AI', 'About you', 'Start'].map((n, i) => (
+        {['Welcome', 'Your AI', 'About you', 'Start'].map((stepName, i) => (
           <button
             key={i}
             className={i === step ? 'on' : i < step ? 'past' : ''}
             onClick={() => i < step && setStep(i)}
             disabled={i >= step}
             aria-current={i === step ? 'step' : undefined}
-            aria-label={n}
-            title={i < step ? `Back to ${n.toLowerCase()}` : n}
+            aria-label={stepName}
+            title={i < step ? `Back to ${stepName.toLowerCase()}` : stepName}
           />
         ))}
       </nav>
@@ -512,15 +512,15 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
           <div className="onb-k">step 2 · about you</div>
           <h2>How much code have you seen?</h2>
           <div className="levels">
-            {LEVELS.map(([levelId, t, d, e]) => (
+            {LEVELS.map(([levelId, title, desc, e]) => (
               <button
                 key={levelId}
                 className={`lvl ${level === levelId ? 'on' : ''}`}
                 onClick={() => setLevel(levelId)}
               >
                 <span className="lvl-e">{e}</span>
-                <b>{t}</b>
-                <span>{d}</span>
+                <b>{title}</b>
+                <span>{desc}</span>
               </button>
             ))}
           </div>
@@ -570,16 +570,16 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
                     'javascript',
                     'Runs every website. Great if you love the web.',
                   ],
-                ].map(([k, n, slug, d]) => (
+                ].map(([k, name, slug, desc]) => (
                   <button
                     key={k}
                     className={`lp ${lang === k ? 'on' : ''}`}
                     onClick={() => setLang(k)}
                   >
-                    <Brand slug={slug} name={n} size={30} plain />
+                    <Brand slug={slug} name={name} size={30} plain />
                     <span>
-                      <b>{n}</b>
-                      <i>{d}</i>
+                      <b>{name}</b>
+                      <i>{desc}</i>
                     </span>
                   </button>
                 ))}

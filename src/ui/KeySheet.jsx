@@ -33,12 +33,12 @@ export default function KeySheet({ onClose }) {
       >
         <h2 id="keys-title">Keyboard</h2>
         <dl>
-          {KEYS.map(([combo, d]) => (
+          {KEYS.map(([combo, says]) => (
             <div key={combo} className="key-row">
               <dt>
                 <kbd>{keys(combo)}</kbd>
               </dt>
-              <dd>{d}</dd>
+              <dd>{says}</dd>
             </div>
           ))}
         </dl>

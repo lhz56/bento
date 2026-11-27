@@ -331,14 +331,14 @@ function ResultTable({ res }) {
         <tbody>
           {res.rows.slice(0, 100).map((row, i) => (
             <tr key={i}>
-              {row.map((v, j) => (
-                <td key={j} className={typeof v === 'number' ? 'num' : ''}>
-                  {v === null ? (
+              {row.map((value, j) => (
+                <td key={j} className={typeof value === 'number' ? 'num' : ''}>
+                  {value === null ? (
                     <i>NULL</i>
-                  ) : typeof v === 'number' && !Number.isInteger(v) ? (
-                    v.toFixed(2)
+                  ) : typeof value === 'number' && !Number.isInteger(value) ? (
+                    value.toFixed(2)
                   ) : (
-                    String(v)
+                    String(value)
                   )}
                 </td>
               ))}
@@ -372,12 +372,12 @@ function GitPlay({ done, onDone }) {
       (i) => i >= 0 && !seen.has(i),
     );
     if (add.length) {
-      const n = new Set(seen);
+      const next = new Set(seen);
       add.forEach((i) => {
-        n.add(i);
+        next.add(i);
         onDone(i);
       });
-      setSeen(n);
+      setSeen(next);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- missions are checked each time the simulation moves
   }, [sim]);
@@ -442,14 +442,14 @@ function GitPlay({ done, onDone }) {
       </div>
       <div className="pg-main git-main">
         <div className="gterm" onClick={() => inp.current?.focus()}>
-          {sim.out.map((o, i) =>
-            o.k === 'cmd' ? (
+          {sim.out.map((out, i) =>
+            out.k === 'cmd' ? (
               <div key={i} className="t-cmd">
-                <span>{prompt(o.cwd, o.branch)}</span> {o.s}
+                <span>{prompt(out.cwd, out.branch)}</span> {out.s}
               </div>
             ) : (
-              <pre key={i} className={`t-${o.k}`}>
-                {o.s
+              <pre key={i} className={`t-${out.k}`}>
+                {out.s
                   .split(/(`[^`]+`)/)
                   .map((x, k) => (x.startsWith('`') ? <b key={k}>{x.slice(1, -1)}</b> : x))}
               </pre>
@@ -467,10 +467,10 @@ function GitPlay({ done, onDone }) {
               onKeyDown={(e) => {
                 if (e.key === 'ArrowUp') {
                   e.preventDefault();
-                  const n = Math.min(hist.length - 1, hi + 1);
-                  if (n >= 0) {
-                    setHi(n);
-                    setLine(hist[n]);
+                  const next = Math.min(hist.length - 1, hi + 1);
+                  if (next >= 0) {
+                    setHi(next);
+                    setLine(hist[next]);
                   }
                 }
                 if (e.key === 'ArrowDown') {
@@ -621,13 +621,13 @@ function Graph({ sim }) {
               </text>
             </g>
           ))}
-          {cs.flatMap((c) =>
-            c.parents.map(
-              (p) =>
-                repo.commits[p] && (
+          {cs.flatMap((commit) =>
+            commit.parents.map(
+              (parent) =>
+                repo.commits[parent] && (
                   <path
-                    key={c.id + p}
-                    d={`M${x(idx[p])},${y(repo.commits[p].branch)} C${x(idx[p]) + 30},${y(repo.commits[p].branch)} ${x(idx[c.id]) - 30},${y(c.branch)} ${x(idx[c.id])},${y(c.branch)}`}
+                    key={commit.id + parent}
+                    d={`M${x(idx[parent])},${y(repo.commits[parent].branch)} C${x(idx[parent]) + 30},${y(repo.commits[parent].branch)} ${x(idx[commit.id]) - 30},${y(commit.branch)} ${x(idx[commit.id])},${y(commit.branch)}`}
                     className="gl-edge"
                   />
                 ),

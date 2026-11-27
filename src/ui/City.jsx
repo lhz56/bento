@@ -24,16 +24,16 @@ function plan(bands) {
   });
   const place = (row) => {
     let prev = null;
-    for (const d of row) {
+    for (const district of row) {
       if (!prev) {
-        d.x = 0;
-        d.y = 0;
+        district.x = 0;
+        district.y = 0;
       } else {
         const c1 = prev.x + prev.W / 2 + prev.y + prev.D / 2;
-        d.x = prev.x + prev.W + 1.3;
-        d.y = c1 - (d.x + d.W / 2) - d.D / 2;
+        district.x = prev.x + prev.W + 1.3;
+        district.y = c1 - (district.x + district.W / 2) - district.D / 2;
       }
-      prev = d;
+      prev = district;
     }
   };
   const total = ds.reduce((s, d) => s + d.W + d.D, 0);
@@ -53,13 +53,13 @@ function plan(bands) {
       d.y -= shift;
     });
     const hit = () =>
-      rows[1].some((b) =>
+      rows[1].some((box) =>
         rows[0].some(
           (a) =>
-            b.x < a.x + a.W + 1 &&
-            b.x + b.W + 1 > a.x &&
-            b.y < a.y + a.D + 1 &&
-            b.y + b.D + 1 > a.y,
+            box.x < a.x + a.W + 1 &&
+            box.x + box.W + 1 > a.x &&
+            box.y < a.y + a.D + 1 &&
+            box.y + box.D + 1 > a.y,
         ),
       );
     let tries = 0;
@@ -143,18 +143,18 @@ export default function City({
     [facts],
   );
   const forced = useMemo(() => {
-    const s = new Set();
+    const seen = new Set();
     journeys.forEach((j) =>
       j.steps.forEach((st) => {
         const i = pathIdx.get(st.p);
-        if (i != null) s.add(i);
+        if (i != null) seen.add(i);
       }),
     );
     hot.forEach((h) => {
       const i = pathIdx.get(h.p);
-      if (i != null) s.add(i);
+      if (i != null) seen.add(i);
     });
-    return s;
+    return seen;
   }, [journeys, hot, pathIdx]);
 
   // pick buildings per district
@@ -233,13 +233,13 @@ export default function City({
   });
 
   // what's lit
-  const resolve = (p) => {
-    if (!p) return null;
-    if (String(p).startsWith('stack:')) {
-      const id = p.slice(6);
+  const resolve = (path) => {
+    if (!path) return null;
+    if (String(path).startsWith('stack:')) {
+      const id = path.slice(6);
       return svcs.some((s) => s.id === id) ? `s:${id}` : null;
     }
-    const i = pathIdx.get(p);
+    const i = pathIdx.get(path);
     return i != null && roof[`f:${i}`] ? `f:${i}` : null;
   };
   const jKeys = jr ? (journeys[jr.j]?.steps || []).map((s) => resolve(s.p)) : [];
@@ -812,15 +812,15 @@ export default function City({
 // nudge name tags upward until none overlap
 function placeTags(ts) {
   const out = [];
-  for (const t of ts.sort((a, b) => b.y - a.y)) {
-    let y = t.y;
+  for (const tag of ts.sort((a, b) => b.y - a.y)) {
+    let y = tag.y;
     let guard = 0;
     while (
-      out.some((o) => Math.abs(o.x - t.x) < (o.w + t.w) / 2 + 3 && Math.abs(o.y - y) < 19) &&
+      out.some((o) => Math.abs(o.x - tag.x) < (o.w + tag.w) / 2 + 3 && Math.abs(o.y - y) < 19) &&
       guard++ < 12
     )
       y -= 19;
-    out.push({ ...t, y });
+    out.push({ ...tag, y });
   }
   return out;
 }
