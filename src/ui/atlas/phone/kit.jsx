@@ -313,14 +313,14 @@ const SHORT = {
   'C#': 'C#',
 };
 
-export function FileIcon({ f }) {
-  const nm = base(f.p).toLowerCase();
+export function FileIcon({ file }) {
+  const nm = base(file.p).toLowerCase();
   const ext = nm.includes('.') ? nm.split('.').pop() : '';
-  const tag = SHORT[f.lang] || (ext && ext.length <= 4 ? ext.toUpperCase() : '');
+  const tag = SHORT[file.lang] || (ext && ext.length <= 4 ? ext.toUpperCase() : '');
   return (
     <span
       className="ph-file"
-      style={{ '--c': f.lang ? langColor(f.lang) : '#8e8e93' }}
+      style={{ '--c': file.lang ? langColor(file.lang) : '#8e8e93' }}
       aria-hidden="true"
     >
       <I n="doc" s={30} w={1.5} />
@@ -330,14 +330,14 @@ export function FileIcon({ f }) {
 }
 
 /**
- * @param {{ f: { p: string, lang?: string | null }, sub?: string, onOpen?: (path: string) => void, n?: number }} props
+ * @param {{ file: { p: string, lang?: string | null }, sub?: string, onOpen?: (path: string) => void, number?: number }} props
  */
-export function FileRow({ f, sub, onOpen, n }) {
+export function FileRow({ file, sub, onOpen, number }) {
   return (
-    <button className="ph-cell" data-p={f.p} onClick={() => onOpen(f.p)}>
-      {n != null ? <span className="ph-num">{n}</span> : <FileIcon f={f} />}
+    <button className="ph-cell" data-p={file.p} onClick={() => onOpen(file.p)}>
+      {number != null ? <span className="ph-num">{number}</span> : <FileIcon file={file} />}
       <span className="ph-ct">
-        <b className="ph-mono">{base(f.p)}</b>
+        <b className="ph-mono">{base(file.p)}</b>
         {sub && (
           <span>
             <Md text={sub} />

@@ -5,14 +5,14 @@ import Brand from '../Brand.jsx';
 import Md from '../Md.jsx';
 
 export function Donut({ langs, total }) {
-  let a = -Math.PI / 2;
+  let angle = -Math.PI / 2;
   const radius = 30,
-    r = 19;
-  const arcs = langs.slice(0, 6).map(([lang, n]) => {
-    const da = (n / total) * Math.PI * 2;
-    const a0 = a;
-    a += da;
-    const a1 = a - 0.02;
+    inner = 19;
+  const arcs = langs.slice(0, 6).map(([lang, lines]) => {
+    const da = (lines / total) * Math.PI * 2;
+    const a0 = angle;
+    angle += da;
+    const a1 = angle - 0.02;
     const big = da > Math.PI ? 1 : 0;
     const polar = (rad, ang) =>
       `${(36 + rad * Math.cos(ang)).toFixed(2)},${(36 + rad * Math.sin(ang)).toFixed(2)}`;
@@ -21,13 +21,13 @@ export function Donut({ langs, total }) {
         key={lang}
         d={
           da >= Math.PI * 2 - 0.03
-            ? `M36,${36 - radius} A${radius},${radius} 0 1 1 35.99,${36 - radius} L35.99,${36 - r} A${r},${r} 0 1 0 36,${36 - r} Z`
-            : `M${polar(radius, a0)} A${radius},${radius} 0 ${big} 1 ${polar(radius, a1)} L${polar(r, a1)} A${r},${r} 0 ${big} 0 ${polar(r, a0)} Z`
+            ? `M36,${36 - radius} A${radius},${radius} 0 1 1 35.99,${36 - radius} L35.99,${36 - inner} A${inner},${inner} 0 1 0 36,${36 - inner} Z`
+            : `M${polar(radius, a0)} A${radius},${radius} 0 ${big} 1 ${polar(radius, a1)} L${polar(inner, a1)} A${inner},${inner} 0 ${big} 0 ${polar(inner, a0)} Z`
         }
         fill={langColor(lang)}
       >
         <title>
-          {lang} {Math.round((n / total) * 100)}%
+          {lang} {Math.round((lines / total) * 100)}%
         </title>
       </path>
     );
@@ -103,7 +103,7 @@ export function Language({ langs, totalL, main, narration, narrating }) {
           </div>
         </div>
         <div className="lang-mix">
-          {langs.slice(0, 8).map(([lang, n]) => (
+          {langs.slice(0, 8).map(([lang, lines]) => (
             <div key={lang} className="lm-row">
               <span className="lm-name">
                 <span className="ldot" style={{ background: langColor(lang) }} />
@@ -112,12 +112,12 @@ export function Language({ langs, totalL, main, narration, narrating }) {
               <span className="lm-bar">
                 <i
                   style={{
-                    width: `${Math.max(1.5, (n / totalL) * 100)}%`,
+                    width: `${Math.max(1.5, (lines / totalL) * 100)}%`,
                     background: langColor(lang),
                   }}
                 />
               </span>
-              <span className="lm-n">{fmtN(n)}</span>
+              <span className="lm-n">{fmtN(lines)}</span>
             </div>
           ))}
           <div className="muted small" style={{ marginTop: 6 }}>
@@ -184,7 +184,7 @@ export function Hotspots({ hot, role, onOpen, narrating, facts, pathIdx }) {
             <div key={i} className={`hot k-${spot.kind || 'fragile'}`}>
               {spot.p && pathIdx.has(spot.p) ? (
                 <MiniBuilding
-                  f={facts.files[pathIdx.get(spot.p)]}
+                  file={facts.files[pathIdx.get(spot.p)]}
                   maxL={maxL}
                   maxU={maxU}
                   kind={spot.kind}
@@ -230,10 +230,10 @@ export function Hotspots({ hot, role, onOpen, narrating, facts, pathIdx }) {
 }
 
 // A file as one little building: height = lines, the beacon = how many files depend on it.
-function MiniBuilding({ f, maxL, maxU, kind }) {
-  const h = 10 + 34 * Math.sqrt(Math.min(1, f.lines / maxL));
-  const u = f.used / maxU;
-  const c =
+function MiniBuilding({ file, maxL, maxU, kind }) {
+  const h = 10 + 34 * Math.sqrt(Math.min(1, file.lines / maxL));
+  const usedShare = file.used / maxU;
+  const color =
     kind === 'complex'
       ? 'var(--violet)'
       : kind === 'scale'
@@ -242,30 +242,37 @@ function MiniBuilding({ f, maxL, maxU, kind }) {
           ? 'var(--butter)'
           : 'var(--rose)';
   return (
-    <span className="mini-b" title={`${f.lines} lines · used by ${f.used} files`}>
+    <span className="mini-b" title={`${file.lines} lines · used by ${file.used} files`}>
       <svg viewBox="0 0 46 64" width="46" height="64">
-        <ellipse cx="23" cy="58" rx={16 + u * 6} ry={4 + u * 2} fill={c} opacity={0.12 + u * 0.3} />
+        <ellipse
+          cx="23"
+          cy="58"
+          rx={16 + usedShare * 6}
+          ry={4 + usedShare * 2}
+          fill={color}
+          opacity={0.12 + usedShare * 0.3}
+        />
         <path
           d={`M12 ${56} L23 ${60} L34 ${56} L34 ${56 - h} L23 ${60 - h} L12 ${56 - h} Z`}
-          fill={`color-mix(in srgb, ${c} 25%, var(--bsid))`}
+          fill={`color-mix(in srgb, ${color} 25%, var(--bsid))`}
         />
         <path
           d={`M23 ${60} L34 ${56} L34 ${56 - h} L23 ${60 - h} Z`}
-          fill={`color-mix(in srgb, ${c} 40%, var(--bsid))`}
+          fill={`color-mix(in srgb, ${color} 40%, var(--bsid))`}
         />
         <path
           d={`M12 ${56 - h} L23 ${52 - h} L34 ${56 - h} L23 ${60 - h} Z`}
-          fill={langColor(f.lang)}
+          fill={langColor(file.lang)}
         />
-        {f.used > 2 && (
+        {file.used > 2 && (
           <>
-            <line x1="23" y1={56 - h} x2="23" y2={46 - h} stroke={c} strokeWidth="1.6" />
-            <circle cx="23" cy={45 - h} r="2.8" fill={c} />
+            <line x1="23" y1={56 - h} x2="23" y2={46 - h} stroke={color} strokeWidth="1.6" />
+            <circle cx="23" cy={45 - h} r="2.8" fill={color} />
           </>
         )}
       </svg>
       <span className="mb-n">
-        {f.lines}
+        {file.lines}
         <i>lines</i>
       </span>
     </span>

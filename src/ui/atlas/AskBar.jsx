@@ -111,7 +111,7 @@ const saveThread = (k, th) => {
 }; // also mirrored to disk
 
 export function AskBar({ name, threadKey, onAsk, onQuick, onOpen, initial, onFeature }) {
-  const [v, setV] = useState('');
+  const [value, setValue] = useState('');
   const [thread, setThread] = useState(() => loadThread(threadKey)); // [{ id, q, loading, a, files }]
   useEffect(() => {
     saveThread(threadKey, thread);
@@ -138,21 +138,21 @@ export function AskBar({ name, threadKey, onAsk, onQuick, onOpen, initial, onFea
     const id = Date.now() + Math.random();
     const history = thread.filter((x) => !x.loading && x.a).map(({ q: hq, a }) => ({ q: hq, a }));
     setThread((th) => [...th.slice(-7), { id, q: question, loading: true }]);
-    let r;
+    let reply;
     try {
-      r = await onQuick(question, history);
+      reply = await onQuick(question, history);
     } catch {
-      r = {
+      reply = {
         a: `That didn’t work. Try again, or press ${keys('⌘↵')} for a full lesson.`,
         files: [],
       };
     }
-    setThread((th) => th.map((x) => (x.id === id ? { ...x, loading: false, ...r } : x)));
+    setThread((th) => th.map((x) => (x.id === id ? { ...x, loading: false, ...reply } : x)));
   };
   const submit = (full) => {
-    const q = v.trim();
+    const q = value.trim();
     if (!q) return;
-    setV('');
+    setValue('');
     ask(q, full);
   };
   // the question you came with is asked for you, once, as soon as the code is here
@@ -191,8 +191,8 @@ export function AskBar({ name, threadKey, onAsk, onQuick, onOpen, initial, onFea
       <input
         id="atlas-ask"
         ref={inp}
-        value={v}
-        onChange={(e) => setV(e.target.value)}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
         aria-busy={busy || undefined}
         placeholder={thread.length ? t('Ask a follow-up…') : `Ask anything about ${name}…`}
         aria-label={thread.length ? t('Ask a follow-up') : `Ask anything about ${name}`}
@@ -204,7 +204,7 @@ export function AskBar({ name, threadKey, onAsk, onQuick, onOpen, initial, onFea
         }}
       />
       <kbd aria-hidden="true">↵</kbd>
-      <button className="ask-go" aria-label={t('Ask')} disabled={!v.trim()}>
+      <button className="ask-go" aria-label={t('Ask')} disabled={!value.trim()}>
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
           <path
             d="M12 19V5M6 11l6-6 6 6"

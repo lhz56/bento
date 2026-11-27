@@ -2,9 +2,9 @@
 // one in orange and scrolled into view; Enter for the next, ⇧Enter for the one before, Esc to close.
 import { useEffect, useRef, useState } from 'react';
 
-function findRanges(q) {
+function findRanges(query) {
   const out = [];
-  const needle = q.toLowerCase();
+  const needle = query.toLowerCase();
   const root = document.querySelector('.app') || document.body;
   const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode: (n) =>
@@ -30,7 +30,7 @@ function findRanges(q) {
 const HL = typeof CSS !== 'undefined' && CSS.highlights && typeof Highlight !== 'undefined';
 
 export default function FindBar({ onClose }) {
-  const [q, setQ] = useState('');
+  const [query, setQuery] = useState('');
   const [at, setAt] = useState(0);
   const [hits, setHits] = useState([]);
   const box = useRef(null);
@@ -45,12 +45,15 @@ export default function FindBar({ onClose }) {
   }, []);
   useEffect(() => {
     const timer = setTimeout(() => {
-      const r = q.trim().length >= 2 || (q.trim() && /\S/.test(q)) ? findRanges(q.trim()) : [];
+      const r =
+        query.trim().length >= 2 || (query.trim() && /\S/.test(query))
+          ? findRanges(query.trim())
+          : [];
       setHits(r);
       setAt(0);
     }, 120);
     return () => clearTimeout(timer);
-  }, [q]);
+  }, [query]);
   useEffect(() => {
     if (!HL) return;
     CSS.highlights.set('bento-find', new Highlight(...hits));
@@ -67,10 +70,10 @@ export default function FindBar({ onClose }) {
     <div className="findbar" role="search">
       <input
         ref={box}
-        value={q}
+        value={query}
         placeholder="Find on this page"
         aria-label="Find on this page"
-        onChange={(e) => setQ(e.target.value)}
+        onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault();
@@ -84,7 +87,7 @@ export default function FindBar({ onClose }) {
         }}
       />
       <span className="findbar-n" aria-live="polite">
-        {q.trim() ? (hits.length ? `${at + 1} of ${hits.length}` : 'No matches') : ''}
+        {query.trim() ? (hits.length ? `${at + 1} of ${hits.length}` : 'No matches') : ''}
       </span>
       <button className="btn tiny ghost" aria-label="Previous match" onClick={() => step(-1)}>
         ↑

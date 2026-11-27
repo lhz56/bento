@@ -33,11 +33,11 @@ export function Detective({ facts, narration, readFile, onOpen }) {
     load(rounds[0]);
   };
   const load = async (round) => {
-    let t = '';
+    let text = '';
     try {
-      t = await readFile(round.p);
+      text = await readFile(round.p);
     } catch {}
-    const lines = t.split('\n');
+    const lines = text.split('\n');
     let k = 0;
     while (k < lines.length && k < 60 && LEAD.test(lines[k])) k++;
     const code = lines

@@ -35,9 +35,9 @@ const SECTIONS = [
   ['help', 'Help out'],
 ];
 
-const ago = (d) => {
-  if (!d) return '';
-  const s = (Date.now() - new Date(d).getTime()) / 1000;
+const ago = (date) => {
+  if (!date) return '';
+  const seconds = (Date.now() - new Date(date).getTime()) / 1000;
   /** @type {Array<[number, string]>} */
   const units = [
     [31536000, 'year'],
@@ -46,10 +46,10 @@ const ago = (d) => {
     [3600, 'hour'],
     [60, 'minute'],
   ];
-  const u = units.find((x) => s >= x[0]);
-  if (!u) return 'just now';
-  const count = Math.floor(s / u[0]);
-  return `${count} ${u[1]}${count > 1 ? 's' : ''} ago`;
+  const unit = units.find((x) => seconds >= x[0]);
+  if (!unit) return 'just now';
+  const count = Math.floor(seconds / unit[0]);
+  return `${count} ${unit[1]}${count > 1 ? 's' : ''} ago`;
 };
 
 export default function Atlas({
@@ -145,16 +145,16 @@ export default function Atlas({
     return () => io.disconnect();
   }, [facts, phone]);
   // (on a phone: a tool's alternatives)
-  const altsOf = (s) => {
-    const n =
-      narration?.stack?.[s.id] ||
+  const altsOf = (tool) => {
+    const said =
+      narration?.stack?.[tool.id] ||
       Object.values(narration?.stack || {}).find(
-        (x) => x.name?.toLowerCase() === s.name.toLowerCase(),
+        (x) => x.name?.toLowerCase() === tool.name.toLowerCase(),
       );
     return (
-      n?.alts?.length
-        ? n.alts.map((a) => ({ name: a.name, when: a.when, tool: findTool(a.name) }))
-        : (s.alt || [])
+      said?.alts?.length
+        ? said.alts.map((a) => ({ name: a.name, when: a.when, tool: findTool(a.name) }))
+        : (tool.alt || [])
             .map((id) => BY_ID[id])
             .filter(Boolean)
             .map((t) => ({ name: t.name, when: t.when, tool: t }))
@@ -239,9 +239,9 @@ export default function Atlas({
   // keep the lit section in view in the bar, by moving the bar only (scrolling anything else would stop the page's glide)
   useEffect(() => {
     const nav = navRef.current;
-    const b = nav?.querySelector('button.on');
-    if (!b || nav.scrollWidth <= nav.clientWidth) return;
-    const rect = b.getBoundingClientRect();
+    const button = nav?.querySelector('button.on');
+    if (!button || nav.scrollWidth <= nav.clientWidth) return;
+    const rect = button.getBoundingClientRect();
     const left =
       nav.scrollLeft +
       rect.left -
@@ -714,12 +714,12 @@ export default function Atlas({
 // Everything Bento learned about a repo, as Markdown notes you can paste anywhere.
 function notesMd(atlas, tools, hot) {
   const narration = atlas.narr || {};
-  const g = narration.gist || {};
+  const gist = narration.gist || {};
   const lines = [
     `# ${atlas.name}`,
     '',
-    g.one ? `**${g.one}**` : atlas.meta?.description || '',
-    g.analogy ? `\n> ${g.analogy}` : '',
+    gist.one ? `**${gist.one}**` : atlas.meta?.description || '',
+    gist.analogy ? `\n> ${gist.analogy}` : '',
     '',
   ];
   if (narration.flow?.nodes?.length) {

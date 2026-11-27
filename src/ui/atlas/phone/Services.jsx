@@ -117,32 +117,32 @@ export function Services({ tools, narration, onPick }) {
   );
 }
 
-export function ToolSheet({ t, n, alts, narrating, onClose, onShowFiles }) {
+export function ToolSheet({ tool, said, alts, narrating, onClose, onShowFiles }) {
   return (
-    <Sheet label={t.name} onClose={onClose} className="tool-sheet">
+    <Sheet label={tool.name} onClose={onClose} className="tool-sheet">
       <div className="ps-in">
         <div className="ps-id">
-          <Brand slug={t.slug} name={t.name} color={t.color} size={60} />
+          <Brand slug={tool.slug} name={tool.name} color={tool.color} size={60} />
           <div>
             <div className="ps-k" style={{ '--c': 'var(--accent)' }}>
-              {CATS[t.cat]?.[0] || t.cat}
+              {CATS[tool.cat]?.[0] || tool.cat}
             </div>
-            <h3 className="ps-title">{t.name}</h3>
-            <div className="ps-sub">{CATS[t.cat]?.[1] || ''}</div>
+            <h3 className="ps-title">{tool.name}</h3>
+            <div className="ps-sub">{CATS[tool.cat]?.[1] || ''}</div>
           </div>
         </div>
         <Group title="What it does here">
           <div className="ph-cell text">
             <p>
-              <Md text={n?.role || t.what} />
+              <Md text={said?.role || tool.what} />
             </p>
           </div>
         </Group>
-        {n?.why ? (
+        {said?.why ? (
           <Group title="Why this one">
             <div className="ph-cell text">
               <p>
-                <Md text={n.why} />
+                <Md text={said.why} />
               </p>
             </div>
           </Group>
@@ -162,11 +162,11 @@ export function ToolSheet({ t, n, alts, narrating, onClose, onShowFiles }) {
             ))}
           </Group>
         )}
-        {t.used?.length > 0 && (
+        {tool.used?.length > 0 && (
           <div className="ps-acts">
-            <button className="ps-btn" onClick={() => onShowFiles([...t.used, `s:${t.id}`])}>
+            <button className="ps-btn" onClick={() => onShowFiles([...tool.used, `s:${tool.id}`])}>
               <I n="city" s={18} />
-              Show the {t.used.length} file{t.used.length === 1 ? '' : 's'} that use it
+              Show the {tool.used.length} file{tool.used.length === 1 ? '' : 's'} that use it
             </button>
           </div>
         )}

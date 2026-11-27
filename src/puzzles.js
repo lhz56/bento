@@ -2884,47 +2884,51 @@ export const codeOf = (parts) => parts.map((x) => x[0]).join('\n');
 export const englishMap = (parts) =>
   Object.fromEntries(parts.filter(([c, e]) => c.trim() && e).map(([c, e]) => [c.trim(), e]));
 
-export function puzzleLesson(p) {
-  const s = stationOf(p);
-  const parts = codeParts(p, 'start');
-  const n = parse(p.start).length;
+export function puzzleLesson(puzzle) {
+  const station = stationOf(puzzle);
+  const parts = codeParts(puzzle, 'start');
+  const size = parse(puzzle.start).length;
   const story = [
-    { t: 'p', md: p.md },
-    ...(p.fun ? [{ t: 'p', md: `*${p.fun}*` }] : []),
-    { t: 'term', ...s.term },
-    { t: 'h', text: p.startWorks ? 'The obvious way' : 'Your move' },
+    { t: 'p', md: puzzle.md },
+    ...(puzzle.fun ? [{ t: 'p', md: `*${puzzle.fun}*` }] : []),
+    { t: 'term', ...station.term },
+    { t: 'h', text: puzzle.startWorks ? 'The obvious way' : 'Your move' },
     {
       t: 'p',
-      md: p.startWorks
-        ? `[[1-${n}|The code in the editor]] already works: open **Tests** and press **Run tests**. Then press **Check** above to race it on bigger and bigger inputs, and make it scale.`
-        : `[[1-${n}|The code in the editor]] isn’t finished yet. Fill it in until the **Tests** go green, then press **Check** above.`,
+      md: puzzle.startWorks
+        ? `[[1-${size}|The code in the editor]] already works: open **Tests** and press **Run tests**. Then press **Check** above to race it on bigger and bigger inputs, and make it scale.`
+        : `[[1-${size}|The code in the editor]] isn’t finished yet. Fill it in until the **Tests** go green, then press **Check** above.`,
     },
   ];
   return {
-    id: `pz-${p.id}`,
-    q: p.title,
+    id: `pz-${puzzle.id}`,
+    q: puzzle.title,
     mode: 'challenge',
     lang: 'python',
     level: 'student',
     status: 'done',
     error: null,
     builtin: true,
-    title: p.title,
-    kicker: `puzzle · ${s.name}`,
-    concepts: [s.term.term],
+    title: puzzle.title,
+    kicker: `puzzle · ${station.name}`,
+    concepts: [station.term.term],
     story,
     code: codeOf(parts),
-    file: `${p.id}.py`,
+    file: `${puzzle.id}.py`,
     pseudo: parts.map((x) => x[1]),
     notes: [],
     growth: null,
-    tests: { t: 'tests', fn: p.fn, cases: p.tests.map(([args, expect]) => ({ args, expect })) },
-    hints: p.hints,
+    tests: {
+      t: 'tests',
+      fn: puzzle.fn,
+      cases: puzzle.tests.map(([args, expect]) => ({ args, expect })),
+    },
+    hints: puzzle.hints,
     steps: [],
     twin: null,
     work: null,
     context: null,
-    puzzle: p.id,
+    puzzle: puzzle.id,
     createdAt: Date.now(),
   };
 }

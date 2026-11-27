@@ -101,11 +101,11 @@ export const LEVELS = [
 ];
 
 // The model: utilisation → waiting time (it climbs steeply near 100%) → errors past 100%
-function simulate(c, rps) {
+function simulate(config, rps) {
   const parts = {};
   let ms = 0;
   let fail = 0;
-  const statik = c.cdn ? 0.5 : 0;
+  const statik = config.cdn ? 0.5 : 0;
   const edge = rps * statik;
   const dyn = rps - edge;
   const load = (cap, l, base) => {
@@ -114,49 +114,53 @@ function simulate(c, rps) {
     const wait = base / Math.max(0.04, 1 - Math.min(u, 0.96));
     return { u, over, wait };
   };
-  if (c.cdn) {
+  if (config.cdn) {
     parts.cdn = load(5e6, edge, 15);
   }
-  const servers = c.lb ? c.app : 1; // without a load balancer, only one server gets traffic
-  if (c.lb) parts.lb = load(150000 * Math.max(1, Math.ceil(dyn / 150000)), dyn, 1);
+  const servers = config.lb ? config.app : 1; // without a load balancer, only one server gets traffic
+  if (config.lb) parts.lb = load(150000 * Math.max(1, Math.ceil(dyn / 150000)), dyn, 1);
   parts.app = load(1000 * servers, dyn, 20);
   fail = Math.max(fail, parts.app.over);
   const served = dyn * (1 - parts.app.over);
   const writes = served * 0.1,
     reads = served * 0.9;
-  const dbReads = reads * (c.cache ? 0.1 : 1);
+  const dbReads = reads * (config.cache ? 0.1 : 1);
   const cacheNodes = Math.max(1, Math.ceil(reads / 150000)); // the cache grows in 150k-a-second pieces
-  if (c.cache) parts.cache = load(150000 * cacheNodes, reads, 1);
-  const readCap = 10000 * (1 + c.replicas);
-  if (c.replicas)
-    parts.replicas = load(10000 * c.replicas, dbReads * (c.replicas / (1 + c.replicas)), 8);
-  const dbRead = dbReads * (c.replicas ? 1 / (1 + c.replicas) : 1);
+  if (config.cache) parts.cache = load(150000 * cacheNodes, reads, 1);
+  const readCap = 10000 * (1 + config.replicas);
+  if (config.replicas)
+    parts.replicas = load(
+      10000 * config.replicas,
+      dbReads * (config.replicas / (1 + config.replicas)),
+      8,
+    );
+  const dbRead = dbReads * (config.replicas ? 1 / (1 + config.replicas) : 1);
   let dbWrite = writes;
-  if (c.queue) {
+  if (config.queue) {
     parts.queue = load(200000, writes, 2);
     dbWrite = Math.min(writes, Math.max(0, 9000 - dbRead));
   }
   parts.db = load(10000, dbRead + dbWrite, 10);
-  const dbFail = parts.db.over * (c.queue ? dbRead / Math.max(1, dbRead + dbWrite) : 1);
+  const dbFail = parts.db.over * (config.queue ? dbRead / Math.max(1, dbRead + dbWrite) : 1);
   fail = 1 - (1 - fail) * (1 - dbFail * (1 - statik));
   // time for a typical request: static ones at the edge, dynamic ones through the stack
   const dynMs =
     (parts.lb?.wait || 0) +
     parts.app.wait +
-    (c.cache
+    (config.cache
       ? parts.cache.wait + 0.1 * (parts.db.wait + (parts.replicas?.wait || 0))
       : parts.db.wait + (parts.replicas?.wait || 0) * 0.5) +
-    (c.queue ? 0 : 0);
+    (config.queue ? 0 : 0);
   ms = (statik ? statik * parts.cdn.wait : 0) + (1 - statik) * (dynMs + 40); // 40 ms: the trip across the internet
-  if (!c.cdn) ms += rps > 200000 ? 120 : 0; // far-away users wait for every file
+  if (!config.cdn) ms += rps > 200000 ? 120 : 0; // far-away users wait for every file
   const cost =
-    (c.cdn ? PARTS.cdn.cost + rps * 0.004 : 0) +
-    (c.lb ? PARTS.lb.cost : 0) +
-    PARTS.app.cost * c.app +
-    (c.cache ? PARTS.cache.cost * cacheNodes : 0) +
+    (config.cdn ? PARTS.cdn.cost + rps * 0.004 : 0) +
+    (config.lb ? PARTS.lb.cost : 0) +
+    PARTS.app.cost * config.app +
+    (config.cache ? PARTS.cache.cost * cacheNodes : 0) +
     PARTS.db.cost +
-    PARTS.replicas.cost * c.replicas +
-    (c.queue ? PARTS.queue.cost : 0);
+    PARTS.replicas.cost * config.replicas +
+    (config.queue ? PARTS.queue.cost : 0);
   return {
     parts,
     errors: Math.min(100, fail * 100),
@@ -181,7 +185,7 @@ export default function Sandbox({ done = {}, onDone, onAsk }) {
     LEVELS.findIndex((_, i) => !done[i]),
   );
   const [lv, setLv] = useState(first);
-  const [c, setC] = useState({
+  const [config, setConfig] = useState({
     cdn: false,
     lb: false,
     app: 1,
@@ -192,25 +196,25 @@ export default function Sandbox({ done = {}, onDone, onAsk }) {
   const [rps, setRps] = useState(LEVELS[first].rps);
   const [info, setInfo] = useState(null);
   const level = LEVELS[lv];
-  const sim = useMemo(() => simulate(c, rps), [c, rps]);
+  const sim = useMemo(() => simulate(config, rps), [config, rps]);
   const pass =
     rps >= level.rps &&
     sim.errors < level.goal.errors &&
     sim.ms < level.goal.ms &&
     sim.cost <= level.budget;
   if (pass && !done[lv]) setTimeout(() => onDone(lv), 0);
-  const set = (k, v) => setC((x) => ({ ...x, [k]: v }));
+  const set = (k, v) => setConfig((x) => ({ ...x, [k]: v }));
   const node = (k, x, y, label, extra) => {
-    const p = sim.parts[k];
-    const on = k === 'app' || k === 'db' || (k === 'replicas' ? c.replicas > 0 : c[k]);
+    const part = sim.parts[k];
+    const on = k === 'app' || k === 'db' || (k === 'replicas' ? config.replicas > 0 : config[k]);
     return (
       <g
-        className={`sb-node ${on ? heat(p?.u) : 'off'} ${info === k ? 'sel' : ''}`}
+        className={`sb-node ${on ? heat(part?.u) : 'off'} ${info === k ? 'sel' : ''}`}
         {...pressable(() => setInfo(k))}
         aria-expanded={info === k}
         transform={`translate(${x},${y})`}
       >
-        <title>{`${t(label)}${extra || ''}: ${on ? (p ? (p.u >= 1 ? t('overloaded') : `${Math.round(p.u * 100)}% ${t('busy')}`) : t('idle')) : t('not added')}`}</title>
+        <title>{`${t(label)}${extra || ''}: ${on ? (part ? (part.u >= 1 ? t('overloaded') : `${Math.round(part.u * 100)}% ${t('busy')}`) : t('idle')) : t('not added')}`}</title>
         <rect x="-62" y="-30" width="124" height="60" rx="14" />
         <text y="-6" textAnchor="middle" className="sb-n">
           {t(label)}
@@ -218,10 +222,10 @@ export default function Sandbox({ done = {}, onDone, onAsk }) {
         </text>
         <text y="13" textAnchor="middle" className="sb-u">
           {on
-            ? p
-              ? p.u >= 1
+            ? part
+              ? part.u >= 1
                 ? `🔥 ${t('overloaded')}`
-                : `${Math.round(p.u * 100)}% ${t('busy')}`
+                : `${Math.round(part.u * 100)}% ${t('busy')}`
               : t('idle')
             : t('not added')}
         </text>
@@ -270,12 +274,12 @@ export default function Sandbox({ done = {}, onDone, onAsk }) {
           aria-label={t('Your system. Pick a part to learn what it does.')}
         >
           {flow('M90,180 C150,180 150,180 200,180', rps, 'u')}
-          {c.cdn && flow('M90,170 C120,90 160,70 200,70', rps * 0.5, 'c')}
-          {flow('M262,180 L330,180', rps * (c.cdn ? 0.5 : 1), 'l')}
+          {config.cdn && flow('M90,170 C120,90 160,70 200,70', rps * 0.5, 'c')}
+          {flow('M262,180 L330,180', rps * (config.cdn ? 0.5 : 1), 'l')}
           {flow('M454,180 L650,180', rps, 'a')}
-          {c.cache && flow('M582,150 C600,100 620,80 650,80', rps, 'k')}
-          {c.replicas > 0 && flow('M582,210 C600,270 620,290 650,290', rps, 'r')}
-          {c.queue && flow('M520,210 C520,300 560,320 600,320', rps * 0.1, 'q')}
+          {config.cache && flow('M582,150 C600,100 620,80 650,80', rps, 'k')}
+          {config.replicas > 0 && flow('M582,210 C600,270 620,290 650,290', rps, 'r')}
+          {config.queue && flow('M520,210 C520,300 560,320 600,320', rps * 0.1, 'q')}
           <g
             className="sb-users"
             transform="translate(50,180)"
@@ -290,14 +294,14 @@ export default function Sandbox({ done = {}, onDone, onAsk }) {
               {fmt(rps)}/s
             </text>
           </g>
-          {c.cdn && node('cdn', 262, 70, 'CDN')}
+          {config.cdn && node('cdn', 262, 70, 'CDN')}
           {node('lb', 262, 180, 'Load balancer')}
-          {node('app', 392, 180, 'App servers', ` ×${c.app}`)}
+          {node('app', 392, 180, 'App servers', ` ×${config.app}`)}
           {node('cache', 712, 80, 'Cache')}
           {node('db', 712, 180, 'Database')}
-          {node('replicas', 712, 290, 'Read copies', c.replicas ? ` ×${c.replicas}` : '')}
-          {c.queue && node('queue', 600, 320, 'Write queue')}
-          {!c.cdn && (
+          {node('replicas', 712, 290, 'Read copies', config.replicas ? ` ×${config.replicas}` : '')}
+          {config.queue && node('queue', 600, 320, 'Write queue')}
+          {!config.cdn && (
             <g
               className="sb-node off"
               transform="translate(262,70)"
@@ -313,7 +317,7 @@ export default function Sandbox({ done = {}, onDone, onAsk }) {
               </text>
             </g>
           )}
-          {!c.queue && (
+          {!config.queue && (
             <g
               className="sb-node off"
               transform="translate(520,310)"
@@ -378,22 +382,35 @@ export default function Sandbox({ done = {}, onDone, onAsk }) {
           )}
           <div className="sb-tools">
             <label>
-              <input type="checkbox" checked={c.lb} onChange={(e) => set('lb', e.target.checked)} />{' '}
+              <input
+                type="checkbox"
+                checked={config.lb}
+                onChange={(e) => set('lb', e.target.checked)}
+              />{' '}
               {t('Load balancer')}
             </label>
             <label className="step">
               {t('App servers')}{' '}
               <button
                 onClick={() =>
-                  set('app', Math.max(1, c.app - (c.app > 100 ? 100 : c.app > 10 ? 10 : 1)))
+                  set(
+                    'app',
+                    Math.max(1, config.app - (config.app > 100 ? 100 : config.app > 10 ? 10 : 1)),
+                  )
                 }
               >
                 −
               </button>
-              <b>{c.app}</b>
+              <b>{config.app}</b>
               <button
                 onClick={() =>
-                  set('app', Math.min(2000, c.app + (c.app >= 100 ? 100 : c.app >= 10 ? 10 : 1)))
+                  set(
+                    'app',
+                    Math.min(
+                      2000,
+                      config.app + (config.app >= 100 ? 100 : config.app >= 10 ? 10 : 1),
+                    ),
+                  )
                 }
               >
                 +
@@ -402,21 +419,21 @@ export default function Sandbox({ done = {}, onDone, onAsk }) {
             <label>
               <input
                 type="checkbox"
-                checked={c.cache}
+                checked={config.cache}
                 onChange={(e) => set('cache', e.target.checked)}
               />{' '}
               {t('Cache')}
             </label>
             <label className="step">
               {t('Read copies')}{' '}
-              <button onClick={() => set('replicas', Math.max(0, c.replicas - 1))}>−</button>
-              <b>{c.replicas}</b>
-              <button onClick={() => set('replicas', Math.min(30, c.replicas + 1))}>+</button>
+              <button onClick={() => set('replicas', Math.max(0, config.replicas - 1))}>−</button>
+              <b>{config.replicas}</b>
+              <button onClick={() => set('replicas', Math.min(30, config.replicas + 1))}>+</button>
             </label>
             <label>
               <input
                 type="checkbox"
-                checked={c.queue}
+                checked={config.queue}
                 onChange={(e) => set('queue', e.target.checked)}
               />{' '}
               {t('Write queue')}
@@ -424,7 +441,7 @@ export default function Sandbox({ done = {}, onDone, onAsk }) {
             <label>
               <input
                 type="checkbox"
-                checked={c.cdn}
+                checked={config.cdn}
                 onChange={(e) => set('cdn', e.target.checked)}
               />{' '}
               CDN

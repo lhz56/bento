@@ -28,7 +28,7 @@ export function groupVisuals(vs) {
 }
 export function Visuals({ list }) {
   return groupVisuals(list || []).map((v, i) =>
-    v.type === 'flip' ? <Flipbook key={i} frames={v.frames} /> : <Visual key={i} v={v} />,
+    v.type === 'flip' ? <Flipbook key={i} frames={v.frames} /> : <Visual key={i} visual={v} />,
   );
 }
 function Flipbook({ frames }) {
@@ -59,7 +59,7 @@ function Flipbook({ frames }) {
   );
   return (
     <div className="flip">
-      <Visual v={{ ...frame, palette, label: frame.label || `step ${i + 1}` }} />
+      <Visual visual={{ ...frame, palette, label: frame.label || `step ${i + 1}` }} />
       <div className="flip-ctl">
         <button
           className="ib"
@@ -89,35 +89,38 @@ function Flipbook({ frames }) {
   );
 }
 
-export function Visual({ v }) {
-  if (!v) return null;
-  if (v.type === 'web') return <WebViz id={v.id} v={v.v} />;
+export function Visual({ visual }) {
+  if (!visual) return null;
+  if (visual.type === 'web') return <WebViz id={visual.id} visual={visual.v} />;
   const body =
-    v.type === 'canvas' ? (
-      <CanvasViz v={v} />
-    ) : v.type === 'tree' ? (
-      <TreeViz root={v.root} />
-    ) : v.type === 'bars' ? (
-      <BarsViz data={v.data} names={v.names || namesFrom(v.label, v.data.length)} />
-    ) : v.type === 'records' ? (
-      <RecordsViz cols={v.cols} rows={v.rows} />
-    ) : v.type === 'table' ? (
-      <TableViz rows={v.rows} />
-    ) : v.type === 'grid' ? (
-      <GridViz data={v.data} palette={v.palette} />
+    visual.type === 'canvas' ? (
+      <CanvasViz visual={visual} />
+    ) : visual.type === 'tree' ? (
+      <TreeViz root={visual.root} />
+    ) : visual.type === 'bars' ? (
+      <BarsViz
+        data={visual.data}
+        names={visual.names || namesFrom(visual.label, visual.data.length)}
+      />
+    ) : visual.type === 'records' ? (
+      <RecordsViz cols={visual.cols} rows={visual.rows} />
+    ) : visual.type === 'table' ? (
+      <TableViz rows={visual.rows} />
+    ) : visual.type === 'grid' ? (
+      <GridViz data={visual.data} palette={visual.palette} />
     ) : (
-      <pre className="viz-text">{v.text}</pre>
+      <pre className="viz-text">{visual.text}</pre>
     );
   return (
-    <figure className={`viz viz-${v.type}`}>
+    <figure className={`viz viz-${visual.type}`}>
       {body}
-      {v.label && <figcaption>{v.label}</figcaption>}
+      {visual.label && <figcaption>{visual.label}</figcaption>}
     </figure>
   );
 }
 
 // A lesson's web page, on its own sandboxed origin, with its console shown underneath.
-function WebViz({ id, v }) {
+function WebViz({ id, visual }) {
   const [logs, setLogs] = useState([]);
   const frame = useRef(null);
   useEffect(() => {
@@ -128,7 +131,7 @@ function WebViz({ id, v }) {
     };
     addEventListener('message', h);
     return () => removeEventListener('message', h);
-  }, [id, v]);
+  }, [id, visual]);
   return (
     <div className="webviz">
       <div className="wv-bar">
@@ -139,7 +142,7 @@ function WebViz({ id, v }) {
       </div>
       {WEB && !window.bento ? (
         <iframe
-          key={`${id}-${v}`}
+          key={`${id}-${visual}`}
           ref={frame}
           title="Your page"
           src="web-play.html"
@@ -150,7 +153,11 @@ function WebViz({ id, v }) {
         <iframe
           ref={frame}
           title="Your page"
-          src={window.bento?.playUrl ? window.bento.playUrl(id, v) : `play://${id}/?v=${v || 0}`}
+          src={
+            window.bento?.playUrl
+              ? window.bento.playUrl(id, visual)
+              : `play://${id}/?v=${visual || 0}`
+          }
           sandbox="allow-scripts allow-modals allow-forms allow-same-origin"
         />
       )}
@@ -170,22 +177,22 @@ function WebViz({ id, v }) {
   );
 }
 
-function CanvasViz({ v }) {
+function CanvasViz({ visual }) {
   const ref = useRef(null);
   useEffect(() => {
-    const c = ref.current;
-    if (!c) return;
+    const canvas = ref.current;
+    if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
-    c.width = v.w * dpr;
-    c.height = v.h * dpr;
-    const x = c.getContext('2d');
+    canvas.width = visual.w * dpr;
+    canvas.height = visual.h * dpr;
+    const x = canvas.getContext('2d');
     x.setTransform(dpr, 0, 0, dpr, 0, 0);
-    x.clearRect(0, 0, v.w, v.h);
-    for (const cmd of v.cmds) {
+    x.clearRect(0, 0, visual.w, visual.h);
+    for (const cmd of visual.cmds) {
       const [k] = cmd;
       if (k === 'bg') {
         x.fillStyle = cmd[1];
-        x.fillRect(0, 0, v.w, v.h);
+        x.fillRect(0, 0, visual.w, visual.h);
       } else if (k === 'circle') {
         x.fillStyle = cmd[4] || '#222';
         x.beginPath();
@@ -208,9 +215,12 @@ function CanvasViz({ v }) {
         x.fillText(cmd[1], cmd[2], cmd[3]);
       }
     }
-  }, [v]);
+  }, [visual]);
   return (
-    <canvas ref={ref} style={{ width: '100%', maxWidth: v.w, aspectRatio: `${v.w} / ${v.h}` }} />
+    <canvas
+      ref={ref}
+      style={{ width: '100%', maxWidth: visual.w, aspectRatio: `${visual.w} / ${visual.h}` }}
+    />
   );
 }
 
@@ -219,30 +229,35 @@ function layoutTree(root) {
     edges = [];
   let leaf = 0;
   let maxD = 0;
-  (function walk(n, d, path) {
-    if (!n) return null;
-    maxD = Math.max(maxD, d);
-    const kids = n.kids || [];
+  (function walk(node, depth, path) {
+    if (!node) return null;
+    maxD = Math.max(maxD, depth);
+    const kids = node.kids || [];
     let xs = [];
-    if (n.binary) {
+    if (node.binary) {
       // in-order layout: every node gets its own column, so left/right is always visible
       const [l, r] = kids;
-      if (l) walk(l, d + 1, path + 'L');
-      const me = { v: n.v, d, path, x: leaf++ };
-      if (r) walk(r, d + 1, path + 'R');
+      if (l) walk(l, depth + 1, path + 'L');
+      const me = { v: node.v, d: depth, path, x: leaf++ };
+      if (r) walk(r, depth + 1, path + 'R');
       nodes.push(me);
       if (l) edges.push([path, path + 'L']);
       if (r) edges.push([path, path + 'R']);
       return me.x;
     }
     kids.forEach((k, i) => {
-      const x = walk(k, d + 1, path + i);
+      const x = walk(k, depth + 1, path + i);
       if (x != null) {
         xs.push(x);
         edges.push([path, path + i]);
       }
     });
-    const me = { v: n.v, d, path, x: xs.length ? (xs[0] + xs[xs.length - 1]) / 2 : leaf++ };
+    const me = {
+      v: node.v,
+      d: depth,
+      path,
+      x: xs.length ? (xs[0] + xs[xs.length - 1]) / 2 : leaf++,
+    };
     nodes.push(me);
     return me.x;
   })(root, 0, 'r');

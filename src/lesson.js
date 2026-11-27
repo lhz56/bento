@@ -229,30 +229,30 @@ const LEVEL = {
   engineer: 'engineer (precise, mention trade-offs)',
 };
 
-export function buildPrompt({ q, mode, lang, level, context, prev, path }) {
+export function buildPrompt({ q: question, mode, lang, level, context, prev, path }) {
   const langInfo = LANG_NAME[lang] || 'Python';
   let prompt = `MODE: ${mode}\nLANGUAGE: ${langInfo}\nLEVEL: ${LEVEL[level] || 'student'}\n`;
   if (path) prompt += `\nLEARNING PATH: ${path}\n`;
   if (prev)
     prompt += `\nThis is a FOLLOW-UP to the lesson "${prev.title}". Its code was:\n${prev.code}\n`;
-  if (mode === 'explain') prompt += `\nQUESTION: ${q}\n`;
+  if (mode === 'explain') prompt += `\nQUESTION: ${question}\n`;
   if (mode === 'code' && context?.repo && context?.key?.length) {
-    prompt += `\nREPO MODE. The student is studying the real repository "${context.repo}"${context.gist ? ` (${context.gist})` : ''} and asks: ${q}\nTeach how THIS repo does it. The code block must be a VERBATIM excerpt (12–45 consecutive lines) from the most relevant file below; set "file" to its path. Line links refer to lines of your excerpt. Pseudo must cover every excerpt line. Mention other files by path in backticks when the flow crosses them. The code isn't runnable: skip growth and tests. Keep the quiz about this repo.\n`;
+    prompt += `\nREPO MODE. The student is studying the real repository "${context.repo}"${context.gist ? ` (${context.gist})` : ''} and asks: ${question}\nTeach how THIS repo does it. The code block must be a VERBATIM excerpt (12–45 consecutive lines) from the most relevant file below; set "file" to its path. Line links refer to lines of your excerpt. Pseudo must cover every excerpt line. Mention other files by path in backticks when the flow crosses them. The code isn't runnable: skip growth and tests. Keep the quiz about this repo.\n`;
     prompt += `\nFILE TREE (partial, path — role):\n${(context.files || []).slice(0, 160).join('\n')}\n`;
     for (const f of context.key || []) prompt += `\n--- ${f.path} ---\n${f.text.slice(0, 9000)}\n`;
     return prompt;
   }
   if (mode === 'code')
-    prompt += `\nExplain THIS code from the student's own project${context?.path ? ` (${context.path})` : ''}. Use it verbatim as the code block (if longer than 60 lines, pick the most interesting 15–40 line section, keep it verbatim). Pseudo must cover every line. Notes should explain the non-obvious parts. The code may not be runnable; that's fine.${q ? `\nThe student asks: ${q}` : ''}\n\nCODE:\n${context?.code || ''}\n`;
+    prompt += `\nExplain THIS code from the student's own project${context?.path ? ` (${context.path})` : ''}. Use it verbatim as the code block (if longer than 60 lines, pick the most interesting 15–40 line section, keep it verbatim). Pseudo must cover every line. Notes should explain the non-obvious parts. The code may not be runnable; that's fine.${question ? `\nThe student asks: ${question}` : ''}\n\nCODE:\n${context?.code || ''}\n`;
   if (mode === 'compare' && context?.a) {
     const side = (site, n) =>
       `\n=== APP ${n}: ${site.repo}${site.gist ? ` (${site.gist})` : ''} ===\nFILES (partial):\n${(site.files || []).slice(0, 70).join('\n')}\n${(site.key || []).map((f) => `\n--- ${site.repo}: ${f.path} ---\n${f.text.slice(0, 7000)}`).join('\n')}\n`;
-    prompt += `\nCOMPARE MODE. The learner wants to see how two real apps solve the same problem: ${q}\n${side(context.a, 'A')}${side(context.b, 'B')}`;
+    prompt += `\nCOMPARE MODE. The learner wants to see how two real apps solve the same problem: ${question}\n${side(context.a, 'A')}${side(context.b, 'B')}`;
     prompt += `\nWrite the lesson around the difference. Title like "Two ways to …". The code block shows a VERBATIM excerpt from each app (8–20 lines each), A first, separated by a comment line naming the app and file (e.g. "# ── A · repo/file.py ──" or "// ── B · repo/file.js ──"); set file to "compare". Line links refer to lines of this combined block. Use h blocks: "App A’s way", "App B’s way", "Which would you pick?". Use term blocks for new words. Skip growth/tests. Quiz: which app does X. Next: more comparisons.\n`;
     return prompt;
   }
   if (mode === 'build') {
-    prompt += `\nBUILD MODE. Guide the learner to build, step by step, a tiny runnable version of: ${q}${context?.inspired ? `\nIt is inspired by the real project ${context.inspired} (${context.gist || ''}).` : ''}\nUse 3–5 step blocks INSTEAD of a single code block. Each step's "code" is the FULL runnable program so far (no network, no files, no input(); simulate outside services with small functions that print or show()). Each step should run and show something new. Step md: what we add and why, with one technical word named in **bold**; put a term block right after a step when it introduces a new word. Order: title → p (what we'll build, 1–2 sentences) → step → [term] → step … → pseudo (for the LAST step) → notes (for the last step) → p (what you built, and how the real project does it bigger) → quiz → try → next.\n`;
+    prompt += `\nBUILD MODE. Guide the learner to build, step by step, a tiny runnable version of: ${question}${context?.inspired ? `\nIt is inspired by the real project ${context.inspired} (${context.gist || ''}).` : ''}\nUse 3–5 step blocks INSTEAD of a single code block. Each step's "code" is the FULL runnable program so far (no network, no files, no input(); simulate outside services with small functions that print or show()). Each step should run and show something new. Step md: what we add and why, with one technical word named in **bold**; put a term block right after a step when it introduces a new word. Order: title → p (what we'll build, 1–2 sentences) → step → [term] → step … → pseudo (for the LAST step) → notes (for the last step) → p (what you built, and how the real project does it bigger) → quiz → try → next.\n`;
     return prompt;
   }
   if (mode === 'idea' && context) {
@@ -262,9 +262,9 @@ export function buildPrompt({ q, mode, lang, level, context, prev, path }) {
     return prompt;
   }
   if (mode === 'challenge')
-    prompt += `\nCHALLENGE TOPIC: ${q || 'arrays and loops'}\nWrite a short function with EXACTLY ONE subtle, realistic bug. Emit a tests block (some cases pass, at least one fails because of the bug), and a hints block. The p blocks describe the task and goal but must NOT reveal the bug. The code block should also call the function once with console.log/print. Skip the quiz.\n`;
+    prompt += `\nCHALLENGE TOPIC: ${question || 'arrays and loops'}\nWrite a short function with EXACTLY ONE subtle, realistic bug. Emit a tests block (some cases pass, at least one fails because of the bug), and a hints block. The p blocks describe the task and goal but must NOT reveal the bug. The code block should also call the function once with console.log/print. Skip the quiz.\n`;
   if (mode === 'feature') {
-    prompt += `\nFEATURE MODE. The student wants to build this in their own project: ${q}\nUse "step" blocks (2–5), using their real stack, file names and conventions.\n`;
+    prompt += `\nFEATURE MODE. The student wants to build this in their own project: ${question}\nUse "step" blocks (2–5), using their real stack, file names and conventions.\n`;
     if (context) {
       prompt += `\nPROJECT: ${context.name}\nFILE TREE (partial):\n${(context.files || []).slice(0, 180).join('\n')}\n`;
       for (const f of context.key || [])

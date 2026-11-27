@@ -423,21 +423,21 @@ function gitCmd(sim, args, say) {
       theirsTree = repo.commits[theirs].tree;
     const out = {};
     const conflicts = [];
-    for (const n of new Set([
+    for (const file of new Set([
       ...Object.keys(baseTree),
       ...Object.keys(oursTree),
       ...Object.keys(theirsTree),
     ])) {
-      if (oursTree[n] === theirsTree[n]) {
-        if (oursTree[n] !== undefined) out[n] = oursTree[n];
-      } else if (oursTree[n] === baseTree[n]) {
-        if (theirsTree[n] !== undefined) out[n] = theirsTree[n];
-      } else if (theirsTree[n] === baseTree[n]) {
-        if (oursTree[n] !== undefined) out[n] = oursTree[n];
+      if (oursTree[file] === theirsTree[file]) {
+        if (oursTree[file] !== undefined) out[file] = oursTree[file];
+      } else if (oursTree[file] === baseTree[file]) {
+        if (theirsTree[file] !== undefined) out[file] = theirsTree[file];
+      } else if (theirsTree[file] === baseTree[file]) {
+        if (oursTree[file] !== undefined) out[file] = oursTree[file];
       } else {
-        conflicts.push(n);
-        out[n] =
-          `<<<<<<< ${repo.head}\n${oursTree[n] ?? ''}\n=======\n${theirsTree[n] ?? ''}\n>>>>>>> ${name}`;
+        conflicts.push(file);
+        out[file] =
+          `<<<<<<< ${repo.head}\n${oursTree[file] ?? ''}\n=======\n${theirsTree[file] ?? ''}\n>>>>>>> ${name}`;
       }
     }
     setTree(sim, out);

@@ -185,19 +185,19 @@ function checkArgs(name, args) {
             like: clip(x.like, 200) || '',
           }))
       : [];
-    const q = args.quiz && typeof args.quiz === 'object' ? args.quiz : null;
+    const givenQuiz = args.quiz && typeof args.quiz === 'object' ? args.quiz : null;
     const quiz =
-      q &&
-      typeof q.q === 'string' &&
-      Array.isArray(q.choices) &&
-      q.choices.length >= 2 &&
-      int(q.answer) != null &&
-      int(q.answer) < q.choices.length
+      givenQuiz &&
+      typeof givenQuiz.q === 'string' &&
+      Array.isArray(givenQuiz.choices) &&
+      givenQuiz.choices.length >= 2 &&
+      int(givenQuiz.answer) != null &&
+      int(givenQuiz.answer) < givenQuiz.choices.length
         ? {
-            q: q.q.slice(0, 400),
-            choices: strs(q.choices, 5, 200),
-            answer: int(q.answer),
-            why: clip(q.why, 500) || '',
+            q: givenQuiz.q.slice(0, 400),
+            choices: strs(givenQuiz.choices, 5, 200),
+            answer: int(givenQuiz.answer),
+            why: clip(givenQuiz.why, 500) || '',
           }
         : null;
     return {

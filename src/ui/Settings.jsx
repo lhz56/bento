@@ -174,7 +174,7 @@ export default function Settings({
             <span>Picks the idea of the day and suggestions.</span>
           </div>
           <div className="interests">
-            {INTERESTS.map(([interest, l]) => (
+            {INTERESTS.map(([interest, label]) => (
               <button
                 key={interest}
                 className={`int ${ints.includes(interest) ? 'on' : ''}`}
@@ -186,7 +186,7 @@ export default function Settings({
                   })
                 }
               >
-                {l}
+                {label}
               </button>
             ))}
           </div>
@@ -466,22 +466,22 @@ function CheckRow() {
 
 // The last 7 days of AI use, and the saved answers that made repeats free
 function UsageRow({ providers }) {
-  const [u, setU] = useState(null);
+  const [usage, setUsage] = useState(null);
   const [cleared, setCleared] = useState(false);
   const { limits, refresh } = usePlans();
   useEffect(() => {
     window.bento
       .usage()
-      .then(setU)
+      .then(setUsage)
       .catch(() => {});
   }, [cleared]);
   useEffect(() => {
     refresh();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- plan limits are read once, when Settings opens
-  if (!u) return null;
+  if (!usage) return null;
   const tot = (d) => d.lessons + d.quick + d.other;
-  const max = Math.max(1, ...u.days.map((d) => tot(d) + d.saved));
-  const week = u.days.reduce(
+  const max = Math.max(1, ...usage.days.map((d) => tot(d) + d.saved));
+  const week = usage.days.reduce(
     (s, d) => ({ n: s.n + tot(d), saved: s.saved + d.saved, tokens: s.tokens + d.tokens }),
     { n: 0, saved: 0, tokens: 0 },
   );
@@ -493,7 +493,7 @@ function UsageRow({ providers }) {
           {t('How full each plan is, as the AI itself counts it. Looking never uses your plan.')}
         </span>
       </div>
-      <PlanList providers={providers} limits={limits} usage={u} />
+      <PlanList providers={providers} limits={limits} usage={usage} />
       <div className="set-sub">
         <b>{t('What Bento used')}</b>
         <span>
@@ -509,14 +509,14 @@ function UsageRow({ providers }) {
       <div
         className="uchart"
         role="img"
-        aria-label={u.days
+        aria-label={usage.days
           .map(
             (d) =>
               `${d.d}: ${d.lessons} lessons, ${d.quick} quick, ${d.other} readings, ${d.saved} saved`,
           )
           .join('; ')}
       >
-        {u.days.map((day) => (
+        {usage.days.map((day) => (
           <div key={day.d} className="uc-day">
             <div className="uc-stack" style={{ height: 70 }}>
               <i className="uc-saved" style={{ height: `${(day.saved / max) * 100}%` }} />
@@ -551,13 +551,13 @@ function UsageRow({ providers }) {
       <div className="set-btns" style={{ justifyContent: 'flex-start' }}>
         <button
           className="btn ghost"
-          disabled={!u.savedAnswers}
+          disabled={!usage.savedAnswers}
           onClick={async () => {
             await window.bento.clearSavedAnswers();
             setCleared((x) => !x);
           }}
         >
-          {t('Forget saved answers')} ({u.savedAnswers})
+          {t('Forget saved answers')} ({usage.savedAnswers})
         </button>
       </div>
     </div>

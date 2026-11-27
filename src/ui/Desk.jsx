@@ -271,9 +271,9 @@ const Desk = forwardRef(function Desk(/** @type {DeskProps} */ props, ref) {
   }, [lesson.id, streaming, pyReady]);
 
   const saveTimer = useRef(null);
-  const onChange = (v, scrub) => {
+  const onChange = (value, scrub) => {
     edited.current = true;
-    setCode(v);
+    setCode(value);
     setErrShown(false);
     if (trace) {
       setTrace(null);
@@ -281,7 +281,7 @@ const Desk = forwardRef(function Desk(/** @type {DeskProps} */ props, ref) {
     }
     clearTimeout(liveTimer.current);
     if (scrub) {
-      doRun(v, { quiet: true });
+      doRun(value, { quiet: true });
     } else if (
       live &&
       lesson.mode !== 'feature' &&
@@ -289,15 +289,15 @@ const Desk = forwardRef(function Desk(/** @type {DeskProps} */ props, ref) {
       lesson.mode !== 'compare'
     )
       liveTimer.current = setTimeout(
-        () => doRun(v, { quiet: true, fromTyping: true }),
+        () => doRun(value, { quiet: true, fromTyping: true }),
         lang === 'python' ? 520 : 380,
       );
     // your edit is saved once typing pauses (the timer lives in a ref: this function is new on every render)
     clearTimeout(saveTimer.current);
     if (filesRef.current) {
-      filesRef.current = filesRef.current.map((f, i) => (i === fi ? { ...f, code: v } : f));
+      filesRef.current = filesRef.current.map((f, i) => (i === fi ? { ...f, code: value } : f));
       saveTimer.current = setTimeout(() => onPatch({ files: filesRef.current }), 600);
-    } else saveTimer.current = setTimeout(() => onPatch({ work: v }), 600);
+    } else saveTimer.current = setTimeout(() => onPatch({ work: value }), 600);
   };
   useEffect(() => {
     if (result?.error?.line) {
@@ -745,15 +745,15 @@ const Desk = forwardRef(function Desk(/** @type {DeskProps} */ props, ref) {
             filesRef.current || [
               { name: lesson.file || (lang === 'python' ? 'main.py' : 'index.html') },
             ]
-          ).map((f, i) => (
+          ).map((file, i) => (
             <button
-              key={f.name + i}
+              key={file.name + i}
               className={`df-tab ${i === fi ? 'on' : ''}`}
               onClick={() => openFile(i)}
-              title={i === 0 ? 'This file runs; the others are used by it' : f.name}
+              title={i === 0 ? 'This file runs; the others are used by it' : file.name}
             >
               {i === 0 && <span className="df-main">▶</span>}
-              {f.name}
+              {file.name}
               {i > 0 && (
                 <span
                   className="df-x"

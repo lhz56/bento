@@ -658,18 +658,18 @@ async function handle({ id, mode, code, extra }) {
       const { fn, cases } = extra;
       const inst = instrument(code, { snapshots: false });
       const tr = makeTracer({ snapshots: false });
-      const f = await exec(
+      const target = await exec(
         `${inst}\n;return typeof ${fn}==='function'?${fn}:undefined;`,
         Object.keys(tr.T),
         Object.values(tr.T),
       );
-      if (!f)
+      if (!target)
         return { ...out, error: { msg: `Couldn't find a function called ${fn}`, line: null } };
       const results = [];
       for (const testCase of cases) {
         tr.reset();
         try {
-          const got = await f(...clone(testCase.args));
+          const got = await target(...clone(testCase.args));
           results.push({ ok: eq(got, testCase.expect), got: short(got) });
         } catch (e) {
           results.push({ ok: false, got: errInfo(e).msg });

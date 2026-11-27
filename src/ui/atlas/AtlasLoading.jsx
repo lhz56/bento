@@ -51,10 +51,10 @@ export function AtlasLoading({ atlas, facts, onRetry, onBig, asked, onIdeaInstea
         </div>
       ) : (
         <div className="al-steps">
-          {steps.map(([k, l], i) => (
+          {steps.map(([k, label], i) => (
             <div key={k} className={`al-step ${i < at ? 'done' : i === at ? 'now' : ''}`}>
               <span className="al-dot">{i < at ? '✓' : ''}</span>
-              {l}
+              {label}
               {i === 0 && at === 0 && atlas.progress?.pct != null && (
                 <span className="al-pct">
                   {atlas.progress.phase === 'cached' ? 'already here' : `${atlas.progress.pct}%`}

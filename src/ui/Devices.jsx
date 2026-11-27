@@ -10,9 +10,9 @@ export function QR({ text, size = 176 }) {
   qr.addData(text);
   qr.make();
   const modules = qr.getModuleCount();
-  let d = '';
+  let path = '';
   for (let y = 0; y < modules; y++)
-    for (let x = 0; x < modules; x++) if (qr.isDark(y, x)) d += `M${x + 2} ${y + 2}h1v1h-1z`;
+    for (let x = 0; x < modules; x++) if (qr.isDark(y, x)) path += `M${x + 2} ${y + 2}h1v1h-1z`;
   return (
     <svg
       className="qr"
@@ -24,7 +24,7 @@ export function QR({ text, size = 176 }) {
       shapeRendering="crispEdges"
     >
       <rect width={modules + 4} height={modules + 4} fill="#fff" />
-      <path d={d} fill="#111" />
+      <path d={path} fill="#111" />
     </svg>
   );
 }

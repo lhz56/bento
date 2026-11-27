@@ -151,21 +151,21 @@ export default function useQuestionRouting({
     }
     askLesson(question, options);
   };
-  const goToProject = async (decision, d) => {
+  const goToProject = async (decision, decided) => {
     setChoice(null);
-    const pick = d.pick || {};
+    const pick = decided.pick || {};
     // already on this Mac: read your copy, nothing to download
     if (pick.local) {
       const opened = await api.openLocalProject?.(pick.local.root);
       if (opened) {
-        setAtlasQ({ key: `local:${opened.root}`, q: decision, d, at: Date.now() });
+        setAtlasQ({ key: `local:${opened.root}`, q: decision, d: decided, at: Date.now() });
         openAtlas({ kind: 'local', root: opened.root, name: pick.full || opened.name });
         return;
       }
     }
     // GitHub's size counts the whole history; Bento only fetches the latest code, so don't stop to warn here
     if (pick.full) {
-      setAtlasQ({ key: pick.full, q: decision, d, at: Date.now() });
+      setAtlasQ({ key: pick.full, q: decision, d: decided, at: Date.now() });
       openAtlas({ kind: 'github', full: pick.full }, { big: true });
       return;
     }

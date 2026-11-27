@@ -26,13 +26,13 @@ export function Toolbelt({ tools, stack, narration, narrating, onShowFiles }) {
     else groups.push({ cat: s.cat, items: [s] });
   }
   const tool = tools.find((t) => t.id === sel) || tools[0];
-  const n =
+  const said =
     tool &&
     (narrStack[tool.id] ||
       Object.values(narrStack).find((x) => x.name?.toLowerCase() === tool.name.toLowerCase()));
   const alts = tool
-    ? (n?.alts?.length
-        ? n.alts.map((a) => ({ name: a.name, when: a.when, tool: findTool(a.name) }))
+    ? (said?.alts?.length
+        ? said.alts.map((a) => ({ name: a.name, when: a.when, tool: findTool(a.name) }))
         : (tool.alt || [])
             .map((id) => BY_ID[id])
             .filter(Boolean)
@@ -104,10 +104,10 @@ export function Toolbelt({ tools, stack, narration, narrating, onShowFiles }) {
                   )}
                 </div>
               </div>
-              <div className="tc-what">{n?.role || tool.what}</div>
-              {n?.why ? (
+              <div className="tc-what">{said?.role || tool.what}</div>
+              {said?.why ? (
                 <div className="tc-why">
-                  <Md text={n.why} />
+                  <Md text={said.why} />
                 </div>
               ) : narrating ? (
                 <div className="shimmer" />

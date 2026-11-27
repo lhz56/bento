@@ -16,20 +16,21 @@ const SHELL = WIN ? 'PowerShell' : 'Terminal';
 const CONNS = [...PROVIDERS.map((p) => ({ ...p, ai: true })), { ...GITHUB, ai: false }].map((c) =>
   WIN && c.win ? { ...c, ...c.win } : c,
 );
-const howTo = (c, state, scan) => {
+const howTo = (conn, state, scan) => {
   const tl = scan?.tools || {};
-  const r = scan?.[c.id] || {};
+  const found = scan?.[conn.id] || {};
   if (state === 'missing') {
-    const i = c.install.find((x) => !x.needs || tl[x.needs]);
+    const i = conn.install.find((x) => !x.needs || tl[x.needs]);
     return i
       ? { action: 'install', cmd: i.cmd }
       : {
-          link: c.download || 'https://nodejs.org/en/download',
-          need: c.download ? null : 'Needs Node.js first',
+          link: conn.download || 'https://nodejs.org/en/download',
+          need: conn.download ? null : 'Needs Node.js first',
         };
   }
-  if (state === 'old') return { action: 'update', cmd: (r.brew && c.updateBrew) || c.update };
-  if (state === 'login') return { action: 'signIn', cmd: c.signIn };
+  if (state === 'old')
+    return { action: 'update', cmd: (found.brew && conn.updateBrew) || conn.update };
+  if (state === 'login') return { action: 'signIn', cmd: conn.signIn };
   return null;
 };
 const VERB = { install: 'Install', update: 'Update', signIn: 'Sign in' };
@@ -316,78 +317,82 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
                     Number(scan && b.ai && ready(b.id)) - Number(scan && a.ai && ready(a.id)),
                 )
                 .filter((c) => !(scan && anyModel) || (c.ai && ready(c.id)) || more)
-                .map((c, i) => {
-                  const r = scan?.[c.id];
+                .map((conn, i) => {
+                  const found = scan?.[conn.id];
                   const state = !scan
                     ? 'wait'
-                    : !r?.installed
+                    : !found?.installed
                       ? 'missing'
-                      : r.outdated
+                      : found.outdated
                         ? 'old'
-                        : !r.loggedIn
+                        : !found.loggedIn
                           ? 'login'
                           : 'ok';
-                  const how = howTo(c, state, scan);
-                  const busy = running === c.id;
+                  const how = howTo(conn, state, scan);
+                  const busy = running === conn.id;
                   return (
                     <div
-                      key={c.id}
-                      className={`conn s-${state} ${c.ai ? 'ai' : 'gh'} ${anyModel && state !== 'ok' ? 'quiet' : ''}`}
+                      key={conn.id}
+                      className={`conn s-${state} ${conn.ai ? 'ai' : 'gh'} ${anyModel && state !== 'ok' ? 'quiet' : ''}`}
                       style={{ animationDelay: `${i * 70}ms` }}
                     >
-                      <Brand slug={c.slug} name={c.name} color={c.color} size={38} />
+                      <Brand slug={conn.slug} name={conn.name} color={conn.color} size={38} />
                       <div className="conn-main">
                         <div className="conn-top">
-                          <b>{c.name}</b>
-                          {!c.ai && <span className="opt">optional</span>}
+                          <b>{conn.name}</b>
+                          {!conn.ai && <span className="opt">optional</span>}
                         </div>
                         <div className="conn-what">
                           {state === 'wait' && <span className="scan-line">checking…</span>}
                           {state === 'ok' && (
                             <>
-                              {c.id === 'gh' ? (
+                              {conn.id === 'gh' ? (
                                 <>
-                                  Signed in as <b>{r.user}</b>
+                                  Signed in as <b>{found.user}</b>
                                 </>
                               ) : (
                                 <>
                                   Ready
-                                  {r.plan ? (
+                                  {found.plan ? (
                                     <>
                                       {' '}
-                                      · <b>{r.plan}</b>
+                                      · <b>{found.plan}</b>
                                     </>
-                                  ) : r.method && r.method !== c.name && r.method !== 'test' ? (
-                                    <> · {r.method}</>
+                                  ) : found.method &&
+                                    found.method !== conn.name &&
+                                    found.method !== 'test' ? (
+                                    <> · {found.method}</>
                                   ) : null}
                                 </>
                               )}
-                              {r.version ? <span className="ver">v{r.version}</span> : null}
+                              {found.version ? <span className="ver">v{found.version}</span> : null}
                             </>
                           )}
                           {state === 'login' &&
                             (busy
                               ? `Finish signing in in ${SHELL}, then come back here.`
-                              : HINT[c.id])}
+                              : HINT[conn.id])}
                           {state === 'old' &&
                             (busy ? (
                               `Updating in ${SHELL}… come back when it’s done.`
                             ) : (
-                              <>Version {r.version || '?'} can’t do everything Bento needs yet.</>
+                              <>
+                                Version {found.version || '?'} can’t do everything Bento needs yet.
+                              </>
                             ))}
                           {state === 'missing' &&
                             (busy
                               ? `Installing in ${SHELL}… come back when it’s done.`
-                              : c.ai
-                                ? c.plan
-                                : c.what)}
+                              : conn.ai
+                                ? conn.plan
+                                : conn.what)}
                         </div>
                         {how && (
                           <div className="cmd-row">
                             {how.cmd && api.aiTerminal && /Mac|Win/.test(navigator.platform) && (
                               <button
-                                className={`btn small ${c.ai ? '' : 'ghost'}`}
-                                onClick={() => act(c, how)}
+                                className={`btn small ${conn.ai ? '' : 'ghost'}`}
+                                onClick={() => act(conn, how)}
                                 disabled={busy}
                               >
                                 {busy ? `In ${SHELL}…` : VERB[how.action]}
@@ -583,7 +588,7 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
             <div>
               <div className="mini-h">what are you curious about?</div>
               <div className="interests">
-                {INTERESTS.map(([interest, l, e]) => (
+                {INTERESTS.map(([interest, label, e]) => (
                   <button
                     key={interest}
                     className={`int ${interests.includes(interest) ? 'on' : ''}`}
@@ -596,7 +601,7 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
                     }
                   >
                     <span>{e}</span>
-                    {l}
+                    {label}
                   </button>
                 ))}
               </div>
@@ -669,7 +674,7 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
                 'Solve a puzzle',
                 'Interview puzzles from the top down, raced from 10 items to a billion.',
               ],
-            ].map(([go, art, t, d]) => (
+            ].map(([go, art, title, desc]) => (
               <button
                 key={go}
                 className={`s3 ${go === pick ? 'fy' : ''}`}
@@ -681,8 +686,8 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
                   </span>
                 )}
                 <Art kind={art} />
-                <b>{t}</b>
-                <span>{d}</span>
+                <b>{title}</b>
+                <span>{desc}</span>
               </button>
             ))}
           </div>
@@ -722,13 +727,13 @@ function SeeIt() {
   );
 }
 function RunIt() {
-  const [t, setT] = useState(0);
+  const [tick, setTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setT((x) => (x + 1) % 8), 700);
+    const id = setInterval(() => setTick((x) => (x + 1) % 8), 700);
     return () => clearInterval(id);
   }, []);
-  const line = [0, 1, 2, 1, 2, 1, 2, 3][t];
-  const n = [0, 0, 1, 1, 2, 2, 3, 3][t];
+  const line = [0, 1, 2, 1, 2, 1, 2, 3][tick];
+  const lit = [0, 0, 1, 1, 2, 2, 3, 3][tick];
   const codeLines = [
     ['total', ' = 0'],
     ['for', ' i in 1..3'],
@@ -748,7 +753,7 @@ function RunIt() {
       </div>
       <div className="pr-var">
         <span>total</span>
-        <b key={n}>{[0, 1, 3, 6][n]}</b>
+        <b key={lit}>{[0, 1, 3, 6][lit]}</b>
       </div>
     </div>
   );

@@ -62,13 +62,13 @@ function plan(bands) {
             b.y + b.D + 1 > a.y,
         ),
       );
-    let t = 0;
-    while (hit() && t < 60) {
+    let tries = 0;
+    while (hit() && tries < 60) {
       rows[1].forEach((d) => {
         d.x += 0.5;
         d.y += 0.5;
       });
-      t++;
+      tries++;
     }
     rows[1].forEach((d) => {
       d.x += 2.2;

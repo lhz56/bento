@@ -88,8 +88,8 @@ export default function Ideas({
               {races.map((race, i) => (
                 <button key={race.id} className="race-card" onClick={() => onRace(race)}>
                   <svg viewBox="0 0 120 54" className="race-art" aria-hidden="true">
-                    {(race.growth.calls || []).map((c, k) => {
-                      const f = [
+                    {(race.growth.calls || []).map((call, k) => {
+                      const curve = [
                         (x) => x * x * 0.9,
                         (x) => x * 1.6 + 2,
                         (x) => Math.log2(x + 1) * 6,
@@ -97,7 +97,7 @@ export default function Ideas({
                       const pts = Array.from(
                         { length: 12 },
                         (_, j) =>
-                          `${8 + j * 9.5},${50 - Math.min(44, f(j * 0.6 + (i % 2)) * (k === 0 ? 1.2 : 1))}`,
+                          `${8 + j * 9.5},${50 - Math.min(44, curve(j * 0.6 + (i % 2)) * (k === 0 ? 1.2 : 1))}`,
                       ).join(' ');
                       return (
                         <polyline
@@ -121,12 +121,12 @@ export default function Ideas({
         )}
 
         <div className="idea-grid">
-          {rest.map((i, n) => (
+          {rest.map((i, index) => (
             <button
               key={i.id}
               className="idea-card"
               onClick={() => onRead(i)}
-              style={{ animationDelay: `${n * 40}ms` }}
+              style={{ animationDelay: `${index * 40}ms` }}
             >
               <div className="ic-art">
                 <IdeaArt kind={i.art} />
@@ -279,7 +279,7 @@ export function IdeaArt({ kind, big }) {
         </>,
       );
     case 'graph': {
-      const n = [
+      const nodes = [
         [40, 30, 6],
         [90, 22, 9],
         [150, 35, 5],
@@ -304,15 +304,15 @@ export function IdeaArt({ kind, big }) {
           {e.map(([a, b], i) => (
             <line
               key={i}
-              x1={n[a][0]}
-              y1={n[a][1]}
-              x2={n[b][0]}
-              y2={n[b][1]}
+              x1={nodes[a][0]}
+              y1={nodes[a][1]}
+              x2={nodes[b][0]}
+              y2={nodes[b][1]}
               stroke="var(--line-2)"
               strokeWidth="1.4"
             />
           ))}
-          {n.map(([x, y, r], i) => (
+          {nodes.map(([x, y, r], i) => (
             <circle key={i} cx={x} cy={y} r={r} fill={i === 4 ? orange : violet} />
           ))}
         </>,
@@ -612,7 +612,7 @@ export function IdeaArt({ kind, big }) {
     case 'diff':
       return wrap(
         <>
-          {['', '+', '', '-', '', '~', ''].map((m, i) => (
+          {['', '+', '', '-', '', '~', ''].map((mark, i) => (
             <g key={i}>
               <rect
                 x="30"
@@ -621,11 +621,11 @@ export function IdeaArt({ kind, big }) {
                 height="11"
                 rx="2"
                 fill={
-                  m === '+'
+                  mark === '+'
                     ? '#d9f5ea'
-                    : m === '-'
+                    : mark === '-'
                       ? '#fde0df'
-                      : m === '~'
+                      : mark === '~'
                         ? '#fff1cc'
                         : 'var(--bg-2)'
                 }
@@ -634,10 +634,10 @@ export function IdeaArt({ kind, big }) {
                 x="36"
                 y={17 + i * 13.5}
                 fontSize="9"
-                fill={m === '+' ? mint : m === '-' ? '#e5484d' : 'var(--ink-3)'}
+                fill={mark === '+' ? mint : mark === '-' ? '#e5484d' : 'var(--ink-3)'}
                 fontFamily="ui-monospace"
               >
-                {m || ' '}
+                {mark || ' '}
               </text>
               <rect
                 x="48"

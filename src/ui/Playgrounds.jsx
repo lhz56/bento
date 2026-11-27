@@ -79,14 +79,14 @@ function SqlPlay({ done, onDone, quick, model, pyReady }) {
       CHALLENGES.findIndex(([id]) => !done[id]),
     ),
   );
-  const [q, setQ] = useState(CHALLENGES[ci]?.[0] === 'all' ? 'SELECT * FROM customers;' : '');
+  const [sql, setSql] = useState(CHALLENGES[ci]?.[0] === 'all' ? 'SELECT * FROM customers;' : '');
   const [res, setRes] = useState(null);
   const [busy, setBusy] = useState(false);
   const [hint, setHint] = useState(false);
   const [verdict, setVerdict] = useState(null);
   const [plain, setPlain] = useState(null);
   const challenge = CHALLENGES[ci];
-  const go = async (query = q) => {
+  const go = async (query = sql) => {
     if (!query.trim()) return;
     setBusy(true);
     setPlain(null);
@@ -110,7 +110,7 @@ function SqlPlay({ done, onDone, quick, model, pyReady }) {
     } else setVerdict(null);
   };
   useEffect(() => {
-    if (pyReady && q) go();
+    if (pyReady && sql) go();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs the waiting playground once Python is ready
   }, [pyReady]);
   const pick = (i) => {
@@ -118,19 +118,19 @@ function SqlPlay({ done, onDone, quick, model, pyReady }) {
     setVerdict(null);
     setHint(false);
     setRes(null);
-    setQ('');
+    setSql('');
   };
   return (
     <div className="pg-sql">
       <div className="pg-side">
         <div className="mini-h">{t('the café database')}</div>
-        {TABLES.map(([name, cols, n, what]) => (
+        {TABLES.map(([name, cols, rows, what]) => (
           <button
             key={name}
             className="tbl-card"
             onClick={() => {
               const s = `SELECT * FROM ${name};`;
-              setQ(s);
+              setSql(s);
               go(s);
             }}
             title={t('Click to see its rows')}
@@ -138,7 +138,7 @@ function SqlPlay({ done, onDone, quick, model, pyReady }) {
             <div className="tbl-h">
               <b>{name}</b>
               <span>
-                {n} {t('rows')}
+                {rows} {t('rows')}
               </span>
             </div>
             <div className="tbl-what">{t(what)}</div>
@@ -209,13 +209,13 @@ function SqlPlay({ done, onDone, quick, model, pyReady }) {
           </div>
         )}
         <div className="sql-ed">
-          <Editor value={q} lang="sql" onChange={(v) => setQ(v)} />
+          <Editor value={sql} lang="sql" onChange={(v) => setSql(v)} />
           <div className="sql-bar">
             <span className="muted small">
               <kbd>{K.mod}</kbd>
               <kbd>{K.enter}</kbd> {t('run')}
             </span>
-            {quick && q.trim() && (
+            {quick && sql.trim() && (
               <button
                 className="link"
                 onClick={async () => {
@@ -223,7 +223,7 @@ function SqlPlay({ done, onDone, quick, model, pyReady }) {
                   try {
                     const j = await quick(
                       model,
-                      `Explain this SQL query to a beginner in at most 45 words, plainly, step by step in the order the database runs it. Query: ${q}\nReply with just the explanation.`,
+                      `Explain this SQL query to a beginner in at most 45 words, plainly, step by step in the order the database runs it. Query: ${sql}\nReply with just the explanation.`,
                     );
                     setPlain(String(j).replace(/^"|"$/g, ''));
                   } catch {
@@ -274,7 +274,7 @@ function Flow({ steps, counts = [], rows }) {
   return (
     <div className="sql-flow">
       {steps.map((step, i) => {
-        const n =
+        const count =
           step.k === 'SELECT' || step.k === 'ORDER BY'
             ? null
             : step.k === 'LIMIT'
@@ -286,9 +286,9 @@ function Flow({ steps, counts = [], rows }) {
             <div className="sf-box">
               <code>{step.k}</code>
               <span>{step.say}</span>
-              {n != null && (
+              {count != null && (
                 <b>
-                  {n} {n === 1 ? t('row') : t('rows')}
+                  {count} {count === 1 ? t('row') : t('rows')}
                 </b>
               )}
             </div>
@@ -654,37 +654,37 @@ function Graph({ sim }) {
           ))}
           {Object.entries(repo.branches)
             .filter(([, v]) => v)
-            .map(([b, v]) => (
-              <g key={b}>
+            .map(([branch, commit]) => (
+              <g key={branch}>
                 <rect
-                  x={x(idx[v]) + 10}
+                  x={x(idx[commit]) + 10}
                   y={
-                    y(repo.commits[v].branch) -
+                    y(repo.commits[commit].branch) -
                     24 -
                     Object.entries(repo.branches)
-                      .filter(([, w]) => w === v)
-                      .findIndex(([n]) => n === b) *
+                      .filter(([, w]) => w === commit)
+                      .findIndex(([n]) => n === branch) *
                       15
                   }
-                  width={b.length * 6.5 + 14}
+                  width={branch.length * 6.5 + 14}
                   height="14"
                   rx="7"
-                  className={`gl-tag ${b === repo.head ? 'head' : ''}`}
+                  className={`gl-tag ${branch === repo.head ? 'head' : ''}`}
                 />
                 <text
-                  x={x(idx[v]) + 17}
+                  x={x(idx[commit]) + 17}
                   y={
-                    y(repo.commits[v].branch) -
+                    y(repo.commits[commit].branch) -
                     14 -
                     Object.entries(repo.branches)
-                      .filter(([, w]) => w === v)
-                      .findIndex(([n]) => n === b) *
+                      .filter(([, w]) => w === commit)
+                      .findIndex(([n]) => n === branch) *
                       15
                   }
                   className="gl-tagt"
                 >
-                  {b}
-                  {b === repo.head ? ' ◀' : ''}
+                  {branch}
+                  {branch === repo.head ? ' ◀' : ''}
                 </text>
               </g>
             ))}

@@ -1105,15 +1105,15 @@ function search(root, ws) {
     const words = [];
     for (const w of ws) {
       let i = timer.indexOf(w),
-        n = 0;
-      while (i >= 0 && n < 25) {
+        hits = 0;
+      while (i >= 0 && hits < 25) {
         if (first < 0 || i < first) first = i;
-        n++;
+        hits++;
         i = timer.indexOf(w, i + w.length);
       }
-      if (n) {
+      if (hits) {
         kinds++;
-        score += 1 + Math.log2(1 + n);
+        score += 1 + Math.log2(1 + hits);
         words.push(w);
       }
       if (name.includes(w)) score += 10; // a file named after the thing is usually the place

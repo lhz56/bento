@@ -24,7 +24,7 @@ export default function Compare({
   onCompareAsk,
   onOpenProject,
 }) {
-  const [q, setQ] = useState('');
+  const [question, setQuestion] = useState('');
   const [keyA, keyB] = pair;
   useEffect(() => {
     [keyA, keyB].forEach((k) => k && ensure(k));
@@ -200,16 +200,16 @@ export default function Compare({
                 className="cv-feature"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (q.trim()) onCompareAsk(atlasA, atlasB, q.trim());
+                  if (question.trim()) onCompareAsk(atlasA, atlasB, question.trim());
                 }}
               >
                 <span className="cv-fi">⇄</span>
                 <input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
                   placeholder="Your own question: “how does each one handle logins?”"
                 />
-                <button className="btn" disabled={!q.trim()}>
+                <button className="btn" disabled={!question.trim()}>
                   Compare
                 </button>
               </form>

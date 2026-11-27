@@ -15,20 +15,20 @@ const TAB_TIPS = {
   tests: 'Checks that say whether the code does what it should',
 };
 
-export default function Stage(p) {
-  const { tab, setTab, lesson } = p;
+export default function Stage(props) {
+  const { tab, setTab, lesson } = props;
   // Predict, then run: guess the output first, then see how close you were.
   const [pred, setPred] = useState(null); // { phase: 'ask' | 'wait' | 'done', guess, result }
   useEffect(() => setPred(null), [lesson?.id]);
   useEffect(() => {
-    if (pred?.phase === 'wait' && p.result && p.result !== pred.before)
-      setPred((x) => ({ ...x, phase: 'done', result: p.result }));
+    if (pred?.phase === 'wait' && props.result && props.result !== pred.before)
+      setPred((x) => ({ ...x, phase: 'done', result: props.result }));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- a guess is settled when a new result comes in
-  }, [p.result]);
+  }, [props.result]);
   // screen readers hear how each run ended, without losing their place in the code
   useEffect(() => {
-    const result = p.result;
-    if (!result || p.running) return;
+    const result = props.result;
+    if (!result || props.running) return;
     if (result.error)
       announce(
         `${t('Your code stopped')}${result.error.line ? ` ${t('on line')} ${result.error.line}` : ''}: ${result.error.msg}`,
@@ -40,7 +40,7 @@ export default function Stage(p) {
         `${t('Ran')}. ${n} ${n === 1 ? t('line printed') : t('lines printed')}${v ? `, ${v} ${v === 1 ? t('picture') : t('pictures')}` : ''}.`,
       );
     }
-  }, [p.result, p.running]);
+  }, [props.result, props.running]);
   const tabs = [
     ['output', 'Output'],
     ['steps', 'Steps'],
@@ -58,13 +58,13 @@ export default function Stage(p) {
             title={t(TAB_TIPS[tabId])}
           >
             {t(label)}
-            {tabId === 'tests' && p.tests && (
-              <span className={`stab-dot ${p.tests.every((r) => r.ok) ? 'ok' : 'bad'}`} />
+            {tabId === 'tests' && props.tests && (
+              <span className={`stab-dot ${props.tests.every((r) => r.ok) ? 'ok' : 'bad'}`} />
             )}
-            {tabId === 'output' && p.result?.error && <span className="stab-dot bad" />}
+            {tabId === 'output' && props.result?.error && <span className="stab-dot bad" />}
           </button>
         ))}
-        {p.onWhyDiff && (
+        {props.onWhyDiff && (
           <button
             className={`stab predict ${pred ? 'on' : ''}`}
             title="Guess what the code will print before you run it"
@@ -77,10 +77,10 @@ export default function Stage(p) {
           </button>
         )}
         <div className="stage-meta">
-          {p.running ? (
+          {props.running ? (
             <span className="runpulse">running</span>
-          ) : p.result?.ms != null && tab === 'output' ? (
-            `${p.result.ms < 1 ? '<1' : Math.round(p.result.ms)} ms`
+          ) : props.result?.ms != null && tab === 'output' ? (
+            `${props.result.ms < 1 ? '<1' : Math.round(props.result.ms)} ms`
           ) : (
             ''
           )}
@@ -92,16 +92,16 @@ export default function Stage(p) {
             pred={pred}
             setPred={setPred}
             run={() => {
-              setPred((x) => ({ ...x, phase: 'wait', before: p.result }));
-              p.onRun();
+              setPred((x) => ({ ...x, phase: 'wait', before: props.result }));
+              props.onRun();
             }}
-            onWhyDiff={p.onWhyDiff}
+            onWhyDiff={props.onWhyDiff}
           />
         )}
-        {tab === 'output' && (!pred || pred.phase === 'done') && <Output {...p} />}
-        {tab === 'steps' && <Steps {...p} />}
-        {tab === 'growth' && <Growth {...p} />}
-        {tab === 'tests' && <Tests {...p} />}
+        {tab === 'output' && (!pred || pred.phase === 'done') && <Output {...props} />}
+        {tab === 'steps' && <Steps {...props} />}
+        {tab === 'growth' && <Growth {...props} />}
+        {tab === 'tests' && <Tests {...props} />}
       </div>
     </div>
   );
@@ -448,21 +448,21 @@ function Stuck({ stuck, onUnstick, onStepThrough, onStuckHint }) {
 
 // The program called input(): answer right where it asked
 function AnswerLine({ prompt, onAnswer }) {
-  const [v, setV] = useState('');
+  const [answer, setAnswer] = useState('');
   return (
     <form
       className="log in asking"
       onSubmit={(e) => {
         e.preventDefault();
-        onAnswer(v);
-        setV('');
+        onAnswer(answer);
+        setAnswer('');
       }}
     >
       <span>{prompt}</span>
       <input
         autoFocus
-        value={v}
-        onChange={(e) => setV(e.target.value)}
+        value={answer}
+        onChange={(e) => setAnswer(e.target.value)}
         aria-label={prompt || 'your answer'}
         placeholder="type here…"
       />
@@ -501,8 +501,8 @@ function moviePlan(code) {
     (windows[m[1]] ||= []).push([m[2] || '0', m[3]]);
   return { pointers, windows, any: Object.keys(pointers).length + Object.keys(windows).length > 0 };
 }
-function Movie({ s, prev, plan }) {
-  const vars = s.vars || {};
+function Movie({ step, prev, plan }) {
+  const vars = step.vars || {};
   const lists = Object.entries(vars)
     .map(([k, v]) => /** @type {[string, any]} */ ([k, asBoxes(v)]))
     .filter(([, b]) => b?.kind === 'list');
@@ -704,7 +704,7 @@ function Steps({
             ['slow', '🐢'],
             ['normal', '1×'],
             ['fast', '⚡'],
-          ].map(([k, l]) => (
+          ].map(([k, label]) => (
             <button
               key={k}
               role="radio"
@@ -716,7 +716,7 @@ function Steps({
                 localStorage.setItem('bento.stepSpeed', k);
               }}
             >
-              {l}
+              {label}
             </button>
           ))}
         </span>
@@ -757,15 +757,15 @@ function Steps({
           </span>
         )}
       </div>
-      {movie && plan.any && <Movie s={step} prev={prev} plan={plan} key="movie" />}
+      {movie && plan.any && <Movie step={step} prev={prev} plan={plan} key="movie" />}
       <div className="step-cols">
         <div className="vars">
           <div className="col-h">Variables</div>
           {Object.keys(step.vars || {}).length === 0 && <div className="muted">none yet</div>}
-          {Object.entries(step.vars || {}).map(([k, v]) => {
-            const changed = prev && prev.vars?.[k] !== v;
+          {Object.entries(step.vars || {}).map(([k, value]) => {
+            const changed = prev && prev.vars?.[k] !== value;
             const born = prev && !(k in (prev.vars || {}));
-            const box = asBoxes(v);
+            const box = asBoxes(value);
             if (box) {
               const pb = prev ? asBoxes(prev.vars?.[k]) : null;
               return (
@@ -807,7 +807,7 @@ function Steps({
             return (
               <div key={k} className={`var ${born ? 'born' : changed ? 'changed' : ''}`}>
                 <span className="vk">{k}</span>
-                <span className="vv">{v}</span>
+                <span className="vv">{value}</span>
               </div>
             );
           })}
@@ -815,14 +815,17 @@ function Steps({
         <div className="stack">
           <div className="col-h">Call stack</div>
           <div className="frames">
-            {[...(step.stack || [])].reverse().map((f, i) => (
-              <div key={step.stack.length - i + f.name} className={`frame ${i === 0 ? 'top' : ''}`}>
+            {[...(step.stack || [])].reverse().map((frame, i) => (
+              <div
+                key={step.stack.length - i + frame.name}
+                className={`frame ${i === 0 ? 'top' : ''}`}
+              >
                 <span className="fn">
-                  {f.name}
-                  <span className="fa">({f.args})</span>
+                  {frame.name}
+                  <span className="fa">({frame.args})</span>
                 </span>
-                {f.ret != null ? (
-                  <span className="fret">→ {f.ret}</span>
+                {frame.ret != null ? (
+                  <span className="fret">→ {frame.ret}</span>
                 ) : i === 0 ? (
                   <span className="fnow">running</span>
                 ) : (
@@ -837,7 +840,7 @@ function Steps({
           <div className="col-h">{t('Output so far')}</div>
           {viz.length > 0 && (
             <div className="mini-viz">
-              <Visual v={viz[viz.length - 1]} />
+              <Visual visual={viz[viz.length - 1]} />
             </div>
           )}
           <div className="console small">
@@ -874,17 +877,17 @@ function Growth({ lesson, growth, onMeasure, measuring, code, lang }) {
     const fn = (fns.find((f) => f.need === 1) || fns[0])?.name || 'f';
     return lang === 'python' ? `${fn}(make_input(n))` : `${fn}(makeInput(n))`;
   }, [code, lang]);
-  const g = lesson?.growth;
-  const [call, setCall] = useState(g?.call || guess);
+  const given = lesson?.growth;
+  const [call, setCall] = useState(given?.call || guess);
   const [setup] = useState(
-    g?.setup ||
+    given?.setup ||
       (lang === 'python'
         ? 'def make_input(n):\n    return list(range(n))'
         : 'function makeInput(n) { return Array.from({ length: n }, (_, i) => i); }'),
   );
   useEffect(() => {
-    setCall(g?.call || guess);
-  }, [g, guess]);
+    setCall(given?.call || guess);
+  }, [given, guess]);
   const series = growth || [];
   return (
     <div className="growth">
@@ -892,19 +895,19 @@ function Growth({ lesson, growth, onMeasure, measuring, code, lang }) {
         <div>
           <div className="col-h">How the work grows</div>
           <div className="muted small">
-            {g?.label ||
+            {given?.label ||
               'Bento runs your function on bigger and bigger inputs and counts every line it executes.'}
           </div>
         </div>
         <button
           className="btn"
-          onClick={() => onMeasure(g?.calls ? g : { setup, call })}
+          onClick={() => onMeasure(given?.calls ? given : { setup, call })}
           disabled={measuring}
         >
           {measuring ? 'Measuring…' : series.length ? 'Measure again' : 'Measure'}
         </button>
       </div>
-      {!g?.calls && !g?.call && (
+      {!given?.calls && !given?.call && (
         <div className="growth-cfg">
           <label>
             call <input className="mono" value={call} onChange={(e) => setCall(e.target.value)} />
@@ -1116,19 +1119,19 @@ function Tests({ lesson, tests, onRunTests, testing }) {
 }
 
 // "[3, 1, 4]" → cells, "{'a': 1}" → key/value chips. Only flat, small values; everything else stays text.
-function splitTop(t) {
+function splitTop(text) {
   const out = [];
   let depth = 0,
-    q = null,
+    quote = null,
     cur = '';
-  for (const ch of t) {
-    if (q) {
+  for (const ch of text) {
+    if (quote) {
       cur += ch;
-      if (ch === q) q = null;
+      if (ch === quote) quote = null;
       continue;
     }
     if (ch === '"' || ch === "'") {
-      q = ch;
+      quote = ch;
       cur += ch;
       continue;
     }
@@ -1142,21 +1145,21 @@ function splitTop(t) {
   if (cur.trim()) out.push(cur.trim());
   return out;
 }
-export function asBoxes(v) {
-  if (typeof v !== 'string' || v.length > 400) return null;
-  const t = v.trim();
+export function asBoxes(value) {
+  if (typeof value !== 'string' || value.length > 400) return null;
+  const text = value.trim();
   const list =
-    (t.startsWith('[') && t.endsWith(']')) ||
-    (t.startsWith('(') && t.endsWith(')') && t.includes(','));
+    (text.startsWith('[') && text.endsWith(']')) ||
+    (text.startsWith('(') && text.endsWith(')') && text.includes(','));
   if (list) {
-    const items = splitTop(t.slice(1, -1));
+    const items = splitTop(text.slice(1, -1));
     const more = items[items.length - 1] === '…' || items[items.length - 1] === '...';
     const xs = more ? items.slice(0, -1) : items;
     if (xs.length > 16 || xs.some((x) => /[[{(]/.test(x) || x.length > 14)) return null;
     return { kind: 'list', items: xs, more };
   }
-  if (t.startsWith('{') && t.endsWith('}') && !t.startsWith('{…')) {
-    const items = splitTop(t.slice(1, -1));
+  if (text.startsWith('{') && text.endsWith('}') && !text.startsWith('{…')) {
+    const items = splitTop(text.slice(1, -1));
     const more = items[items.length - 1] === '…';
     const xs = (more ? items.slice(0, -1) : items).map((x) => {
       const i = x.indexOf(':');

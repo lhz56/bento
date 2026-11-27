@@ -174,16 +174,16 @@ export default function BigPicture({
     if (sy) {
       sy.cancel();
       const text = `${node.label}. ${plain(node.more || node.does)}${node.term ? `. The technical word for this is ${node.term}.` : ''}`;
-      const u = new SpeechSynthesisUtterance(text);
+      const utterance = new SpeechSynthesisUtterance(text);
       const lg = document.documentElement.lang || 'en';
-      u.lang = lg;
+      utterance.lang = lg;
       const vs = sy.getVoices().filter((x) => x.lang.toLowerCase().startsWith(lg));
-      const v =
+      const voice =
         vs.find((x) => /Samantha|Daniel|Ava|Serena|Premium|Enhanced/i.test(x.name)) || vs[0];
-      if (v) u.voice = v;
-      u.rate = 1.03;
-      u.onend = () => (timer = setTimeout(next, 500));
-      sy.speak(u);
+      if (voice) utterance.voice = voice;
+      utterance.rate = 1.03;
+      utterance.onend = () => (timer = setTimeout(next, 500));
+      sy.speak(utterance);
       timer = setTimeout(next, Math.max(4500, text.split(/\s+/).length * 400 + 1200)); // in case the voice never reports finishing
     } else timer = setTimeout(next, 4500);
     return () => {
@@ -415,18 +415,18 @@ export default function BigPicture({
               );
             })}
           {flowLayout.nodes.map((node, i) => {
-            const p = flowLayout.pos[node.id];
+            const pos = flowLayout.pos[node.id];
             const tool = toolFor(node);
             const [color, glyph] = KIND[node.kind] || KIND.part;
             return (
               <button
                 key={node.id}
-                className={`fnode k-${node.kind} ${p.compact ? 'compact' : ''} ${sel === node.id ? 'on' : ''} ${sel && sel !== node.id ? 'dim' : ''}`}
+                className={`fnode k-${node.kind} ${pos.compact ? 'compact' : ''} ${sel === node.id ? 'on' : ''} ${sel && sel !== node.id ? 'dim' : ''}`}
                 style={{
-                  left: p.x,
-                  top: p.y,
-                  width: p.w,
-                  height: p.h,
+                  left: pos.x,
+                  top: pos.y,
+                  width: pos.w,
+                  height: pos.h,
                   '--c': node.layer ? LAYER[node.layer][3] : color,
                   animationDelay: `${i * 70}ms`,
                 }}
@@ -441,17 +441,17 @@ export default function BigPicture({
                       slug={tool.slug}
                       name={tool.name}
                       color={tool.color}
-                      size={p.compact ? 30 : 40}
+                      size={pos.compact ? 30 : 40}
                     />
                   ) : (
                     <span
                       className="fn-glyph"
-                      style={{ width: p.compact ? 30 : 40, height: p.compact ? 30 : 40 }}
+                      style={{ width: pos.compact ? 30 : 40, height: pos.compact ? 30 : 40 }}
                     >
                       <svg
                         viewBox="0 0 24 24"
-                        width={p.compact ? 17 : 22}
-                        height={p.compact ? 17 : 22}
+                        width={pos.compact ? 17 : 22}
+                        height={pos.compact ? 17 : 22}
                       >
                         {glyph}
                       </svg>
@@ -460,7 +460,7 @@ export default function BigPicture({
                 </span>
                 <span className="fn-body">
                   <b className="fn-label">{node.label}</b>
-                  {!p.compact && node.does && <span className="fn-does">{node.does}</span>}
+                  {!pos.compact && node.does && <span className="fn-does">{node.does}</span>}
                   {node.term && <span className="fn-term">{node.term}</span>}
                 </span>
               </button>

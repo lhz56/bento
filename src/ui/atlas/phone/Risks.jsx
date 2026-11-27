@@ -93,17 +93,17 @@ export function Risks({ hot, narrating, onPick }) {
 }
 
 export function HotSheet({ h, facts, pathIdx, role, onClose, onOpenFile, onAsk }) {
-  const [ic, label, c] = hotOf(h);
+  const [ic, label, color] = hotOf(h);
   const file = h.p && pathIdx.has(h.p) ? facts.files[pathIdx.get(h.p)] : null;
   return (
     <Sheet label={h.title} onClose={onClose}>
       <div className="ps-in">
         <div className="ps-id">
-          <span className="ph-ic xl" style={{ '--c': c }}>
+          <span className="ph-ic xl" style={{ '--c': color }}>
             <I n={ic} s={28} w={2} />
           </span>
           <div>
-            <div className="ps-k" style={{ '--c': c }}>
+            <div className="ps-k" style={{ '--c': color }}>
               {label} · {h.measured ? 'measured' : 'from reading the code'}
             </div>
             <h3 className="ps-title">
@@ -117,7 +117,7 @@ export function HotSheet({ h, facts, pathIdx, role, onClose, onOpenFile, onAsk }
         {file && (
           <Group title="Where">
             <FileRow
-              f={file}
+              file={file}
               sub={`${role(file.p) || ''}${role(file.p) ? ' · ' : ''}${file.lines} lines${file.used ? ` · ${file.used} files use it` : ''}`}
               onOpen={onOpenFile}
             />

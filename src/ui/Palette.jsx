@@ -44,7 +44,7 @@ export default function Palette({
   onWord,
   builtins = [],
 }) {
-  const [q, setQ] = useState('');
+  const [query, setQuery] = useState('');
   const [i, setI] = useState(0);
   const inp = useRef(null);
   const box = useDialog(onClose);
@@ -53,12 +53,12 @@ export default function Palette({
     inp.current?.focus({ preventScroll: true });
   }, []);
   const items = useMemo(() => {
-    const t = q.trim().toLowerCase();
-    const m = (s) => !t || String(s).toLowerCase().includes(t);
+    const needle = query.trim().toLowerCase();
+    const matches = (s) => !needle || String(s).toLowerCase().includes(needle);
     /** @type {Array<{ g: string, icon?: string, brand?: string, label: string, hint?: string, find?: string, run: () => void }>} */
     const out = [];
-    const repo = parseRepo(q);
-    const blob = parseBlob(q);
+    const repo = parseRepo(query);
+    const blob = parseBlob(query);
     if (blob && onOpenAt)
       out.push({
         g: 'Take apart',
@@ -75,7 +75,7 @@ export default function Palette({
         hint: 'open in Atlas',
         run: () => onOpenRepo(repo),
       });
-    const site = !repo && parseSite(q);
+    const site = !repo && parseSite(query);
     if (site && onOpenSite)
       out.push({
         g: 'Take apart',
@@ -84,9 +84,9 @@ export default function Palette({
         hint: 'how this website is built',
         run: () => onOpenSite(site),
       });
-    actions.filter((a) => m(a.label)).forEach((a) => out.push({ g: 'Go to', ...a }));
+    actions.filter((a) => matches(a.label)).forEach((a) => out.push({ g: 'Go to', ...a }));
     projects
-      .filter((p) => m(p.name))
+      .filter((p) => matches(p.name))
       .slice(0, 5)
       .forEach((p) =>
         out.push({
@@ -98,18 +98,18 @@ export default function Palette({
         }),
       );
     // lessons that come with Bento open instantly, without asking your AI to write them again
-    if (t.length > 2) {
+    if (needle.length > 2) {
       const mine = new Set(
         lessons.filter((l) => !l.builtin).map((l) => String(l.title || '').toLowerCase()),
       );
       builtins
         .map((b) => ({
           b,
-          sc: m(b.find)
+          sc: matches(b.find)
             ? 9
-            : projectNames(q).some((n) => !namesALesson(n, builtins))
+            : projectNames(query).some((n) => !namesALesson(n, builtins))
               ? 0
-              : coverScore(t, b.find, `${b.label} ${b.alt || ''}`),
+              : coverScore(needle, b.find, `${b.label} ${b.alt || ''}`),
         }))
         .filter((x) => x.sc > 0 && !mine.has(x.b.label.toLowerCase()))
         .sort((x, y) => y.sc - x.sc)
@@ -125,8 +125,8 @@ export default function Palette({
           }),
         );
     }
-    IDEAS.filter((x) => m(`${x.title} ${x.company} ${x.concepts.join(' ')}`))
-      .slice(0, t ? 5 : 3)
+    IDEAS.filter((x) => matches(`${x.title} ${x.company} ${x.concepts.join(' ')}`))
+      .slice(0, needle ? 5 : 3)
       .forEach((x) =>
         out.push({
           g: 'Clever ideas',
@@ -139,12 +139,12 @@ export default function Palette({
     // the lesson called exactly what you typed comes first, then ones that start with it
     const closeness = (l) => {
       const x = String(l.title || l.q || '').toLowerCase();
-      return x === t ? 2 : x.startsWith(t) ? 1 : 0;
+      return x === needle ? 2 : x.startsWith(needle) ? 1 : 0;
     };
     lessons
-      .filter((l) => !l.builtin && m(`${l.title} ${l.q}`))
+      .filter((l) => !l.builtin && matches(`${l.title} ${l.q}`))
       .sort((a, b) => closeness(b) - closeness(a))
-      .slice(0, t ? 6 : 4)
+      .slice(0, needle ? 6 : 4)
       .forEach((l) =>
         out.push({
           g: 'Lessons',
@@ -155,7 +155,7 @@ export default function Palette({
         }),
       );
     // "where did I read about memoization?": inside your lessons, not just their titles
-    if (t.length >= 4) {
+    if (needle.length >= 4) {
       const shown = new Set(out.map((o) => o.label));
       lessons
         .filter(
@@ -163,12 +163,12 @@ export default function Palette({
             (!l.builtin || l.touched) &&
             l.status === 'done' &&
             !shown.has(l.title || l.q) &&
-            !m(`${l.title} ${l.q}`),
+            !matches(`${l.title} ${l.q}`),
         )
         .map((l) => {
           const x = plainText(l);
-          const at = x.toLowerCase().indexOf(t);
-          return at < 0 ? null : { l, hint: around(x, at, t.length) };
+          const at = x.toLowerCase().indexOf(needle);
+          return at < 0 ? null : { l, hint: around(x, at, needle.length) };
         })
         .filter(Boolean)
         .slice(0, 4)
@@ -178,14 +178,14 @@ export default function Palette({
             icon: '¶',
             label: l.title || l.q,
             hint,
-            find: t,
+            find: needle,
             run: () => onLesson(l),
           }),
         );
     }
-    if (t)
+    if (needle)
       Object.values(words)
-        .filter((w) => m(w.term))
+        .filter((w) => matches(w.term))
         .slice(0, 4)
         .forEach((w) =>
           out.push({
@@ -196,21 +196,21 @@ export default function Palette({
             run: () => onWord(w),
           }),
         );
-    if (t && !repo && !parseSite(q)) {
+    if (needle && !repo && !parseSite(query)) {
       const ask = {
         g: 'Ask',
         icon: '✦',
-        label: q.trim(),
+        label: query.trim(),
         hint: 'new lesson',
-        run: () => onAsk(q.trim()),
+        run: () => onAsk(query.trim()),
       };
       if (out.length) out.push(ask);
       else out.unshift(ask);
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the list is rebuilt as you type; its actions come from that keystroke's render
-  }, [q, lessons, projects, words]);
-  useEffect(() => setI(0), [q]);
+  }, [query, lessons, projects, words]);
+  useEffect(() => setI(0), [query]);
   useEffect(() => {
     list.current?.querySelector('.pl-i.on')?.scrollIntoView({ block: 'nearest' });
   }, [i]);
@@ -251,8 +251,8 @@ export default function Palette({
           <input
             ref={inp}
             data-autofocus
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             onKeyDown={key}
             placeholder={
               TOUCH ? 'Ask, search, or paste a link' : 'Ask, search, or paste a GitHub link…'
@@ -275,10 +275,10 @@ export default function Palette({
               Nothing matches.
             </div>
           )}
-          {items.map((it, n) => {
+          {items.map((it, index) => {
             const head =
               it.g !== last ? (
-                <div key={`h${n}`} className="pal-g" role="presentation">
+                <div key={`h${index}`} className="pal-g" role="presentation">
                   {it.g}
                 </div>
               ) : null;
@@ -286,13 +286,13 @@ export default function Palette({
             return [
               head,
               <button
-                key={n}
-                id={`pal-o-${n}`}
+                key={index}
+                id={`pal-o-${index}`}
                 role="option"
-                aria-selected={n === i}
+                aria-selected={index === i}
                 tabIndex={-1}
-                className={`pl-i ${n === i ? 'on' : ''}`}
-                onMouseEnter={() => setI(n)}
+                className={`pl-i ${index === i ? 'on' : ''}`}
+                onMouseEnter={() => setI(index)}
                 onClick={() => {
                   onClose();
                   it.run();
@@ -320,7 +320,7 @@ export default function Palette({
                       : it.hint}
                   </span>
                 )}
-                {n === i && <kbd aria-hidden="true">↵</kbd>}
+                {index === i && <kbd aria-hidden="true">↵</kbd>}
               </button>,
             ];
           })}

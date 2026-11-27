@@ -333,11 +333,11 @@ const hangIndent = ViewPlugin.fromClass(
     update(u) {
       if (u.docChanged || u.viewportChanged) this.decorations = this.build(u.view);
     }
-    build(v) {
+    build(view) {
       const builder = /** @type {RangeSetBuilder<Decoration>} */ (new RangeSetBuilder());
-      for (const { from, to } of v.visibleRanges) {
+      for (const { from, to } of view.visibleRanges) {
         for (let pos = from; pos <= to;) {
-          const line = v.state.doc.lineAt(pos);
+          const line = view.state.doc.lineAt(pos);
           const indent = /^\s*/.exec(line.text)[0].replace(/\t/g, '    ').length + 2;
           builder.add(
             line.from,
@@ -471,34 +471,34 @@ const langExt = (lang) =>
 
 // A finger on the code you're reading: a tap opens the card for that word; a sideways drag on a number changes it, a
 // tick at every step, and the code runs again as it goes (Alt-drag does the same with a Mac's mouse).
-function fingers(v, cb, setCard) {
+function fingers(view, cb, setCard) {
   const on = () => cb.current.touch && cb.current.reading;
   let sc = null,
     badge = null,
     lastTick = 0;
   const numAt = (pos) => {
-    const tr = syntaxTree(v.state);
+    const tr = syntaxTree(view.state);
     let n = tr.resolveInner(pos, 1);
     if (n.name !== 'Number') n = tr.resolveInner(pos, -1);
     return n.name === 'Number' ? n : null;
   };
-  const lit = (r) => v.dispatch({ effects: setTapped.of(r) });
+  const lit = (r) => view.dispatch({ effects: setTapped.of(r) });
   const start = (e) => {
     sc = null;
     if (!on() || e.touches.length !== 1) return;
-    const t = e.touches[0];
-    const pos = v.posAtCoords({ x: t.clientX, y: t.clientY });
-    const n = pos == null ? null : numAt(pos);
-    if (!n) return;
-    const text = v.state.sliceDoc(n.from, n.to);
+    const touch = e.touches[0];
+    const pos = view.posAtCoords({ x: touch.clientX, y: touch.clientY });
+    const num = pos == null ? null : numAt(pos);
+    if (!num) return;
+    const text = view.state.sliceDoc(num.from, num.to);
     const v0 = parseFloat(text);
     if (Number.isNaN(v0)) return;
     const dec = (text.split('.')[1] || '').length;
     sc = {
-      x0: t.clientX,
-      y0: t.clientY,
-      from: n.from,
-      len: n.to - n.from,
+      x0: touch.clientX,
+      y0: touch.clientY,
+      from: num.from,
+      len: num.to - num.from,
       v0,
       dec,
       step: dec ? 10 ** -dec : 1,
@@ -508,9 +508,9 @@ function fingers(v, cb, setCard) {
   };
   const move = (e) => {
     if (!sc) return;
-    const t = e.touches[0];
-    const dx = t.clientX - sc.x0,
-      dy = t.clientY - sc.y0;
+    const touch = e.touches[0];
+    const dx = touch.clientX - sc.x0,
+      dy = touch.clientY - sc.y0;
     if (!sc.lock) {
       if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
         sc = null;
@@ -528,18 +528,18 @@ function fingers(v, cb, setCard) {
     if (e.cancelable) e.preventDefault();
     let val = sc.v0 + Math.round(dx / (sc.dec ? 6 : 9)) * sc.step;
     if (sc.v0 >= 0 && !sc.dec && val < 0) val = 0;
-    const s = sc.dec ? val.toFixed(sc.dec) : String(Math.round(val));
-    badge.textContent = s;
-    badge.style.left = `${t.clientX}px`;
-    badge.style.top = `${t.clientY - 70}px`;
-    if (s === sc.cur) return;
-    v.dispatch({
-      changes: { from: sc.from, to: sc.from + sc.len, insert: s },
-      effects: setTapped.of({ from: sc.from, to: sc.from + s.length }),
+    const text = sc.dec ? val.toFixed(sc.dec) : String(Math.round(val));
+    badge.textContent = text;
+    badge.style.left = `${touch.clientX}px`;
+    badge.style.top = `${touch.clientY - 70}px`;
+    if (text === sc.cur) return;
+    view.dispatch({
+      changes: { from: sc.from, to: sc.from + sc.len, insert: text },
+      effects: setTapped.of({ from: sc.from, to: sc.from + text.length }),
       userEvent: 'input.scrub',
     });
-    sc.len = s.length;
-    sc.cur = s;
+    sc.len = text.length;
+    sc.cur = text;
     const now = performance.now();
     if (now - lastTick > 28) {
       lastTick = now;
@@ -561,11 +561,11 @@ function fingers(v, cb, setCard) {
       setCard(null);
       lit(null);
     };
-    const pos = v.posAtCoords({ x: e.clientX, y: e.clientY });
+    const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
     if (pos == null) return close();
     const box = (a, b) => {
-      const p = v.coordsAtPos(a),
-        q = v.coordsAtPos(b);
+      const p = view.coordsAtPos(a),
+        q = view.coordsAtPos(b);
       return p && { left: p.left, right: q?.right ?? p.right, top: p.top, bottom: p.bottom };
     };
     const num = numAt(pos);
@@ -574,37 +574,37 @@ function fingers(v, cb, setCard) {
       setCard({ id: Math.random(), hint: 'number', at: box(num.from, num.to) });
       return;
     }
-    if (/String|Comment/.test(syntaxTree(v.state).resolveInner(pos, 1).name)) return close();
-    const w = v.state.wordAt(pos);
+    if (/String|Comment/.test(syntaxTree(view.state).resolveInner(pos, 1).name)) return close();
+    const w = view.state.wordAt(pos);
     if (!w) return close();
-    const word = v.state.sliceDoc(w.from, w.to);
+    const word = view.state.sliceDoc(w.from, w.to);
     if (!/^[A-Za-z_$][\w$]*$/.test(word) || word.length > 40) return close();
-    const line = v.state.doc.lineAt(pos);
+    const line = view.state.doc.lineAt(pos);
     const at = box(w.from, w.to);
     if (!at) return close();
     lit({ from: w.from, to: w.to });
-    const r = cb.current.explain?.(word, line.text, {
-      isMember: v.state.sliceDoc(w.from - 1, w.from) === '.',
+    const answer = cb.current.explain?.(word, line.text, {
+      isMember: view.state.sliceDoc(w.from - 1, w.from) === '.',
       lineNo: line.number,
-      doc: v.state.doc.toString(),
+      doc: view.state.doc.toString(),
     });
     const id = Math.random();
-    if (r && typeof r.then === 'function') {
+    if (answer && typeof answer.then === 'function') {
       setCard({ id, word, at, loading: true });
       const put = (info) => setCard((c) => (c?.id === id ? { ...c, info, loading: false } : c));
-      r.then(put, () => put(null));
-    } else setCard({ id, word, at, info: r });
+      answer.then(put, () => put(null));
+    } else setCard({ id, word, at, info: answer });
   };
   const gone = () => {
     setCard(null);
   };
-  const content = v.contentDOM;
+  const content = view.contentDOM;
   content.addEventListener('click', tap);
   content.addEventListener('touchstart', start, { passive: true });
   content.addEventListener('touchmove', move, { passive: false });
   content.addEventListener('touchend', end);
   content.addEventListener('touchcancel', end);
-  v.scrollDOM.addEventListener('scroll', gone, { passive: true });
+  view.scrollDOM.addEventListener('scroll', gone, { passive: true });
   return () => {
     badge?.remove();
     content.removeEventListener('click', tap);
@@ -612,7 +612,7 @@ function fingers(v, cb, setCard) {
     content.removeEventListener('touchmove', move);
     content.removeEventListener('touchend', end);
     content.removeEventListener('touchcancel', end);
-    v.scrollDOM.removeEventListener('scroll', gone);
+    view.scrollDOM.removeEventListener('scroll', gone);
   };
 }
 
@@ -764,7 +764,7 @@ const Editor = forwardRef(function Editor(/** @type {EditorProps} */ props, ref)
 
   useEffect(() => {
     const measureSoon = () => requestAnimationFrame(measure);
-    const v = new EditorView({
+    const editor = new EditorView({
       parent: host.current,
       state: EditorState.create({
         doc: value || '',
@@ -827,23 +827,23 @@ const Editor = forwardRef(function Editor(/** @type {EditorProps} */ props, ref)
         ],
       }),
     });
-    view.current = v;
-    v.scrollDOM.addEventListener('scroll', measureSoon, { passive: true });
+    view.current = editor;
+    editor.scrollDOM.addEventListener('scroll', measureSoon, { passive: true });
     const onMove = (e) => {
-      const p = v.posAtCoords({ x: e.clientX, y: e.clientY });
-      cb.current.onLineHover?.(p == null ? null : v.state.doc.lineAt(p).number);
+      const p = editor.posAtCoords({ x: e.clientX, y: e.clientY });
+      cb.current.onLineHover?.(p == null ? null : editor.state.doc.lineAt(p).number);
     };
     const onLeave = () => cb.current.onLineHover?.(null);
-    v.contentDOM.addEventListener('mousemove', onMove);
-    v.contentDOM.addEventListener('mouseleave', onLeave);
+    editor.contentDOM.addEventListener('mousemove', onMove);
+    editor.contentDOM.addEventListener('mouseleave', onLeave);
     const ro = new ResizeObserver(measureSoon);
     ro.observe(host.current);
     measureSoon();
-    const offTouch = fingers(v, cb, setCard);
+    const offTouch = fingers(editor, cb, setCard);
     return () => {
       offTouch();
       ro.disconnect();
-      v.destroy();
+      editor.destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the editor is made once; later changes reach it through refs and reconfigure
   }, []);

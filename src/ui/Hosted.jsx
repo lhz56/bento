@@ -29,15 +29,15 @@ function Pair() {
   const [code, setCode] = useState(fromLink);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  const go = async (c = code) => {
-    if (!c.trim() || busy) return;
+  const go = async (given = code) => {
+    if (!given.trim() || busy) return;
     setBusy(true);
     setErr('');
     // the code leaves the address at once (Bento may be on screen before pairing has quite finished; and this keeps the page's history)
     if (/^#pair=/.test(location.hash))
       history.replaceState(history.state, '', location.pathname + location.search);
     try {
-      await remote().pair(c, deviceName());
+      await remote().pair(given, deviceName());
     } catch (e) {
       // in Bento Code, the app connects again its own way (Allow on the Mac), never with this page's form
       if (IN_APP) {
@@ -45,7 +45,7 @@ function Pair() {
         return;
       }
       setBusy(false);
-      if (c === spare) setCode('');
+      if (given === spare) setCode('');
       else setErr(e.message); // an old Home Screen code: just the pairing screen, no error
     }
   };

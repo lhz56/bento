@@ -72,7 +72,7 @@ export default function Explore({
   user,
   onConnectGitHub,
 }) {
-  const [q, setQ] = useState('');
+  const [query, setQuery] = useState('');
   const [shelf, setShelf] = useState(1);
   const [res, setRes] = useState(null);
   const [err, setErr] = useState(null);
@@ -111,17 +111,17 @@ export default function Explore({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- a shelf searches when you pick it
   }, [shelf]);
-  const repo = parseRepo(q);
-  const site = !repo && parseSite(q);
+  const repo = parseRepo(query);
+  const site = !repo && parseSite(query);
   const submit = (e) => {
     e.preventDefault();
-    const blob = parseBlob(q);
+    const blob = parseBlob(query);
     if (blob && onOpenAt) return onOpenAt(blob.full, blob.path);
     if (repo) return onOpenRepo(repo);
     if (site) return onOpenSite(site);
-    if (q.trim()) {
+    if (query.trim()) {
       setShelf(null);
-      search(q.trim());
+      search(query.trim());
     }
   };
 
@@ -142,11 +142,11 @@ export default function Explore({
           <span className="ex-ic">{repo ? '⌥' : site ? '◎' : '⌕'}</span>
           <input
             ref={inp}
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             placeholder={`Try “${PH[ph % PH.length]}”`}
           />
-          <button className="send" disabled={!q.trim()}>
+          <button className="send" disabled={!query.trim()}>
             {repo ? (
               <>
                 Take apart <b>{repo.split('/')[1]}</b>
@@ -177,7 +177,7 @@ export default function Explore({
               className={`shelf ${shelf === i ? 'on' : ''}`}
               onClick={() => {
                 setShelf(i);
-                setQ('');
+                setQuery('');
               }}
             >
               <span>{ic}</span>
@@ -191,7 +191,7 @@ export default function Explore({
             <div className="mini-h">
               {shelf != null
                 ? `${SHELVES[shelf][0].toLowerCase()} · small enough to read`
-                : `results for “${res?.q || q}”`}
+                : `results for “${res?.q || query}”`}
               {busy && (
                 <span className="lens-spin" style={{ display: 'inline-block', marginLeft: 8 }} />
               )}

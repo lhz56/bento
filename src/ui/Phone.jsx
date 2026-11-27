@@ -144,14 +144,14 @@ export function enter(main, dir) {
         ];
   // (a page you open or go back to settles like an iPhone's: a spring with no bounce)
   const sp = spring(0.46, 1);
-  const o =
+  const timing =
     dir === 'tab' || fade
       ? { duration: 160, easing: EASE }
       : { duration: sp.ms, easing: sp.easing };
   [...main.children]
     .filter((c) => !c.matches('.titlebar-drag, .gtabs, .side-open'))
-    .forEach((c) => c.animate(frames(36), o));
-  if (bar) bar.animate(frames(24), { ...o, duration: 240 });
+    .forEach((c) => c.animate(frames(36), timing));
+  if (bar) bar.animate(frames(24), { ...timing, duration: 240 });
 }
 
 // where you were on each page: Back and the tabs bring you to the same spot, a page opened afresh starts at its top
@@ -174,13 +174,13 @@ export function noteScroll(page, root, el) {
   spots.get(page).set(p, el.scrollTop);
 }
 export function restoreScroll(page, root) {
-  const m = spots.get(page);
-  if (!m || !root) return;
+  const spot = spots.get(page);
+  if (!spot || !root) return;
   let tries = 0;
   // a page can still be filling in: keep trying for half a second, until the spot exists
   const go = () => {
     let left = 0;
-    m.forEach((top, p) => {
+    spot.forEach((top, p) => {
       const el = atPath(root, p);
       if (!el) {
         left++;

@@ -374,8 +374,8 @@ function Review({ quiz, setQuiz, onDone, onOpenLesson, onAsk }) {
         </div>
       </div>
     );
-  const q = quiz.items[quiz.i];
-  if (!q)
+  const question = quiz.items[quiz.i];
+  if (!question)
     return (
       <div className="sm-review fade-in done">
         <b>
@@ -399,7 +399,7 @@ function Review({ quiz, setQuiz, onDone, onOpenLesson, onAsk }) {
         </button>
       </div>
     );
-  const ok = quiz.pick === q.answer;
+  const ok = quiz.pick === question.answer;
   return (
     <div className="sm-review fade-in">
       <div className="sm-qbar">
@@ -407,20 +407,20 @@ function Review({ quiz, setQuiz, onDone, onOpenLesson, onAsk }) {
           <i key={k} className={k < quiz.i ? 'done' : k === quiz.i ? 'now' : ''} />
         ))}
         <span>
-          {quiz.i + 1} / {quiz.items.length} · {q.from}
+          {quiz.i + 1} / {quiz.items.length} · {question.from}
         </span>
       </div>
-      <div className="sm-q">{q.q}</div>
+      <div className="sm-q">{question.q}</div>
       <div className="sm-choices">
-        {q.choices.map((choice, k) => (
+        {question.choices.map((choice, k) => (
           <button
             key={k}
             disabled={quiz.pick != null}
             className={
-              quiz.pick != null ? (k === q.answer ? 'ok' : k === quiz.pick ? 'no' : '') : ''
+              quiz.pick != null ? (k === question.answer ? 'ok' : k === quiz.pick ? 'no' : '') : ''
             }
             onClick={() =>
-              setQuiz({ ...quiz, pick: k, score: quiz.score + (k === q.answer ? 1 : 0) })
+              setQuiz({ ...quiz, pick: k, score: quiz.score + (k === question.answer ? 1 : 0) })
             }
           >
             {choice}
@@ -429,9 +429,9 @@ function Review({ quiz, setQuiz, onDone, onOpenLesson, onAsk }) {
       </div>
       {quiz.pick != null && (
         <div className={`sm-why ${ok ? 'ok' : ''}`}>
-          <b>{ok ? t('Yes!') : t('Not quite.')}</b> {q.why}{' '}
-          {q.lid && (
-            <button className="link" onClick={() => onOpenLesson(q.lid)}>
+          <b>{ok ? t('Yes!') : t('Not quite.')}</b> {question.why}{' '}
+          {question.lid && (
+            <button className="link" onClick={() => onOpenLesson(question.lid)}>
               {t('open the lesson')}
             </button>
           )}

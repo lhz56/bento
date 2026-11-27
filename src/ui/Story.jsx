@@ -16,25 +16,25 @@ import { announce } from './a11y.js';
 import { K, keys, mod } from '../platform.js';
 const EMPTY = new Map();
 
-function Quiz({ b, onAnswer }) {
+function Quiz({ block, onAnswer }) {
   const [pick, setPick] = useState(null);
-  const ok = pick === b.answer;
+  const ok = pick === block.answer;
   return (
     <div className="quiz">
       <div className="quiz-q">
         <span className="quiz-k">quick check</span>
-        {b.q}
+        {block.q}
       </div>
       <div className="quiz-choices">
-        {(b.choices || []).map((c, i) => (
+        {(block.choices || []).map((c, i) => (
           <button
             key={i}
             disabled={pick != null}
-            className={`choice ${pick != null && i === b.answer ? 'right' : ''} ${pick === i && !ok ? 'wrong' : ''}`}
+            className={`choice ${pick != null && i === block.answer ? 'right' : ''} ${pick === i && !ok ? 'wrong' : ''}`}
             onClick={() => {
               setPick(i);
-              haptic(i === b.answer ? 'success' : 'warn');
-              onAnswer?.(i === b.answer);
+              haptic(i === block.answer ? 'success' : 'warn');
+              onAnswer?.(i === block.answer);
             }}
           >
             {c}
@@ -43,7 +43,7 @@ function Quiz({ b, onAnswer }) {
       </div>
       {pick != null && (
         <div className={`quiz-why ${ok ? 'ok' : ''}`}>
-          <b>{ok ? 'Yes!' : 'Not quite.'}</b> {b.why}
+          <b>{ok ? 'Yes!' : 'Not quite.'}</b> {block.why}
           {!ok && (
             <button className="link" onClick={() => setPick(null)}>
               try again
@@ -56,26 +56,26 @@ function Quiz({ b, onAnswer }) {
 }
 
 // "Check yourself": one optional question after an answer. Getting it right lights your map; it's never required.
-function QuickCheck({ c, onDone }) {
+function QuickCheck({ check, onDone }) {
   const [pick, setPick] = useState(null);
-  const ok = pick === c.answer;
+  const ok = pick === check.answer;
   return (
     <div className={`qcheck ${pick == null ? '' : ok ? 'ok' : 'no'}`}>
       <div className="qc-h">
         <span>{t('Check yourself')}</span>
         {pick == null && <i>{t('optional')}</i>}
       </div>
-      <div className="qc-q">{c.q}</div>
+      <div className="qc-q">{check.q}</div>
       <div className="qc-row">
-        {c.choices.map((x, k) => (
+        {check.choices.map((x, k) => (
           <button
             key={k}
             disabled={pick != null}
-            className={pick == null ? '' : k === c.answer ? 'right' : k === pick ? 'wrong' : ''}
+            className={pick == null ? '' : k === check.answer ? 'right' : k === pick ? 'wrong' : ''}
             onClick={() => {
               setPick(k);
-              haptic(k === c.answer ? 'success' : 'warn');
-              onDone?.(k === c.answer);
+              haptic(k === check.answer ? 'success' : 'warn');
+              onDone?.(k === check.answer);
             }}
           >
             {x}
@@ -85,14 +85,14 @@ function QuickCheck({ c, onDone }) {
       {pick != null && (
         <div className="qc-why">
           {ok ? '✓ ' : ''}
-          {c.why}
+          {check.why}
         </div>
       )}
     </div>
   );
 }
-export default function Story(p) {
-  const { lesson, streaming } = p;
+export default function Story(props) {
+  const { lesson, streaming } = props;
   const scroller = useRef(null);
   const [hints, setHints] = useState(0);
   useEffect(() => {
@@ -128,7 +128,9 @@ export default function Story(p) {
       announce(`${t('Lesson ready')}: ${lesson.title || ''}`);
     wasStreaming.current = streaming;
   }, [streaming, lesson.status, lesson.title]);
-  const md = (t) => <Md text={t} onLink={p.onLink} onLinkClick={p.onLinkClick} onTerm={p.onTerm} />;
+  const md = (t) => (
+    <Md text={t} onLink={props.onLink} onLinkClick={props.onLinkClick} onTerm={props.onTerm} />
+  );
   // where the code sits in article mode: under a heading about the code, else after the second paragraph
   const hIdx = lesson.story.findIndex(
     (b) => b.t === 'h' && /code|how it works|build/i.test(b.text || ''),
@@ -164,8 +166,8 @@ export default function Story(p) {
       aria-busy={streaming || undefined}
     >
       <div className="story-inner">
-        {lesson.context?.repoKey && p.onBackToRepo && (
-          <button className="back-repo" onClick={() => p.onBackToRepo(lesson.context.repoKey)}>
+        {lesson.context?.repoKey && props.onBackToRepo && (
+          <button className="back-repo" onClick={() => props.onBackToRepo(lesson.context.repoKey)}>
             ← {lesson.context.repo}
           </button>
         )}
@@ -178,11 +180,11 @@ export default function Story(p) {
             </>
           ) : null}
         </div>
-        <PathBar info={p.pathInfo} onPage={p.onPathPage} onStop={p.onPathStop} />
-        {p.reopened && (
+        <PathBar info={props.pathInfo} onPage={props.onPathPage} onStop={props.onPathStop} />
+        {props.reopened && (
           <div className="reopened fade-in" role="status">
             ♻ {t('You asked this before, so here’s your earlier lesson (no AI used).')}
-            <button className="link" onClick={p.reopened}>
+            <button className="link" onClick={props.reopened}>
               {t('Write a fresh one')} →
             </button>
           </div>
@@ -195,22 +197,25 @@ export default function Story(p) {
               <div className="lesson-acts">
                 <Listen lesson={lesson} />
                 <CopyNotes lesson={lesson} />
-                {p.onArticle && lesson.code && lesson.lang !== 'html' && !lesson.steps?.length && (
-                  <button
-                    className={`listen ${p.article ? 'on' : ''}`}
-                    onClick={p.onArticle}
-                    title="Read it as one column, with the code and its pictures inline"
-                  >
-                    {p.article ? '◧ ' + t('Side by side') : '▤ ' + t('Read as article')}
-                  </button>
-                )}
+                {props.onArticle &&
+                  lesson.code &&
+                  lesson.lang !== 'html' &&
+                  !lesson.steps?.length && (
+                    <button
+                      className={`listen ${props.article ? 'on' : ''}`}
+                      onClick={props.onArticle}
+                      title="Read it as one column, with the code and its pictures inline"
+                    >
+                      {props.article ? '◧ ' + t('Side by side') : '▤ ' + t('Read as article')}
+                    </button>
+                  )}
                 {window.bento?.exportLesson && <ShareBtn lesson={lesson} />}
                 {window.bento?.saveWeb && <WebPageBtn lesson={lesson} />}
               </div>
             )}
             {lesson.mode === 'idea' && lesson.context?.link && (
               <div className="idea-srcs">
-                <button className="idea-src" onClick={() => p.onOpenUrl?.(lesson.context.link)}>
+                <button className="idea-src" onClick={() => props.onOpenUrl?.(lesson.context.link)}>
                   {lesson.context.repo ? (
                     <>
                       Real code: <b>{lesson.context.repo}</b> ↗
@@ -220,7 +225,7 @@ export default function Story(p) {
                   )}
                 </button>
                 {lesson.context.repo &&
-                  p.onOpenRepo &&
+                  props.onOpenRepo &&
                   (() => {
                     const file =
                       lesson.context.file ||
@@ -230,9 +235,9 @@ export default function Story(p) {
                         className="idea-src strong"
                         title={file ? `Opens ${file} inside ${lesson.context.repo}` : undefined}
                         onClick={() =>
-                          file && p.onOpenAt
-                            ? p.onOpenAt(lesson.context.repo, file)
-                            : p.onOpenRepo(lesson.context.repo)
+                          file && props.onOpenAt
+                            ? props.onOpenAt(lesson.context.repo, file)
+                            : props.onOpenRepo(lesson.context.repo)
                         }
                       >
                         ◈{' '}
@@ -259,11 +264,11 @@ export default function Story(p) {
                     : 'JavaScript'}
               {lesson.concepts?.length > 0 && <span className="sep">·</span>}
               {lesson.concepts?.map((c) => (
-                <span key={c} className="concept" onClick={() => p.onConcept?.(c)}>
+                <span key={c} className="concept" onClick={() => props.onConcept?.(c)}>
                   {c.replace(/-/g, ' ')}
                 </span>
               ))}
-              {lesson.check && <Checked c={lesson.check} />}
+              {lesson.check && <Checked check={lesson.check} />}
             </div>
           </header>
         ) : streaming ? (
@@ -273,7 +278,7 @@ export default function Story(p) {
           </header>
         ) : null}
 
-        {!p.article && !lesson.puzzle && <HeroPicture lesson={lesson} run={p.run} />}
+        {!props.article && !lesson.puzzle && <HeroPicture lesson={lesson} run={props.run} />}
         {lesson.story.filter((b) => b.t === 'h').length >= 3 && (
           <nav className="toc" aria-label={t('In this lesson')}>
             {lesson.story
@@ -297,15 +302,15 @@ export default function Story(p) {
             return (
               <Fragment key={i}>
                 <p className="para fade-in">{md(block.md)}</p>
-                {p.article && i === codeAt && <ArticleCode lesson={lesson} run={p.run} />}
-                {i === 0 && p.puzzleTop}
+                {props.article && i === codeAt && <ArticleCode lesson={lesson} run={props.run} />}
+                {i === 0 && props.puzzleTop}
               </Fragment>
             );
           if (block.t === 'h')
             return (
               <Fragment key={i}>
                 <h2 className="story-h fade-in">{block.text}</h2>
-                {p.article && i === codeAt && <ArticleCode lesson={lesson} run={p.run} />}
+                {props.article && i === codeAt && <ArticleCode lesson={lesson} run={props.run} />}
               </Fragment>
             );
           if (block.t === 'diagram')
@@ -317,7 +322,7 @@ export default function Story(p) {
                   tools={[]}
                   pathIdx={EMPTY}
                   onOpen={() => {}}
-                  onAsk={(q) => p.onFollowUp?.(q)}
+                  onAsk={(q) => props.onFollowUp?.(q)}
                   narrating={false}
                   role={() => ''}
                 />
@@ -328,38 +333,38 @@ export default function Story(p) {
               <Term
                 key={i}
                 b={block}
-                known={p.knownWords?.[String(block.term).toLowerCase()]}
+                known={props.knownWords?.[String(block.term).toLowerCase()]}
                 lessonId={lesson.id}
               />
             );
           if (block.t === 'step') {
-            const s = lesson.steps[block.i];
-            const on = p.stepSel === block.i;
+            const step = lesson.steps[block.i];
+            const on = props.stepSel === block.i;
             return (
               <div
                 key={i}
                 className={`recipe-step fade-in ${on ? 'on' : ''}`}
-                onClick={() => p.onStepSelect(block.i)}
+                onClick={() => props.onStepSelect(block.i)}
               >
                 <div className="rs-num">{block.i + 1}</div>
                 <div className="rs-body">
                   <div className="rs-title">
-                    {s.title}
-                    {s.file && <span className="rs-file">{s.file}</span>}
+                    {step.title}
+                    {step.file && <span className="rs-file">{step.file}</span>}
                   </div>
-                  <div className="rs-md">{md(s.md)}</div>
+                  <div className="rs-md">{md(step.md)}</div>
                 </div>
               </div>
             );
           }
-          if (block.t === 'quiz') return <Quiz key={i} b={block} onAnswer={p.onQuiz} />;
+          if (block.t === 'quiz') return <Quiz key={i} block={block} onAnswer={props.onQuiz} />;
           if (block.t === 'try' || block.t === 'next') return null; // gathered into the “what next” card below
           return null;
         })}
 
-        {!streaming && lesson.status === 'done' && <NextCard lesson={lesson} p={p} />}
-        {!streaming && lesson.status === 'done' && lesson.puzzle && p.onTeachBack && (
-          <TeachBack lesson={lesson} onTeachBack={p.onTeachBack} />
+        {!streaming && lesson.status === 'done' && <NextCard lesson={lesson} storyProps={props} />}
+        {!streaming && lesson.status === 'done' && lesson.puzzle && props.onTeachBack && (
+          <TeachBack lesson={lesson} onTeachBack={props.onTeachBack} />
         )}
         {lesson.hints?.length > 0 && (
           <div className="hints fade-in">
@@ -379,7 +384,7 @@ export default function Story(p) {
           </div>
         )}
 
-        {p.puzzleEnd}
+        {props.puzzleEnd}
         {(lesson.chat || []).length > 0 && (
           <div className="chat">
             {lesson.chat.map((message, i) => (
@@ -399,46 +404,51 @@ export default function Story(p) {
                       )}
                       <Md
                         text={message.a}
-                        onLink={p.onLink}
-                        onLinkClick={p.onLinkClick}
-                        onTerm={p.onTerm}
+                        onLink={props.onLink}
+                        onLinkClick={props.onLinkClick}
+                        onTerm={props.onTerm}
                       />
                       {message.term && message.plain && (
                         <span className="qa-term">
                           <b>{message.term}</b> {message.plain}
                         </span>
                       )}
-                      {message.check && <QuickCheck c={message.check} onDone={p.onCheck} />}
+                      {message.check && <QuickCheck check={message.check} onDone={props.onCheck} />}
                       <div className="qa-acts">
                         <button
                           className="qa-chip"
-                          onClick={() => p.onQuickAsk?.(`Explain that more simply: ${message.q}`)}
+                          onClick={() =>
+                            props.onQuickAsk?.(`Explain that more simply: ${message.q}`)
+                          }
                         >
                           {t('Simpler')}
                         </button>
                         <button
                           className="qa-chip"
                           onClick={() =>
-                            p.onQuickAsk?.(
+                            props.onQuickAsk?.(
                               `Show me a tiny example of that, using this lesson's code: ${message.q}`,
                             )
                           }
                         >
                           {t('Show an example')}
                         </button>
-                        <button className="qa-chip" onClick={() => p.onFollowUp(message.q)}>
+                        <button className="qa-chip" onClick={() => props.onFollowUp(message.q)}>
                           ✦ {t('Make it a lesson')}
                         </button>
-                        {p.altFor?.(message) && !message.second && (
-                          <button className="qa-chip alt" onClick={() => p.onSecondOpinion?.(i)}>
-                            {t('Ask')} {p.altFor(message)}
+                        {props.altFor?.(message) && !message.second && (
+                          <button
+                            className="qa-chip alt"
+                            onClick={() => props.onSecondOpinion?.(i)}
+                          >
+                            {t('Ask')} {props.altFor(message)}
                           </button>
                         )}
                       </div>
                       {message.next?.length > 0 && i === lesson.chat.length - 1 && (
                         <div className="qa-next" aria-label={t('Ask next')}>
                           {message.next.map((x) => (
-                            <button key={x} onClick={() => p.onQuickAsk?.(x)}>
+                            <button key={x} onClick={() => props.onQuickAsk?.(x)}>
                               {x}
                               <span aria-hidden="true">↵</span>
                             </button>
@@ -457,9 +467,9 @@ export default function Story(p) {
                           ) : (
                             <Md
                               text={message.second.a}
-                              onLink={p.onLink}
-                              onLinkClick={p.onLinkClick}
-                              onTerm={p.onTerm}
+                              onLink={props.onLink}
+                              onLinkClick={props.onLinkClick}
+                              onTerm={props.onTerm}
                             />
                           )}
                         </div>
@@ -479,11 +489,11 @@ export default function Story(p) {
               <i />
             </span>
             {lesson.story.length || lesson.code
-              ? `${p.modelLabel} is writing`
-              : `${p.modelLabel} is planning how to explain it`}
-            {slowLabel(p.modelLabel) ? ' (Codex sends the whole lesson at once)' : ''}
-            {p.onStop && (
-              <button className="stop-btn" onClick={p.onStop}>
+              ? `${props.modelLabel} is writing`
+              : `${props.modelLabel} is planning how to explain it`}
+            {slowLabel(props.modelLabel) ? ' (Codex sends the whole lesson at once)' : ''}
+            {props.onStop && (
+              <button className="stop-btn" onClick={props.onStop}>
                 Stop
               </button>
             )}
@@ -494,7 +504,7 @@ export default function Story(p) {
             text={lesson.thinking || ''}
             mode={lesson.mode}
             since={lesson.createdAt}
-            slow={slowLabel(p.modelLabel)}
+            slow={slowLabel(props.modelLabel)}
           />
         )}
         {streaming && !lesson.story.length && (
@@ -522,16 +532,16 @@ export default function Story(p) {
           <div className="story-err">
             <b>That didn't work.</b> {lesson.error}
             <div>
-              <button className="btn tiny" onClick={p.onRetry}>
+              <button className="btn tiny" onClick={props.onRetry}>
                 Try again
               </button>
-              {p.altModel && (
+              {props.altModel && (
                 <button
                   className="btn tiny ghost"
                   style={{ marginLeft: 6 }}
-                  onClick={p.onRetryWith}
+                  onClick={props.onRetryWith}
                 >
-                  Try with {p.altModel}
+                  Try with {props.altModel}
                 </button>
               )}
             </div>
@@ -541,8 +551,8 @@ export default function Story(p) {
       </div>
       <div className="followup">
         <FollowUp
-          onAsk={p.onQuickAsk || p.onFollowUp}
-          onLesson={p.onFollowUp}
+          onAsk={props.onQuickAsk || props.onFollowUp}
+          onLesson={props.onFollowUp}
           placeholder={
             lesson.mode === 'challenge'
               ? 'Ask for a hint in your own words…'
@@ -762,21 +772,22 @@ function HeroPicture({ lesson, run }) {
 }
 
 // Everything that comes after a lesson, in one place: play with it, go further, prove it
-function NextCard({ lesson, p }) {
+function NextCard({ lesson, storyProps }) {
   const tries = lesson.story.filter((b) => b.t === 'try').flatMap((b) => b.items || []);
   const nexts = lesson.story.filter((b) => b.t === 'next').flatMap((b) => b.items || []);
   const [open, setOpen] = useState(lesson.teach ? 'teach' : null);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- opening a lesson shows its explain-it-back card if it has one; later changes don't reopen it
   useEffect(() => setOpen(lesson.teach ? 'teach' : null), [lesson.id]);
-  const depth = !lesson.scratch && lesson.mode !== 'challenge' && p.onDepth;
+  const depth = !lesson.scratch && lesson.mode !== 'challenge' && storyProps.onDepth;
   const practice =
-    p.onPractice &&
+    storyProps.onPractice &&
     !lesson.scratch &&
     lesson.mode !== 'challenge' &&
     lesson.mode !== 'compare' &&
     lesson.lang !== 'html';
-  const teach = p.onTeachBack && !lesson.scratch && lesson.mode !== 'challenge';
-  const wild = p.onWild && (lesson.mode === 'explain' || lesson.race || lesson.mode === 'idea');
+  const teach = storyProps.onTeachBack && !lesson.scratch && lesson.mode !== 'challenge';
+  const wild =
+    storyProps.onWild && (lesson.mode === 'explain' || lesson.race || lesson.mode === 'idea');
   const prove = practice || teach || wild;
   if (!tries.length && !nexts.length && !depth && !prove) return null;
   return (
@@ -787,13 +798,13 @@ function NextCard({ lesson, p }) {
           {depth && (
             <span className="wn-depth" role="group" aria-label={t('Explain it again')}>
               <button
-                onClick={() => p.onDepth('simpler')}
+                onClick={() => storyProps.onDepth('simpler')}
                 title={t('The same idea, simpler, with an everyday example')}
               >
                 ↓ {t('Simpler')}
               </button>
               <button
-                onClick={() => p.onDepth('deeper')}
+                onClick={() => storyProps.onDepth('deeper')}
                 title={t('What’s really happening underneath, and the trade-offs')}
               >
                 ↑ {t('Deeper')}
@@ -814,7 +825,7 @@ function NextCard({ lesson, p }) {
             </div>
             <div className="wn-list">
               {tries.map((x, j) => (
-                <button key={j} className="wn-card" onClick={() => p.onTry(x)}>
+                <button key={j} className="wn-card" onClick={() => storyProps.onTry(x)}>
                   <span className="wn-t">{x}</span>
                   <span className="wn-go play">▶ {t('try')}</span>
                 </button>
@@ -835,7 +846,7 @@ function NextCard({ lesson, p }) {
             </div>
             <div className="wn-list">
               {nexts.map((x, j) => (
-                <button key={j} className="wn-card" onClick={() => p.onNext(x)}>
+                <button key={j} className="wn-card" onClick={() => storyProps.onNext(x)}>
                   <span className="wn-t">{x}</span>
                   <span className="wn-go">+ {t('lesson')} →</span>
                 </button>
@@ -856,7 +867,7 @@ function NextCard({ lesson, p }) {
             </div>
             <div className="wn-prove">
               {practice && (
-                <button className="wn-big" onClick={() => p.onPractice(lesson)}>
+                <button className="wn-big" onClick={() => storyProps.onPractice(lesson)}>
                   <span className="wn-bi" aria-hidden="true">
                     🎯
                   </span>
@@ -894,43 +905,45 @@ function NextCard({ lesson, p }) {
           </div>
         )}
       </section>
-      {open === 'teach' && teach && <TeachBack lesson={lesson} onTeachBack={p.onTeachBack} />}
+      {open === 'teach' && teach && (
+        <TeachBack lesson={lesson} onTeachBack={storyProps.onTeachBack} />
+      )}
       {open === 'wild' && wild && (
-        <Wild lesson={lesson} onWild={p.onWild} onOpenAt={p.onOpenAt} auto />
+        <Wild lesson={lesson} onWild={storyProps.onWild} onOpenAt={storyProps.onOpenAt} auto />
       )}
     </>
   );
 }
 
 // "✓ Checked": the lesson was compared with what its code really did; corrections are listed, never hidden
-function Checked({ c }) {
+function Checked({ check }) {
   const [open, setOpen] = useState(false);
-  const n = (c.corrections || []).length + (c.local || []).length;
+  const count = (check.corrections || []).length + (check.local || []).length;
   return (
-    <span className={`checked ${n ? 'fixed' : ''}`}>
+    <span className={`checked ${count ? 'fixed' : ''}`}>
       <button
         onClick={() => setOpen(!open)}
         title={
-          c.by
+          check.by
             ? 'Bento ran the code and checked the quiz answers and claims against what it really printed'
             : 'Bento ran the code and checked the lesson’s links and quizzes'
         }
       >
         ✓ {t('Checked')}
-        {n ? ` · ${n} ${n === 1 ? t('fix') : t('fixes')}` : ''}
+        {count ? ` · ${count} ${count === 1 ? t('fix') : t('fixes')}` : ''}
       </button>
       {open && (
         <span className="checked-pop" role="dialog" aria-label={t('What Bento checked')}>
           <b>{t('What Bento checked')}</b>
           <span>✓ {t('The code runs without errors.')}</span>
-          {c.by ? (
+          {check.by ? (
             <span>✓ {t('Quiz answers and claims compared with the real output.')}</span>
           ) : (
             <span className="muted">
               {t('Connect an AI to also check quiz answers against the output.')}
             </span>
           )}
-          {(c.corrections || []).map((x, i) => (
+          {(check.corrections || []).map((x, i) => (
             <span key={i} className="cp-fix">
               {x.kind === 'quiz' ? (
                 <>
@@ -943,7 +956,7 @@ function Checked({ c }) {
               )}
             </span>
           ))}
-          {(c.local || []).map((x, i) => (
+          {(check.local || []).map((x, i) => (
             <span key={`l${i}`} className="cp-fix">
               {t('Tidied')}: {t(x)}
             </span>
@@ -1173,7 +1186,7 @@ function CopyNotes({ lesson }) {
 function ArticleCode({ lesson, run }) {
   const code = run?.src ?? lesson.work ?? lesson.code;
   const lineCount = code.split('\n').length;
-  const r = run?.r;
+  const result = run?.r;
   return (
     <figure className="art-fig">
       <div className="art-code" style={{ height: Math.min(560, lineCount * 23.5 + 24) }}>
@@ -1184,20 +1197,20 @@ function ArticleCode({ lesson, run }) {
           lens="code"
         />
       </div>
-      {r?.visuals?.length > 0 && (
+      {result?.visuals?.length > 0 && (
         <div className="art-viz">
-          <Visuals list={r.visuals} />
+          <Visuals list={result.visuals} />
         </div>
       )}
-      {r?.logs?.length > 0 && (
+      {result?.logs?.length > 0 && (
         <pre className="console small art-out">
-          {r.logs
+          {result.logs
             .slice(0, 30)
             .map((l) => l.s)
             .join('\n')}
         </pre>
       )}
-      {!r && <figcaption className="muted small">Running the code…</figcaption>}
+      {!result && <figcaption className="muted small">Running the code…</figcaption>}
     </figure>
   );
 }
@@ -1216,28 +1229,28 @@ function Term({ b, known, lessonId }) {
 }
 
 function FollowUp({ onAsk, onLesson, placeholder }) {
-  const [v, setV] = useState('');
+  const [value, setValue] = useState('');
   return (
     <form
       className="fu"
       onSubmit={(e) => {
         e.preventDefault();
-        if (v.trim()) {
-          onAsk(v.trim());
-          setV('');
+        if (value.trim()) {
+          onAsk(value.trim());
+          setValue('');
         }
       }}
     >
       <input
         id="followup"
-        value={v}
-        onChange={(e) => setV(e.target.value)}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && mod(e) && v.trim()) {
+          if (e.key === 'Enter' && mod(e) && value.trim()) {
             e.preventDefault();
-            onLesson(v.trim());
-            setV('');
+            onLesson(value.trim());
+            setValue('');
           }
         }}
       />

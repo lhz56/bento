@@ -146,7 +146,7 @@ export default function Grow({ full }) {
             aria-valuenow={i}
             aria-valuetext={`${fmtDate(frame.at)}: ${frame.total} ${t('files')}, ${frame.n} ${t('commits')}. ${frame.msg}`}
             onKeyDown={(e) => {
-              const d = {
+              const step = {
                 ArrowRight: 1,
                 ArrowUp: 1,
                 ArrowLeft: -1,
@@ -154,10 +154,10 @@ export default function Grow({ full }) {
                 PageUp: 10,
                 PageDown: -10,
               }[e.key];
-              if (d) {
+              if (step) {
                 e.preventDefault();
                 setPlaying(false);
-                setI(Math.max(0, Math.min(frames.length - 1, i + d)));
+                setI(Math.max(0, Math.min(frames.length - 1, i + step)));
               } else if (e.key === 'Home' || e.key === 'End') {
                 e.preventDefault();
                 setPlaying(false);
@@ -235,19 +235,19 @@ export default function Grow({ full }) {
           </div>
           <div className="grow-dirs">
             {dirs.map((dir, k) => {
-              const n = frame.dirs[dir] || 0;
+              const count = frame.dirs[dir] || 0;
               return (
-                <div key={dir} className={`gd ${n ? '' : 'none'}`}>
+                <div key={dir} className={`gd ${count ? '' : 'none'}`}>
                   <span className="gd-name">{dir}</span>
                   <span className="gd-bar">
                     <i
                       style={{
-                        width: `${(n / dmax) * 100}%`,
+                        width: `${(count / dmax) * 100}%`,
                         background: COLORS[k % COLORS.length],
                       }}
                     />
                   </span>
-                  <span className="gd-n">{n || ''}</span>
+                  <span className="gd-n">{count || ''}</span>
                 </div>
               );
             })}

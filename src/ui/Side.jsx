@@ -76,15 +76,15 @@ function ModelPicker({ settings, setSettings, providers, onClose, onSettings, on
         <span>{t('Runs on your own plan. No keys.')}</span>
       </div>
       <div className="mp-list">
-        {have.map((p) => {
-          const w = mainWindow(limits[p.id]);
+        {have.map((prov) => {
+          const w = mainWindow(limits[prov.id]);
           const lv = level(w);
           return (
-            <div key={p.id} className="mp-group" role="group" aria-label={p.name}>
+            <div key={prov.id} className="mp-group" role="group" aria-label={prov.name}>
               {/* each AI: its mark, its name, and how full its plan is */}
               <div className="mp-ai" aria-hidden="true">
-                <AIMark id={p.id} size={16} />
-                <b>{p.short || p.name}</b>
+                <AIMark id={prov.id} size={16} />
+                <b>{prov.short || prov.name}</b>
                 {w && (
                   <span className={`mp-used lv-${lv}`} title={usedText(w)}>
                     <Ring used={w.unlimited ? 0 : w.used} lv={lv} size={13} />
@@ -92,7 +92,7 @@ function ModelPicker({ settings, setSettings, providers, onClose, onSettings, on
                   </span>
                 )}
               </div>
-              {p.models.map((model) => {
+              {prov.models.map((model) => {
                 const on = settings.model === model.id;
                 return (
                   <button
@@ -401,31 +401,33 @@ export function Sidebar({
             )}
             {it.kind === 'project' ? (
               (() => {
-                const p = it.p;
-                const st = atlases[p.key]?.status;
+                const project = it.p;
+                const st = atlases[project.key]?.status;
                 const on =
-                  (view === 'atlas' && atlasKey === p.key) ||
-                  (p.kind === 'site' && view === 'site' && siteKey === p.name);
+                  (view === 'atlas' && atlasKey === project.key) ||
+                  (project.kind === 'site' && view === 'site' && siteKey === project.name);
                 return (
                   <div key={it.key} className={`rl ${on ? 'on' : ''}`}>
                     <button
                       className="rl-main"
                       aria-current={on ? 'page' : undefined}
-                      onClick={() => onOpenProject(p)}
+                      onClick={() => onOpenProject(project)}
                     >
-                      {p.kind === 'github' ? (
+                      {project.kind === 'github' ? (
                         <img
                           className="rl-av"
-                          src={`https://avatars.githubusercontent.com/${(p.full || p.key).split('/')[0]}?size=32`}
+                          src={`https://avatars.githubusercontent.com/${(project.full || project.key).split('/')[0]}?size=32`}
                           alt=""
                         />
                       ) : (
                         <span className="rl-ic">
-                          <Icon name={p.kind === 'site' ? 'globe' : 'folder'} size={13} />
+                          <Icon name={project.kind === 'site' ? 'globe' : 'folder'} size={13} />
                         </span>
                       )}
                       <span className="rl-t">
-                        {p.kind === 'github' ? (p.full || p.name).split('/').pop() : p.name}
+                        {project.kind === 'github'
+                          ? (project.full || project.name).split('/').pop()
+                          : project.name}
                       </span>
                       {['cloning', 'reading', 'narrating'].includes(st) && (
                         <span className="rl-live" />
@@ -436,7 +438,7 @@ export function Sidebar({
                       aria-label={t('Remove')}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onForgetProject(p.key);
+                        onForgetProject(project.key);
                       }}
                     >
                       <Icon name="close" size={12} />
@@ -455,7 +457,7 @@ export function Sidebar({
                   onClick={() => onOpen(it.l)}
                 >
                   <LessonIcon
-                    l={it.l}
+                    lesson={it.l}
                     path={Object.values(progress.path || {}).includes(it.l.id)}
                   />
                   <span className="rl-t">{it.l.title || it.l.q || 'Untitled'}</span>
@@ -603,9 +605,9 @@ function UpdatePill() {
   );
 }
 
-/** @param {{ l: any, path?: boolean }} props */
-function LessonIcon({ l, path }) {
-  const idea = l.mode === 'idea' && ideaById[l.context?.ideaId];
+/** @param {{ lesson: any, path?: boolean }} props */
+function LessonIcon({ lesson, path }) {
+  const idea = lesson.mode === 'idea' && ideaById[lesson.context?.ideaId];
   if (idea)
     return (
       <span className="rl-tile brand">
@@ -614,20 +616,21 @@ function LessonIcon({ l, path }) {
     );
   const pathGroup = path
     ? '⤳'
-    : l.scratch
+    : lesson.scratch
       ? '✎'
-      : l.mode === 'challenge'
+      : lesson.mode === 'challenge'
         ? '⚑'
-        : l.mode === 'compare'
+        : lesson.mode === 'compare'
           ? '⇄'
-          : l.mode === 'build'
+          : lesson.mode === 'build'
             ? '⚒'
-            : l.race
+            : lesson.race
               ? '↗'
               : null;
   return (
-    <span className={`rl-tile ${pathGroup ? 'g' : `mono ${l.lang || ''}`}`} aria-hidden="true">
-      {pathGroup || ((l.title || l.q || '?').replace(/^[^A-Za-z0-9]+/, '')[0] || '•').toUpperCase()}
+    <span className={`rl-tile ${pathGroup ? 'g' : `mono ${lesson.lang || ''}`}`} aria-hidden="true">
+      {pathGroup ||
+        ((lesson.title || lesson.q || '?').replace(/^[^A-Za-z0-9]+/, '')[0] || '•').toUpperCase()}
     </span>
   );
 }

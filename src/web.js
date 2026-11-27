@@ -122,16 +122,16 @@ export const webBridge = {
     ]
       .filter(Boolean)
       .join(' ');
-    const r = await fetch(
+    const res = await fetch(
       `https://api.github.com/search/repositories?q=${encodeURIComponent(words)}&sort=stars&per_page=${Math.min(+limit || 18, 30)}`,
     );
-    if (!r.ok)
+    if (!res.ok)
       throw new Error(
-        r.status === 403 || r.status === 429
+        res.status === 403 || res.status === 429
           ? 'GitHub’s search limit for this browser was reached. Try again in a minute.'
-          : `GitHub search failed (${r.status}).`,
+          : `GitHub search failed (${res.status}).`,
       );
-    const j = await r.json();
+    const j = await res.json();
     return (j.items || []).map((x) => ({
       full: x.full_name,
       description: x.description,

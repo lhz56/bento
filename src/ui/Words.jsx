@@ -37,14 +37,14 @@ const STARTER = [
 
 export default function Words({ words, onOpen, onAsk, onGrade, onAdd }) {
   const [openW, setOpenW] = useState(null); // definitions open on hover or click: the picture (analogy) comes first
-  const [q, setQ] = useState('');
+  const [query, setQuery] = useState('');
   const [review, setReview] = useState(null); // { order, i, flipped }
   const list = useMemo(
     () => Object.values(words).sort((a, b) => a.term.localeCompare(b.term)),
     [words],
   );
   const shown = list.filter(
-    (w) => !q || `${w.term} ${w.plain}`.toLowerCase().includes(q.toLowerCase()),
+    (w) => !query || `${w.term} ${w.plain}`.toLowerCase().includes(query.toLowerCase()),
   );
   const dueList = list.filter(due);
   const start = () =>
@@ -124,8 +124,8 @@ export default function Words({ words, onOpen, onAsk, onGrade, onAdd }) {
               <input
                 className="fl-q"
                 placeholder={`Search ${list.length} words…`}
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
               />
               <button className="btn" onClick={start}>
                 {dueList.length ? `Review ${dueList.length} due` : 'Review all as flashcards'}

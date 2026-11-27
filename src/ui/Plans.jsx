@@ -71,8 +71,8 @@ const Bar = ({ used, lv }) => (
 
 // a small ring for the sidebar
 export const Ring = ({ used, lv, size = 18 }) => {
-  const r = size / 2 - 2.2,
-    circumference = 2 * Math.PI * r;
+  const radius = size / 2 - 2.2,
+    circumference = 2 * Math.PI * radius;
   return (
     <svg
       className={`plan-ring lv-${lv}`}
@@ -81,12 +81,12 @@ export const Ring = ({ used, lv, size = 18 }) => {
       viewBox={`0 0 ${size} ${size}`}
       aria-hidden="true"
     >
-      <circle cx={size / 2} cy={size / 2} r={r} className="pr-bg" strokeWidth="2.6" />
+      <circle cx={size / 2} cy={size / 2} r={radius} className="pr-bg" strokeWidth="2.6" />
       {used != null && (
         <circle
           cx={size / 2}
           cy={size / 2}
-          r={r}
+          r={radius}
           className="pr-fg"
           strokeWidth="2.6"
           strokeDasharray={`${(circumference * Math.min(100, Math.max(used, 3))) / 100} ${circumference}`}
@@ -200,7 +200,7 @@ export function PlanMeter({ model, providers }) {
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- the listeners exist while the menu is open
   if (!usage && !planLimits) return null;
   const today = usage?.today || { lessons: 0, quick: 0, other: 0, saved: 0 };
-  const n = today.lessons + today.quick + today.other;
+  const total = today.lessons + today.quick + today.other;
   const mine = usage?.by?.[id]?.n || 0;
   const said = w
     ? `${info.short || info.name}: ${usedText(w, t)}${w.resetsAt ? `, ${resetText(w.resetsAt, Date.now(), t)}` : ''}`
@@ -260,7 +260,7 @@ export function PlanMeter({ model, providers }) {
               </span>
             )}
             <em>
-              {t('Bento today')} · {n} {n === 1 ? t('request') : t('requests')}
+              {t('Bento today')} · {total} {total === 1 ? t('request') : t('requests')}
             </em>
           </div>
           <div className="muted small">

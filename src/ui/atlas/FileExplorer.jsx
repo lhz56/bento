@@ -143,7 +143,7 @@ function FileMap({ files, role, onOpen }) {
 
 // =====================================================================================================
 export function FileList({ facts, role, onOpen }) {
-  const [q, setQ] = useState('');
+  const [query, setQuery] = useState('');
   const [layer, setLayer] = useState('all');
   const [open, setOpen] = useState({});
   const [mode, setMode] = useState('map');
@@ -151,7 +151,7 @@ export function FileList({ facts, role, onOpen }) {
     const h = (e) => {
       setLayer(e.detail);
       setMode('map');
-      setQ('');
+      setQuery('');
     };
     addEventListener('atlas-layer', h);
     return () => removeEventListener('atlas-layer', h);
@@ -159,9 +159,9 @@ export function FileList({ facts, role, onOpen }) {
   const files = facts.files.filter(
     (f) =>
       (layer === 'all' || f.layer === layer) &&
-      (!q ||
-        f.p.toLowerCase().includes(q.toLowerCase()) ||
-        role(f.p).toLowerCase().includes(q.toLowerCase())),
+      (!query ||
+        f.p.toLowerCase().includes(query.toLowerCase()) ||
+        role(f.p).toLowerCase().includes(query.toLowerCase())),
   );
   const dirs = new Map();
   for (const f of files) {
@@ -170,7 +170,7 @@ export function FileList({ facts, role, onOpen }) {
     dirs.get(d).push(f);
   }
   const sorted = [...dirs.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  const many = sorted.length > 14 && !q;
+  const many = sorted.length > 14 && !query;
   return (
     <section className="asec" id="sec-files">
       <div className="sec-head">
@@ -190,8 +190,8 @@ export function FileList({ facts, role, onOpen }) {
           <input
             className="fl-q"
             placeholder="Find a file or a job…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
           />
         </div>
       </div>

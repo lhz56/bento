@@ -357,8 +357,8 @@ export default function IdeaFlow({ samples = [], onOpen, onSim, onScratch, onAsk
   return (
     <section className="ideaflow" aria-label={t('Ideas to explore')}>
       <div className="if-h">{t('need an idea?')}</div>
-      {ROWS.map((row, r) => (
-        <div key={r} className={`if-row ${r ? 'rev' : ''}`}>
+      {ROWS.map((row, rowIndex) => (
+        <div key={rowIndex} className={`if-row ${rowIndex ? 'rev' : ''}`}>
           <div className="if-track">
             {[...row, ...row].map(([key, label, Art], i) => (
               <button

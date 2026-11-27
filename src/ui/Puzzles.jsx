@@ -94,8 +94,8 @@ export default function Puzzles({ progress = {}, onOpen, onIdeas, onIdea, races 
               {races.map((race, i) => (
                 <button key={race.id} className="race-card" onClick={() => onRace(race)}>
                   <svg viewBox="0 0 120 54" className="race-art" aria-hidden="true">
-                    {(race.growth.calls || []).map((c, k) => {
-                      const f = [
+                    {(race.growth.calls || []).map((call, k) => {
+                      const curve = [
                         (x) => x * x * 0.9,
                         (x) => x * 1.6 + 2,
                         (x) => Math.log2(x + 1) * 6,
@@ -103,7 +103,7 @@ export default function Puzzles({ progress = {}, onOpen, onIdeas, onIdea, races 
                       const pts = Array.from(
                         { length: 12 },
                         (_, j) =>
-                          `${8 + j * 9.5},${50 - Math.min(44, f(j * 0.6 + (i % 2)) * (k === 0 ? 1.2 : 1))}`,
+                          `${8 + j * 9.5},${50 - Math.min(44, curve(j * 0.6 + (i % 2)) * (k === 0 ? 1.2 : 1))}`,
                       ).join(' ');
                       return (
                         <polyline
@@ -242,8 +242,8 @@ function ScaleChart({ onOpen }) {
     const timer = setTimeout(() => setK((x) => x + 1), k === 0 ? 900 : 520);
     return () => clearTimeout(timer);
   }, [k, auto]);
-  const n = NS[k];
-  const secs = CLASSES.map(([, , f]) => f(n) / 1e7);
+  const size = NS[k];
+  const secs = CLASSES.map(([, , f]) => f(size) / 1e7);
   const logScale = (s) => Math.max(0, Math.log10(s * 1e7));
   const max = Math.log10(13.8e9 * 365.25 * 86400 * 1e7);
   return (
@@ -251,7 +251,7 @@ function ScaleChart({ onOpen }) {
       <div className="sc-h">
         <div>
           <div className="mini-h">the one chart behind every puzzle</div>
-          <b>How long would it take at</b> <span className="sc-n">n = {fmtN(n)}</span>
+          <b>How long would it take at</b> <span className="sc-n">n = {fmtN(size)}</span>
           <b>?</b>
         </div>
         <input
@@ -314,15 +314,15 @@ function Compass({ onClose, onOpen }) {
   const [i, setI] = useState(0);
   const [pick, setPick] = useState(null);
   const [score, setScore] = useState(0);
-  const p = deck[i];
+  const puzzle = deck[i];
   const opts = useMemo(() => {
-    if (!p) return [];
-    const others = BUILTIN_STATIONS.filter((s) => s.id !== p.st && s.id !== 'start')
+    if (!puzzle) return [];
+    const others = BUILTIN_STATIONS.filter((s) => s.id !== puzzle.st && s.id !== 'start')
       .sort(() => Math.random() - 0.5)
       .slice(0, 2);
-    return [stationOf(p), ...others].sort(() => Math.random() - 0.5);
-  }, [p]);
-  if (!p)
+    return [stationOf(puzzle), ...others].sort(() => Math.random() - 0.5);
+  }, [puzzle]);
+  if (!puzzle)
     return (
       <div className="compass done fade-in">
         <div className="cp-h">
@@ -352,7 +352,7 @@ function Compass({ onClose, onOpen }) {
         </div>
       </div>
     );
-  const right = pick && pick === p.st;
+  const right = pick && pick === puzzle.st;
   return (
     <div className="compass fade-in">
       <div className="cp-top">
@@ -363,16 +363,16 @@ function Compass({ onClose, onOpen }) {
           ✕
         </button>
       </div>
-      <div className="cp-q">“{p.hook}”</div>
+      <div className="cp-q">“{puzzle.hook}”</div>
       <div className="cp-opts">
         {opts.map((opt) => (
           <button
             key={opt.id}
             disabled={!!pick}
-            className={`cp-opt ${pick ? (opt.id === p.st ? 'ok' : opt.id === pick ? 'no' : '') : ''}`}
+            className={`cp-opt ${pick ? (opt.id === puzzle.st ? 'ok' : opt.id === pick ? 'no' : '') : ''}`}
             onClick={() => {
               setPick(opt.id);
-              if (opt.id === p.st) setScore((x) => x + 1);
+              if (opt.id === puzzle.st) setScore((x) => x + 1);
             }}
           >
             <PatternArt kind={opt.art} />
@@ -383,10 +383,10 @@ function Compass({ onClose, onOpen }) {
       </div>
       {pick && (
         <div className={`cp-why ${right ? 'ok' : ''}`}>
-          <b>{right ? 'Yes!' : `It’s ${stationOf(p).name}.`}</b> {stationOf(p).like}
+          <b>{right ? 'Yes!' : `It’s ${stationOf(puzzle).name}.`}</b> {stationOf(puzzle).like}
           <div className="cp-acts">
-            <button className="link" onClick={() => onOpen(p)}>
-              Open “{p.title}”
+            <button className="link" onClick={() => onOpen(puzzle)}>
+              Open “{puzzle.title}”
             </button>
             <button
               className="btn"
@@ -437,23 +437,25 @@ export function PuzzlePanel({ lesson, rec, getCode, setPuzzleCode, onResult, pyR
     setRes(null);
   }, [lesson.id]);
   if (!puzzle) return null;
-  const s = rec?.s || [];
+  const stars = rec?.s || [];
   const check = async () => {
     const code = getCode?.() ?? lesson.work ?? lesson.code;
     setRes(null);
     setPhase({ lane: 'tests' });
-    const t = await runCode('python', 'tests', code, {
+    const testRun = await runCode('python', 'tests', code, {
       fn: puzzle.fn,
       cases: puzzle.tests.map(([args, expect]) => ({ args, expect })),
     });
-    const g = await runCode('python', 'tests', code, {
+    const gremlin = await runCode('python', 'tests', code, {
       fn: puzzle.fn,
       cases: puzzle.gremlins.map(([, args, expect]) => ({ args, expect })),
     });
     const tests =
-      t.tests || puzzle.tests.map(() => ({ ok: false, got: t.error?.msg || 'didn’t run' }));
+      testRun.tests ||
+      puzzle.tests.map(() => ({ ok: false, got: testRun.error?.msg || 'didn’t run' }));
     const grem =
-      g.tests || puzzle.gremlins.map(() => ({ ok: false, got: g.error?.msg || 'didn’t run' }));
+      gremlin.tests ||
+      puzzle.gremlins.map(() => ({ ok: false, got: gremlin.error?.msg || 'didn’t run' }));
     const works = tests.every((x) => x.ok);
     const lanes = {};
     if (puzzle.startWorks) {
@@ -472,8 +474,8 @@ export function PuzzlePanel({ lesson, rec, getCode, setPuzzleCode, onResult, pyR
       lanes.yours.fit &&
       lanes.yours.fit.tier <= tierOf(puzzle.target);
     const stars = [works, works && grem.every((x) => x.ok), !!scales];
-    const r = { tests, grem, lanes, stars, same };
-    setRes(r);
+    const result = { tests, grem, lanes, stars, same };
+    setRes(result);
     setPhase('done');
     const before = starsOf(rec);
     onResult?.(puzzle.id, { s: stars, label: lanes.yours?.fit?.label });
@@ -490,10 +492,10 @@ export function PuzzlePanel({ lesson, rec, getCode, setPuzzleCode, onResult, pyR
         ].map(([icon, label, sub], k) => (
           <Star
             key={k}
-            on={res ? res.stars[k] : s[k]}
+            on={res ? res.stars[k] : stars[k]}
             icon={icon}
             label={label}
-            sub={res && !res.stars[k] && s[k] ? 'earned before, not this time' : sub}
+            sub={res && !res.stars[k] && stars[k] ? 'earned before, not this time' : sub}
           />
         ))}
       </div>
@@ -527,8 +529,8 @@ export function PuzzlePanel({ lesson, rec, getCode, setPuzzleCode, onResult, pyR
           </button>
         )}
       </div>
-      {busy && <Race p={puzzle} lane={phase.lane} />}
-      {res && <Results p={puzzle} r={res} />}
+      {busy && <Race puzzle={puzzle} lane={phase.lane} />}
+      {res && <Results puzzle={puzzle} result={res} />}
       {party > 0 && (
         <div className="confetti" key={party}>
           {Array.from({ length: 18 }, (_, i) => (
@@ -557,15 +559,15 @@ const LANES = [
   ['yours', 'Your code'],
   ['clever', 'The clever way'],
 ];
-function Race({ p, lane }) {
-  const order = ['tests', ...(p.startWorks ? ['obvious'] : []), 'yours', 'clever'];
+function Race({ puzzle, lane }) {
+  const order = ['tests', ...(puzzle.startWorks ? ['obvious'] : []), 'yours', 'clever'];
   const at = order.indexOf(lane);
   return (
     <div className="pz-race">
       <div className="mini-h">
         {lane === 'tests'
           ? 'running the tests and the gremlins…'
-          : `racing on bigger and bigger inputs: ${fmtN((p.ns || [16])[0])} → ${fmtN((p.ns || [131072]).slice(-1)[0])}`}
+          : `racing on bigger and bigger inputs: ${fmtN((puzzle.ns || [16])[0])} → ${fmtN((puzzle.ns || [131072]).slice(-1)[0])}`}
       </div>
       {LANES.filter(([lane]) => order.includes(lane)).map(([k, l]) => {
         const i = order.indexOf(k);
@@ -583,44 +585,46 @@ function Race({ p, lane }) {
   );
 }
 
-function Results({ p, r }) {
-  const failed = r.tests.map((t, i) => [t, i]).filter(([t]) => !t.ok);
+function Results({ puzzle, result }) {
+  const failed = result.tests.map((t, i) => [t, i]).filter(([t]) => !t.ok);
   return (
     <div className="pz-res">
       <div className="pz-checks">
-        <div className={`pz-line ${r.stars[0] ? 'ok' : 'bad'}`}>
-          <span>{r.stars[0] ? '✓' : '✗'}</span>
-          {r.stars[0] ? (
-            `All ${p.tests.length} tests pass.`
+        <div className={`pz-line ${result.stars[0] ? 'ok' : 'bad'}`}>
+          <span>{result.stars[0] ? '✓' : '✗'}</span>
+          {result.stars[0] ? (
+            `All ${puzzle.tests.length} tests pass.`
           ) : (
             <>
-              {failed.length} of {p.tests.length} tests fail. First:{' '}
+              {failed.length} of {puzzle.tests.length} tests fail. First:{' '}
               <code>
-                {p.fn}({p.tests[failed[0][1]][0].map((a) => JSON.stringify(a)).join(', ')})
+                {puzzle.fn}({puzzle.tests[failed[0][1]][0].map((a) => JSON.stringify(a)).join(', ')}
+                )
               </code>{' '}
-              should be <code>{JSON.stringify(p.tests[failed[0][1]][1])}</code>, got{' '}
+              should be <code>{JSON.stringify(puzzle.tests[failed[0][1]][1])}</code>, got{' '}
               <code>{String(failed[0][0].got).slice(0, 80)}</code>
             </>
           )}
         </div>
         <div className="pz-grem">
-          {p.gremlins.map(([label, args, want], i) => {
-            const g = r.grem[i];
+          {puzzle.gremlins.map(([label, args, want], i) => {
+            const gremlin = result.grem[i];
             return (
               <div
                 key={i}
-                className={`gr ${g.ok ? 'ok' : 'bad'}`}
+                className={`gr ${gremlin.ok ? 'ok' : 'bad'}`}
                 title={
-                  g.ok
+                  gremlin.ok
                     ? 'caught'
-                    : `${p.fn}(${args.map((a) => JSON.stringify(a)).join(', ')}) should be ${JSON.stringify(want)}, got ${g.got}`
+                    : `${puzzle.fn}(${args.map((a) => JSON.stringify(a)).join(', ')}) should be ${JSON.stringify(want)}, got ${gremlin.got}`
                 }
               >
-                <span>{g.ok ? '🪤' : '👾'}</span>
+                <span>{gremlin.ok ? '🪤' : '👾'}</span>
                 <b>{label}</b>
-                {!g.ok && (
+                {!gremlin.ok && (
                   <em>
-                    got {String(g.got).slice(0, 40)}, wanted {JSON.stringify(want).slice(0, 40)}
+                    got {String(gremlin.got).slice(0, 40)}, wanted{' '}
+                    {JSON.stringify(want).slice(0, 40)}
                   </em>
                 )}
               </div>
@@ -628,19 +632,20 @@ function Results({ p, r }) {
           })}
         </div>
       </div>
-      <Ladder p={p} lanes={r.lanes} />
+      <Ladder puzzle={puzzle} lanes={result.lanes} />
     </div>
   );
 }
 
 // The scale ladder: measured on this Mac, then extrapolated with the measured Big-O
-function Ladder({ p, lanes }) {
+function Ladder({ puzzle, lanes }) {
   const rungs = useMemo(() => {
-    if (p.rungs) return p.rungs;
+    if (puzzle.rungs) return puzzle.rungs;
     const rs = [...DEFAULT_RUNGS];
-    if (p.big && !rs.some(([n]) => n === p.big)) rs.push([p.big, '🧩', 'LeetCode’s biggest']);
+    if (puzzle.big && !rs.some(([n]) => n === puzzle.big))
+      rs.push([puzzle.big, '🧩', 'LeetCode’s biggest']);
     return rs.sort((a, b) => a[0] - b[0]);
-  }, [p]);
+  }, [puzzle]);
   const rows = LANES.filter(([k]) => lanes[k]).map(([k, label]) => ({ k, label, ...lanes[k] }));
   const at = (row, N) =>
     row.crash && N >= row.crash.n
@@ -731,19 +736,19 @@ function Ladder({ p, lanes }) {
             </span>
           </div>
         ))}
-        {rungs.map(([rung, e, l]) => (
+        {rungs.map(([rung, icon, label]) => (
           <Fragment key={rung}>
-            <div className={`ld-col ${l.includes('LeetCode') ? 'lc' : ''}`}>
-              <span className="ld-e">{e}</span>
+            <div className={`ld-col ${label.includes('LeetCode') ? 'lc' : ''}`}>
+              <span className="ld-e">{icon}</span>
               <div>
                 <b>{fmtN(rung)}</b>
-                <span>{l}</span>
+                <span>{label}</span>
               </div>
             </div>
             {rows.map((row) => {
               const h = row.skipped ? null : at(row, rung);
               const tle =
-                l.includes('LeetCode') && h && !h.crash && row.fit && row.fit.at(rung) > 1;
+                label.includes('LeetCode') && h && !h.crash && row.fit && row.fit.at(rung) > 1;
               return (
                 <div key={row.k} className={`ld-cell c${h?.c ?? 'x'}`}>
                   {h ? (
@@ -820,19 +825,19 @@ function Curves({ rows }) {
         {fmtN(Math.max(...xs))} →
       </text>
       {rows.map(
-        (r) =>
-          r.pts?.length > 0 && (
-            <g key={r.k} className={`lc-${r.k}`}>
-              <polyline points={r.pts.map(([n, t]) => `${xAt(n)},${yAt(t)}`).join(' ')} />
-              {r.pts.map(([n, t]) => (
+        (row) =>
+          row.pts?.length > 0 && (
+            <g key={row.k} className={`lc-${row.k}`}>
+              <polyline points={row.pts.map(([n, t]) => `${xAt(n)},${yAt(t)}`).join(' ')} />
+              {row.pts.map(([n, t]) => (
                 <circle key={n} cx={xAt(n)} cy={yAt(t)} r="2.6">
                   <title>{`n = ${fmtN(n)}: ${lab(t)} per call`}</title>
                 </circle>
               ))}
-              {r.crash && (
+              {row.crash && (
                 <text
-                  x={Math.min(width - 20, xAt(r.pts[r.pts.length - 1]?.[0] || xs[0]) + 8)}
-                  y={yAt(r.pts[r.pts.length - 1]?.[1] || ts[0]) + 4}
+                  x={Math.min(width - 20, xAt(row.pts[row.pts.length - 1]?.[0] || xs[0]) + 8)}
+                  y={yAt(row.pts[row.pts.length - 1]?.[1] || ts[0]) + 4}
                   className="boom"
                 >
                   💥

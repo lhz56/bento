@@ -517,19 +517,19 @@ const copilot = {
       return { plan, windows: [{ key: 'month', label: 'this month', used: 0, unlimited: true }] };
     const of = pick.entitlement || 0,
       left = Math.max(0, pick.remaining ?? 0),
-      n = Math.max(0, of - left);
+      used = Math.max(0, of - left);
     return {
       plan,
       windows: [
         {
           key: 'month',
           label: 'this month',
-          used: of ? clamp((n / of) * 100) : null,
-          n,
+          used: of ? clamp((used / of) * 100) : null,
+          n: used,
           of,
           unit: 'requests',
           resetsAt: j.quota_reset_date ? Date.parse(j.quota_reset_date) : null,
-          warn: of > 0 && n / of >= 0.8,
+          warn: of > 0 && used / of >= 0.8,
           out: of > 0 && left === 0,
         },
       ],

@@ -102,7 +102,7 @@ export default function Home({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- suggestions are asked for once your repos arrive, not on every render
   }, [user, repos?.length]);
   const [mode, setMode] = useState('explain');
-  const [q, setQ] = useState('');
+  const [question, setQuestion] = useState('');
   const [ph, setPh] = useState(0);
   const [repoMenu, setRepoMenu] = useState(false);
   const ta = useRef(null);
@@ -122,7 +122,7 @@ export default function Home({
   // while the box is empty, it types out example questions, so there's always something to try
   const [typed, setTyped] = useState('');
   useEffect(() => {
-    if (mode !== 'explain' || q) return undefined;
+    if (mode !== 'explain' || question) return undefined;
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setTyped(ideas[ph % ideas.length]);
       return undefined;
@@ -139,7 +139,7 @@ export default function Home({
     tm = setTimeout(step, 250);
     return () => clearTimeout(tm);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the typing animation restarts for a new placeholder or mode, not when the list is rebuilt
-  }, [ph, mode, q]);
+  }, [ph, mode, question]);
   const placeholder =
     mode === 'code'
       ? 'Paste code here, or pick a file under Your code…'
@@ -156,18 +156,19 @@ export default function Home({
           ? 'Good afternoon'
           : 'Good evening';
   const name = user?.name?.split(' ')[0] || user?.login || '';
-  const repoLink = mode === 'explain' && /github\.com\//.test(q) ? parseRepo(q) : null;
+  const repoLink =
+    mode === 'explain' && /github\.com\//.test(question) ? parseRepo(question) : null;
   const submit = () => {
     if (repoLink) {
       onOpenRepo(repoLink);
-      setQ('');
+      setQuestion('');
       return;
     }
     if (noModel) return; // no AI connected: the note under the box says how to connect one
-    if (mode !== 'challenge' && !q.trim()) return;
+    if (mode !== 'challenge' && !question.trim()) return;
     if (mode === 'feature' && (!project || project.loading)) return;
-    onAsk(q.trim(), { mode, context: mode === 'code' ? { code: q } : undefined });
-    setQ('');
+    onAsk(question.trim(), { mode, context: mode === 'code' ? { code: question } : undefined });
+    setQuestion('');
   };
   const checking = !providers;
   const noModel = checking || !providers[provOf(settings.model)];
@@ -211,9 +212,9 @@ export default function Home({
   // already covered by a lesson that ships with Bento? offer it, ready now, before spending your AI on it
   const ready =
     mode === 'explain' &&
-    q.trim().length > 5 &&
-    !projectNames(q).some((n) => !namesALesson(n, builtins))
-      ? bestBuiltin(q, builtins)
+    question.trim().length > 5 &&
+    !projectNames(question).some((n) => !namesALesson(n, builtins))
+      ? bestBuiltin(question, builtins)
       : null; // never for a real project ("how does T3 Code work?")
   return (
     <div className="home split">
@@ -235,8 +236,8 @@ export default function Home({
           <div className={`composer cx mode-${mode}`}>
             <textarea
               ref={ta}
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
               placeholder={placeholder}
               rows={mode === 'code' ? 7 : 2}
               aria-label={t(md)}
@@ -250,9 +251,9 @@ export default function Home({
                   e.preventDefault();
                   submit();
                 }
-                if (e.key === 'Tab' && !q && mode !== 'code') {
+                if (e.key === 'Tab' && !question && mode !== 'code') {
                   e.preventDefault();
-                  setQ(ideas[ph % ideas.length]);
+                  setQuestion(ideas[ph % ideas.length]);
                 }
               }}
             />
@@ -333,7 +334,7 @@ export default function Home({
                 {menu === 'mode' && (
                   <div className="cx-menu" role="menu">
                     {MODES.map(([modeId]) => {
-                      const [i, l, d] = MODE_INFO[modeId];
+                      const [i, label, desc] = MODE_INFO[modeId];
                       return (
                         <button
                           key={modeId}
@@ -347,8 +348,8 @@ export default function Home({
                         >
                           <span className="cx-i">{i}</span>
                           <span>
-                            <b>{t(l)}</b>
-                            <em>{t(d)}</em>
+                            <b>{t(label)}</b>
+                            <em>{t(desc)}</em>
                           </span>
                         </button>
                       );
@@ -427,7 +428,7 @@ export default function Home({
                 disabled={
                   (noModel && !repoLink) ||
                   (mode === 'feature' && (!project || project.loading)) ||
-                  (mode !== 'challenge' && !q.trim() && !repoLink)
+                  (mode !== 'challenge' && !question.trim() && !repoLink)
                 }
               >
                 {repoLink ? (
@@ -513,7 +514,7 @@ export default function Home({
             <button
               className="cx-ready fade-in"
               onClick={() => {
-                setQ('');
+                setQuestion('');
                 ready.run();
               }}
             >
@@ -551,7 +552,7 @@ export default function Home({
         </div>
         {hero && (
           <button className="rail-hero" onClick={hero.go}>
-            {hero.step && <Ring i={hero.step.i} n={hero.step.n} />}
+            {hero.step && <Ring stop={hero.step.i} of={hero.step.n} />}
             <span className="rh-t">
               <em>
                 {t('Stop')} {hero.step?.i} {t('of')} {hero.step?.n}
@@ -651,8 +652,8 @@ export default function Home({
 
 // "Is this about a real project?" Pictures first: each repo as a card, plus "just the idea".
 function ProjectChoice({ choice, onChoose }) {
-  const { d, q } = choice;
-  const repos = [d.pick, ...(d.options || [])].filter((g) => g?.full);
+  const { d: found, q: asked } = choice;
+  const repos = [found.pick, ...(found.options || [])].filter((g) => g?.full);
   const first = useRef(null);
   useEffect(() => {
     first.current?.focus();
@@ -660,7 +661,7 @@ function ProjectChoice({ choice, onChoose }) {
   return (
     <div className="pchoice fade-in" role="group" aria-label={t('Is this about a real project?')}>
       <div className="pc-h">
-        <span className="pc-q">“{q.length > 70 ? q.slice(0, 70) + '…' : q}”</span>
+        <span className="pc-q">“{asked.length > 70 ? asked.slice(0, 70) + '…' : asked}”</span>
         <b>{t('Is this about one of these?')}</b>
       </div>
       <div className="pc-row">
@@ -716,24 +717,24 @@ export function Seg({ value, options, onChange, small }) {
 }
 
 // progress around the path's next stop
-function Ring({ i, n }) {
-  const r = 20,
-    circumference = 2 * Math.PI * r,
-    f = Math.max(0.04, (i - 1) / n);
+function Ring({ stop, of }) {
+  const radius = 20,
+    circumference = 2 * Math.PI * radius,
+    fraction = Math.max(0.04, (stop - 1) / of);
   return (
     <span className="hc-ring" aria-hidden="true">
       <svg viewBox="0 0 48 48" width="48" height="48">
-        <circle cx="24" cy="24" r={r} className="hr-bg" />
+        <circle cx="24" cy="24" r={radius} className="hr-bg" />
         <circle
           cx="24"
           cy="24"
-          r={r}
+          r={radius}
           className="hr-fg"
-          strokeDasharray={`${circumference * f} ${circumference}`}
+          strokeDasharray={`${circumference * fraction} ${circumference}`}
           transform="rotate(-90 24 24)"
         />
       </svg>
-      <b>{i}</b>
+      <b>{stop}</b>
     </span>
   );
 }

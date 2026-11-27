@@ -5,7 +5,7 @@ import { tint, base, Head, I, Chev, FileIcon } from './kit.jsx';
 
 // ---------------------------------------------------------------- the code, as a code app's file browser: folders you open, a file a sheet
 export function Code({ facts, role, onOpen, name }) {
-  const [q, setQ] = useState('');
+  const [query, setQuery] = useState('');
   const [layer, setLayer] = useState('all');
   const [dir, setDir] = useState('');
   const [way, setWay] = useState('in');
@@ -14,7 +14,7 @@ export function Code({ facts, role, onOpen, name }) {
   useEffect(() => {
     const h = (e) => {
       setLayer(e.detail);
-      setQ('');
+      setQuery('');
       setDir('');
     };
     addEventListener('atlas-layer', h);
@@ -31,8 +31,8 @@ export function Code({ facts, role, onOpen, name }) {
         el.scrollIntoView({ block: 'start', behavior: 'smooth' });
     });
   };
-  const flat = !!q.trim() || layer !== 'all';
-  const ql = q.trim().toLowerCase();
+  const flat = !!query.trim() || layer !== 'all';
+  const ql = query.trim().toLowerCase();
   let rows;
   if (flat) {
     rows = facts.files
@@ -73,13 +73,13 @@ export function Code({ facts, role, onOpen, name }) {
         <input
           type="search"
           placeholder={`Search ${name}’s files`}
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
           enterKeyHint="search"
           aria-label="Search the files"
         />
-        {q && (
-          <button className="ph-clear" aria-label="Clear" onClick={() => setQ('')}>
+        {query && (
+          <button className="ph-clear" aria-label="Clear" onClick={() => setQuery('')}>
             <I n="x" s={11} w={3} />
           </button>
         )}
@@ -141,7 +141,7 @@ export function Code({ facts, role, onOpen, name }) {
               data-p={row.f.p}
               onClick={() => onOpen(row.f.p)}
             >
-              <FileIcon f={row.f} />
+              <FileIcon file={row.f} />
               <span className="ph-ct">
                 <b className="ph-mono">{base(row.f.p)}</b>
                 <span>{role(row.f.p) || (row.f.lang ? `${row.f.lang} file` : 'A file')}</span>
@@ -161,7 +161,7 @@ export function Code({ facts, role, onOpen, name }) {
         {rows.length === 0 && (
           <div className="ph-cell">
             <span className="ph-ct">
-              <b className="reg">No file matches “{q}”.</b>
+              <b className="reg">No file matches “{query}”.</b>
             </span>
           </div>
         )}

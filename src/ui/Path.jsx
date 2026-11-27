@@ -19,17 +19,17 @@ export default function Path({ done, onGo, onIdeas, custom = [], onMakePath, onD
   const LIST = shownTrack.stops;
   const [goal, setGoal] = useState('');
   const [making, setMaking] = useState(null);
-  const n = LIST.filter((s) => done[s.id]).length;
+  const doneCount = LIST.filter((s) => done[s.id]).length;
   const [party, setParty] = useState(false);
   useEffect(() => {
     const k = `bento.pathSeen.${track}`;
     const seen = +localStorage.getItem(k) || 0;
-    if (n > seen) {
+    if (doneCount > seen) {
       setParty(true);
       setTimeout(() => setParty(false), 2200);
     }
-    localStorage.setItem(k, String(n));
-  }, [n, track]);
+    localStorage.setItem(k, String(doneCount));
+  }, [doneCount, track]);
   const next = LIST.find((s) => !done[s.id]);
   const mins = LIST.reduce((a, s) => a + (+s.mins || 8), 0);
   const go = (s) => onGo(s);
@@ -121,7 +121,7 @@ export default function Path({ done, onGo, onIdeas, custom = [], onMakePath, onD
               <i key={i} style={{ '--i': i }} />
             ))}
             <span>
-              Stop complete! {n} of {LIST.length}
+              Stop complete! {doneCount} of {LIST.length}
             </span>
           </div>
         )}
@@ -146,15 +146,15 @@ export default function Path({ done, onGo, onIdeas, custom = [], onMakePath, onD
           </div>
           <div className="phero-side">
             <div className="phero-prog">
-              <Ring f={n / LIST.length} size={64} />
+              <Ring f={doneCount / LIST.length} size={64} />
               <div>
-                <b>{n}</b>
+                <b>{doneCount}</b>
                 <span>of {LIST.length} visited</span>
               </div>
             </div>
             {next ? (
               <button className="btn" onClick={() => go(next)}>
-                {n ? 'Continue' : 'Start'}: stop {nextI + 1} <span>→</span>
+                {doneCount ? 'Continue' : 'Start'}: stop {nextI + 1} <span>→</span>
               </button>
             ) : (
               <span className="phero-done">You’ve visited every stop.</span>
@@ -183,13 +183,13 @@ export default function Path({ done, onGo, onIdeas, custom = [], onMakePath, onD
           >
             <path d="M50 0 C 64 50, 64 50, 50 100 S 36 150, 50 200 S 64 250, 50 300 S 36 350, 50 400 S 64 450, 50 500 S 36 550, 50 600 S 64 650, 50 700 S 36 750, 50 800 S 64 850, 50 900 S 36 950, 50 1000" />
           </svg>
-          {LIST.map((s, i) => {
-            const isDone = !!done[s.id];
-            const isNext = next?.id === s.id;
-            const kind = kindOf(s);
+          {LIST.map((stop, i) => {
+            const isDone = !!done[stop.id];
+            const isNext = next?.id === stop.id;
+            const kind = kindOf(stop);
             return (
               <div
-                key={s.id}
+                key={stop.id}
                 className={`stop ${i % 2 ? 'r' : 'l'} ${isDone ? 'done' : ''} ${isNext ? 'is-next' : ''}`}
                 style={{ animationDelay: `${i * 50}ms` }}
               >
@@ -202,34 +202,34 @@ export default function Path({ done, onGo, onIdeas, custom = [], onMakePath, onD
                       {kind[1]}
                     </span>
                   )}
-                  <b>{s.t}</b>
-                  <span>{s.d}</span>
-                  {s.make && (
+                  <b>{stop.t}</b>
+                  <span>{stop.d}</span>
+                  {stop.make && (
                     <span className="stop-make">
                       <i>you’ll make</i>
-                      {s.make}
+                      {stop.make}
                     </span>
                   )}
                   <div className="stop-words">
-                    {(s.words || []).map((w) => (
+                    {(stop.words || []).map((w) => (
                       <i key={w}>{w}</i>
                     ))}
                   </div>
                   <div className="stop-foot">
-                    <button className={isNext ? 'btn' : 'btn ghost'} onClick={() => go(s)}>
+                    <button className={isNext ? 'btn' : 'btn ghost'} onClick={() => go(stop)}>
                       {isDone
                         ? 'Open again'
-                        : s.explore
+                        : stop.explore
                           ? 'Take apart a real app'
-                          : s.site
+                          : stop.site
                             ? 'Take apart a website'
-                            : s.play
+                            : stop.play
                               ? 'Open the playground'
-                              : s.idea
+                              : stop.idea
                                 ? 'Read it'
                                 : 'Start'}
                     </button>
-                    <span className="stop-min">{+s.mins || 8} min</span>
+                    <span className="stop-min">{+stop.mins || 8} min</span>
                   </div>
                 </div>
               </div>
@@ -254,9 +254,9 @@ export default function Path({ done, onGo, onIdeas, custom = [], onMakePath, onD
   );
 }
 
-function Ring({ f = 0, size = 18 }) {
-  const r = size / 2 - (size > 30 ? 5 : 2.5),
-    circumference = 2 * Math.PI * r;
+function Ring({ f: fraction = 0, size = 18 }) {
+  const radius = size / 2 - (size > 30 ? 5 : 2.5),
+    circumference = 2 * Math.PI * radius;
   return (
     <svg
       className="ring"
@@ -268,18 +268,18 @@ function Ring({ f = 0, size = 18 }) {
       <circle
         cx={size / 2}
         cy={size / 2}
-        r={r}
+        r={radius}
         className="ring-bg"
         strokeWidth={size > 30 ? 6 : 3}
       />
-      {f > 0 && (
+      {fraction > 0 && (
         <circle
           cx={size / 2}
           cy={size / 2}
-          r={r}
+          r={radius}
           className="ring-fg"
           strokeWidth={size > 30 ? 6 : 3}
-          strokeDasharray={`${circumference * Math.min(1, f)} ${circumference}`}
+          strokeDasharray={`${circumference * Math.min(1, fraction)} ${circumference}`}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       )}

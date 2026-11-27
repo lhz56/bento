@@ -829,11 +829,11 @@ function createHost(opts) {
         s.headersTimeout = 30_000;
         s.requestTimeout = 0;
       }
-      let n = 0,
+      let finished = 0,
         failed = null;
       const done = (e) => {
         if (e) failed = e;
-        if (++n < 2) return;
+        if (++finished < 2) return;
         if (failed) {
           server.close();
           playServer.close();

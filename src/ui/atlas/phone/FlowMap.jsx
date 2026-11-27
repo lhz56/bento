@@ -19,19 +19,20 @@ const colorOf = (n) =>
   n.layer && n.kind !== 'person' && n.kind !== 'outside' ? tint(n.layer) : kindOf(n)[0];
 
 // a picture for a box, from what it is and what it's called
-function glyphOf(n) {
-  const s = `${n.label} ${n.term || ''} ${n.does || ''}`.toLowerCase();
-  if (n.kind === 'person') return 'person';
-  if (n.kind === 'outside') return /chat|telegram|discord|slack|message/.test(s) ? 'chat' : 'globe';
-  if (n.kind === 'store')
-    return /file|doc|content|blog|markdown|mdx|article|config|setting/.test(s) ? 'doc' : 'data';
-  if (/log ?in|sign|auth|session|password|account/.test(s)) return 'lock';
-  if (/door|api|handler|endpoint|webhook|request|route handler|server/.test(s)) return 'door';
-  if (/block|component|piece|button|widget/.test(s)) return 'blocks';
-  if (/page|screen|view|front|interface|browser|display/.test(s)) return 'screen';
-  if (/bot|chat|message|socket/.test(s)) return 'chat';
-  if (/config|setting/.test(s)) return 'sliders';
-  if (n.layer === 'logic' || /rule|logic|brain|engine|game|helper/.test(s)) return 'cog';
+function glyphOf(node) {
+  const text = `${node.label} ${node.term || ''} ${node.does || ''}`.toLowerCase();
+  if (node.kind === 'person') return 'person';
+  if (node.kind === 'outside')
+    return /chat|telegram|discord|slack|message/.test(text) ? 'chat' : 'globe';
+  if (node.kind === 'store')
+    return /file|doc|content|blog|markdown|mdx|article|config|setting/.test(text) ? 'doc' : 'data';
+  if (/log ?in|sign|auth|session|password|account/.test(text)) return 'lock';
+  if (/door|api|handler|endpoint|webhook|request|route handler|server/.test(text)) return 'door';
+  if (/block|component|piece|button|widget/.test(text)) return 'blocks';
+  if (/page|screen|view|front|interface|browser|display/.test(text)) return 'screen';
+  if (/bot|chat|message|socket/.test(text)) return 'chat';
+  if (/config|setting/.test(text)) return 'sliders';
+  if (node.layer === 'logic' || /rule|logic|brain|engine|game|helper/.test(text)) return 'cog';
   return 'code';
 }
 
@@ -116,27 +117,27 @@ function treeLayout(flow, width) {
   const twin = (e) => edges.some((x) => x !== e && x.from === e.to && x.to === e.from);
   const links = edges
     .map((e) => {
-      const a = pos[e.from],
-        b = pos[e.to];
+      const from = pos[e.from],
+        to = pos[e.to];
       const up = back.has(e);
       const off = twin(e) ? (up ? 7 : -7) : 0;
-      const [s, t] = up ? [b, a] : [a, b]; // a line always runs from the box above to the box below
-      const x1 = s.x + s.w / 2 + off,
-        y1 = s.y + s.h,
-        x2 = t.x + t.w / 2 + off,
-        y2 = t.y;
+      const [top, bottom] = up ? [to, from] : [from, to]; // a line always runs from the box above to the box below
+      const x1 = top.x + top.w / 2 + off,
+        y1 = top.y + top.h,
+        x2 = bottom.x + bottom.w / 2 + off,
+        y2 = bottom.y;
       if (y2 <= y1) return null;
       const dy = Math.max(14, (y2 - y1) * 0.55);
-      const d = `M${x1.toFixed(1)},${y1} C${x1.toFixed(1)},${y1 + dy} ${x2.toFixed(1)},${y2 - dy} ${x2.toFixed(1)},${y2}`;
-      return { d, up, key: `${e.from}>${e.to}` };
+      const path = `M${x1.toFixed(1)},${y1} C${x1.toFixed(1)},${y1 + dy} ${x2.toFixed(1)},${y2 - dy} ${x2.toFixed(1)},${y2}`;
+      return { d: path, up, key: `${e.from}>${e.to}` };
     })
     .filter(Boolean);
   return { nodes: nodes.filter((n) => pos[n.id]), pos, links, H: height };
 }
 
-function NodeIcon({ n, tool, size = 40 }) {
-  const color = colorOf(n);
-  if (n.kind === 'outside' && tool)
+function NodeIcon({ node, tool, size = 40 }) {
+  const color = colorOf(node);
+  if (node.kind === 'outside' && tool)
     return (
       <span className="fx-ic brand" style={{ '--c': color, width: size, height: size }}>
         <Brand slug={tool.slug} name={tool.name} color={tool.color} size={size} />
@@ -145,7 +146,7 @@ function NodeIcon({ n, tool, size = 40 }) {
   return (
     <span className="fx-ic" style={{ '--c': color, width: size, height: size }}>
       <span className="fx-g">
-        <I n={glyphOf(n)} s={Math.round(size * 0.5)} w={2} />
+        <I n={glyphOf(node)} s={Math.round(size * 0.5)} w={2} />
       </span>
       {tool && (
         <span className="fx-badge">
@@ -200,29 +201,29 @@ export function FlowMap({ flow, toolOf, onPick }) {
           ))}
         </svg>
         {layout.nodes.map((node, i) => {
-          const q = layout.pos[node.id];
+          const pos = layout.pos[node.id];
           const tool = toolOf(node);
           return (
             <button
               key={node.id}
-              className={`fx-n k-${node.kind || 'part'} ${q.wide ? 'wide' : ''}`}
+              className={`fx-n k-${node.kind || 'part'} ${pos.wide ? 'wide' : ''}`}
               style={{
-                left: q.x,
-                top: q.y,
-                width: q.w,
-                height: q.h,
+                left: pos.x,
+                top: pos.y,
+                width: pos.w,
+                height: pos.h,
                 '--c': colorOf(node),
                 animationDelay: `${i * 55}ms`,
               }}
               onClick={() => onPick(node.id)}
               aria-label={`${node.label}: ${node.does || kindOf(node)[1]}`}
             >
-              <NodeIcon n={node} tool={tool} size={q.wide ? 40 : 38} />
+              <NodeIcon node={node} tool={tool} size={pos.wide ? 40 : 38} />
               <span className="fx-t">
                 <b>{node.label}</b>
-                {q.wide && node.does && <span>{node.does}</span>}
+                {pos.wide && node.does && <span>{node.does}</span>}
               </span>
-              {q.wide && <Chev />}
+              {pos.wide && <Chev />}
             </button>
           );
         })}
@@ -240,7 +241,7 @@ export function FlowMap({ flow, toolOf, onPick }) {
 }
 
 export function NodeSheet({
-  n,
+  node,
   flow,
   tool,
   toolOf,
@@ -263,35 +264,35 @@ export function NodeSheet({
       })
     );
   };
-  const term = termOf(n.term);
+  const term = termOf(node.term);
   const nodeOf = (id) => flow.nodes.find((x) => x.id === id);
   const talks = [
-    ...flow.edges.filter((e) => e.from === n.id).map((e) => ['to', e, nodeOf(e.to)]),
-    ...flow.edges.filter((e) => e.to === n.id).map((e) => ['from', e, nodeOf(e.from)]),
+    ...flow.edges.filter((e) => e.from === node.id).map((e) => ['to', e, nodeOf(e.to)]),
+    ...flow.edges.filter((e) => e.to === node.id).map((e) => ['from', e, nodeOf(e.from)]),
   ].filter((x) => x[2]);
-  const files = (n.files || []).filter((f) => pathIdx.has(f));
+  const files = (node.files || []).filter((f) => pathIdx.has(f));
   return (
-    <Sheet label={n.label} onClose={onClose}>
-      <div className="ps-in" key={n.id}>
+    <Sheet label={node.label} onClose={onClose}>
+      <div className="ps-in" key={node.id}>
         <div className="ps-id">
-          <NodeIcon n={n} tool={tool} size={56} />
+          <NodeIcon node={node} tool={tool} size={56} />
           <div>
-            <div className="ps-k" style={{ '--c': colorOf(n) }}>
-              {kindOf(n)[1]}
+            <div className="ps-k" style={{ '--c': colorOf(node) }}>
+              {kindOf(node)[1]}
             </div>
-            <h3 className="ps-title">{n.label}</h3>
-            {n.does && <div className="ps-sub">{n.does}</div>}
+            <h3 className="ps-title">{node.label}</h3>
+            {node.does && <div className="ps-sub">{node.does}</div>}
           </div>
         </div>
-        {n.more && (
+        {node.more && (
           <p className="ps-p">
-            <Md text={n.more} />
+            <Md text={node.more} />
           </p>
         )}
-        {n.term && (
+        {node.term && (
           <div className="ps-term">
             <span className="ps-term-k">The real word for it</span>
-            <b>{n.term}</b>
+            <b>{node.term}</b>
             {term?.plain && <p>{term.plain}</p>}
             {term?.like && <i>{term.like}</i>}
           </div>
@@ -300,7 +301,7 @@ export function NodeSheet({
           <Group title="Talks to">
             {talks.map(([dir, e, m]) => (
               <button key={`${dir}${m.id}`} className="ph-cell" onClick={() => onPick(m.id)}>
-                <NodeIcon n={m} tool={toolOf(m)} size={32} />
+                <NodeIcon node={m} tool={toolOf(m)} size={32} />
                 <span className="ph-ct">
                   <b>{m.label}</b>
                   <span className="ps-dir">
@@ -316,7 +317,7 @@ export function NodeSheet({
         {files.length > 0 && (
           <Group title="Where it lives in the code">
             {files.map((p) => (
-              <FileRow key={p} f={{ p, lang: null }} sub={role(p)} onOpen={onOpenFile} />
+              <FileRow key={p} file={{ p, lang: null }} sub={role(p)} onOpen={onOpenFile} />
             ))}
           </Group>
         )}
@@ -325,7 +326,10 @@ export function NodeSheet({
             className="ps-btn"
             onClick={() => {
               onClose();
-              onAsk(`How does “${n.label}” (${n.term || n.kind}) work in this project?`, files[0]);
+              onAsk(
+                `How does “${node.label}” (${node.term || node.kind}) work in this project?`,
+                files[0],
+              );
             }}
           >
             <I n="spark" s={18} />
@@ -348,7 +352,7 @@ export function StorySheet({ j, tools, pathIdx, onClose, onOpenFile, onAsk }) {
         <ol className="stp">
           {j.steps.map((step, i) => {
             const id = String(step.p || '').startsWith('stack:') ? step.p.slice(6) : null;
-            const t = id && (tools.find((x) => x.id === id) || BY_ID[id]);
+            const tool = id && (tools.find((x) => x.id === id) || BY_ID[id]);
             return (
               <li key={i} style={{ animationDelay: `${80 + i * 70}ms` }}>
                 <span className="stp-n">{i + 1}</span>
@@ -356,10 +360,10 @@ export function StorySheet({ j, tools, pathIdx, onClose, onOpenFile, onAsk }) {
                   <p>
                     <Md text={step.md} />
                   </p>
-                  {t ? (
+                  {tool ? (
                     <span className="stp-chip">
-                      <Brand slug={t.slug} name={t.name} color={t.color} size={20} />
-                      {t.name}
+                      <Brand slug={tool.slug} name={tool.name} color={tool.color} size={20} />
+                      {tool.name}
                     </span>
                   ) : step.p && pathIdx.has(step.p) ? (
                     <button className="stp-chip" onClick={() => onOpenFile(step.p)}>

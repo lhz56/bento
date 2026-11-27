@@ -86,7 +86,7 @@ export default function PhoneAtlas(props) {
     if (node)
       shown = (
         <NodeSheet
-          n={node}
+          node={node}
           flow={flow}
           tool={toolOf(node)}
           toolOf={toolOf}
@@ -119,8 +119,8 @@ export default function PhoneAtlas(props) {
     if (tool)
       shown = (
         <ToolSheet
-          t={tool}
-          n={sayOf(narration, tool)}
+          tool={tool}
+          said={sayOf(narration, tool)}
           alts={altsOf(tool)}
           narrating={narrating}
           onClose={close}

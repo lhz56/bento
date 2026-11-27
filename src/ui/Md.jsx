@@ -14,20 +14,20 @@ export default function Md({ text, onLink, onLinkClick, onTerm }) {
     if (part.startsWith('[[')) {
       const match = /^\[\[(\d+)(?:-(\d+))?\|([^\]]+)\]\]$/.exec(part);
       /** @type {[number, number]} */
-      const r = [+match[1], +(match[2] || match[1])];
+      const range = [+match[1], +(match[2] || match[1])];
       const label = match[3].replace(/`/g, '');
       const named = (label.match(/\d+/g) || []).map(Number);
-      const says = named.includes(r[0]) && named.includes(r[1]);
+      const says = named.includes(range[0]) && named.includes(range[1]);
       return (
         <span
           key={i}
           className="lnk"
-          onMouseEnter={() => onLink?.(r)}
+          onMouseEnter={() => onLink?.(range)}
           onMouseLeave={() => onLink?.(null)}
-          onClick={() => onLinkClick?.(r)}
+          onClick={() => onLinkClick?.(range)}
         >
           {label}
-          {!says && <sup>{r[0] === r[1] ? r[0] : `${r[0]}–${r[1]}`}</sup>}
+          {!says && <sup>{range[0] === range[1] ? range[0] : `${range[0]}–${range[1]}`}</sup>}
         </span>
       );
     }

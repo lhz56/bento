@@ -93,7 +93,13 @@ export function Learn({
           }
         >
           {tour.map((t, i) => (
-            <FileRow key={t.p} f={{ p: t.p }} n={i + 1} sub={t.why} onOpen={() => onTour(i)} />
+            <FileRow
+              key={t.p}
+              file={{ p: t.p }}
+              number={i + 1}
+              sub={t.why}
+              onOpen={() => onTour(i)}
+            />
           ))}
         </Group>
       )}

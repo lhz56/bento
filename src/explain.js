@@ -46,14 +46,14 @@ export function explainToken({
   quick,
   isMember,
 }) {
-  const d =
+  const builtin =
     !isMember ||
     /^(append|add|get|split|join|push|pop|map|filter|reduce|forEach|length|includes|slice|log|cos|sin|random|floor)$/.test(
       word,
     )
       ? lookup(word, lang)
       : null;
-  if (d) return { ...d };
+  if (builtin) return { ...builtin };
   const lines = doc.split('\n');
   if (!isMember) {
     const def = findDef(word, lang, lines);

@@ -102,12 +102,12 @@ export function spring(response = 0.4, damping = 0.86) {
   const settleTime = Math.log(1000) / (z * w); // within a thousandth of where it's going
   const pts = [];
   for (let i = 0; i <= 40; i++) pts.push(i === 40 ? 1 : +x((settleTime * i) / 40).toFixed(4));
-  const s = {
+  const motion = {
     easing: LINEAR ? `linear(${pts.join(', ')})` : SPRING,
     ms: Math.round(settleTime * 1000),
   };
-  springs.set(k, s);
-  return s;
+  springs.set(k, motion);
+  return motion;
 }
 
 // ---------------------------------------------------------------- a switch's thumb slides to what you picked
@@ -178,10 +178,10 @@ function glide(e) {
       done();
       return;
     }
-    const s = spring(0.34, 0.8);
+    const motion = spring(0.34, 0.8);
     me.anim = ghost.animate([at(fr), at(to.getBoundingClientRect())], {
-      duration: s.ms,
-      easing: s.easing,
+      duration: motion.ms,
+      easing: motion.easing,
       fill: 'forwards',
     });
     me.anim.onfinish = done;
@@ -312,10 +312,10 @@ function holdMenu(row, spec, done) {
     transformOrigin: below ? 'top left' : 'bottom left',
   });
   row.style.visibility = 'hidden';
-  const s = spring(0.32, 0.72);
+  const motion = spring(0.32, 0.72);
   lift.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.035)' }], {
-    duration: s.ms,
-    easing: s.easing,
+    duration: motion.ms,
+    easing: motion.easing,
     fill: 'forwards',
   });
   menu.querySelector('button')?.focus({ preventScroll: true });
@@ -353,8 +353,8 @@ const clear = (el, ...props) => {
 };
 
 /** slide a sheet off the bottom of the screen, then put it away for real */
-function slideAway(el, s, after) {
-  const veil = veilOf(s, el);
+function slideAway(el, motion, after) {
+  const veil = veilOf(motion, el);
   if (reduced()) {
     after();
     return;
@@ -413,9 +413,9 @@ const PRESSABLE = 'button, a[href], [role=button], [role=tab], [role=option], la
  * On an iPad (phone false) a button still answers at once; the sheets there are the Mac's panels, so no dragging them.
  * swipe: the edge swipes are on (the Home Screen app; Safari's own swipe does Back elsewhere).
  */
-export function useTouch(on, o) {
-  const ref = useRef(o);
-  ref.current = o;
+export function useTouch(on, options) {
+  const ref = useRef(options);
+  ref.current = options;
   useEffect(() => {
     if (!on) return undefined;
     let gesture = null; // the gesture in progress
@@ -471,11 +471,11 @@ export function useTouch(on, o) {
         gesture = null;
         return;
       }
-      const t = e.touches[0];
+      const touch = e.touches[0];
       const tgt = e.target instanceof Element ? e.target : e.target?.parentElement;
       if (!tgt) return;
       const x = ref.current;
-      p0 = [t.clientX, t.clientY];
+      p0 = [touch.clientX, touch.clientY];
       // the press
       const pressable = tgt.closest(PRESSABLE);
       if (
@@ -499,8 +499,8 @@ export function useTouch(on, o) {
         }, 480);
       }
       gesture = {
-        x0: t.clientX,
-        y0: t.clientY,
+        x0: touch.clientX,
+        y0: touch.clientY,
         trail: [[e.timeStamp, 0, 0]],
         mode: null,
         lock: false,
@@ -526,7 +526,7 @@ export function useTouch(on, o) {
       }
       if (
         !x.swipe ||
-        t.clientX > 22 ||
+        touch.clientX > 22 ||
         document.querySelector('.drawer, .pal-veil, .aq-dock, .coach-tip')
       )
         return;
@@ -541,8 +541,8 @@ export function useTouch(on, o) {
     };
 
     const move = (e) => {
-      const t = e.touches[0];
-      if (Math.abs(t.clientX - p0[0]) > 8 || Math.abs(t.clientY - p0[1]) > 8) {
+      const touch = e.touches[0];
+      if (Math.abs(touch.clientX - p0[0]) > 8 || Math.abs(touch.clientY - p0[1]) > 8) {
         holdOff();
         if (pressed) unpressNow();
       }
@@ -551,8 +551,8 @@ export function useTouch(on, o) {
         return;
       }
       if (!gesture?.mode) return;
-      const dx = t.clientX - gesture.x0,
-        dy = t.clientY - gesture.y0;
+      const dx = touch.clientX - gesture.x0,
+        dy = touch.clientY - gesture.y0;
       if (!gesture.lock) {
         // decided on the first move: once Safari starts scrolling, it can't be taken back
         const ok =
@@ -614,11 +614,11 @@ export function useTouch(on, o) {
       const k = gesture;
       gesture = null;
       if (!k?.lock) return;
-      const [a, b] = [k.trail[0], k.trail[k.trail.length - 1]];
-      const dt = Math.max(1, b[0] - a[0]);
-      const vx = (b[1] - a[1]) / dt,
-        vy = (b[2] - a[2]) / dt;
-      const [, dx, dy] = b;
+      const [first, last] = [k.trail[0], k.trail[k.trail.length - 1]];
+      const dt = Math.max(1, last[0] - first[0]);
+      const vx = (last[1] - first[1]) / dt,
+        vy = (last[2] - first[2]) / dt;
+      const [, dx, dy] = last;
       const w = width();
       const x = ref.current;
       if (k.mode === 'sheet') {
@@ -680,28 +680,29 @@ export function useTouch(on, o) {
         return;
       }
       if (!tgt || !e.isTrusted || !ref.current.phone) return;
-      for (const s of SHEETS) {
-        const btn = s.x && tgt.closest(s.x);
-        const el = btn?.closest(s.sel);
+      for (const kind of SHEETS) {
+        const btn = kind.x && tgt.closest(kind.x);
+        const el = btn?.closest(kind.sel);
         if (btn && el) {
           if (
             e.type !== 'click' ||
-            (s.sel === '.aq-dock' && btn !== el.querySelector('.aq-dock-h .ib'))
+            (kind.sel === '.aq-dock' && btn !== el.querySelector('.aq-dock-h .ib'))
           )
             return; // ✕ on a conversation clears it: no slide
           e.preventDefault();
           e.stopPropagation();
-          slideAway(el, s, () => btn.click());
+          slideAway(el, kind, () => btn.click());
           return;
         }
         // the shade itself (not the sheet on it)
-        if (s.veil && tgt.matches(s.veil)) {
+        if (kind.veil && tgt.matches(kind.veil)) {
           const sheet =
-            tgt.querySelector(s.sel) || (s.sel === '.drawer' && document.querySelector('.drawer'));
-          if (!sheet || (e.type === 'mousedown') !== (s.veil === '.pal-veil')) continue;
+            tgt.querySelector(kind.sel) ||
+            (kind.sel === '.drawer' && document.querySelector('.drawer'));
+          if (!sheet || (e.type === 'mousedown') !== (kind.veil === '.pal-veil')) continue;
           e.preventDefault();
           e.stopPropagation();
-          slideAway(sheet, s, () => s.close(sheet));
+          slideAway(sheet, kind, () => kind.close(sheet));
           return;
         }
       }

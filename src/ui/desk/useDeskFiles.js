@@ -19,24 +19,24 @@ export default function useDeskFiles({ codeRef, edited, lang, lesson, onPatch, s
     if (lang === 'html') {
       let main = all[0].code;
       const extra = [];
-      for (const f of all.slice(1)) {
-        const n = f.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      for (const file of all.slice(1)) {
+        const escaped = file.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         if (
-          /\.css$/.test(f.name) &&
-          new RegExp(`<link[^>]+href=["']\\.?/?${n}["'][^>]*>`, 'i').test(main)
+          /\.css$/.test(file.name) &&
+          new RegExp(`<link[^>]+href=["']\\.?/?${escaped}["'][^>]*>`, 'i').test(main)
         ) {
-          main = main.replace(new RegExp(`<link[^>]+href=["']\\.?/?${n}["'][^>]*>`, 'i'), '');
-          extra.push(`<style>\n${f.code}\n</style>`);
+          main = main.replace(new RegExp(`<link[^>]+href=["']\\.?/?${escaped}["'][^>]*>`, 'i'), '');
+          extra.push(`<style>\n${file.code}\n</style>`);
         }
         if (
-          /\.js$/.test(f.name) &&
-          new RegExp(`<script[^>]+src=["']\\.?/?${n}["'][^>]*>\\s*</script>`, 'i').test(main)
+          /\.js$/.test(file.name) &&
+          new RegExp(`<script[^>]+src=["']\\.?/?${escaped}["'][^>]*>\\s*</script>`, 'i').test(main)
         ) {
           main = main.replace(
-            new RegExp(`<script[^>]+src=["']\\.?/?${n}["'][^>]*>\\s*</script>`, 'i'),
+            new RegExp(`<script[^>]+src=["']\\.?/?${escaped}["'][^>]*>\\s*</script>`, 'i'),
             '',
           );
-          extra.push(`<script>\n${f.code}\n</script>`);
+          extra.push(`<script>\n${file.code}\n</script>`);
         }
       }
       return { main: `${main}\n${extra.join('\n')}`, files: null }; // added at the end, so index.html keeps its line numbers

@@ -142,7 +142,7 @@ export function PartSheet({
         {big.length > 0 && (
           <Group title="Its biggest files">
             {big.map((f) => (
-              <FileRow key={f.p} f={f} sub={role(f.p)} onOpen={onOpenFile} />
+              <FileRow key={f.p} file={f} sub={role(f.p)} onOpen={onOpenFile} />
             ))}
           </Group>
         )}

@@ -74,20 +74,23 @@ function Ripple({ facts, idx, onOpen }) {
             style={{ animationDelay: `${d * 0.25}s` }}
           />
         ))}
-        {rings.map((ring, d) =>
-          ring.slice(0, Math.floor(radius[d] / 1.6)).map((j, k, arr) => {
-            const dr = Math.max(2.2, Math.min(5.5, ((Math.PI * radius[d]) / arr.length) * 0.55));
-            const a = (k / arr.length) * Math.PI * 2 - Math.PI / 2 + d * 0.4;
+        {rings.map((ring, depth) =>
+          ring.slice(0, Math.floor(radius[depth] / 1.6)).map((j, k, arr) => {
+            const dr = Math.max(
+              2.2,
+              Math.min(5.5, ((Math.PI * radius[depth]) / arr.length) * 0.55),
+            );
+            const a = (k / arr.length) * Math.PI * 2 - Math.PI / 2 + depth * 0.4;
             const file = facts.files[j];
             return (
               <circle
                 key={j}
-                cx={center + Math.cos(a) * radius[d]}
-                cy={center + Math.sin(a) * radius[d]}
+                cx={center + Math.cos(a) * radius[depth]}
+                cy={center + Math.sin(a) * radius[depth]}
                 r={hov === j ? dr + 2.5 : dr}
                 fill={LAYER[file.layer]?.[3] || 'var(--ink-3)'}
                 className="rp-dot"
-                style={{ animationDelay: `${0.15 + d * 0.25 + k * 0.01}s` }}
+                style={{ animationDelay: `${0.15 + depth * 0.25 + k * 0.01}s` }}
                 onMouseEnter={() => setHov(j)}
                 onMouseLeave={() => setHov(null)}
                 onClick={() => onOpen(file.p)}
@@ -198,7 +201,7 @@ export function Drawer({
     ext: [],
     used: 0,
   };
-  const [q, setQ] = useState('');
+  const [query, setQuery] = useState('');
   const [others, setOthers] = useState(null);
   useEffect(() => {
     let on = true;
@@ -387,17 +390,17 @@ export function Drawer({
           className="dr-ask"
           onSubmit={(e) => {
             e.preventDefault();
-            if (q.trim()) onAsk(q.trim(), p);
+            if (query.trim()) onAsk(query.trim(), p);
           }}
         >
           <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             placeholder="Ask about this file…"
             enterKeyHint="send"
           />
           {phone && (
-            <button className="ask-go" aria-label="Ask" disabled={!q.trim()}>
+            <button className="ask-go" aria-label="Ask" disabled={!query.trim()}>
               <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
                 <path
                   d="M12 19V5M6 11l6-6 6 6"
