@@ -25,14 +25,18 @@ export default function Compare({
   onOpenProject,
 }) {
   const [q, setQ] = useState('');
+  const [keyA, keyB] = pair;
   useEffect(() => {
-    pair.forEach((k) => k && ensure(k));
-  }, [pair[0], pair[1]]);
+    [keyA, keyB].forEach((k) => k && ensure(k));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ensure (open a project) is new each render; only a new pair should open anything
+  }, [keyA, keyB]);
   const atlasA = atlases[pair[0]],
     atlasB = atlases[pair[1]];
-  const tools = (site) => (site?.facts ? detectStack(site.facts).filter((s) => !s.workshop) : []);
-  const ta = useMemo(() => tools(atlasA), [atlasA?.facts]);
-  const tb = useMemo(() => tools(atlasB), [atlasB?.facts]);
+  const tools = (facts) => (facts ? detectStack(facts).filter((s) => !s.workshop) : []);
+  const factsA = atlasA?.facts;
+  const factsB = atlasB?.facts;
+  const ta = useMemo(() => tools(factsA), [factsA]);
+  const tb = useMemo(() => tools(factsB), [factsB]);
   const both = ta.filter((t) => tb.some((u) => u.id === t.id));
   const onlyA = ta.filter((t) => !tb.some((u) => u.id === t.id));
   const onlyB = tb.filter((t) => !ta.some((u) => u.id === t.id));
@@ -102,9 +106,9 @@ export default function Compare({
         </div>
         <div className="cmp-flow">
           <BigPicture
-            flow={site.narr?.flow || fallbackFlow(site.facts, tools(site))}
+            flow={site.narr?.flow || fallbackFlow(site.facts, tools(site.facts))}
             terms={[]}
-            tools={tools(site)}
+            tools={tools(site.facts)}
             pathIdx={new Map(site.facts.files.map((f, i) => [f.p, i]))}
             onOpen={() => onOpenProject(k)}
             onAsk={() => {}}

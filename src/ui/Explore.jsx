@@ -85,6 +85,7 @@ export default function Explore({
     const t = setInterval(() => setPh((p) => p + 1), 3000);
     if (!TOUCH) inp.current?.focus();
     return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loads your repos once, when Explore opens
   }, []);
   const search = async (query, opts = {}) => {
     const id = ++reqId.current;
@@ -108,6 +109,7 @@ export default function Explore({
       language,
       ...(extra || {}),
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a shelf searches when you pick it
   }, [shelf]);
   const repo = parseRepo(q);
   const site = !repo && parseSite(q);

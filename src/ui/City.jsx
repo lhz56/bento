@@ -132,7 +132,7 @@ export default function City({
   }, []);
 
   const svcs = useMemo(() => tools.filter((s) => !s.hideAsUi).slice(0, 12), [tools]);
-  const journeys = narration?.journeys || [];
+  const journeys = useMemo(() => narration?.journeys || [], [narration?.journeys]);
   const maxUsed = useMemo(() => Math.max(1, ...facts.files.map((f) => f.used)), [facts]);
   const maxLines = useMemo(
     () => Math.max(60, ...facts.files.filter((f) => f.lang).map((f) => f.lines)),
@@ -250,7 +250,7 @@ export default function City({
       jr.s === 0 ? 2200 : 2900,
     );
     return () => clearTimeout(timer);
-  }, [jr]);
+  }, [jr, journeys]);
 
   let lit = null;
   const links = [];

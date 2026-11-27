@@ -103,12 +103,13 @@ export default function DevicesRow() {
       .then(setSt)
       .catch(() => {});
     return host.on(setSt);
-  }, []);
+  }, [host]);
   // the code's countdown
   useEffect(() => {
     if (!st?.pairing) return undefined;
     const i = setInterval(() => tick((n) => n + 1), 1000);
     return () => clearInterval(i);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ticks once a second while a pairing code shows; a new code restarts it
   }, [st?.pairing?.code]);
   // a new device appears while Settings is open: say so
   useEffect(() => {
@@ -120,6 +121,7 @@ export default function DevicesRow() {
     setJoined(fresh.name);
     const timer = setTimeout(() => setJoined(null), 6000);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a new device is noticed when the count of devices changes
   }, [st?.devices?.length]);
   const act = async (fn) => {
     setBusy(true);
@@ -134,6 +136,12 @@ export default function DevicesRow() {
   };
   const left = st?.pairing ? Math.max(0, Math.round((st.pairing.exp - Date.now()) / 1000)) : 0;
   // with nothing paired yet, the code is ready to scan; it renews itself while it's on screen
+  // start pairing by itself: when sharing is turned on and nothing is paired yet, and again when the code runs out
+  const on = !!st?.on;
+  const urlCount = st?.urls?.length || 0;
+  const deviceCount = st?.devices?.length || 0;
+  const pairing = !!st?.pairing;
+  const expired = left <= 0;
   useEffect(() => {
     if (!st?.on || !st.urls.length || busy) return;
     if (
@@ -143,7 +151,8 @@ export default function DevicesRow() {
       auto.current = true;
       act(() => host.pair());
     }
-  }, [st?.on, st?.urls?.length, st?.devices?.length, !!st?.pairing, left <= 0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pairing starts on these changes only; busy and left are read as they are then
+  }, [on, urlCount, deviceCount, pairing, expired]);
   if (!host || !st) return null;
   const set = (p) => act(() => host.set({ on: st.on, wifi: st.wifi, awake: st.awake, ...p }));
   const ts = st.urls.find((u) => u.kind === 'tailscale'),
@@ -454,7 +463,7 @@ export function ThisDeviceRow() {
     const off = remote.on((state, host) => setSt({ state, host }));
     setSt({ state: remote.state, host: remote.host });
     return off;
-  }, []);
+  }, [remote]);
   if (!remote) return null;
   const me =
     /iPad/.test(navigator.userAgent) ||

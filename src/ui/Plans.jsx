@@ -197,7 +197,7 @@ export function PlanMeter({ model, providers }) {
       removeEventListener('pointerdown', away);
       removeEventListener('resize', shut);
     };
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- the listeners exist while the menu is open
   if (!usage && !planLimits) return null;
   const today = usage?.today || { lessons: 0, quick: 0, other: 0, saved: 0 };
   const n = today.lessons + today.quick + today.other;

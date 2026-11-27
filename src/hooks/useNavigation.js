@@ -29,11 +29,11 @@ export default function useNavigation({
 }) {
   useEffect(() => {
     setPane('story');
-  }, [currentId]);
+  }, [currentId, setPane]);
   useEffect(() => {
     setDrawer(false);
     setScrolled(false);
-  }, [view, currentId, atlasKey, siteKey]);
+  }, [view, currentId, atlasKey, siteKey, setDrawer, setScrolled]);
   // each screen is a step in the page's history: Back returns to the last one (Safari's swipe back on a phone or iPad;
   // ⌘[ and ⌘], the mouse's side buttons and the menu on the Mac)
   useEffect(() => {
@@ -64,7 +64,7 @@ export default function useNavigation({
     };
     addEventListener('popstate', back);
     return () => removeEventListener('popstate', back);
-  }, []);
+  }, [setAtlasKey, setCurrentId, setSiteKey, setViewRaw]);
   const goBack = () => {
     navDir.current = 'pop';
     if (api.remote && history.state?.depth > 0) history.back();
@@ -85,7 +85,7 @@ export default function useNavigation({
     if (dir === 'push') forgetScroll(page);
     else restoreScroll(page, main);
     enter(main, dir);
-  }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [page]); // eslint-disable-line react-hooks/exhaustive-deps -- the page slides and keeps its scroll when it changes, not on every render
   useTouch(TOUCH, {
     phone,
     back: goBack,

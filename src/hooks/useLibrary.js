@@ -372,7 +372,7 @@ export default function useLibrary({
       : p.kind === 'github'
         ? openRepo(p.full)
         : openAtlas({ kind: 'local', root: p.root, name: p.name });
-  useEffect(() => api.onAtlasProgress?.((full, p) => patchAtlas(full, { progress: p })), []);
+  useEffect(() => api.onAtlasProgress?.((full, p) => patchAtlas(full, { progress: p })), [api]);
   useEffect(() => {
     api
       .atlasList?.()
@@ -383,7 +383,7 @@ export default function useLibrary({
         }),
       )
       .catch(() => {});
-  }, []);
+  }, [api]);
   const showAtlas = (key) => {
     const sp = projects.find((x) => x.key === key && x.kind === 'site');
     if (sp) return openSite(sp.url);

@@ -299,11 +299,9 @@ function ScaleChart({ onOpen }) {
 
 // "Which pattern?" — read a puzzle, guess the way of thinking. Pattern spotting is the real interview skill.
 function Compass({ onClose, onOpen }) {
-  const PUZZLES = BUILTIN;
-  const STATIONS = BUILTIN_STATIONS;
   const deck = useMemo(
     () =>
-      PUZZLES.filter((x) => x.st !== 'start')
+      BUILTIN.filter((x) => x.st !== 'start')
         .sort(() => Math.random() - 0.5)
         .slice(0, 6),
     [],
@@ -314,7 +312,7 @@ function Compass({ onClose, onOpen }) {
   const p = deck[i];
   const opts = useMemo(() => {
     if (!p) return [];
-    const others = STATIONS.filter((s) => s.id !== p.st && s.id !== 'start')
+    const others = BUILTIN_STATIONS.filter((s) => s.id !== p.st && s.id !== 'start')
       .sort(() => Math.random() - 0.5)
       .slice(0, 2);
     return [stationOf(p), ...others].sort(() => Math.random() - 0.5);

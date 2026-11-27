@@ -40,7 +40,7 @@ export default function Grow({ full }) {
       off?.();
     }
   };
-  const frames = st?.frames || [];
+  const frames = useMemo(() => st?.frames || [], [st?.frames]);
   useEffect(() => {
     clearTimeout(timer.current);
     if (!playing || !frames.length) return;

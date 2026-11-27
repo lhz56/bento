@@ -123,6 +123,7 @@ export default function Atlas({
       setDrawer(initialFile);
       onInitialFileShown?.();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- opens the asked-for file once, when it and the project's facts are in; pathIdx comes from facts
   }, [initialFile, facts]);
 
   useEffect(() => {

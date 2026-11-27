@@ -325,7 +325,6 @@ export default function App() {
     setLessons,
     setStepSel,
     setViewRaw,
-    settings,
   });
 
   useShortcuts({

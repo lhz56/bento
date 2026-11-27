@@ -127,7 +127,7 @@ export default function Story(p) {
     if (!streaming && wasStreaming.current && lesson.status === 'done')
       announce(`${t('Lesson ready')}: ${lesson.title || ''}`);
     wasStreaming.current = streaming;
-  }, [streaming, lesson.status]);
+  }, [streaming, lesson.status, lesson.title]);
   const md = (t) => <Md text={t} onLink={p.onLink} onLinkClick={p.onLinkClick} onTerm={p.onTerm} />;
   // where the code sits in article mode: under a heading about the code, else after the second paragraph
   const hIdx = lesson.story.findIndex(
@@ -766,6 +766,7 @@ function NextCard({ lesson, p }) {
   const tries = lesson.story.filter((b) => b.t === 'try').flatMap((b) => b.items || []);
   const nexts = lesson.story.filter((b) => b.t === 'next').flatMap((b) => b.items || []);
   const [open, setOpen] = useState(lesson.teach ? 'teach' : null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- opening a lesson shows its explain-it-back card if it has one; later changes don't reopen it
   useEffect(() => setOpen(lesson.teach ? 'teach' : null), [lesson.id]);
   const depth = !lesson.scratch && lesson.mode !== 'challenge' && p.onDepth;
   const practice =
@@ -958,6 +959,7 @@ function Wild({ lesson, onWild, onOpenAt, auto }) {
   useEffect(() => {
     setSt(null);
     if (auto) go();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a new lesson clears the last answer, and asks again if it asks by itself
   }, [lesson.id]);
   const go = async () => {
     setSt({ loading: true });

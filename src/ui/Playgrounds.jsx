@@ -110,6 +110,7 @@ function SqlPlay({ done, onDone, quick, model, pyReady }) {
   };
   useEffect(() => {
     if (pyReady && q) go();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs the waiting playground once Python is ready
   }, [pyReady]);
   const pick = (i) => {
     setCi(i);
@@ -377,6 +378,7 @@ function GitPlay({ done, onDone }) {
       });
       setSeen(n);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- missions are checked each time the simulation moves
   }, [sim]);
   const next = G.MISSIONS.findIndex((_, i) => !seen.has(i));
   const submit = (e) => {

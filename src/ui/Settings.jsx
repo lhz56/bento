@@ -477,7 +477,7 @@ function UsageRow({ providers }) {
   }, [cleared]);
   useEffect(() => {
     refresh();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- plan limits are read once, when Settings opens
   if (!u) return null;
   const tot = (d) => d.lessons + d.quick + d.other;
   const max = Math.max(1, ...u.days.map((d) => tot(d) + d.saved));

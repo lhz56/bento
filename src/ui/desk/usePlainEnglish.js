@@ -13,7 +13,7 @@ export default function usePlainEnglish({ code, lesson }) {
     });
     Object.entries(lesson.pmap || {}).forEach(([k, v]) => m.set(k, v));
     return m;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pmapV forces a rebuild after new plain English is saved
   }, [lesson.code, lesson.pseudo, lesson.pmap, pmapV]);
   // a line still where the lesson wrote it keeps the lesson's own English for that spot (the same line can appear twice
   // with different jobs: `show(steps)` mid-search and at the end); edited or moved lines are matched by their text

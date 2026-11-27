@@ -185,6 +185,7 @@ export default function BigPicture({
       done = true;
       clearTimeout(timer);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a walkthrough follows the picture it started on
   }, [walk]);
   useEffect(() => () => window.speechSynthesis?.cancel(), []);
   const stopWalk = () => {
@@ -212,7 +213,7 @@ export default function BigPicture({
       80,
     );
     return () => clearTimeout(timer);
-  }, [sel]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sel]); // eslint-disable-line react-hooks/exhaustive-deps -- scrolls to a part when you pick one; walk and narrow are read as they are then
   const toolFor = (n) =>
     (n.stack && (tools.find((t) => t.id === n.stack) || BY_ID[n.stack])) || null;
   const termDef = (t) => {

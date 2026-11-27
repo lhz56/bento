@@ -1,5 +1,5 @@
 // First-time hints: a small bubble pointing at one control at a time. Shown once per screen, ever.
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { keys, tap } from '../platform.js';
 
 export const TIPS = {
@@ -71,17 +71,17 @@ export default function Coach({ screen, ready }) {
       clearInterval(watch);
       removeEventListener('resize', re);
     };
-  }, [i, ready]);
-  const done = () => {
+  }, [step, ready]);
+  const done = useCallback(() => {
     localStorage.setItem(`bento.coach.${screen}`, '1');
     setI(-1);
-  };
+  }, [screen]);
   useEffect(() => {
     if (!step) return;
     const h = (e) => e.key === 'Escape' && done();
     addEventListener('keydown', h);
     return () => removeEventListener('keydown', h);
-  }, [step]);
+  }, [step, done]);
   if (!step || !box || !ready) return null;
   const below = box.y + box.h + 150 < innerHeight;
   const left = Math.max(12, Math.min(innerWidth - 332, box.x + box.w / 2 - 160));

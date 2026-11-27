@@ -90,6 +90,11 @@ const Desk = forwardRef(function Desk(props, ref) {
     { codeRef, edited, lang, lesson, onPatch, setCode },
   );
   const lidRef = useRef(lesson.id);
+  // a lesson about a file from a real project (or two compared) shows its code but doesn't run it
+  const fromRepo =
+    (lesson.mode === 'code' && !!(lesson.context?.repo || lesson.context?.path)) ||
+    lesson.mode === 'compare';
+  const runnable = lesson.mode !== 'feature' && !fromRepo;
   const {
     answersRef,
     doMeasure,
@@ -149,12 +154,13 @@ const Desk = forwardRef(function Desk(props, ref) {
     setPlaying(false);
     setTab(lesson.tests ? 'tests' : 'output');
     setLens(lesson.mode === 'code' || lesson.mode === 'compare' ? 'both' : 'code');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- everything resets when another lesson opens, not as this one changes
   }, [lesson.id]);
   // streaming: follow the model's code until the student edits
   useEffect(() => {
     if (!edited.current && lesson.code && lesson.code !== codeRef.current && stepSel == null)
       setCode(lesson.code);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- follows the lesson's code as it streams in, unless you're viewing a step
   }, [lesson.code]);
   // recipe steps
   useEffect(() => {
@@ -162,6 +168,7 @@ const Desk = forwardRef(function Desk(props, ref) {
       setCode(lesson.steps[stepSel].code);
       edited.current = false;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loads a step's code when you pick one, or when more steps stream in; not over your edits
   }, [stepSel, lesson.steps.length]);
   useEffect(() => {
     if (lesson.mode === 'build' && stepSel != null && lesson.steps[stepSel] && !streaming) {
@@ -169,6 +176,7 @@ const Desk = forwardRef(function Desk(props, ref) {
       const t = setTimeout(() => doRun(c, { quiet: true }), 60);
       return () => clearTimeout(t);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a build lesson's step runs once when you pick it (or when it finishes streaming), not again as you edit
   }, [stepSel, streaming, lesson.steps.length]);
 
   useEffect(() => {
@@ -216,7 +224,7 @@ const Desk = forwardRef(function Desk(props, ref) {
       }
     }, 1300);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- asks for plain English after typing pauses; the lesson's other fields are read as they are then
   }, [pendingEnglish, code, streaming, englishAgain]);
 
   useImperativeHandle(ref, () => ({
@@ -244,7 +252,7 @@ const Desk = forwardRef(function Desk(props, ref) {
       },
     ); // the lesson's own code: the editor may still hold the previous lesson's
     if (lesson.tests && (lesson.builtin !== true || lesson.puzzle)) doTests();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a lesson runs itself once when it opens, finishes streaming, or Python becomes ready
   }, [lesson.id, streaming, pyReady]);
 
   const onChange = (v, scrub) => {
@@ -289,7 +297,7 @@ const Desk = forwardRef(function Desk(props, ref) {
   const step = trace?.steps?.[stepIdx];
   useEffect(() => {
     if (step && tab === 'steps') ed.current?.scrollToLine(step.line);
-  }, [stepIdx, trace, tab]);
+  }, [step, tab]);
   useEffect(() => {
     if (linkRange) ed.current?.scrollToLine(linkRange[0]);
   }, [linkRange]);
@@ -319,7 +327,7 @@ const Desk = forwardRef(function Desk(props, ref) {
     };
     addEventListener('keydown', onKey);
     return () => removeEventListener('keydown', onKey);
-  }, [tab, trace]);
+  }, [tab, trace, setPlaying, setStepIdx]);
 
   // diff against the previous version of the SAME file: an earlier step, else the real file from the project
   const stepFile = stepSel != null ? lesson.steps[stepSel]?.file : null;
@@ -352,7 +360,7 @@ const Desk = forwardRef(function Desk(props, ref) {
       live = false;
       clearTimeout(timer);
     };
-  }, [code, lang]);
+  }, [code, lang, runnable]);
   // pointing at something in a web page lights up the line that made it
   const [pageLine, setPageLine] = useState(null);
   useEffect(() => {
@@ -458,6 +466,7 @@ const Desk = forwardRef(function Desk(props, ref) {
         setTimeout(() => doRun(j.code, { quiet: true }), 30);
       } catch {}
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- repairs a broken example once, when a lesson finishes and its first run fails; not on every edit
   }, [streaming, lesson.status, result, lesson.id]);
 
   // After a new lesson's code runs cleanly: check the lesson against what the code really did (free checks first,
@@ -512,7 +521,7 @@ const Desk = forwardRef(function Desk(props, ref) {
         check: { at: Date.now(), local: loc.notes, corrections, by },
       });
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a finished lesson is checked once, after its first run
   }, [streaming, lesson.status, result, lesson.id]);
 
   const modified =
@@ -552,10 +561,6 @@ const Desk = forwardRef(function Desk(props, ref) {
       setCoach({ said: 'The model didn’t answer. Try again in a moment.' });
     }
   };
-  const fromRepo =
-    (lesson.mode === 'code' && !!(lesson.context?.repo || lesson.context?.path)) ||
-    lesson.mode === 'compare';
-  const runnable = lesson.mode !== 'feature' && !fromRepo;
   const fileLang = (n) =>
     /\.css$/.test(n)
       ? 'css'

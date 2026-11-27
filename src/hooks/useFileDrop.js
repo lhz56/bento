@@ -1,6 +1,7 @@
 // Drag a folder, a code file or a shared lesson onto the window: a folder opens as a project, a lesson file opens
 // as that lesson, and a code file becomes a lesson that explains it. dropping is true while something is held over.
-import { useState, useEffect } from 'react';
+// The listeners are set up once and always call the newest handlers (askLesson, for one, changes with settings).
+import { useState, useEffect, useRef } from 'react';
 import { api } from '../bridge.js';
 import { emptyLesson } from '../lesson.js';
 import { cleanErr } from '../store.js';
@@ -12,9 +13,10 @@ export default function useFileDrop({
   setLessons,
   setStepSel,
   setViewRaw,
-  settings,
 }) {
   const [dropping, setDropping] = useState(false);
+  const handlers = useRef({ askLesson, openAtlas });
+  handlers.current = { askLesson, openAtlas };
   useEffect(() => {
     let depth = 0;
     const enter = (e) => {
@@ -39,6 +41,7 @@ export default function useFileDrop({
       if (!file) return;
       try {
         const dropped = await api.dropOpen(file);
+        const { askLesson, openAtlas } = handlers.current;
         if (dropped.kind === 'local')
           openAtlas({ kind: 'local', root: dropped.root, name: dropped.name });
         else if (dropped.kind === 'lesson') {
@@ -75,6 +78,6 @@ export default function useFileDrop({
       removeEventListener('dragleave', leave);
       removeEventListener('drop', drop);
     };
-  }, [settings]);
+  }, [setCurrentId, setLessons, setStepSel, setViewRaw]);
   return { dropping };
 }

@@ -186,7 +186,7 @@ export function Drawer({
       : 'code';
   };
   const [tab, setTab] = useState(first);
-  useEffect(() => setTab(first()), [p]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => setTab(first()), [p]); // eslint-disable-line react-hooks/exhaustive-deps -- a newly opened file starts on its first tab
   // a file outside the analysed sample: what we know from its name and its text
   const file = facts.files[pathIdx.get(p)] || {
     p,
@@ -208,11 +208,13 @@ export function Drawer({
     return () => {
       on = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the file when another one is opened; readFile is new each render but reads the same project
   }, [p]);
   useEffect(() => {
     const h = (e) => e.key === 'Escape' && onClose();
     addEventListener('keydown', h);
     return () => removeEventListener('keydown', h);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Escape closes the drawer; onClose is new each render but always does the same
   }, []);
   if (!file) return null;
   const idx = pathIdx.get(p);

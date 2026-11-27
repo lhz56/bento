@@ -1,5 +1,6 @@
 // House rules the code keeps (CONTRIBUTING.md): every source file opens with a comment that says what it's for, so
-// the top of any file is enough to know whether it's the one you want.
+// the top of any file is enough to know whether it's the one you want; and every place a lint rule is switched off
+// says why, after "--".
 // node test/conventions.test.mjs
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -23,4 +24,24 @@ console.log(
     ? `✗ ${bare.length} files don't say what they're for on their first line:\n  ${bare.join('\n  ')}`
     : `✓ all ${tracked.length} source files open with what they're for`,
 );
-process.exit(bare.length ? 1 : 0);
+
+const unexplained = tracked
+  .filter((p) => p !== 'test/conventions.test.mjs') // (this file names the rule, it doesn't switch it off)
+  .flatMap((p) =>
+    fs
+      .readFileSync(path.join(root, p), 'utf8')
+      .split('\n')
+      .map((line, i) => ({ line, at: `${p}:${i + 1}` }))
+      .filter(
+        ({ line }) =>
+          /eslint-disable/.test(line) &&
+          !/eslint-disable\S*\s+[\w/-]+(,\s*[\w/-]+)*\s+--\s+\S/.test(line),
+      )
+      .map(({ at }) => at),
+  );
+console.log(
+  unexplained.length
+    ? `✗ ${unexplained.length} lint exceptions don't say why:\n  ${unexplained.join('\n  ')}`
+    : '✓ every lint exception says why',
+);
+process.exit(bare.length || unexplained.length ? 1 : 0);

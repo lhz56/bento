@@ -59,11 +59,12 @@ export default function useLessons({
         ...Object.values(PRE.sims),
       ].find((l) => l.id === currentId) ||
       null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the shipped lessons (PRE) fill in after startup; preReady says they arrived
     [lessons, currentId, preReady],
   );
   const patch = useCallback(
     (id, p) => setLessons((ls) => ls.map((l) => (l.id === id ? { ...l, ...p } : l))),
-    [],
+    [setLessons],
   );
   const openLesson = (lesson) => {
     if (WEB) countOnce('lesson', lesson.id);
@@ -287,7 +288,8 @@ export default function useLessons({
       L0._ask = { q: question, o: options };
       return L0.id;
     },
-    [settings],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- openLesson is new each render but only calls state setters, so the copy from the last settings change does the same
+    [settings, cancels, lessonsRef, providersRef, setLessons, setPop, setProgress, setViewRaw],
   );
   // points toward each concept you learn, once per lesson and kind of activity
   const award = (lesson, kind) => {

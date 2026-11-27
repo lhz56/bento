@@ -166,6 +166,6 @@ export default function useExplanations({
     };
     addEventListener('mousedown', h);
     return () => removeEventListener('mousedown', h);
-  }, []);
+  }, [setPop]);
   return { explainSelection, onTerm, onTry, sel };
 }

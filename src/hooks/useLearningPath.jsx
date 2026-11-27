@@ -106,7 +106,7 @@ export default function useLearningPath({
   const [trail, setTrail] = useState(null);
   useEffect(() => {
     if (trail && view !== trail.view) setTrail(null);
-  }, [view]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [view]); // eslint-disable-line react-hooks/exhaustive-deps -- the path strip goes away when you leave the screen it was for
   // a stop on a path that teaches this map skill and opens instantly (the next one you haven't done, or the first)
   const readyFor = (sid) => {
     const all = tracksWith().flatMap((track) =>

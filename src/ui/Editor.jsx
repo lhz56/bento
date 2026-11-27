@@ -817,7 +817,7 @@ const Editor = forwardRef(function Editor(props, ref) {
       ro.disconnect();
       v.destroy();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the editor is made once; later changes reach it through refs and reconfigure
   }, []);
 
   function measure() {
@@ -870,6 +870,7 @@ const Editor = forwardRef(function Editor(props, ref) {
       setCard(null);
       editor.focus();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a change between reading and editing moves the focus
   }, [reading]);
   // (a finger's notes live inside the code: open one, and its lines light up the way a hover does on a Mac)
   useEffect(() => {
@@ -883,7 +884,7 @@ const Editor = forwardRef(function Editor(props, ref) {
     if (!touch) return;
     const n = openNote != null ? notes[openNote] : null;
     cb.current.onNoteHover?.(n ? [n.from, n.to || n.from] : null);
-  }, [touch, openNote]);
+  }, [touch, openNote, notes]);
   useEffect(() => {
     setOpenNote(null);
     setCard(null);

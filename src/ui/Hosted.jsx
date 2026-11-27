@@ -52,7 +52,7 @@ function Pair() {
   useEffect(() => {
     if (fromLink) go(fromLink);
     else if (IN_APP) native('unpaired');
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- pairs once, with the code the link brought
   // the pairing screen is already open and the QR code is scanned: Safari may only change the address's #pair=…
   useEffect(() => {
     const h = () => {

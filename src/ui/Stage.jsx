@@ -23,6 +23,7 @@ export default function Stage(p) {
   useEffect(() => {
     if (pred?.phase === 'wait' && p.result && p.result !== pred.before)
       setPred((x) => ({ ...x, phase: 'done', result: p.result }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a guess is settled when a new result comes in
   }, [p.result]);
   // screen readers hear how each run ended, without losing their place in the code
   useEffect(() => {
@@ -602,6 +603,7 @@ function Steps({
       (1 + (step?.ret ? 0.5 : 0) + (changesAt(stepIdx).length ? 0.35 : 0) + (printed ? 0.4 : 0));
     const tm = setTimeout(() => setStepIdx(stepIdx + 1), dwell);
     return () => clearTimeout(tm);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- plays the next step after a pause; the step's details are read from the render that set it
   }, [playing, stepIdx, steps.length, BASE]);
   // the keyboard (← → step, space plays, Home/End jump) is handled by the desk, for the whole window
   if (!trace)

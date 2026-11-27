@@ -90,7 +90,18 @@ export default function useShortcuts({
     };
     addEventListener('keydown', onKey);
     return () => removeEventListener('keydown', onKey);
-  }, [view]);
+  }, [
+    view,
+    desk,
+    setFindOpen,
+    setLinkRange,
+    setPal,
+    setPop,
+    setShowKeys,
+    setShowSettings,
+    setSideOpen,
+    setViewRaw,
+  ]);
   // The menu bar sends the same commands. If you just pressed that shortcut, the page has already done it.
   const menuActs = useRef(/** @type {Record<string, () => void>} */ ({}));
   menuActs.current = { openFolderAtlas };
@@ -130,5 +141,5 @@ export default function useShortcuts({
       removeEventListener('mouseup', side);
       off?.();
     };
-  }, []);
+  }, [setFindOpen, setOnb, setPal, setShowKeys, setShowSettings, setSideOpen, setViewRaw]);
 }

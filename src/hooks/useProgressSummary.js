@@ -26,12 +26,16 @@ export default function useProgressSummary({
   setViewRaw,
   startStop,
 }) {
-  const readIdsAll = () =>
-    Object.fromEntries(
-      lessons
-        .filter((l) => l.context?.ideaId && l.status === 'done' && (!l.builtin || l.touched))
-        .map((l) => [l.context.ideaId, true]),
-    );
+  // the clever ideas you've read: a finished lesson that came from one
+  const readIds = useMemo(
+    () =>
+      Object.fromEntries(
+        lessons
+          .filter((l) => l.context?.ideaId && l.status === 'done' && (!l.builtin || l.touched))
+          .map((l) => [l.context.ideaId, true]),
+      ),
+    [lessons],
+  );
   const mastery = useMemo(
     () =>
       masteryOf({
@@ -40,9 +44,9 @@ export default function useProgressSummary({
         puzzles: PUZZLES,
         stops: ALL_STOPS,
         ideas: IDEAS,
-        readIds: readIdsAll(),
+        readIds,
       }),
-    [progress, lessons],
+    [progress, lessons, readIds],
   );
   // Home's "Today": one next step from each part of Bento
   const today = useMemo(() => {
@@ -84,7 +88,7 @@ export default function useProgressSummary({
         sub: t('a two-minute review'),
         go: () => setViewRaw(fading ? 'map' : 'words'),
       });
-    const unread = IDEAS.filter((i) => !readIdsAll()[i.id]);
+    const unread = IDEAS.filter((i) => !readIds[i.id]);
     const idea = unread[Math.floor(Date.now() / 864e5) % Math.max(1, unread.length)];
     if (idea)
       out.push({
@@ -116,8 +120,8 @@ export default function useProgressSummary({
     };
     const mins = { path: 12, puzzle: 8, idea: 6, bug: 2, review: 2 };
     return out.slice(0, 5).map((x) => ({ ...x, mins: mins[x.k], done: !!doneToday[x.k] }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [progress, mastery, lessons, packStuff]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Today changes with what you learned; its actions are read as they are then
+  }, [progress, mastery, lessons, packStuff, readIds]);
   // your threads: lessons and project conversations, newest first, with what's in each
   const threads = useMemo(() => {
     let convo = {};
@@ -168,7 +172,7 @@ export default function useProgressSummary({
         open: () => openProject(project),
       }));
     return [...ls, ...ps].sort((a, b) => b.at - a.at).slice(0, 7);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- your threads change with your lessons and projects; their actions are read as they are then
   }, [lessons, projects, progress.path]);
   // lessons that ship with Bento, findable from ⌘K and the Home ask box (they open instantly, without your AI)
   const builtins = [
@@ -214,11 +218,6 @@ export default function useProgressSummary({
         c: (REGIONS.find((r) => r.id === region) || {}).color,
       })),
     [mastery],
-  );
-  const readIds = Object.fromEntries(
-    lessons
-      .filter((l) => l.context?.ideaId && l.status === 'done' && (!l.builtin || l.touched))
-      .map((l) => [l.context.ideaId, true]),
   );
   return { builtins, mastery, readIds, skyDots, threads, today };
 }

@@ -207,6 +207,7 @@ export default function Palette({
       else out.unshift(ask);
     }
     return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the list is rebuilt as you type; its actions come from that keystroke's render
   }, [q, lessons, projects, words]);
   useEffect(() => setI(0), [q]);
   useEffect(() => {

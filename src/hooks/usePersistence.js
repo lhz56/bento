@@ -91,7 +91,7 @@ export default function usePersistence({
           });
       })
       .catch(() => {});
-  }, []);
+  }, [setLessons, setOnb, setProgress, setProjects, setSettingsRaw]);
   // a backup file brings everything back, merged with what's already here (nothing is lost on either side)
   const restoreBackup = (saved) => {
     let added = 0;
@@ -176,7 +176,7 @@ export default function usePersistence({
         else if (key === 'bento.projects' && Array.isArray(value))
           setProjects(value.filter((x) => x?.key));
       }),
-    [],
+    [cancels, setLessons, setProgress, setProjects, setSettingsRaw],
   );
   return { lessonsRef, restoreBackup, saveTrouble, setSaveTrouble };
 }

@@ -99,6 +99,7 @@ export default function Home({
         }
       })
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- suggestions are asked for once your repos arrive, not on every render
   }, [user, repos?.length]);
   const [mode, setMode] = useState('explain');
   const [q, setQ] = useState('');
@@ -107,6 +108,7 @@ export default function Home({
   const ta = useRef(null);
   useEffect(() => {
     if (user) loadRepos?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- your repos load when you sign in to GitHub
   }, [user]);
   useEffect(() => {
     const t = setInterval(() => setPh((p) => p + 1), 4200);
@@ -136,6 +138,7 @@ export default function Home({
     setTyped('');
     tm = setTimeout(step, 250);
     return () => clearTimeout(tm);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the typing animation restarts for a new placeholder or mode, not when the list is rebuilt
   }, [ph, mode, q]);
   const placeholder =
     mode === 'code'

@@ -26,12 +26,14 @@ function findRanges(q) {
   }
   return out;
 }
+// the CSS highlight API (marks matches without changing the page); older browsers just scroll to them
+const HL = typeof CSS !== 'undefined' && CSS.highlights && typeof Highlight !== 'undefined';
+
 export default function FindBar({ onClose }) {
   const [q, setQ] = useState('');
   const [at, setAt] = useState(0);
   const [hits, setHits] = useState([]);
   const box = useRef(null);
-  const HL = typeof CSS !== 'undefined' && CSS.highlights && typeof Highlight !== 'undefined';
   useEffect(() => {
     box.current?.focus();
     return () => {

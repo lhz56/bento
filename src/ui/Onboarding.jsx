@@ -112,6 +112,7 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
   };
   useEffect(() => {
     if (step === 1 && !scan && !scanning) doScan();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- looks for AIs when you reach that step
   }, [step]);
   // back from Terminal after installing something: look again by itself
   useEffect(() => {
@@ -122,6 +123,7 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
     };
     addEventListener('focus', back);
     return () => removeEventListener('focus', back);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- looks again when you come back from installing something, while on that step
   }, [step, scan, scanning]);
   const ready = (c) => scan?.[c]?.installed && scan?.[c]?.loggedIn && !scan?.[c]?.outdated;
   const readyAIs = PROVIDERS.filter((p) => ready(p.id));
@@ -185,6 +187,7 @@ export default function Onboarding({ api, settings, setSettings, onDone, startAt
     };
     addEventListener('keydown', key);
     return () => removeEventListener('keydown', key);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- these are everything finish() reads
   }, [step, pick, level, lang, interests, model, voice]);
   const teacher =
     PROVIDERS.find((p) => p.id === model.split(':')[0])?.models.find((m) => m.id === model)

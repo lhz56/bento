@@ -84,7 +84,7 @@ export default function useAgentBridge({
         }
         throw new Error(`Bento has no tool called ${tool}.`);
       }),
-    [],
+    [desk, setLinkRange, setPal, setShowSettings],
   );
   return { noteFlash, runWaits };
 }

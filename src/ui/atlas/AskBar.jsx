@@ -122,6 +122,7 @@ export function AskBar({ name, threadKey, onAsk, onQuick, onOpen, initial, onFea
         if (th.length) setThread((cur) => (cur.length ? cur : th));
       })
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the saved conversation loads when you open another project, unless one is already showing
   }, [threadKey]);
   const [opened, setOpened] = useState(null); // an earlier answer you reopened (the latest one is always open)
   const list = useRef(null);
@@ -156,6 +157,7 @@ export function AskBar({ name, threadKey, onAsk, onQuick, onOpen, initial, onFea
       askedOnce.add(initial.at);
       ask(initial.q, false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a question that brought you here is asked once, when it arrives
   }, [initial?.at]);
   useEffect(() => {
     list.current?.scrollTo({ top: list.current.scrollHeight, behavior: 'smooth' });
