@@ -1,7 +1,7 @@
+// First-time hints: a small bubble pointing at one control at a time. Shown once per screen, ever.
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { keys, tap } from '../platform.js';
 
-// First-time hints: a small bubble pointing at one control at a time. Shown once per screen, ever.
 export const TIPS = {
   lesson: [
     ['.act.run', 'Run the code, or use Step to watch it one line at a time.'],

@@ -1,7 +1,6 @@
+// What shows while a project is being brought in and taken apart.
 import { useState, useEffect } from 'react';
 import { AskedBanner } from './AskBar.jsx';
-
-// What shows while a project is being brought in and taken apart.
 
 export function AtlasLoading({ atlas, facts, onRetry, onBig, asked, onIdeaInstead }) {
   const steps = [

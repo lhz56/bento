@@ -1,7 +1,7 @@
-import { useState, useMemo, useRef } from 'react';
-
 // The plain English beside each line of code: what the lesson shipped with, written again for lines it missed,
 // and kept in step with your edits.
+import { useState, useMemo, useRef } from 'react';
+
 export default function usePlainEnglish({ code, lesson }) {
   const [pmapV, setPmapV] = useState(0);
   // ---- plain-English map: line text → English, survives edits that keep a line intact

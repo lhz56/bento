@@ -1,3 +1,5 @@
+// Tutoring commands for the open lesson (src/tutoring.js does the asking): each one writes its result into that
+// lesson, by id, so an answer that arrives after you moved on still lands in the right place.
 import { noAI } from '../ai.js';
 import { newChatId, putChatEntry } from '../lesson.js';
 import { addWord } from '../progress.js';
@@ -5,8 +7,6 @@ import { puzzleById } from '../puzzles.js';
 import { askQuickQuestion, askSecondOpinion, assessTeachBack, NO_AI_ANSWER } from '../tutoring.js';
 import { modelLabel } from '../ui/Side.jsx';
 
-// Tutoring commands for the open lesson (src/tutoring.js does the asking): each one writes its result into that
-// lesson, by id, so an answer that arrives after you moved on still lands in the right place.
 export default function useTutor({
   api,
   lesson,

@@ -1,8 +1,7 @@
+// Browsing a project's files on a phone: folders you go into, and the files in each.
 import { useState, useRef, useEffect } from 'react';
 import { LAYERS, fmtN } from '../../../atlas/analyze.js';
 import { tint, base, Head, I, Chev, FileIcon } from './kit.jsx';
-
-// Browsing a project's files on a phone: folders you go into, and the files in each.
 
 // ---------------------------------------------------------------- the code, as a code app's file browser: folders you open, a file a sheet
 export function Code({ facts, role, onOpen, name }) {

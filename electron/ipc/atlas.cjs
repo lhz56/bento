@@ -139,9 +139,8 @@ module.exports = function registerAtlas(ctx) {
     return null;
   }
   ipcMain.handle('atlas:meta', (_e, full) => repoMeta(str(full, 200)));
-  // Which files actually talk about this? A plain word search through the project's files (no AI), so a question like
-  // "where does it copy the last answer" finds the message components even when no file is called "copy".
-  // Which files actually talk about this? A plain word search (no AI), in the worker.
+  // Which files actually talk about this? A plain word search through the project's files (no AI, in the worker), so
+  // a question like "where does it copy the last answer" finds the message components even when no file is called "copy".
   ipcMain.handle('atlas:search', async (_e, root, words) => {
     root = str(root, 4096);
     if (!roots.has(root))

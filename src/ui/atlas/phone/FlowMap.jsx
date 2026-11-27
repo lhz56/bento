@@ -1,10 +1,9 @@
+// How a project works, as a tree of steps you tap through (laid out by treeLayout), with a sheet for each step.
 import { useRef, useState, useLayoutEffect, useMemo } from 'react';
 import { BY_ID } from '../../../atlas/catalog.js';
 import Brand from '../../Brand.jsx';
 import Md from '../../Md.jsx';
 import { tint, I, Chev, Sheet, Group, FileRow, base, lc } from './kit.jsx';
-
-// How a project works, as a tree of steps you tap through (laid out by treeLayout), with a sheet for each step.
 
 // the boxes in "how it works": who uses it, the app's own parts, where it keeps things, and the services outside it
 const KIND = {

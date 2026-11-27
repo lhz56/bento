@@ -1,7 +1,6 @@
-import { CATALOG, BY_ID } from '../../atlas/catalog.js';
-
 // The tools a project uses, from what the static analysis found and what the reading added, each matched to
 // its entry in the catalog (src/atlas/catalog.js).
+import { CATALOG, BY_ID } from '../../atlas/catalog.js';
 
 export const lc = (t) => (/^[A-Z][a-z]/.test(t) ? t[0].toLowerCase() + t.slice(1) : t);
 

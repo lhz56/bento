@@ -1,3 +1,7 @@
+// Where a question goes. "How does T3 Code work?" names a real project, so it opens that project's code (yours on
+// this Mac, one you opened before, or found on GitHub) and asks there; "it" and "this" mean the project you were
+// just reading; a topic Bento has a lesson for, or anything else, becomes a new lesson. finding is the search in
+// progress, choice the question shown when it's not clear which project you meant.
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../bridge.js';
 import {
@@ -8,10 +12,6 @@ import {
   decide,
 } from '../findProject.js';
 
-// Where a question goes. "How does T3 Code work?" names a real project, so it opens that project's code (yours on
-// this Mac, one you opened before, or found on GitHub) and asks there; "it" and "this" mean the project you were
-// just reading; a topic Bento has a lesson for, or anything else, becomes a new lesson. finding is the search in
-// progress, choice the question shown when it's not clear which project you meant.
 export default function useQuestionRouting({
   askLesson,
   atlasKey,

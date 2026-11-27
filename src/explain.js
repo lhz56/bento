@@ -1,3 +1,5 @@
+// Tap a word in the code and see what it is: where it's defined in this program, a built-in from the dictionary
+// (src/dict.js), or, when neither knows, a one-line answer from your AI. Answers are kept, so a word is asked about once.
 import { lookup } from './dict.js';
 import { quickPrompts, parseJSONLoose } from './lesson.js';
 

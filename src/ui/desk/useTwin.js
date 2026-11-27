@@ -1,3 +1,5 @@
+// The lesson's program in the other language (Python ⇄ JavaScript), written once by your AI and kept, with each
+// line mapped to its twin so hovering one shows the other.
 import { useState } from 'react';
 import { quickPrompts, parseJSONLoose } from '../../lesson.js';
 
@@ -10,8 +12,6 @@ export const LNAME = {
 
 export const other = (l) => (l === 'python' ? 'javascript' : 'python');
 
-// The lesson's program in the other language (Python ⇄ JavaScript), written once by your AI and kept, with each
-// line mapped to its twin so hovering one shows the other.
 export default function useTwin({
   code,
   edited,

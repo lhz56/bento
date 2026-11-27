@@ -1,3 +1,4 @@
+// A project taken apart (the Atlas), with everything it can do from there: ask, open files, make a path, go back.
 import { noAI } from '../ai.js';
 import {
   answerAboutProject,
@@ -10,7 +11,6 @@ import { TOUCH, keys } from '../platform.js';
 import Atlas from '../ui/Atlas.jsx';
 import { modelLabel } from '../ui/Side.jsx';
 
-// A project taken apart (the Atlas), with everything it can do from there: ask, open files, make a path, go back.
 export default function AtlasScreen({
   api,
   asProject,

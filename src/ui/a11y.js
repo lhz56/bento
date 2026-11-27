@@ -1,6 +1,5 @@
-import { useEffect, useRef } from 'react';
-
 // Small helpers so every part of Bento works with a keyboard and a screen reader.
+import { useEffect, useRef } from 'react';
 
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';

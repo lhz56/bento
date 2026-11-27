@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react';
-
 // A lesson with several files (a small project): which one is open, and adding, renaming and removing files.
 // projectBundle gives the runner the main file plus the others.
+import { useRef, useState } from 'react';
+
 export default function useDeskFiles({ codeRef, edited, lang, lesson, onPatch, setCode }) {
   // input(): the learner's answers so far, and a random seed kept while answering so a re-run replays the same game
   // projects: several files, one open at a time (files[0] is the one that runs)

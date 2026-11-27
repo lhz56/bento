@@ -1,3 +1,5 @@
+// A project taken apart, on a phone: the same reading as Atlas.jsx, as short chapters you scroll and tap into, with
+// a bottom sheet for each part, tool, step or hot spot. The pieces live in src/ui/atlas/phone/.
 import { useState, useMemo } from 'react';
 import { BY_ID } from '../atlas/catalog.js';
 import { fallbackFlow } from './BigPicture.jsx';

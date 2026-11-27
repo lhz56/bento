@@ -1,3 +1,4 @@
+// Take apart a website: what it is, how it reached your screen, and what it's built with.
 import { useMemo } from 'react';
 import { detectSite } from '../atlas/site.js';
 import { Toolbelt } from './atlas/Toolbelt.jsx';
@@ -5,7 +6,6 @@ import { mergeTools } from './atlas/toolModel.js';
 import BigPicture from './BigPicture.jsx';
 import Md from './Md.jsx';
 
-// Take apart a website: what it is, how it reached your screen, and what it's built with.
 const fallback = (facts, tools) => {
   const edge = tools.find((t) =>
     ['cloudflare', 'fastly', 'akamai', 'cloudfront', 'vercel', 'netlify'].includes(t.id),

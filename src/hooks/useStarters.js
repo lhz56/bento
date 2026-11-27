@@ -1,11 +1,11 @@
+// Lessons you start without typing a question: a clever idea (ready-made when it shipped with Bento), a scratch
+// pad to write your own code in (or remix a lesson's), and today's bug to fix. altFor names your other AI, which
+// writes the daily bug when the first one can't.
 import { altOf, noAI } from '../ai.js';
 import { emptyLesson, CHALLENGE } from '../lesson.js';
 import { keys } from '../platform.js';
 import { PRE, loadPrebuilt } from '../prebuilt.js';
 
-// Lessons you start without typing a question: a clever idea (ready-made when it shipped with Bento), a scratch
-// pad to write your own code in (or remix a lesson's), and today's bug to fix. altFor names your other AI, which
-// writes the daily bug when the first one can't.
 export default function useStarters({
   askLesson,
   cancels,

@@ -1,7 +1,6 @@
+// The top of a project on a phone: what it is in one line, and the numbers that describe it.
 import { fmtN } from '../../../atlas/analyze.js';
 import { short, lc, I, Group } from './kit.jsx';
-
-// The top of a project on a phone: what it is in one line, and the numbers that describe it.
 
 // ---------------------------------------------------------------- the top: the app's page in the App Store
 export function Hero({

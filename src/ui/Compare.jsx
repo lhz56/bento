@@ -1,3 +1,4 @@
+// Two apps that do similar jobs, side by side: their pictures, their tools, and how each one solves the same problem.
 import { useEffect, useMemo, useState } from 'react';
 import { t, tx } from '../i18n.js';
 import { CATS } from '../atlas/catalog.js';
@@ -6,7 +7,6 @@ import BigPicture, { fallbackFlow } from './BigPicture.jsx';
 import Brand from './Brand.jsx';
 import FEATURED from '../atlas-featured.json';
 
-// Two apps that do similar jobs, side by side: their pictures, their tools, and how each one solves the same problem.
 const QUESTIONS = [
   'How does each one start up?',
   'How does each one store its data?',

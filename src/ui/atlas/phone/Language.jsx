@@ -1,10 +1,9 @@
+// The languages a project is written in, on a phone.
 import { langColor } from '../../../atlas/analyze.js';
 import { LANGS } from '../../../atlas/catalog.js';
 import Brand from '../../Brand.jsx';
 import Md from '../../Md.jsx';
 import { Head, Group } from './kit.jsx';
-
-// The languages a project is written in, on a phone.
 
 // ---------------------------------------------------------------- the language
 export function Language({ langs, totalL, main, narration, narrating }) {

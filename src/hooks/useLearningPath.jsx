@@ -1,3 +1,6 @@
+// Paths: a series of stops toward a goal. Designing a custom path with your AI, opening a stop (a lesson that
+// continues the code of the stop before, or a playground, an idea or Explore), and finding which path the lesson
+// you're reading belongs to. trailBar is the strip that shows where you are on the path in a playground.
 import { useState, useEffect } from 'react';
 import { noAI } from '../ai.js';
 import { api } from '../bridge.js';
@@ -8,9 +11,6 @@ import { PRE, loadPrebuilt } from '../prebuilt.js';
 import { skillsFor } from '../skills.js';
 import PathBar from '../ui/PathBar.jsx';
 
-// Paths: a series of stops toward a goal. Designing a custom path with your AI, opening a stop (a lesson that
-// continues the code of the stop before, or a playground, an idea or Explore), and finding which path the lesson
-// you're reading belongs to. trailBar is the strip that shows where you are on the path in a playground.
 export default function useLearningPath({
   askLesson,
   lessons,

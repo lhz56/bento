@@ -1,11 +1,10 @@
+// The tools a project is built with, grouped by what they're for, with a card for each (what it does, when to
+// pick it, what else does the same job). Also used for a website (Site.jsx).
 import { useState, useEffect } from 'react';
 import { CATS, BY_ID } from '../../atlas/catalog.js';
 import Brand from '../Brand.jsx';
 import Md from '../Md.jsx';
 import { lc, findTool } from './toolModel.js';
-
-// The tools a project is built with, grouped by what they're for, with a card for each (what it does, when to
-// pick it, what else does the same job). Also used for a website (Site.jsx).
 
 // =====================================================================================================
 // Toolbelt: logos first. Pick one to see what it does here, why it was chosen, and what else would work.

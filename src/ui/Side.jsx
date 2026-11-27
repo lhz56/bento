@@ -1,3 +1,5 @@
+// The sidebar: New question, the five places (Learn, Explore, Practice, Path, You), what you've been doing, and the
+// footer with the AI you're using (its model picker and plan meter). On a phone or iPad, also the Mac it's using.
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { t } from '../i18n.js';
 

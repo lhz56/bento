@@ -192,4 +192,39 @@ fs.rmSync(root, { recursive: true, force: true });
     JSON.stringify(answer),
   );
 }
+// the words a question is searched for, and the files the search may return
+{
+  const { searchWords } = await import('../src/atlas/analyze.js');
+  const words = searchWords(
+    'How does a lesson get from the AI onto the screen while it is being written?',
+  );
+  check(
+    '“AI” is searched as agent, model and provider',
+    ['agent', 'model', 'provider'].every((w) => words.includes(w)),
+    words,
+  );
+  check(
+    'filler words are not searched',
+    !['onto', 'while', 'being'].some((w) => words.includes(w)),
+    words,
+  );
+  check('“being written” also looks for streaming', words.includes('stream'), words);
+  const { search } = require('../electron/atlas.cjs');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bento-search-'));
+  const write = (p, s) => {
+    fs.mkdirSync(path.dirname(path.join(dir, p)), { recursive: true });
+    fs.writeFileSync(path.join(dir, p), s);
+  };
+  write('src/stream.js', 'export function streamLesson() {}\n');
+  write('dist-web/assets/app-1234.js', 'function streamLesson(){}\n');
+  write('public/pyodide/pyodide.mjs', 'stream\n');
+  write('src/bundle.js', `${'var stream=1;'.repeat(4000)}\n`);
+  const found = search(dir, ['stream']).map((hit) => hit.p);
+  check(
+    'search skips build output, vendored and minified files',
+    found.join() === 'src/stream.js',
+    found,
+  );
+  fs.rmSync(dir, { recursive: true, force: true });
+}
 process.exit(fail ? 1 : 0);

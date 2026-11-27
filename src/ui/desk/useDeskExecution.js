@@ -1,10 +1,10 @@
+// Running the lesson's code, four ways: run it (with live output, and again as you type), trace it step by step,
+// measure how its time grows (Big-O), and run its tests. A result that arrives after you moved to another lesson is
+// dropped. A run waits for the one before it; streak and stuck notice when you keep hitting the same error.
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { run as runCode } from '../../runtime/runner.js';
 import { haptic } from '../touch.js';
 
-// Running the lesson's code, four ways: run it (with live output, and again as you type), trace it step by step,
-// measure how its time grows (Big-O), and run its tests. A result that arrives after you moved to another lesson is
-// dropped. A run waits for the one before it; streak and stuck notice when you keep hitting the same error.
 export default function useDeskExecution({
   codeRef,
   lang,

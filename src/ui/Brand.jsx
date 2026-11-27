@@ -1,3 +1,5 @@
+// Logos for the tools, services and AIs Bento names (from simple-icons), drawn as small tiles that stay readable in
+// light and dark, with a lettered tile for anything that has no logo.
 import { ICONS as SI } from '../atlas/icons.js';
 
 // Codex has no simple-icons mark: a terminal prompt (Codex is a command-line AI), in ink like the others

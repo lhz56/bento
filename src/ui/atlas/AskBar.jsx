@@ -1,12 +1,11 @@
+// Asking about a project: the conversation box (kept per project between visits) and the banner for a question
+// that brought you here from elsewhere.
 import { useState, useEffect, useRef } from 'react';
 import { fmtN } from '../../atlas/analyze.js';
 import { t } from '../../i18n.js';
 import { keys, mod } from '../../platform.js';
 import { save } from '../../store.js';
 import Md from '../Md.jsx';
-
-// Asking about a project: the conversation box (kept per project between visits) and the banner for a question
-// that brought you here from elsewhere.
 
 // Why you're here: you asked about a real project, and this is its real code (found on your Mac or on GitHub)
 const asIcon = (asked, atlas) =>

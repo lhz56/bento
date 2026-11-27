@@ -1,11 +1,11 @@
+// Your settings (AI, level, language...), saved as they change. Changing the language also sets the page's
+// language, so read-aloud picks a matching voice, and translates the interface with your own AI.
 import { useState, useEffect } from 'react';
 import { api } from '../bridge.js';
 import { setUILanguage } from '../i18n.js';
 import { parseJSONLoose } from '../lesson.js';
 import { load, save } from '../store.js';
 
-// Your settings (AI, level, language...), saved as they change. Changing the language also sets the page's
-// language, so read-aloud picks a matching voice, and translates the interface with your own AI.
 export default function useSettings() {
   const [settings, setSettingsRaw] = useState(() => ({
     model: 'claude:sonnet',

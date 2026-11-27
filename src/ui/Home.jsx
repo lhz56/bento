@@ -1,3 +1,5 @@
+// Learn, the first screen: the ask box, Today (one next step from each part of Bento), and what you've been doing.
+// A question that might be about a real project first asks which one (ProjectChoice).
 import { useEffect, useRef, useState } from 'react';
 import {
   provOf,

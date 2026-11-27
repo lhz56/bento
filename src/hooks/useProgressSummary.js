@@ -1,3 +1,6 @@
+// What you've learned, summed up for the screens that show it: how well you know each skill (mastery, and the
+// dots on the sky), Home's "Today" (one next step from each part of Bento), your threads (lessons and projects to
+// go back to), the ideas you've read, and builtins: everything Bento can open by name, for search and for routing.
 import { useMemo } from 'react';
 import { t } from '../i18n.js';
 import { IDEAS } from '../ideas.js';
@@ -8,9 +11,6 @@ import { PUZZLES } from '../puzzles.js';
 import { masteryOf, SKILLS, isFading, REGIONS } from '../skills.js';
 import { RACE_LESSONS } from './useLessons.js';
 
-// What you've learned, summed up for the screens that show it: how well you know each skill (mastery, and the
-// dots on the sky), Home's "Today" (one next step from each part of Bento), your threads (lessons and projects to
-// go back to), the ideas you've read, and builtins: everything Bento can open by name, for search and for routing.
 export default function useProgressSummary({
   goStop,
   lessons,

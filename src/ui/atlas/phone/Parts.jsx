@@ -1,10 +1,9 @@
+// A project's parts (screens, server, logic, data, support) and what each one is made of.
 import { LAYERS, fmtN, LAYER } from '../../../atlas/analyze.js';
 import Brand from '../../Brand.jsx';
 import Md from '../../Md.jsx';
 import { layerOfTool, sayOf } from './Services.jsx';
 import { tint, PART_IC, Head, I, Chev, Sheet, Group, FileRow } from './kit.jsx';
-
-// A project's parts (screens, server, logic, data, support) and what each one is made of.
 
 // ---------------------------------------------------------------- what it's made of: the kinds of part, like iPhone Storage
 export function Parts({ facts, tools, onPick }) {

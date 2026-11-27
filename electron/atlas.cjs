@@ -1080,7 +1080,7 @@ async function history({ full, base, env, onProgress }) {
 const SEARCH_CODE =
   /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|rb|java|kt|swift|c|cc|cpp|h|hpp|cs|php|vue|svelte|astro|scala|ex|exs|dart|lua|sql|sh)$/i;
 const SEARCH_NOISE =
-  /(^|\/)(__tests__|tests?|spec|specs|e2e|evals?|fixtures?|__mocks__|mocks?|testing|examples?|docs?|stories|benchmarks?|dist|build|vendor)(\/|$)|\.(test|spec|stories|d)\.[a-z]+$/i;
+  /(^|\/)(__tests__|tests?|spec|specs|e2e|evals?|fixtures?|__mocks__|mocks?|testing|examples?|docs?|stories|benchmarks?|dist[\w-]*|build|out|vendor|pyodide)(\/|$)|\.(test|spec|stories|d|min)\.[a-z]+$/i;
 function search(root, ws) {
   // every code file in the project, not just the ones Bento analysed (big projects have more than it reads)
   const all = walkAll(root)
@@ -1096,6 +1096,8 @@ function search(root, ws) {
     } catch {
       continue;
     }
+    // a bundled or minified file (very long lines) is built from other code, not written by the project
+    if (timer.length > 20000 && timer.length / (timer.split('\n').length || 1) > 400) continue;
     const name = item.toLowerCase().split('/').pop();
     let score = 0,
       kinds = 0,

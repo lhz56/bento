@@ -1,10 +1,9 @@
+// A file opened from the Atlas: its code, what it does, and the ripple (what uses it, and what that touches).
 import { useState, useMemo, useEffect } from 'react';
 import { displayName, LAYER, langColor } from '../../atlas/analyze.js';
 import Brand from '../Brand.jsx';
 import Editor from '../Editor.jsx';
 import Md from '../Md.jsx';
-
-// A file opened from the Atlas: its code, what it does, and the ripple (what uses it, and what that touches).
 
 const edLang = (l) =>
   l === 'Python' ? 'python' : l === 'TypeScript' ? 'typescript' : 'javascript';

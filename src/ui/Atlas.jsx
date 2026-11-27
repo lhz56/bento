@@ -1,3 +1,6 @@
+// A project taken apart, on a computer: one long page in sections (Overview, Anatomy, Growth, Toolbelt, Language,
+// Hot spots, Files, Study it, Help out) with the ask box at the bottom and the file drawer on the right. Each section
+// lives in src/ui/atlas/; this file lays them out and keeps the state they share. AtlasPhone.jsx is the phone version.
 import { useRef, useState, useMemo, useEffect, useLayoutEffect } from 'react';
 import { fmtN, setDupes, detectStack, measuredHotspots, guessRole } from '../atlas/analyze.js';
 import { LANGS, BY_ID, CATS } from '../atlas/catalog.js';

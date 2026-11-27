@@ -1,6 +1,6 @@
-import { t } from '../i18n.js';
 // Where you are on a path, on whatever a stop opened (a lesson, a playground, Explore): the path's name, a dot per
 // stop, and the stops either side, so following a path never leaves you stranded
+import { t } from '../i18n.js';
 export default function PathBar({ info, onPage, onStop }) {
   if (!info) return null;
   const { name, i, stops, done } = info;

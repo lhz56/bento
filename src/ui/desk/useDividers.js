@@ -1,7 +1,7 @@
+// The dividers inside the code panel: between the code and what it does (split), dragged with a mouse or a finger.
 import { useState, useRef } from 'react';
 import { haptic } from '../touch.js';
 
-// The dividers inside the code panel: between the code and what it does (split), dragged with a mouse or a finger.
 export default function useDividers() {
   const [split, setSplit] = useState(0.56);
   // ---- drag the stage divider

@@ -1,9 +1,9 @@
+// Hooks for scripts/pregen-*.mjs, which drive the real app to pre-write the lessons that ship with Bento.
 import { useEffect } from 'react';
 import { ideaById } from '../ideas.js';
 import { ALL_STOPS } from '../paths.js';
 import { PRE } from '../prebuilt.js';
 
-// Hooks for scripts/pregen-*.mjs, which drive the real app to pre-write the lessons that ship with Bento.
 export default function useScriptHooks({ askLesson, openLesson, readIdea }) {
   useEffect(() => {
     window.__openIdea = (id) => readIdea(ideaById[id]);

@@ -537,6 +537,15 @@ const STOP = new Set([
   'handles',
   'project',
   'repo',
+  'onto',
+  'while',
+  'being',
+  'been',
+  'then',
+  'also',
+  'will',
+  'happen',
+  'happens',
 ]);
 const ALSO = {
   answer: ['message', 'reply', 'response', 'assistant'],
@@ -548,6 +557,10 @@ const ALSO = {
   auth: ['auth', 'token', 'session'],
   signin: ['auth', 'login'],
   ai: ['agent', 'model', 'provider'],
+  stream: ['stream', 'chunk'],
+  streaming: ['stream', 'chunk'],
+  written: ['stream'],
+  writing: ['stream'],
   agent: ['agent', 'provider'],
   agents: ['agent', 'provider'],
   claude: ['claude', 'anthropic'],
@@ -570,11 +583,12 @@ const ALSO = {
   tests: ['test', 'spec'],
 };
 export function searchWords(question) {
+  // two-letter words only when they stand for something (ai, ui, db), through ALSO
   const ws = (
     String(question)
       .toLowerCase()
-      .match(/[a-z][a-z0-9]{2,}/g) || []
-  ).filter((w) => !STOP.has(w));
+      .match(/[a-z][a-z0-9]+/g) || []
+  ).filter((w) => !STOP.has(w) && (w.length >= 3 || ALSO[w]));
   return [
     ...new Set(
       ws.flatMap((w) => [

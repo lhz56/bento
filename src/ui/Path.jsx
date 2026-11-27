@@ -1,7 +1,7 @@
+// The path screen: pick a path (each one a small card with a dot per stop), see where it ends, follow its stops.
 import { useEffect, useState } from 'react';
 import { t, tx } from '../i18n.js';
 import { tracksWith } from '../paths.js';
-// The path screen: pick a path (each one a small card with a dot per stop), see where it ends, follow its stops.
 const KIND = {
   play: ['🧪', 'playground'],
   idea: ['⬡', 'clever idea'],

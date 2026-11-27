@@ -1,3 +1,5 @@
+// The pictures a lesson's code draws with show(): bar charts, tables, grids, trees, a canvas or a whole web page, and a
+// flipbook when it draws several in a row.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { WEB, playDoc } from '../web.js';
 

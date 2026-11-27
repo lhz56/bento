@@ -1,9 +1,9 @@
+// What's connected: the AI tools this Mac has (and whether each is signed in), your GitHub account, and
+// whether Python has finished loading in the background.
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../bridge.js';
 import { pyState, warmPython } from '../runtime/runner.js';
 
-// What's connected: the AI tools this Mac has (and whether each is signed in), your GitHub account, and
-// whether Python has finished loading in the background.
 export default function useConnections() {
   const [providers, setProviders] = useState(null);
   const providersRef = useRef(null);

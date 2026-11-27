@@ -1,13 +1,12 @@
+// The first thing you see for any repo: the whole system as one living picture.
+// Left to right: who starts things → the parts of this code → where things end up.
+// Every station has a plain name, what it does, and the real technical word for it. Click to go deeper.
 import { tap } from '../platform.js';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { BY_ID } from '../atlas/catalog.js';
 import { LAYER } from '../atlas/analyze.js';
 import Brand from './Brand.jsx';
 import Md from './Md.jsx';
-
-// The first thing you see for any repo: the whole system as one living picture.
-// Left to right: who starts things → the parts of this code → where things end up.
-// Every station has a plain name, what it does, and the real technical word for it. Click to go deeper.
 
 const KIND = {
   person: [

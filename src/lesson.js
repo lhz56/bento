@@ -1,5 +1,5 @@
-import { keys } from './platform.js';
 // Lesson model: streaming NDJSON parser, prompt builders, and the built-in lessons.
+import { keys } from './platform.js';
 
 // the model may say "py", "Python", "ts"…; keep TypeScript only if the lesson asked for it
 const langOf = (x, cur) =>

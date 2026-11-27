@@ -1,3 +1,6 @@
+// A lesson's code panel: the editor, the plain English beside each line, and what the code does (Stage.jsx) below
+// it: its output and pictures, stepping through it line by line, how its time grows, and its tests. The work lives
+// in hooks in src/ui/desk/; this file lays the panel out. LessonScreen and the agent reach it through its ref.
 import {
   forwardRef,
   useState,

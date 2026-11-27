@@ -1,8 +1,8 @@
+// How much of a lesson's width its story takes (the rest is the code), dragged by the divider between them and
+// kept for next time. It lives with the lesson, so dragging re-renders only the lesson.
 import { useEffect, useState } from 'react';
 import { load, save } from '../store.js';
 
-// How much of a lesson's width its story takes (the rest is the code), dragged by the divider between them and
-// kept for next time. It lives with the lesson, so dragging re-renders only the lesson.
 export default function useStoryWidth() {
   const [storyW, setStoryW] = useState(() => {
     const w = load('bento.storyW', 0.47);

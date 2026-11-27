@@ -1,9 +1,9 @@
+// bento:// links, from the "Open in Bento" bookmark or another app: a GitHub repo or file, any website, or a question.
+// The link listener is set up once, but always calls the newest handlers (askLesson, for one, changes with settings).
 import { useEffect, useRef } from 'react';
 import { api } from '../bridge.js';
 import { parseBlob, parseRepo, parseSite } from '../ui/Explore.jsx';
 
-// bento:// links, from the "Open in Bento" bookmark or another app: a GitHub repo or file, any website, or a question.
-// The link listener is set up once, but always calls the newest handlers (askLesson, for one, changes with settings).
 export default function useDeepLinks({ askLesson, openRepo, openRepoAt, openSite }) {
   const handlers = useRef({ askLesson, openRepo, openRepoAt, openSite });
   handlers.current = { askLesson, openRepo, openRepoAt, openSite };

@@ -1,3 +1,6 @@
+// Folds the clever ideas scripts/pregen-ideas.mjs wrote (/tmp/pregen-0..2.json) into src/ideas-prebuilt.json, the
+// ones that ship already written. A new run replaces an idea by id; what's already shipped stays.
+// node scripts/merge-ideas.mjs
 import fs from 'fs';
 const out = {};
 for (const w of [0, 1, 2]) {

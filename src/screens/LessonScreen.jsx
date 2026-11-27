@@ -1,3 +1,4 @@
+// An open lesson: the story on the left (or its own page on a phone), the code and what it does on the right.
 import { addWord } from '../progress.js';
 
 import { useStoryWidth, useTutor } from '../hooks/index.js';
@@ -6,7 +7,6 @@ import { PuzzleEnd, PuzzlePanel } from '../ui/Puzzles.jsx';
 import { modelLabel } from '../ui/Side.jsx';
 import Story from '../ui/Story.jsx';
 
-// An open lesson: the story on the left (or its own page on a phone), the code and what it does on the right.
 export default function LessonScreen({
   altFor,
   altModel,

@@ -1,7 +1,7 @@
+// ⌘/ : every shortcut on one card
 import { useDialog } from './a11y.js';
 import { keys } from '../platform.js';
 
-// ⌘/ : every shortcut on one card
 const KEYS = [
   ['⌘K', 'Search everything, ask, or paste a repo'],
   ['⌘N', 'New question'],

@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-
 // ⌘F: find words on the page. Every match is marked (the CSS highlight API: no change to the page itself), the current
 // one in orange and scrolled into view; Enter for the next, ⇧Enter for the one before, Esc to close.
+import { useEffect, useRef, useState } from 'react';
+
 function findRanges(q) {
   const out = [];
   const needle = q.toLowerCase();

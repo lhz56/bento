@@ -1,3 +1,7 @@
+// How much of each AI plan is used, the way the plan itself counts it: a ring in the sidebar for the AI you're using,
+// and one row per AI (a bar, the plan's name, when it resets, and Bento's share of today). Numbers come from the AI
+// tools themselves (Claude with each answer; ChatGPT and Copilot when asked, for free). Gemini doesn't share its
+// numbers, so its row says so and shows what Bento used instead. Reading these never uses any of a plan.
 import { useEffect, useState } from 'react';
 import { t } from '../i18n.js';
 import Brand from './Brand.jsx';
@@ -11,11 +15,6 @@ import {
   usedText,
   ageText,
 } from '../ai.js';
-
-// How much of each AI plan is used, the way the plan itself counts it: a ring in the sidebar for the AI you're using,
-// and one row per AI (a bar, the plan's name, when it resets, and Bento's share of today). Numbers come from the AI
-// tools themselves (Claude with each answer; ChatGPT and Copilot when asked, for free). Gemini doesn't share its
-// numbers, so its row says so and shows what Bento used instead. Reading these never uses any of a plan.
 
 // an AI's mark: its own logo where one exists, otherwise a letter in its colour
 export const AIMark = ({ id, size = 16 }) => {

@@ -1,9 +1,9 @@
+// Questions about whole projects: comparing two of them side by side (Compare), and asking about one project's
+// code, answered from the files that matter for the question.
 import { filesForQuestion, guessRole } from '../atlas/analyze.js';
 import { api } from '../bridge.js';
 import { FEATURED } from './useLibrary.js';
 
-// Questions about whole projects: comparing two of them side by side (Compare), and asking about one project's
-// code, answered from the files that matter for the question.
 export default function useAtlasQuestions({ askLesson, projects, setPair, setViewRaw }) {
   const compareAsk = async (atlasA, atlasB, question) => {
     const side = async (site) => {

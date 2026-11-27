@@ -1,11 +1,11 @@
+// "What's new in 0.3.2", inside Bento: that version's part of CHANGELOG.md (shipped with the app, so it works offline),
+// with the full notes on GitHub one click away.
 import { useDialog } from './a11y.js';
 import CHANGELOG from '../../CHANGELOG.md?raw';
 import { t } from '../i18n.js';
 import { notesFor as notesIn } from '../notes.js';
 const notesFor = (v) => notesIn(v, CHANGELOG);
 
-// "What's new in 0.3.2", inside Bento: that version's part of CHANGELOG.md (shipped with the app, so it works offline),
-// with the full notes on GitHub one click away.
 // **bold** and `code`, as elements (never as HTML)
 const Rich = ({ s }) =>
   String(s)

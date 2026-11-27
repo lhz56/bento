@@ -1,8 +1,8 @@
+// Keyboard shortcuts (⌘N, ⌘K, ⌘\, ⌘/ ...) and the Mac menu bar's commands, which arrive from the main process.
 import { useEffect, useRef } from 'react';
 import { api } from '../bridge.js';
 import { mod, TOUCH } from '../platform.js';
 
-// Keyboard shortcuts (⌘N, ⌘K, ⌘\, ⌘/ ...) and the Mac menu bar's commands, which arrive from the main process.
 export default function useShortcuts({
   desk,
   openFolderAtlas,

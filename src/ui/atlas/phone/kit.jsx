@@ -1,10 +1,9 @@
+// Building blocks the phone Atlas is made of: its icons, headings, grouped lists, bottom sheets and file rows,
+// and small text helpers.
 import { useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { LAYER, langColor } from '../../../atlas/analyze.js';
 import Md from '../../Md.jsx';
-
-// Building blocks the phone Atlas is made of: its icons, headings, grouped lists, bottom sheets and file rows,
-// and small text helpers.
 
 // ---------------------------------------------------------------- small pictures, drawn like the iPhone's own symbols
 const IC = {

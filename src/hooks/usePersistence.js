@@ -1,3 +1,6 @@
+// Keeping your lessons, progress, settings and projects safe. They live in browser storage with a copy on disk
+// (electron/store.cjs): this restores from the disk copy when browser storage was lost, saves as things change,
+// follows changes made on your other devices, and merges a backup file back in.
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../bridge.js';
 import { save, saveLessons } from '../store.js';
@@ -36,9 +39,6 @@ const BOOT = (() => {
   }
 })();
 
-// Keeping your lessons, progress, settings and projects safe. They live in browser storage with a copy on disk
-// (electron/store.cjs): this restores from the disk copy when browser storage was lost, saves as things change,
-// follows changes made on your other devices, and merges a backup file back in.
 export default function usePersistence({
   cancels,
   lessons,

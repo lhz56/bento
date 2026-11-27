@@ -1,3 +1,4 @@
+// ⌘K: one box to reach anything. Type a question to ask it, paste a repo to take it apart.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { IDEAS } from '../ideas.js';
 import { parseRepo, parseSite, parseBlob } from './Explore.jsx';
@@ -27,7 +28,6 @@ const plainText = (l) => {
 const around = (text, at, n) =>
   `${at > 16 ? '…' : ''}${text.slice(Math.max(0, at - 16), at + n + 40).trim()}…`;
 
-// ⌘K: one box to reach anything. Type a question to ask it, paste a repo to take it apart.
 export default function Palette({
   onOpenAt,
   onOpenSite,

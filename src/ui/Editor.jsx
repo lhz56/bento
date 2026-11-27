@@ -1,3 +1,5 @@
+// The code editor (CodeMirror): Bento's colours, the lines a lesson points at lit up, errors marked on their line,
+// and words you can tap for their meaning. It says how to leave it with a keyboard (Escape, then Tab).
 import {
   forwardRef,
   useEffect,

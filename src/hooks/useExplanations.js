@@ -1,11 +1,11 @@
+// Explanations on demand: tap a word in a lesson (onTerm), select any text and press Explain (sel,
+// explainSelection), or tap a "try" chip under the code (onTry): a change it can make itself, or one your AI makes.
+// The answer shows in the popover (pop), which closes when you click anywhere else.
 import { useState, useEffect } from 'react';
 import { api } from '../bridge.js';
 import { explainToken } from '../explain.js';
 import { parseJSONLoose } from '../lesson.js';
 
-// Explanations on demand: tap a word in a lesson (onTerm), select any text and press Explain (sel,
-// explainSelection), or tap a "try" chip under the code (onTry): a change it can make itself, or one your AI makes.
-// The answer shows in the popover (pop), which closes when you click anywhere else.
 export default function useExplanations({
   atlasKey,
   atlases,

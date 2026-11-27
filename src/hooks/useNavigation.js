@@ -1,3 +1,6 @@
+// Moving between screens. Each screen is a step in the page's history, so Back returns to the last one (Safari's
+// swipe on a phone or iPad; ⌘[ and ⌘], the mouse's side buttons and the menu on the Mac). On a phone each page
+// slides in and comes back at the spot you left it, and phoneTitle is the title in its top bar.
 import { useEffect, useRef, useLayoutEffect } from 'react';
 import { api } from '../bridge.js';
 import { t } from '../i18n.js';
@@ -6,9 +9,6 @@ import { isRoot, forgetScroll, restoreScroll, enter } from '../ui/Phone.jsx';
 import { groupOf, lastTab, GROUPS } from '../ui/Side.jsx';
 import { useTouch, STANDALONE } from '../ui/touch.js';
 
-// Moving between screens. Each screen is a step in the page's history, so Back returns to the last one (Safari's
-// swipe on a phone or iPad; ⌘[ and ⌘], the mouse's side buttons and the menu on the Mac). On a phone each page
-// slides in and comes back at the spot you left it, and phoneTitle is the title in its top bar.
 export default function useNavigation({
   atlasKey,
   atlases,

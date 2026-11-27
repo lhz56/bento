@@ -1,3 +1,5 @@
+// The one door between Bento's page and the Mac: window.bento, a fixed list of calls the page may make to the main
+// process (electron/main.cjs and electron/ipc/). The page can't reach Node or the file system any other way.
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 // Every call to the main process. Its errors arrive as "Error invoking remote method 'x': Error: what happened": the page

@@ -1,3 +1,5 @@
+// Explore: take apart any app. Search open source, paste a GitHub link or any website, or pick from shelves of
+// popular projects, and see the projects you opened before.
 import { useEffect, useRef, useState } from 'react';
 import Icon from './Icons.jsx';
 import { TOUCH } from '../platform.js';

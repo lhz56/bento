@@ -1,6 +1,5 @@
-import { useMemo, useState } from 'react';
-
 // The code detective: a small mystery about the project, solved by reading its real files.
+import { useMemo, useState } from 'react';
 
 // =====================================================================================================
 // Code detective: read the top of a real file and guess its job. Reading code is a skill; this makes it a game.

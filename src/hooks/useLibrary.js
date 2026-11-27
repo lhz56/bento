@@ -1,3 +1,5 @@
+// Everything about bringing code in from outside: GitHub repos and local folders (the Atlas),
+// websites, the Projects list, and the narration that explains them. App.jsx just uses the results.
 import { useEffect, useRef, useState } from 'react';
 import { ndjsonParser } from '../lesson.js';
 import {
@@ -14,8 +16,6 @@ import FEATURED from '../atlas-featured.json';
 import { altOf } from '../ai.js';
 export { FEATURED };
 
-// Everything about bringing code in from outside: GitHub repos and local folders (the Atlas),
-// websites, the Projects list, and the narration that explains them. App.jsx just uses the results.
 export default function useLibrary({
   api,
   settings,

@@ -1,3 +1,6 @@
+// The repo as a little isometric city.
+// District = layer, building = file (height = how much code), roof = language,
+// floating medallions above = outside services. Words only appear when you point at something.
 import { TOUCH } from '../platform.js';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { BY_ID } from '../atlas/catalog.js';
@@ -5,10 +8,6 @@ import { ICONS } from '../atlas/icons.js';
 import { LAYERS, LAYER, displayName, heat, langColor } from '../atlas/analyze.js';
 import Md from './Md.jsx';
 import { pressable } from './a11y.js';
-
-// The repo as a little isometric city.
-// District = layer, building = file (height = how much code), roof = language,
-// floating medallions above = outside services. Words only appear when you point at something.
 
 const GLYPH = { ui: '◐', server: '⇄', logic: '✺', data: '◫', support: '⚙' };
 const C30 = 0.866,

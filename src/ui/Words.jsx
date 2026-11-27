@@ -1,9 +1,9 @@
+// Every technical word a lesson introduced, collected in one place. Review them like flashcards.
+// Spaced repetition, the simple way: "got it" doubles the gap before a word comes back, "again" resets it.
 import { tap } from '../platform.js';
 import { useMemo, useState } from 'react';
 import { t, tx } from '../i18n.js';
 
-// Every technical word a lesson introduced, collected in one place. Review them like flashcards.
-// Spaced repetition, the simple way: "got it" doubles the gap before a word comes back, "again" resets it.
 const DAY = 864e5;
 const due = (w) => !w.next || w.next <= Date.now();
 

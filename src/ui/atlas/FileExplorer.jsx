@@ -1,7 +1,6 @@
+// Browsing a project's files: a treemap (each file's area is its size) or a list grouped by folder.
 import { useRef, useState, useEffect } from 'react';
 import { LAYERS, LAYER } from '../../atlas/analyze.js';
-
-// Browsing a project's files: a treemap (each file's area is its size) or a list grouped by folder.
 
 // Squarified treemap: folders are blocks, files are tiles sized by lines of code, coloured by layer.
 function squarify(items, x, y, w, h) {

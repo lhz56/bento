@@ -11,6 +11,9 @@ Thanks for helping people learn how software works.
   what it needs as named arguments and returns what the screens use. A new group of IPC handlers is a module in `electron/ipc/` that exports `register(ctx)`. A
   new screen is a component in `src/screens/`, with its own styles in `src/styles/app/` (added to `index.css` in
   cascade order).
+- **Every file opens with what it's for**: a comment on its first lines, in plain words, before the imports
+  (`npm test` checks). Someone reading the top of a file, or Bento taking apart this project, should know whether
+  it's the one they want.
 - **Types live in JSDoc** (`/** @param {string} q */`), checked by `npm run typecheck`. New non-component modules
   must pass it.
 - See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#code-layout) for where things live.

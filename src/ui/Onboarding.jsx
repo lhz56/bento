@@ -1,3 +1,5 @@
+// First run: say what Bento is, find the AI subscriptions already on this Mac, learn a little about the person.
+// Nothing gets installed or signed in for them; we only look, and show the exact command when something is missing.
 import { useEffect, useState } from 'react';
 import Brand from './Brand.jsx';
 import { PROVIDERS, GITHUB } from '../ai.js';
@@ -5,9 +7,6 @@ import { PROVIDERS, GITHUB } from '../ai.js';
 const WIN =
   typeof navigator !== 'undefined' && /Win/.test(navigator.platform || navigator.userAgent || '');
 const SHELL = WIN ? 'PowerShell' : 'Terminal';
-
-// First run: say what Bento is, find the AI subscriptions already on this Mac, learn a little about the person.
-// Nothing gets installed or signed in for them; we only look, and show the exact command when something is missing.
 
 // Every AI Bento can teach with (electron/ai-catalog.json), then GitHub. Install commands that work on this Mac:
 // Homebrew or npm when you have them (scan.tools says which); Claude Code's own installer needs nothing else.

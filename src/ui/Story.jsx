@@ -1,3 +1,5 @@
+// A lesson's story: its text, pictures and quizzes as they stream in, the chat under it (quick questions, a second
+// opinion, explaining it back), what to learn next, and the lesson's own buttons (simpler, deeper, practise, export).
 import { IDEAS } from '../ideas.js';
 import Md from './Md.jsx';
 import { haptic } from './touch.js';

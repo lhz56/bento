@@ -1,3 +1,6 @@
+// What a lesson's code does, under the editor: what it printed and drew, a guess before you run it, stepping through
+// it line by line (with a movie of lists and pointers), how its time grows as the input gets bigger, and help when
+// you keep hitting the same error.
 import { useEffect, useMemo, useState } from 'react';
 import { t } from '../i18n.js';
 import { Visual, Visuals } from './Viz.jsx';

@@ -1,8 +1,7 @@
+// The code city on a phone: a card that opens the full city.
 import { useRef, useState, useLayoutEffect, useEffect } from 'react';
 import City from '../../City.jsx';
 import { I, Head, onTop } from './kit.jsx';
-
-// The code city on a phone: a card that opens the full city.
 
 // ---------------------------------------------------------------- where the plain-words part ends and the technical side begins
 export function Chapter() {

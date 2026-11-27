@@ -1,7 +1,6 @@
+// What to learn from a project, on a phone.
 import { useState } from 'react';
 import { Head, I, Group, FileRow, Chev } from './kit.jsx';
-
-// What to learn from a project, on a phone.
 
 // ---------------------------------------------------------------- learning from it
 export function Learn({

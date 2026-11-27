@@ -1,3 +1,5 @@
+// ⌘, : everything you can change, in one calm sheet.
+// (on a phone or iPad, what only the Mac can do stays in the Mac's own Settings)
 import { useEffect, useState } from 'react';
 import { t } from '../i18n.js';
 import { Seg } from './Home.jsx';
@@ -7,8 +9,6 @@ import { useDialog } from './a11y.js';
 import { agentCommand } from '../agent.js';
 import DevicesRow, { ThisDeviceRow } from './Devices.jsx';
 
-// ⌘, : everything you can change, in one calm sheet.
-// (on a phone or iPad, what only the Mac can do stays in the Mac's own Settings)
 const REMOTE = !!window.bentoRemote;
 const VOICES = [
   'English',

@@ -1,3 +1,5 @@
+// Clever ideas: the tricks behind famous software, one card each, with today's pick on top and races (the same job
+// done two ways, timed). Most ship already written, so they open at once with no AI.
 import { useState } from 'react';
 import { t, tx } from '../i18n.js';
 import { IDEAS, THEMES } from '../ideas.js';

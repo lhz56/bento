@@ -1,3 +1,5 @@
+// Bento's app: the state every screen shares (from the hooks in src/hooks/) and which screen is showing. The work
+// happens in the hooks and the screens; this file wires them together.
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { noAI } from './ai.js';

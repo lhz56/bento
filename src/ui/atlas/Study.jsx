@@ -1,8 +1,7 @@
+// Studying a project: ways to learn from it, from a guided read to building a mini version.
 import { useState } from 'react';
 import { Detective } from './Detective.jsx';
 import Md from '../Md.jsx';
-
-// Studying a project: ways to learn from it, from a guided read to building a mini version.
 
 export function Study({
   facts,

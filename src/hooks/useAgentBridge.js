@@ -1,9 +1,9 @@
+// Your own AI agent uses Bento (electron/agent.cjs). Its tool calls arrive here: show its lesson, say what's on
+// screen, point at lines, run code. Answers are words for it. noteFlash is a note it just pinned, shown open.
 import { useState, useRef, useEffect } from 'react';
 import { describeView, lessonFromAgent, describeRun, agentName } from '../agent.js';
 import { api } from '../bridge.js';
 
-// Your own AI agent uses Bento (electron/agent.cjs). Its tool calls arrive here: show its lesson, say what's on
-// screen, point at lines, run code. Answers are words for it. noteFlash is a note it just pinned, shown open.
 export default function useAgentBridge({
   atlasKey,
   current,

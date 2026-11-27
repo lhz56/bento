@@ -1,3 +1,8 @@
+// The lesson you're reading and how lessons come to be: opening one (a saved lesson, a simulation, a puzzle),
+// asking your AI for a new one, and the points you earn as you learn. A new lesson streams in while your AI is still
+// writing it: each line of its reply is one block (NDJSON), which ndjsonParser reads and applyBlock (src/lesson.js)
+// adds to the lesson, so the screen shows every paragraph, the code and the quiz as they arrive.
+// If your AI can't answer (a usage limit, signed out), askLesson quietly asks your other one when that's on.
 import { useState, useMemo, useCallback } from 'react';
 import { altOf } from '../ai.js';
 import { api } from '../bridge.js';
@@ -25,9 +30,6 @@ export const RACE_LESSONS = RACES.map((r) => ({
   race: true,
 }));
 
-// The lesson you're reading and how lessons come to be: opening one (a saved lesson, a simulation, a puzzle),
-// asking your AI for a new one and streaming it in block by block, and the points you earn as you learn.
-// If your AI can't answer (a usage limit, signed out), askLesson quietly asks your other one when that's on.
 export default function useLessons({
   cancels,
   desk,

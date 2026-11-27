@@ -1,10 +1,10 @@
+// Drag a folder, a code file or a shared lesson onto the window: a folder opens as a project, a lesson file opens
+// as that lesson, and a code file becomes a lesson that explains it. dropping is true while something is held over.
 import { useState, useEffect } from 'react';
 import { api } from '../bridge.js';
 import { emptyLesson } from '../lesson.js';
 import { cleanErr } from '../store.js';
 
-// Drag a folder, a code file or a shared lesson onto the window: a folder opens as a project, a lesson file opens
-// as that lesson, and a code file becomes a lesson that explains it. dropping is true while something is held over.
 export default function useFileDrop({
   askLesson,
   openAtlas,
