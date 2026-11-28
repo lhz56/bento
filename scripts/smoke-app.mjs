@@ -387,27 +387,42 @@ await step('a featured project stays on screen once it’s open', async () => {
 });
 // your own AI agent (electron/agent.cjs): this very app started with --mcp, the way Claude Code or Codex starts it
 await step('an AI agent can use Bento: --mcp answers, shows its lesson and runs it', async () => {
-  const c = spawn(exe, [...(packaged ? [] : [root]), '--mcp'], {
-    env,
-    stdio: ['pipe', 'pipe', 'ignore'],
-  });
+  // the same switches as the window above (on Linux CI, --no-sandbox)
+  const c = spawn(exe, [...args, '--mcp'], { env, stdio: ['pipe', 'pipe', 'pipe'] });
   let buf = '',
-    n = 0;
+    n = 0,
+    said = '';
   const w = new Map();
   c.stdout.setEncoding('utf8');
   c.stdout.on('data', (d) => {
     buf += d;
     let i;
     while ((i = buf.indexOf('\n')) >= 0) {
-      const m = JSON.parse(buf.slice(0, i));
+      const line = buf.slice(0, i).trim();
       buf = buf.slice(i + 1);
+      // MCP clients skip what isn't a message (Electron can print a blank line on Windows); so does this one
+      let m;
+      try {
+        m = JSON.parse(line);
+      } catch {
+        if (line) said += line + '\n';
+        continue;
+      }
       w.get(m.id)?.(m);
     }
   });
+  c.stderr.setEncoding('utf8');
+  c.stderr.on('data', (d) => (said = (said + d).slice(-600)));
   const rpc = (method, params) =>
     new Promise((res, rej) => {
       const id = ++n;
-      const t = setTimeout(() => rej(new Error(`${method}: no answer`)), 60000);
+      const t = setTimeout(
+        () =>
+          rej(
+            new Error(`${method}: no answer${said ? ` · ${said.trim().split('\n').pop()}` : ''}`),
+          ),
+        60000,
+      );
       w.set(id, (m) => {
         clearTimeout(t);
         res(m);
