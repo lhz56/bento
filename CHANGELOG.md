@@ -3,6 +3,17 @@
 Each version's section becomes its GitHub release notes, which is what "What's new" in the sidebar opens.
 Write for learners, not for developers.
 
+## 0.3.3
+
+- **Sharper answers about a project.** Ask how something in a project works and Bento now reads the right files: questions about "the AI" find the code that talks to it, filler words no longer crowd the search, and built or minified copies of the code no longer push the real source aside.
+- **A truer Atlas.** A project's toolbelt lists only the tools it really uses. Sample code inside its tests no longer counts. Projects you took apart before are read again, once, to pick this up.
+- Two quick questions in a lesson that are answered out of order both keep their answers.
+- A trace, a speed measurement or a test run that finishes after you've moved to another lesson stays with the lesson it came from, and doesn't count toward the new one.
+- Your edits to a lesson's code are saved once you pause, not on every key you press.
+- The reading tour and the file drawer show code names as code, not with backticks around them.
+- Bento's words follow the AI you use now, and `bento://` links open with your current settings.
+- **Bento in your browser**: [takeitapart.app/try](https://takeitapart.app/try) runs the lessons that come with Bento, with nothing to install.
+
 ## 0.3.2
 
 - **A friendlier first minute.** Bento looks for your AI and says what it found ("Found Claude. You're ready.") instead of showing a wall of install buttons; the others fold into "Add another AI". The last step suggests where to start for you, and Enter moves you along.

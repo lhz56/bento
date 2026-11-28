@@ -1,4 +1,4 @@
-// "What's new in 0.3.2", inside Bento: that version's part of CHANGELOG.md (shipped with the app, so it works offline),
+// "What's new in 0.3.x", inside Bento: that version's part of CHANGELOG.md (shipped with the app, so it works offline),
 // with the full notes on GitHub one click away.
 import { useDialog } from './a11y.js';
 import CHANGELOG from '../../CHANGELOG.md?raw';

@@ -14,7 +14,7 @@ body:
     attributes:
       label: Bento version
       description: Bento → About Bento, or Settings.
-      placeholder: '0.3.2'
+      placeholder: '0.3.3'
   - type: dropdown
     id: ai
     attributes:
